@@ -993,7 +993,11 @@ int main(int argc, char *argv[])
 
     switch (commandLineParserResult) {
     case GlobalCommandLineParser::NormalStartRequested:
+#ifdef CONSOLE_UI
+        initialView = "qrc:/gui/console/ConsoleHome.qml";
+#else
         initialView = "qrc:/gui/PcView.qml";
+#endif
         break;
     case GlobalCommandLineParser::StreamRequested:
         {
