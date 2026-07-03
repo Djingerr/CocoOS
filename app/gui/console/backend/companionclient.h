@@ -25,6 +25,11 @@
 #include <QVariant>
 #include <QJsonArray>
 #include <QSharedPointer>
+// QSslError doit être COMPLET (pas seulement forward-déclaré) : il apparaît dans
+// la signature du slot onSslErrors(QList<QSslError>) et le MOC (Qt6) génère un
+// QMetaType pour chaque type d'argument → type incomplet = échec de compilation
+// de moc_companionclient.cpp.
+#include <QSslError>
 
 #include <qmdnsengine/server.h>
 #include <qmdnsengine/browser.h>
@@ -34,7 +39,6 @@
 class QNetworkAccessManager;
 class QNetworkRequest;
 class QNetworkReply;
-class QSslError;
 class QWebSocket;
 class QTimer;
 

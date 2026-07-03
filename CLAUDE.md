@@ -84,8 +84,9 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   `app/gui/console/backend/companionclient.{h,cpp}`, compilé en build **`embedded` seulement**
   (singleton QML `CompanionClient` ; coutures isolées dans `app.pro` + `main.cpp`, build
   vanilla intact). Consomme la **Companion API** du repo HostCompanion
-  (`../HostCompanion/docs/protocol.md`). **Tranches 1+2+3 codées mais PAS encore compilées**
-  (build Fedora requis ; `git submodule update --init` d'abord) :
+  (`../HostCompanion/docs/protocol.md`). **Tranches 1+2+3 codées ET compilées** (build
+  `embedded` Fedora OK le 2026-07-03 — a nécessité `qt6-qtwebsockets-devel` + un fix MOC,
+  cf §11 ; submodules déjà checkout) :
   - T1 : découverte mDNS `_hostcompanion._tcp` (calquée sur ComputerManager), `GET /v1/info`
     (pin **TOFU** du SHA-256 du cert), appairage par **code à 6 chiffres** (le HOST l'affiche,
     la console le SAISIT — décision 2026-06-28), token persisté en QSettings.
@@ -97,10 +98,15 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     maj éventuel → `READY` → ALORS `StreamSegue` (mapping app↔gameId par nom). **Repli direct**
     (`directLaunch`) si Companion absent/jeu inconnu. PIN Moonlight **auto-soumis** à Apollo une
     fois le Companion appairé (`submitMoonlightPin` → §6.4), `PairingOverlay` Moonlight masqué dans
-    ce cas. ⚠️ **À VALIDER VISUELLEMENT** sur Fedora (jamais compilé/lancé) : focus manette, état
-    de l'overlay, mapping ; `mediaUrl()` non câblé sur l'`Image` (auth Bearer, cf §9 C).
-- **Tâche en cours** : compiler/valider T1→T3 sur Fedora ; mode kiosk (boot direct, §9 6c) +
-  auto-accept du pairing côté host (installeur, §9 6b).
+    ce cas. ✅ **Compile + démarre sans erreur QML** (smoke-test offscreen, 2026-07-03) :
+    `ConsoleHome` charge, le singleton `CompanionClient` s'enregistre, la découverte mDNS
+    `_hostcompanion._tcp` tourne (aucun warning QML issu de `app/gui/console/`). ⚠️ **Reste à
+    valider À LA MANETTE contre un HostCompanion réellement en marche** (l'E2E n'a jamais tourné :
+    le daemon n'était pas lancé côté PC) : focus manette des overlays, progression de maj,
+    mapping app↔gameId ; `mediaUrl()` non câblé sur l'`Image` (auth Bearer, cf §9 C).
+- **Tâche en cours** : compile T1→T3 ✅ (2026-07-03, smoke-test offscreen OK) ; reste la
+  **validation E2E à la manette** contre un HostCompanion réel (jamais éprouvé en face), le
+  mode kiosk (boot direct, §9 6c) et l'auto-accept du pairing côté host (installeur, §9 6b).
 
 ---
 
@@ -272,8 +278,9 @@ aucun dialog upstream) ✅, 6c (kiosk) ⏳ hors repo.
 > (`../HostCompanion/CLAUDE.md §4`). **La tranche 3 de `CompanionClient` a recâblé ce lancement**
 > (cf §2) : quand le Companion est appairé+connecté, Play fait `POST /v1/launch` → `READY` →
 > `StreamSegue` (et gère « maj AVANT stream »). `directLaunch` reste le **repli** si le Companion
-> est absent. ⚠️ Tout T3 est **codé mais pas encore compilé/validé** (build Fedora) — tant que ce
-> n'est pas vérifié à la manette, considérer le chemin Companion comme non éprouvé.
+> est absent. ✅ T3 **compile et démarre** (2026-07-03) mais l'E2E n'a **jamais tourné contre un
+> HostCompanion en marche** — tant que ce n'est pas vérifié à la manette, considérer le chemin
+> Companion comme fonctionnel-mais-non-éprouvé.
 
 Fronts ouverts, par priorité :
 
@@ -328,6 +335,26 @@ qmake6 "CONFIG+=embedded" moonlight-qt.pro && make release -j$(nproc) && ./app/m
 
 L'app doit démarrer directement sur `ConsoleHome`. Un `qmake6` sans `embedded` doit
 produire le Moonlight vanilla intact.
+
+### Dépendance de build `embedded` : QtWebSockets
+
+Le build `embedded` ajoute `QT += websockets` (WebSocket `/v1/events` du `CompanionClient`).
+Sur Fedora, installer **`qt6-qtwebsockets-devel`** (`sudo dnf install -y qt6-qtwebsockets-devel`).
+La lib runtime seule (`qt6-qtwebsockets`) ne suffit pas : sans le `-devel` il manque les
+en-têtes, le symlink `libQt6WebSockets.so` et le module qmake `qt_lib_websockets.pri`, et
+`qmake6` échoue (`Unknown module(s) in QT: websockets`). Le build vanilla n'en a pas besoin
+(module dans le scope `embedded` uniquement).
+
+### Piège MOC : les types d'arguments de slots/signaux doivent être COMPLETS (Qt6)
+
+En Qt6, le MOC génère un `QMetaType` pour chaque type d'argument de signal/slot. Un type
+seulement **forward-déclaré** (`class Foo;`) qui apparaît dans une signature — même en
+`const QList<Foo>&` — fait échouer `moc_*.cpp` : `invalid use of incomplete type 'class Foo'`
+(+ erreurs `has_ostream_operator<QDebug, Foo, void>`). Vécu au premier build de `CompanionClient`
+sur `onSslErrors(QNetworkReply*, const QList<QSslError>&)` : il a fallu **`#include <QSslError>`**
+dans le header au lieu du forward-declare. Règle : tout type figurant dans une signature d'un
+`Q_OBJECT` doit être inclus complètement dans le header (seuls les pointeurs `Foo*` tolèrent le
+forward-declare).
 
 ### Piège qmake `subdirs` (à connaître)
 
