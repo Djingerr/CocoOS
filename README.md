@@ -1,114 +1,166 @@
-# Moonlight PC
+<div align="center">
 
-[Moonlight PC](https://moonlight-stream.org) is an open source PC client for NVIDIA GameStream and [Sunshine](https://github.com/LizardByte/Sunshine).
+# 🎮 CocoOS
 
-Moonlight also has mobile versions for [Android](https://github.com/moonlight-stream/moonlight-android) and [iOS](https://github.com/moonlight-stream/moonlight-ios).
+**Une console de jeu portable qui ne fait pas tourner les jeux — elle les _streame_.**
 
-You can follow development on our [Discord server](https://moonlight-stream.org/discord) and help translate Moonlight into your language on [Weblate](https://hosted.weblate.org/projects/moonlight/moonlight-qt/).
+_Vous allumez, vous jouez. Aucun menu, aucun bureau, aucune friction._
 
- [![Build](https://img.shields.io/github/actions/workflow/status/moonlight-stream/moonlight-qt/build.yml?branch=master)](https://github.com/moonlight-stream/moonlight-qt/actions/workflows/build.yml?query=branch%3Amaster)
- [![Downloads](https://img.shields.io/github/downloads/moonlight-stream/moonlight-qt/total)](https://github.com/moonlight-stream/moonlight-qt/releases)
- [![Translation Status](https://hosted.weblate.org/widgets/moonlight/-/moonlight-qt/svg-badge.svg)](https://hosted.weblate.org/projects/moonlight/moonlight-qt/)
+[![Basé sur Moonlight](https://img.shields.io/badge/bas%C3%A9%20sur-Moonlight-5b8def)](https://github.com/moonlight-stream/moonlight-qt)
+[![Licence GPLv3](https://img.shields.io/badge/licence-GPLv3-blue)](LICENSE)
+![Statut](https://img.shields.io/badge/statut-prototype-f2802a)
+![Cible](https://img.shields.io/badge/cible-RK3588S%20/%20Orange%20Pi%205B-333)
+![Qt](https://img.shields.io/badge/Qt-6-41cd52)
 
-## Features
- - Hardware accelerated video decoding on Windows, Mac, and Linux
- - H.264, HEVC, and AV1 codec support (AV1 requires Sunshine and a supported host GPU)
- - YUV 4:4:4 support (Sunshine only)
- - HDR streaming support
- - 7.1 surround sound audio support
- - 10-point multitouch support (Sunshine only)
- - Gamepad support with force feedback and motion controls for up to 16 players
- - Support for both pointer capture (for games) and direct mouse control (for remote desktop)
- - Support for passing system-wide keyboard shortcuts like Alt+Tab to the host
- 
-## Downloads
-- [Windows, macOS, and Steam Link](https://github.com/moonlight-stream/moonlight-qt/releases)
-- [Snap (for Ubuntu-based Linux distros)](https://snapcraft.io/moonlight)
-- [Flatpak (for other Linux distros)](https://flathub.org/apps/details/com.moonlight_stream.Moonlight)
-- [AppImage](https://github.com/moonlight-stream/moonlight-qt/releases)
-- [Raspberry Pi 4 and 5](https://github.com/moonlight-stream/moonlight-docs/wiki/Installing-Moonlight-Qt-on-Raspberry-Pi-4)
-- [Generic ARM 32-bit and 64-bit Debian packages](https://github.com/moonlight-stream/moonlight-docs/wiki/Installing-Moonlight-Qt-on-ARM%E2%80%90based-Single-Board-Computers) (not for Raspberry Pi)
-- [Experimental RISC-V Debian packages](https://github.com/moonlight-stream/moonlight-docs/wiki/Installing-Moonlight-Qt-on-RISC%E2%80%90V-Single-Board-Computers)
-- [NVIDIA Jetson and Nintendo Switch (Ubuntu L4T)](https://github.com/moonlight-stream/moonlight-docs/wiki/Installing-Moonlight-Qt-on-Linux4Tegra-(L4T)-Ubuntu)
+</div>
 
-### Nightly Builds
-- [Downloads](https://nightly.link/moonlight-stream/moonlight-qt/workflows/build/master)
+---
 
-#### Special Thanks
+**CocoOS** transforme un petit SoC ARM en **console de streaming de jeux vidéo**. Les jeux — même
+les AAA gourmands — tournent sur votre **PC** ; la console, elle, se contente de **décoder le flux,
+l'afficher et transmettre la manette**. Résultat : jouer à des jeux lourds sur un appareil léger, à
+bonne autonomie, dès qu'on a une bonne connexion.
 
-[![Hosted By: Cloudsmith](https://img.shields.io/badge/OSS%20hosting%20by-cloudsmith-blue?logo=cloudsmith&style=flat-square)](https://cloudsmith.com)
+C'est un **fork de [moonlight-qt](https://github.com/moonlight-stream/moonlight-qt)** : on ne
+réécrit pas le streaming, **on l'habille**. Tout le moteur éprouvé de Moonlight (décodage matériel,
+réseau, manette) est conservé intact ; CocoOS ajoute une **couche console** — interface « Big
+Picture » maison, démarrage direct, appairage invisible.
 
-Hosting for Moonlight's Debian and L4T package repositories is graciously provided for free by [Cloudsmith](https://cloudsmith.com).
+## ✨ Le principe directeur : zéro friction
 
-## Building
+L'expérience doit être aussi proche que possible d'une **vraie console**, pour un novice comme pour
+un expert :
 
-### Windows Build Requirements
-* Qt 6.7 SDK or later (earlier versions may work but are not officially supported)
-* [Visual Studio 2022](https://visualstudio.microsoft.com/downloads/) (Community edition is fine)
-* Select **MSVC** option during Qt installation. MinGW is not supported.
-* [7-Zip](https://www.7-zip.org/) (only if building installers for non-development PCs)
-* Graphics Tools (only if running debug builds)
-  * Install "Graphics Tools" in the Optional Features page of the Windows Settings app.
-  * Alternatively, run `dism /online /add-capability /capabilityname:Tools.Graphics.DirectX~~~~0.0.1.0` and reboot.
+- 🚫 **Aucun menu Linux, aucune fenêtre, aucun bureau.** Jamais.
+- ⚡ Au démarrage, la console **boote directement** sur l'interface de jeux et **se connecte toute
+  seule** au PC.
+- 🤝 L'**appairage est invisible** (code affiché sur le PC ou auto-accepté) — pas d'IP ni de réglage
+  réseau à voir.
+- 🕹️ **100 % navigable à la manette.** « J'allume, je joue. »
 
-### macOS Build Requirements
-* Qt 6.7 SDK or later (earlier versions may work but are not officially supported)
-* Xcode 14 or later (earlier versions may work but are not officially supported)
-* [create-dmg](https://github.com/sindresorhus/create-dmg) (only if building DMGs for use on non-development Macs)
+## 🧩 Comment ça marche
 
-### Linux/Unix Build Requirements
-* Qt 6 is recommended, but Qt 5.12 or later is also supported (replace `qmake6` with `qmake` when using Qt 5).
-* GCC or Clang
-* FFmpeg 4.0 or later
-* Install the required packages:
-  * Debian/Ubuntu:
-    * Base Requirements: `libegl1-mesa-dev libgl1-mesa-dev libopus-dev libsdl2-dev libsdl2-ttf-dev libssl-dev libavcodec-dev libavformat-dev libswscale-dev libva-dev libvdpau-dev libxkbcommon-dev wayland-protocols libdrm-dev`
-    * Qt 6 (Recommended): `qt6-base-dev qt6-declarative-dev libqt6svg6-dev qt6-wayland qml6-module-qtquick-controls qml6-module-qtquick-templates qml6-module-qtquick-layouts qml6-module-qtqml-workerscript qml6-module-qtquick-window qml6-module-qtquick`
-    * Qt 5: `qtbase5-dev qt5-qmake qtdeclarative5-dev qtquickcontrols2-5-dev qml-module-qtquick-controls2 qml-module-qtquick-layouts qml-module-qtquick-window2 qml-module-qtquick2 qtwayland5`
-  * RedHat/Fedora (RPM Fusion repo required):
-    * Base Requirements: `openssl-devel SDL2-devel SDL2_ttf-devel ffmpeg-devel libva-devel libvdpau-devel opus-devel pulseaudio-libs-devel alsa-lib-devel libdrm-devel`
-    * Qt 6 (Recommended): `qt6-qtsvg-devel qt6-qtdeclarative-devel`
-    * Qt 5: `qt5-qtsvg-devel qt5-qtquickcontrols2-devel`
-* Building the Vulkan renderer requires a `libplacebo-dev`/`libplacebo-devel` version of at least v7.349.0 and FFmpeg 6.1 or later.
+```
+  PC HOST  (le muscle)                                  CocoOS  (le client léger)
+  ┌───────────────────────────┐                        ┌───────────────────────────┐
+  │ Apollo / Sunshine         │   flux vidéo H.264 /   │ décodage matériel         │
+  │ Playnite (bibliothèque)   │ ───── HEVC / AV1 ────► │ affichage plein écran     │
+  │ vos jeux Steam/Epic/GOG   │                        │ manette (RP2040 + Hall)   │
+  │ rendu 3D + encodage       │ ◄──── entrées manette  │ RK3588S, ~5 W             │
+  └───────────────────────────┘                        └───────────────────────────┘
+          Wi-Fi 6   ·   5G (à venir)   ·   Tailscale (traversée du NAT)
+```
 
-### Steam Link Build Requirements
-* [Steam Link SDK](https://github.com/ValveSoftware/steamlink-sdk) cloned on your build system
-* STEAMLINK_SDK_PATH environment variable set to the Steam Link SDK path
+Le PC fait le rendu 3D et encode ; CocoOS décode et affiche. La latence typique (~20–60 ms sur bon
+réseau) est excellente pour les AAA solo.
 
-**Steam Link Hardware Limitations**  
-Moonlight builds for Steam Link are subject to hardware limitations of the Steam Link device:
-* Maximum resolution: **1080p (1920x1080)**
-* Maximum framerate: **60 FPS**
-* Maximum video bitrate: **40 Mbps**
-* **HDR streaming is not supported** on the original hardware
+## 🖥️ L'interface console
 
-### Docker containers
-If you want to use Docker for building, look at [this repo](https://github.com/cgutman/moonlight-packaging) containing canonical containers
-for different architectures, which handle building deps and extra linking for you.
+Une interface **« Big Picture »** maison (façon Steam), sombre et immersive, pensée **manette
+d'abord**. Elle vit dans son propre dossier isolé `app/gui/console/` pour ne jamais diverger du
+moteur Moonlight :
 
-### Build Setup Steps
-1. Install the latest Qt SDK (and optionally, the Qt Creator IDE) from https://www.qt.io/download
-    * You can install Qt via Homebrew on macOS, but you will need to use `brew install qt --with-debug` to be able to create debug builds of Moonlight.
-    * You may also use your Linux distro's package manager for the Qt SDK as long as the packages are Qt 5.12 or later.
-    * This step is not required for building on Steam Link, because the Steam Link SDK includes Qt 5.14.
-2. Download submodules and dependencies
-    * Run `git submodule update --init --recursive` from within `moonlight-qt/`.
-    * On Windows and macOS, you must also run `setup-deps.ps1` (Windows) or `setup-deps.py` (macOS).
-    * Perform these steps each time you pull new changes from the Git repository.
-3. Open the project in Qt Creator or build from qmake on the command line.
-    * To build a binary for use on non-development machines, use the scripts in the `scripts` folder.
-        * For Windows builds, use `scripts\build-arch.bat` and `scripts\generate-bundle.bat`. Execute these scripts from the root of the repository within a Qt command prompt. Ensure  7-Zip binary directory is on your `%PATH%`.
-        * For macOS builds, use `scripts/generate-dmg.sh`. Execute this script from the root of the repository and ensure Qt's `bin` folder is in your `$PATH`.
-        * For Steam Link builds, run `scripts/build-steamlink-app.sh` from the root of the repository.
-    * To build from the command line for development use on macOS or Linux, run `qmake6 moonlight-qt.pro` then `make debug` or `make release`.
-        * The final binary will be placed in `app/moonlight`.
-    * To create an embedded build for a single-purpose device, use `qmake6 "CONFIG+=embedded" moonlight-qt.pro` and build normally.
-        * This build will lack windowed mode, Discord/Help links, and other features that don't make sense on an embedded device.
-        * For platforms with poor GPU performance, add `"CONFIG+=gpuslow"` to prefer direct KMSDRM rendering over GL/Vulkan renderers. Direct KMSDRM rendering can use dedicated YUV/RGB conversion and scaling hardware rather than slower GPU shaders for these operations.
+- **Carrousel horizontal** de jaquettes 16:9 — la sélection centrée, agrandie et cerclée d'orange.
+- **État du PC affiché en permanence** (point vert + nom de l'hôte) : on voit d'un coup d'œil que
+  tout marche, sans jamais voir d'IP.
+- **Appairage plein écran** façon app TV, **écran Paramètres** au bouton Y (résolution / débit /
+  « oublier ce PC »), **légende manette contextuelle** en bas.
+- **Couche « Companion »** optionnelle : orchestration du lancement côté PC (mise à jour de jeu,
+  écran virtuel) via une petite API compagnon, pour que « Jouer » démarre le bon jeu du premier coup.
 
-## Contribute
-1. Fork us
-2. Write code
-3. Send Pull Requests
+## 🧬 L'ADN Moonlight
 
-Check out our [website](https://moonlight-stream.org) for project links and information.
+CocoOS hérite de **tout** le moteur de [Moonlight](https://moonlight-stream.org) :
+
+- Décodage vidéo **matériel** — H.264, HEVC et **AV1**
+- **HDR**, YUV 4:4:4, son surround **7.1**
+- **Manette** avec retour de force et capteurs de mouvement
+- Faible latence, réseau robuste, traversée du NAT via Tailscale
+
+Compatible avec les hôtes **[Sunshine](https://github.com/LizardByte/Sunshine)** et
+**[Apollo](https://github.com/ClassicOldSong/Apollo)** (le setup de développement tourne sous
+Apollo). Moonlight existe aussi sur [Android](https://github.com/moonlight-stream/moonlight-android)
+et [iOS](https://github.com/moonlight-stream/moonlight-ios).
+
+Pour suivre le développement du moteur amont, rejoignez le
+**[Discord Moonlight](https://moonlight-stream.org/discord)** ; pour aider à le traduire, passez par
+**[Weblate](https://hosted.weblate.org/projects/moonlight/moonlight-qt/)**.
+
+## 🔩 Le matériel
+
+Carte de développement : **Orange Pi 5B (RK3588S)** — décodage AV1, GPU Mali-G610 (Panthor/Panfrost),
+Wi-Fi 6 + BT 5.0, alim USB-C.
+
+| Élément    | Prototype                              | Cible produit                     |
+|------------|----------------------------------------|-----------------------------------|
+| SoC        | Orange Pi 5B (RK3588S)                  | SoM RK3588S / carte porteuse custom |
+| Écran      | HDMI IPS 5,5–6"                         | MIPI-DSI (AMOLED 7" envisagé)     |
+| Manette    | RP2040 + GP2040-CE, joysticks à effet Hall | intégrée                       |
+| Alimentation | power bank USB-C PD                   | batterie 2× 18650 + boost         |
+| Mobilité   | Wi-Fi                                   | module **5G** (Quectel RM520N-GL) |
+
+## 🗺️ État du projet
+
+- [x] Concept de streaming validé (Moonlight + Sunshine + Tailscale, y compris en 5G)
+- [x] Fork moonlight-qt, compilation et décodage matériel OK
+- [x] Interface « Big Picture » conçue et intégrée au build (flag `embedded`)
+- [x] UI branchée sur les vraies données Moonlight (hôtes, jeux, sessions)
+- [x] Appairage automatique + Paramètres console + illusion « zéro bureau »
+- [x] Couche Companion console ↔ host (découverte, appairage, bibliothèque, lancement)
+- [ ] Mode kiosk : boot direct via gamescope / cage
+- [ ] Bring-up hardware Orange Pi — valider le décodage **1080p60 sur RK3588S** (mainline + Panthor)
+- [ ] Installeur host 1-clic (Apollo + Playnite + Tailscale + Wake-on-LAN)
+- [ ] Version compacte (SoM, batterie, coque 3D), puis module **5G**
+
+> **Statut : prototype logiciel avancé.** La couche console (interface, appairage, lancement) est
+> fonctionnelle sur PC de dev ; l'étape suivante est le passage sur carte ARM.
+
+## 🛠️ Construire CocoOS
+
+CocoOS se construit comme Moonlight, avec un flag `embedded` qui active la couche console.
+
+**Prérequis (Fedora / RPM Fusion) :**
+
+```bash
+sudo dnf install openssl-devel SDL2-devel SDL2_ttf-devel ffmpeg-devel \
+  libva-devel libvdpau-devel opus-devel pulseaudio-libs-devel alsa-lib-devel \
+  libdrm-devel qt6-qtsvg-devel qt6-qtdeclarative-devel qt6-qtwebsockets-devel
+```
+
+> Debian/Ubuntu ainsi que les prérequis Windows/macOS : voir le
+> [README amont de Moonlight](https://github.com/moonlight-stream/moonlight-qt#building).
+> `qt6-qtwebsockets-devel` est requis **en plus** par la couche Companion (build `embedded`).
+
+**Compiler en mode console :**
+
+```bash
+git submodule update --init --recursive
+qmake6 "CONFIG+=embedded" moonlight-qt.pro
+make release -j$(nproc)
+./app/moonlight     # démarre directement sur l'accueil console
+```
+
+Un `qmake6 moonlight-qt.pro` **sans** `embedded` produit le Moonlight vanilla intact — pratique
+pour comparer le comportement de référence.
+
+## 🤝 Contribuer
+
+CocoOS est un projet DIY ouvert. Pour proposer une amélioration :
+
+1. **Forkez** le dépôt
+2. **Écrivez** votre code
+3. **Ouvrez** une Pull Request
+
+Convention n°1 : la couche console vit dans son dossier isolé `app/gui/console/` pour ne jamais
+diverger du moteur Moonlight amont. Merci de garder toute contribution console dans ce périmètre et
+de ne pas modifier les fichiers upstream, afin qu'on puisse continuer à suivre les mises à jour de
+Moonlight sans douleur.
+
+## 🙏 Crédits & licence
+
+CocoOS est un fork de **[moonlight-stream/moonlight-qt](https://github.com/moonlight-stream/moonlight-qt)**
+et n'existe que grâce au travail des communautés **Moonlight**, **Sunshine** et **Apollo**. Un immense
+merci à elles — CocoOS n'est que l'habillage « console » de leur streaming.
+
+Distribué sous **[GPLv3](LICENSE)**, comme Moonlight : toute version distribuée de CocoOS l'est avec
+ses sources.
