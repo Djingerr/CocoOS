@@ -430,9 +430,12 @@ embedded {
     # Couche console <-> HostCompanion (Companion API, docs/protocol.md).
     # Isolee au build embedded : le build vanilla ne la compile jamais (CLAUDE.md §4).
     # WebSocket /v1/events => module websockets (paquet qt6-qtwebsockets-devel sur Fedora).
-    QT += websockets
+    # dbus : force du signal Wi-Fi lue aupres de NetworkManager (SystemStatus).
+    QT += websockets dbus
     SOURCES += gui/console/backend/companionclient.cpp
     HEADERS += gui/console/backend/companionclient.h
+    SOURCES += gui/console/backend/systemstatus.cpp
+    HEADERS += gui/console/backend/systemstatus.h
 }
 glslow {
     message(GL slow build)

@@ -8,51 +8,25 @@ import AppModel 1.0
 import ComputerManager 1.0
 import StreamingPreferences 1.0
 import CompanionClient 1.0
+import SystemStatus 1.0
 
-// Écran d'accueil "Big Picture" de la console.
+import "Format.js" as Format
+
+// Écran d'accueil de la console : la logique. La présentation est ailleurs :
+// HomeScreen.qml (fond, barre haute, bloc héros, étagère, panneau d'options) et
+// LaunchScreen.qml (lancement d'un jeu).
 // Branché sur les vrais modèles Moonlight (ComputerModel + AppModel) :
 //  - découverte du host (mDNS, polling lancé par main.qml) ;
 //  - appairage automatique style "app TV" (code affiché, accept côté PC) ;
 //  - lancement direct si le host est en mode direct-launch (cf. AppView.qml) ;
-//  - bouton Jouer = vraie session via StreamSegue.qml.
+//  - bouton Jouer = vraie session via StreamSegue.qml ;
+//  - bouton Y = options du flux, lues et écrites dans les préférences Moonlight.
 FocusScope {
     id: home
     focus: true
 
     implicitWidth: 1280
     implicitHeight: 720
-
-    // --- Fond : dégradé sombre + halo ambiant + vignette ---
-    Rectangle {
-        anchors.fill: parent
-        gradient: Gradient {
-            GradientStop { position: 0.0; color: "#12151d" }
-            GradientStop { position: 0.55; color: "#0d0f15" }
-            GradientStop { position: 1.0; color: "#090a0e" }
-        }
-    }
-
-    Canvas {
-        anchors.fill: parent
-        onPaint: {
-            var ctx = getContext("2d")
-            ctx.reset()
-            // Halo orange très diffus derrière le carrousel
-            var glow = ctx.createRadialGradient(width / 2, height * 0.46, 0,
-                                                width / 2, height * 0.46, width * 0.55)
-            glow.addColorStop(0, "rgba(242, 128, 42, 0.07)")
-            glow.addColorStop(1, "rgba(242, 128, 42, 0)")
-            ctx.fillStyle = glow
-            ctx.fillRect(0, 0, width, height)
-            // Vignette : assombrit doucement les bords de l'écran
-            var vig = ctx.createRadialGradient(width / 2, height / 2, height * 0.35,
-                                               width / 2, height / 2, width * 0.75)
-            vig.addColorStop(0, "rgba(0, 0, 0, 0)")
-            vig.addColorStop(1, "rgba(0, 0, 0, 0.4)")
-            ctx.fillStyle = vig
-            ctx.fillRect(0, 0, width, height)
-        }
-    }
 
     // --- Modèles Moonlight ---
     // Liste des hosts connus (mDNS + manuels).
@@ -82,26 +56,30 @@ FocusScope {
     // Lancement direct (mode "direct launch" du host) : une seule fois par session.
     property bool directLaunchDone: false
 
-    // Marqueur : le profil de stream par défaut n'est appliqué qu'au premier
-    // démarrage console ; ensuite l'écran Paramètres (bouton Y) fait foi.
     Settings {
         id: consoleConfig
         category: "ConsoleUi"
+        // Le profil de stream par défaut n'est appliqué qu'au premier démarrage
+        // console ; ensuite le panneau d'options (bouton Y) fait foi.
         property bool streamProfileInitialized: false
+        property bool sounds: true          // réglage « Sons » du panneau d'options
+        property string lastGame: ""        // dernier jeu lancé : l'accueil s'ouvre dessus
     }
 
     Component.onCompleted: {
         hideUpstreamChrome()
+        Sounds.enabled = consoleConfig.sounds
 
         // Démarre la découverte du HostCompanion (mDNS _hostcompanion._tcp).
         // Si un host appairé est déjà connu, le client se reconnecte tout seul
         // (events + bibliothèque) dès qu'il est joignable.
         CompanionClient.startDiscovery()
+        refreshCompanionGames()
 
         // Profil de stream "console" par défaut : 1080p60, 30 Mbps (cible §7 :
         // 30–50 Mbps stables ; le défaut Moonlight pour du 1080p60 est en
         // dessous). Appliqué une seule fois — modifiable ensuite via le
-        // bouton Y (ConsoleSettings).
+        // bouton Y (options du flux).
         if (!consoleConfig.streamProfileInitialized) {
             StreamingPreferences.width = 1920
             StreamingPreferences.height = 1080
@@ -113,6 +91,7 @@ FocusScope {
             StreamingPreferences.save()
             consoleConfig.streamProfileInitialized = true
         }
+        refreshOptions()
 
         var m = Qt.createQmlObject(
             'import ComputerModel 1.0; ComputerModel {}', home, '')
@@ -125,7 +104,14 @@ FocusScope {
     // on re-masque le chrome à chaque retour sur l'accueil.
     StackView.onActivated: {
         hideUpstreamChrome()
-        carousel.forceActiveFocus()
+        if (streamStarted) {
+            streamStarted = false
+            Sounds.play("back")
+        }
+        endLaunch()
+        refreshOptions()   // (la résolution « native » n'est connue qu'une fois à l'écran)
+        homeScreen.forceActiveFocus()
+        homeScreen.wake()
     }
 
     function hideUpstreamChrome() {
@@ -138,11 +124,11 @@ FocusScope {
     }
 
     // --- Boutons console au niveau de l'accueil ---
-    // Y/Start (Hangup) et X (Menu) ouvrent NOS paramètres ; sans ça, les
+    // Y/Start (Hangup) et X (Menu) ouvrent NOS options ; sans ça, les
     // événements remonteraient à main.qml qui ouvrirait la SettingsView
     // Material du bureau. B (Échap) est consommé : rien derrière l'accueil.
-    Keys.onMenuPressed: settingsOverlay.open()
-    Keys.onHangupPressed: settingsOverlay.open()
+    Keys.onMenuPressed: homeScreen.options.open()
+    Keys.onHangupPressed: homeScreen.options.open()
     Keys.onEscapePressed: { /* accueil : rien à fermer */ }
 
     onActiveComputerIndexChanged: rebuildAppModel()
@@ -166,7 +152,7 @@ FocusScope {
     // on passe toujours par le count des Instantiator (appViewer/hostScanner).
     function currentApp() {
         if (appViewer.count === 0) return null
-        var idx = Math.max(0, Math.min(carousel.currentIndex, appViewer.count - 1))
+        var idx = Math.max(0, Math.min(homeScreen.currentIndex, appViewer.count - 1))
         var item = appViewer.objectAt(idx)
         return item ? item : null
     }
@@ -174,7 +160,7 @@ FocusScope {
     // --- Appairage automatique ("silent pair" côté console, cf CLAUDE.md §9 6b) ---
     // Dès qu'un host en ligne mais non appairé devient actif, on génère un PIN
     // et on lance l'appairage en arrière-plan. L'utilisateur ne voit qu'un code
-    // de liaison plein écran (PairingOverlay), à saisir une fois côté PC.
+    // de liaison (pinScreen), à saisir une fois côté PC.
     // À terme, le host auto-acceptera et cet écran ne s'affichera jamais.
     //
     // Garde-fou : au boot, le host passe online AVANT que son pairState soit
@@ -209,7 +195,7 @@ FocusScope {
             home.computerModel.pairComputer(home.activeComputerIndex, home.pairingPin)
             // Si le Companion est déjà appairé, il soumet le PIN à Apollo à notre
             // place → l'utilisateur n'a rien à faire côté PC (§6.4). Sinon, repli :
-            // le PairingOverlay affiche le PIN à saisir sur le PC.
+            // pinScreen affiche le PIN à saisir sur le PC.
             if (CompanionClient.paired)
                 CompanionClient.submitMoonlightPin(home.pairingPin)
         }
@@ -299,8 +285,14 @@ FocusScope {
             readonly property int appid: model.appid
             readonly property url boxart: model.boxart
         }
-        // À la première arrivée des jeux : lancement direct éventuel (§9 6a).
-        onObjectAdded: function(index, obj) { home.maybeDirectLaunch() }
+        onObjectAdded: function(index, obj) {
+            // À l'arrivée de la liste, avant l'entrée de l'accueil : reprendre sur le
+            // dernier jeu lancé (sans ressort, l'étagère n'est pas encore montrée).
+            if (!homeScreen.ready && obj.name === consoleConfig.lastGame)
+                homeScreen.currentIndex = index
+            // Lancement direct éventuel (§9 6a).
+            home.maybeDirectLaunch()
+        }
     }
 
     function maybeDirectLaunch() {
@@ -308,13 +300,32 @@ FocusScope {
         var idx = appModel.getDirectLaunchAppIndex()
         if (idx >= 0) {
             directLaunchDone = true
-            carousel.currentIndex = idx
+            homeScreen.currentIndex = idx
             launchApp(idx)
         }
     }
 
-    // Index du jeu sélectionné en attente d'un READY du Companion (mapping après maj).
-    property int pendingLaunchIndex: -1
+    // Bibliothèque du Companion indexée par nom de jeu (en minuscules) : fournit au
+    // bloc héros la source, la dernière session et le temps de jeu. Vide sans Companion.
+    property var companionGames: ({})
+
+    function refreshCompanionGames() {
+        var byName = {}
+        var games = CompanionClient.games()
+        for (var i = 0; i < games.length; i++)
+            byName[(games[i].name || "").toLowerCase()] = games[i]
+        companionGames = byName
+    }
+
+    // --- Lancement d'un jeu ---
+    // A enfonce le bouton Jouer, puis LaunchScreen s'ouvre par-dessus l'accueil. Le
+    // flux Moonlight ne démarre que lorsque l'hôte est prêt (tout de suite en
+    // lancement direct, au READY du Companion sinon) ET que l'écran a fini de s'ouvrir.
+    property int launchIndex: -1         // jeu en cours de lancement, -1 sinon
+    property bool launchResume: false    // il tourne déjà sur le PC : on reprend
+    property bool launchReady: false     // l'hôte est prêt
+    property bool launchOpened: false    // LaunchScreen couvre l'écran
+    property bool streamStarted: false   // le flux a démarré : au retour, son de retour
 
     function findAppIndexByName(name) {
         for (var i = 0; i < appViewer.count; i++) {
@@ -329,12 +340,12 @@ FocusScope {
         var u = ["o", "Ko", "Mo", "Go", "To"]
         var i = 0; var v = bytes
         while (v >= 1024 && i < u.length - 1) { v /= 1024; i++ }
-        return (i >= 2 ? v.toFixed(1) : Math.round(v)) + " " + u[i]
+        return (i >= 2 ? v.toFixed(1).replace(".", ",") : Math.round(v)) + " " + u[i]
     }
 
     function launchApp(index) {
         if (!appModel) return
-        if (launchOverlay.visible) return   // un lancement est déjà en cours
+        if (launchIndex >= 0 || launchScreen.active) return   // un lancement est déjà en cours
         var item = appViewer.objectAt(index)
         if (!item) return
 
@@ -342,7 +353,6 @@ FocusScope {
         // (équivalent console du quitAppDialog de AppView.qml). Chemin direct.
         var runningId = appModel.getRunningAppId()
         if (runningId !== 0 && runningId !== item.appid) {
-            confirmDialog.mode = "quitLaunch"
             confirmDialog.pendingLaunchIndex = index
             confirmDialog.title = qsTr("Un jeu est déjà en cours")
             confirmDialog.message = qsTr("%1 est en cours sur votre PC. Le fermer et lancer %2 ? Toute progression non sauvegardée sera perdue.")
@@ -355,50 +365,95 @@ FocusScope {
         // Chemin Companion = LE différenciateur : POST /v1/launch → (maj si besoin)
         // → READY → stream. On NE démarre PAS le stream nous-mêmes ici (§4 host).
         // Repli direct si le Companion est absent ou ne connaît pas ce jeu.
-        if (CompanionClient.paired && CompanionClient.eventsConnected) {
-            var gameId = CompanionClient.gameIdForName(item.name)
-            if (gameId !== "") {
-                home.pendingLaunchIndex = index
-                launchOverlay.show(item.name)
-                CompanionClient.launch(gameId)
-                return
-            }
+        var gameId = CompanionClient.paired && CompanionClient.eventsConnected
+                     ? CompanionClient.gameIdForName(item.name) : ""
+
+        launchIndex = index
+        launchResume = runningId === item.appid
+        launchReady = gameId === ""
+        launchOpened = false
+        launchScreen.image = homeScreen.backdrop
+        launchScreen.steps = (gameId !== "" ? [qsTr("Préparation de %1").arg(activeHostName)] : []).concat([
+            launchResume ? qsTr("Reprise de %1").arg(item.name) : qsTr("Lancement de %1").arg(item.name),
+            qsTr("Ouverture du flux %1").arg(streamSummary())
+        ])
+        launchScreen.step = 0
+        launchScreen.stepProgress = 1
+        launchScreen.cancellable = gameId !== ""
+        launchScreen.hint = ""
+        if (gameId !== "")
+            CompanionClient.launch(gameId)
+
+        Sounds.play("select")
+        homeScreen.pressed = true
+        launchPress.start()
+    }
+
+    Timer {
+        id: launchPress
+        interval: Theme.launchPress
+        onTriggered: {
+            homeScreen.launching = true
+            launchScreen.open()
         }
-
-        directLaunch(index)
     }
 
-    // Lancement direct historique (Apollo sans orchestration Companion) — repli.
-    function directLaunch(index) {
-        if (!appModel) return
+    // « 1080p60 », « 1080p60 HEVC HDR » : le flux tel qu'il est réglé.
+    function streamSummary() {
+        var p = StreamingPreferences
+        var codec = p.videoCodecConfig === p.VCC_FORCE_H264 ? " H.264"
+                  : p.videoCodecConfig === p.VCC_FORCE_AV1 ? " AV1"
+                  : p.videoCodecConfig === p.VCC_AUTO ? "" : " HEVC"
+        return p.height + "p" + p.fps + codec + (p.enableHdr ? " HDR" : "")
+    }
+
+    // Démarre la session Moonlight (page StreamSegue d'origine, cachée sous
+    // LaunchScreen) dès que l'hôte est prêt et que l'écran de lancement est en place.
+    function maybeStartStream() {
+        if (launchIndex < 0 || !launchReady || !launchOpened || !appModel) return
+        var index = launchIndex
+        launchIndex = -1
         var item = appViewer.objectAt(index)
-        if (!item) return
-        var runningId = appModel.getRunningAppId()
-        var component = Qt.createComponent("qrc:/gui/StreamSegue.qml")
-        var segue = component.createObject(stackView, {
-            "appName": item.name,
-            "session": appModel.createSessionForApp(index),
-            "isResume": runningId === item.appid
+        var session = appModel.createSessionForApp(index)
+        if (item)
+            consoleConfig.lastGame = item.name
+
+        // Dernière étape : la barre avance au rythme de la connexion. C'est le
+        // moment de rappeler comment on reviendra (la page d'origine de Moonlight,
+        // cachée dessous, affiche ce conseil ici).
+        launchScreen.cancellable = false
+        launchScreen.hint = qsTr("Start + Select + L1 + R1 : revenir à l'accueil")
+        launchScreen.stepProgress = 0
+        launchScreen.step = launchScreen.steps.length - 1
+        // Moonlight fige l'interface pendant qu'il prépare son décodeur : l'écran
+        // de lancement reste immobile jusqu'à la première étape de connexion.
+        launchScreen.frozen = true
+        session.stageStarting.connect(function() {
+            launchScreen.frozen = false
+            launchScreen.stepProgress = Math.min(1, launchScreen.stepProgress + 1 / Theme.launchStreamStages)
         })
-        stackView.push(segue)
+        session.connectionStarted.connect(function() {
+            home.streamStarted = true
+            Sounds.play("ready")
+            launchScreen.close(false)
+        })
+        session.sessionFinished.connect(function() { home.endLaunch() })
+
+        var component = Qt.createComponent("qrc:/gui/StreamSegue.qml")
+        stackView.push(component.createObject(stackView, {
+            "appName": item ? item.name : "",
+            "session": session,
+            "isResume": launchResume
+        }))
     }
 
-    // READY reçu du Companion : l'app Apollo du jeu est prête (virtual display armé)
-    // → on démarre enfin la session Moonlight sur cette app (mapping par nom, §4).
-    function streamReadyApp(apolloAppId) {
-        launchOverlay.hide()
-        var idx = findAppIndexByName(apolloAppId)
-        if (idx < 0) idx = home.pendingLaunchIndex
-        home.pendingLaunchIndex = -1
-        if (idx < 0 || !appModel) return
-        var item = appViewer.objectAt(idx)
-        var component = Qt.createComponent("qrc:/gui/StreamSegue.qml")
-        var segue = component.createObject(stackView, {
-            "appName": item ? item.name : "",
-            "session": appModel.createSessionForApp(idx),
-            "isResume": false
-        })
-        stackView.push(segue)
+    // Retour à l'accueil : fin du jeu, échec, annulation.
+    function endLaunch() {
+        launchPress.stop()
+        launchIndex = -1
+        launchScreen.close(true)
+        homeScreen.launching = false
+        homeScreen.pressed = false
     }
 
     // Ferme le jeu en cours puis enchaîne sur le nouveau, via le QuitSegue
@@ -406,6 +461,8 @@ FocusScope {
     function quitAndLaunch(nextIndex) {
         if (!appModel) return
         var item = appViewer.objectAt(nextIndex)
+        if (item)
+            consoleConfig.lastGame = item.name
         var component = Qt.createComponent("qrc:/gui/QuitSegue.qml")
         stackView.push(component.createObject(stackView, {
             "appName": appModel.getRunningAppName(),
@@ -415,295 +472,263 @@ FocusScope {
         }))
     }
 
-    // --- Bandeau supérieur ---
-    StatusBar {
-        id: status
-        anchors { top: parent.top; left: parent.left; right: parent.right }
+    // --- Options du flux (bouton Y) ---
+    // Les choix proposés par ligne du panneau, et les lignes elles-mêmes. Tout est
+    // lu dans les préférences Moonlight et y est écrit aussitôt : pas d'état à part.
+    property var optionChoices: ({})
+    property var optionRows: []
+    property bool optionAutoBitrate: false   // le débit suit résolution et fréquence
+
+    function refreshOptions() {
+        var p = StreamingPreferences
+
+        // Résolution : 720p, celle de l'écran, 1080p (et l'actuelle si elle n'y est pas).
+        var nativeW = Math.round(Screen.width * Screen.devicePixelRatio)
+        var nativeH = Math.round(Screen.height * Screen.devicePixelRatio)
+        var res = [ { label: "720p", w: 1280, h: 720 }, { label: "1080p", w: 1920, h: 1080 } ]
+        var same = function(w, h) { return function(r) { return r.w === w && r.h === h } }
+        if (nativeW > 0 && !res.some(same(nativeW, nativeH)))
+            res.splice(1, 0, { label: qsTr("Natif %1×%2").arg(nativeW).arg(nativeH), w: nativeW, h: nativeH })
+        if (!res.some(same(p.width, p.height)))
+            res.push({ label: p.width + "×" + p.height, w: p.width, h: p.height })
+
+        var fps = [30, 60, 90, 120]
+        if (fps.indexOf(p.fps) < 0)
+            fps.push(p.fps)
+        fps.sort(function(a, b) { return a - b })
+
+        // Débit : « Auto » est la valeur que Moonlight calcule pour la résolution et
+        // la fréquence ; sinon une valeur fixe (l'actuelle est ajoutée si besoin).
+        optionAutoBitrate = p.autoAdjustBitrate
+                && p.bitrateKbps === p.getDefaultBitrate(p.width, p.height, p.fps, p.enableYUV444)
+        var kbps = [10000, 20000, 40000, 80000]
+        if (!optionAutoBitrate && kbps.indexOf(p.bitrateKbps) < 0)
+            kbps.push(p.bitrateKbps)
+        kbps.sort(function(a, b) { return a - b })
+        var rate = [ { label: qsTr("Auto"), auto: true } ].concat(kbps.map(function(k) {
+            return { label: qsTr("%1 Mb/s").arg(Math.round(k / 1000)), kbps: k }
+        }))
+
+        var codec = [ { label: qsTr("Auto"), value: p.VCC_AUTO }, { label: "H.264", value: p.VCC_FORCE_H264 },
+                      { label: "HEVC", value: p.VCC_FORCE_HEVC }, { label: "AV1", value: p.VCC_FORCE_AV1 } ]
+        var codecIndex = codec.findIndex(function(c) { return c.value === p.videoCodecConfig })
+        var hdr = [ { label: qsTr("Désactivé"), value: false }, { label: qsTr("Activé"), value: true } ]
+        var sounds = [ { label: qsTr("Activés"), value: true }, { label: qsTr("Coupés"), value: false } ]
+
+        optionChoices = { res: res, fps: fps.map(function(f) { return { label: "" + f, value: f } }),
+                          rate: rate, codec: codec, hdr: hdr, sounds: sounds }
+        var row = function(key, label, index) {
+            return { key: key, label: label, index: index,
+                     options: optionChoices[key].map(function(c) { return c.label }) }
+        }
+        optionRows = [
+            row("res", qsTr("Résolution"), res.findIndex(same(p.width, p.height))),
+            row("fps", qsTr("Images par seconde"), fps.indexOf(p.fps)),
+            row("rate", qsTr("Débit"), optionAutoBitrate ? 0 : 1 + kbps.indexOf(p.bitrateKbps)),
+            // (un ancien réglage « HEVC HDR » est montré comme HEVC)
+            row("codec", qsTr("Codec"), codecIndex >= 0 ? codecIndex : 2),
+            row("hdr", qsTr("HDR"), p.enableHdr ? 1 : 0),
+            // (réglage de la console, pas du flux : rangé dans ConsoleUi)
+            row("sounds", qsTr("Sons"), consoleConfig.sounds ? 0 : 1)
+        ]
+    }
+
+    function applyOption(key, index) {
+        var p = StreamingPreferences
+        var choice = optionChoices[key][index]
+        if (key === "sounds") {
+            consoleConfig.sounds = choice.value
+            Sounds.enabled = choice.value
+            refreshOptions()
+            return
+        }
+        if (key === "res") {
+            p.width = choice.w
+            p.height = choice.h
+        } else if (key === "fps") {
+            p.fps = choice.value
+        } else if (key === "rate") {
+            p.autoAdjustBitrate = choice.auto === true
+            optionAutoBitrate = p.autoAdjustBitrate
+            if (!choice.auto)
+                p.bitrateKbps = choice.kbps
+        } else if (key === "codec") {
+            p.videoCodecConfig = choice.value
+        } else if (key === "hdr") {
+            p.enableHdr = choice.value
+        }
+        if (optionAutoBitrate)
+            p.bitrateKbps = p.getDefaultBitrate(p.width, p.height, p.fps, p.enableYUV444)
+        p.save()
+        refreshOptions()
+    }
+
+    // --- Accueil « Ambiant » ---
+    HomeScreen {
+        id: homeScreen
+        anchors.fill: parent
+        focus: true
+
+        readonly property var app: home.currentApp()
+        // Fiche du jeu dans la bibliothèque du Companion (absente sans Companion).
+        readonly property var info: app ? (home.companionGames[app.name.toLowerCase()] || null) : null
+
+        model: home.appModel
+        ready: appViewer.count > 0
+        title: app ? app.name : ""
+        running: app ? app.running : false
+        source: info ? Format.sourceName(info.source) : ""
+        lastPlayed: info ? Format.lastPlayed(info.lastPlayed, new Date()) : ""
+        playtime: info ? Format.playtime(info.playtimeSeconds) : ""
+        // L'image 16:9 du Companion (cache disque) ; à défaut, la jaquette du jeu,
+        // recadrée. Pas de fond pour un jeu sans jaquette (Moonlight donne alors une
+        // icône générique).
+        backdrop: info && info.background ? info.background
+                : app && app.boxart.toString() !== "qrc:/res/no_app_image.png" ? app.boxart : ""
+
         hostName: home.activeHostName !== "" ? home.activeHostName : qsTr("Recherche…")
         connected: home.activeHostOnline && home.activeHostPaired
-        // batteryPercent / signalStrength : laissés cachés tant qu'il n'y a
-        // pas de vraie source de données (UPower viendra avec le proto).
-    }
+        // Batterie et Wi-Fi de la console (-1 : pas de donnée, indicateur masqué).
+        // latencyMs reste masqué : aucune mesure disponible hors flux.
+        signalStrength: SystemStatus.signalStrength
+        batteryPercent: SystemStatus.batteryPercent
+        charging: SystemStatus.charging
 
-    // --- Étiquette de section + compteur ---
-    Item {
-        id: labelRow
-        anchors { top: status.bottom; left: parent.left; right: parent.right }
-        height: 28
-        visible: carousel.visible
-        Text {
-            anchors.left: parent.left; anchors.leftMargin: 28
-            anchors.verticalCenter: parent.verticalCenter
-            text: qsTr("VOS JEUX")
-            color: "#8b909c"; font.pixelSize: 12
-            font.letterSpacing: 2; font.weight: Font.DemiBold
-        }
-        Text {
-            anchors.right: parent.right; anchors.rightMargin: 28
-            anchors.verticalCenter: parent.verticalCenter
-            text: appViewer.count > 0
-                  ? (carousel.currentIndex + 1) + " / " + appViewer.count
-                  : ""
-            color: "#6b7280"; font.pixelSize: 13
-        }
-    }
+        optionRows: home.optionRows
+        optionsHost: home.activeHostName
 
-    // --- Carrousel ---
-    GameCarousel {
-        id: carousel
-        anchors { top: labelRow.bottom; topMargin: 10; left: parent.left; right: parent.right }
-        height: focusedH + 46
-        model: home.appModel
-        focus: true
-        visible: appViewer.count > 0
-        opacity: visible ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: 250 } }
+        staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
 
         onLaunchRequested: function(index) { home.launchApp(index) }
-    }
-
-    // --- États intermédiaires : recherche / appairage / chargement ---
-    Item {
-        id: emptyState
-        anchors {
-            top: status.bottom; bottom: detail.top
-            left: parent.left; right: parent.right
-        }
-        visible: !carousel.visible
-
-        // Recherche du PC ou chargement de la bibliothèque
-        Column {
-            anchors.centerIn: parent
-            spacing: 22
-            visible: !pairingScreen.visible
-
-            Spinner {
-                anchors.horizontalCenter: parent.horizontalCenter
-                width: 44; height: 44
-            }
-            Column {
-                anchors.horizontalCenter: parent.horizontalCenter
-                spacing: 8
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    color: "#e8eaf0"; font.pixelSize: 20; font.weight: Font.Medium
-                    text: !home.activeHostOnline
-                          ? qsTr("Recherche de votre PC…")
-                          : qsTr("Chargement de vos jeux…")
-                }
-                Text {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    color: "#6b7280"; font.pixelSize: 14
-                    visible: !home.activeHostOnline
-                    text: qsTr("Vérifiez que votre PC est allumé et sur le même réseau.")
-                }
-            }
-        }
-
-        // Liaison (code PIN à saisir côté PC)
-        PairingOverlay {
-            id: pairingScreen
-            anchors.fill: parent
-            // Repli : visible seulement si le Companion n'est PAS appairé (sinon il
-            // soumet le PIN à Apollo tout seul → aucun code à saisir côté PC).
-            visible: home.activeHostOnline && !home.activeHostPaired
-                     && home.pairingPin !== "" && !CompanionClient.paired
-            hostName: home.activeHostName
-            pin: home.pairingPin
-            errorText: home.pairingError
-        }
-    }
-
-    // --- Bloc détail du jeu sélectionné + bouton Jouer ---
-    Item {
-        id: detail
-        anchors { bottom: legend.top; bottomMargin: 12; left: parent.left; right: parent.right }
-        height: 64
-        visible: carousel.visible
-
-        Column {
-            anchors.left: parent.left; anchors.leftMargin: 30
-            anchors.verticalCenter: parent.verticalCenter
-            spacing: 3
-            Text {
-                text: { var a = home.currentApp(); return a ? a.name : "" }
-                color: "white"; font.pixelSize: 22; font.weight: Font.Medium
-            }
-            Text {
-                text: {
-                    var a = home.currentApp()
-                    if (!a) return ""
-                    return a.running
-                        ? qsTr("En cours · diffusé depuis votre PC")
-                        : qsTr("Diffusé depuis votre PC")
-                }
-                color: "#8b909c"; font.pixelSize: 13
-            }
-        }
-
-        Rectangle {
-            id: playButton
-            anchors.right: parent.right; anchors.rightMargin: 30
-            anchors.verticalCenter: parent.verticalCenter
-            width: playRow.width + 36; height: 42; radius: 10
-            scale: playMouse.pressed ? 0.96 : 1.0
-            Behavior on scale { NumberAnimation { duration: 80 } }
-            gradient: Gradient {
-                GradientStop { position: 0.0; color: "#F68A38" }
-                GradientStop { position: 1.0; color: "#E5721C" }
-            }
-
-            // Liseré clair en haut, pour le relief
-            Rectangle {
-                anchors { top: parent.top; left: parent.left; right: parent.right }
-                anchors.margins: 1
-                height: 1; radius: parent.radius
-                color: "#40ffffff"
-            }
-
-            Row {
-                id: playRow
-                anchors.centerIn: parent
-                spacing: 9
-                Canvas {
-                    width: 13; height: 14
-                    anchors.verticalCenter: parent.verticalCenter
-                    onPaint: {
-                        var ctx = getContext("2d")
-                        ctx.reset()
-                        ctx.fillStyle = "#3A1505"
-                        ctx.beginPath()
-                        ctx.moveTo(1, 1); ctx.lineTo(12, 7); ctx.lineTo(1, 13)
-                        ctx.closePath(); ctx.fill()
-                    }
-                }
-                Text {
-                    text: {
-                        var a = home.currentApp()
-                        return a && a.running ? qsTr("Reprendre") : qsTr("Jouer")
-                    }
-                    color: "#3A1505"
-                    font.pixelSize: 15; font.weight: Font.DemiBold
-                    anchors.verticalCenter: parent.verticalCenter
-                }
-            }
-
-            MouseArea {
-                id: playMouse
-                anchors.fill: parent
-                onClicked: carousel.launchRequested(carousel.currentIndex)
-            }
-        }
-    }
-
-    // --- Légende manette (contextuelle) ---
-    ControllerLegend {
-        id: legend
-        anchors { bottom: parent.bottom; left: parent.left; right: parent.right }
-        hints: confirmDialog.visible
-               ? [ { btn: "A", label: qsTr("Valider"),  color: "#6cc04a" },
-                   { btn: "B", label: qsTr("Annuler"),  color: "#e35b5b" } ]
-               : settingsOverlay.visible
-                 ? [ { btn: "A", label: qsTr("Modifier"),   color: "#6cc04a" },
-                     { btn: "B", label: qsTr("Fermer"),     color: "#e35b5b" } ]
-                 : carousel.visible
-                   ? [ { btn: "A", label: qsTr("Jouer"),      color: "#6cc04a" },
-                       { btn: "Y", label: qsTr("Paramètres"), color: "#e0b020" } ]
-                   : [ { btn: "Y", label: qsTr("Paramètres"), color: "#e0b020" } ]
-    }
-
-    // --- Overlays console (au-dessus de tout) ---
-    ConsoleSettings {
-        id: settingsOverlay
-        anchors.fill: parent
-        hostName: home.activeHostName
+        onOptionChanged: function(key, index) { home.applyOption(key, index) }
+        // Oublier ce PC : son appairage Moonlight ET celui du Companion.
         onForgetRequested: {
-            confirmDialog.mode = "forget"
-            confirmDialog.title = qsTr("Oublier ce PC ?")
-            confirmDialog.message = qsTr("« %1 » sera supprimé de la console. Il faudra refaire la liaison (code à saisir sur le PC).").arg(home.activeHostName)
-            confirmDialog.confirmLabel = qsTr("Oublier")
-            confirmDialog.open()
+            options.close()
+            CompanionClient.forgetHost()
+            if (home.activeComputerIndex >= 0)
+                home.computerModel.deleteComputer(home.activeComputerIndex)
         }
-        onClosed: carousel.forceActiveFocus()
     }
 
+    // --- Écrans de message, à la place du héros et de l'étagère ---
+    // Un seul à la fois. Priorité à la liaison Companion : une fois faite, c'est
+    // lui qui transmet le code Moonlight à Apollo (plus rien à saisir sur le PC).
+    readonly property var legendOptions: [ { glyph: "Y", label: qsTr("Options") } ]
+
+    // Recherche du PC, puis chargement de la bibliothèque.
+    MessageScreen {
+        id: searchScreen
+        parent: homeScreen.stage
+        shown: appViewer.count === 0 && !pinScreen.shown && !companionPairing.shown
+        title: !home.activeHostOnline ? qsTr("Recherche de votre PC") : qsTr("Chargement de vos jeux")
+        text: !home.activeHostOnline ? qsTr("Vérifiez qu'il est allumé et sur le même réseau que la console.") : ""
+        busy: true
+        hints: home.legendOptions
+    }
+
+    // Liaison Moonlight : le code à saisir une fois sur le PC (repli quand le
+    // Companion n'est pas appairé, sinon il soumet ce code à Apollo tout seul).
+    MessageScreen {
+        id: pinScreen
+        parent: homeScreen.stage
+        shown: home.activeHostOnline && !home.activeHostPaired && home.pairingPin !== ""
+               && !CompanionClient.paired && !companionPairing.shown
+        title: qsTr("Liaison avec %1").arg(home.activeHostName !== "" ? home.activeHostName : qsTr("votre PC"))
+        text: qsTr("Saisissez ce code sur votre PC. La console se connectera ensuite toute seule.")
+        code: home.pairingPin
+        status: home.pairingError !== "" ? qsTr("La liaison a échoué. Nouvelle tentative dans un instant…")
+                                         : qsTr("En attente de votre PC…")
+        error: home.pairingError !== ""
+        busy: !error
+        hints: home.legendOptions
+    }
+
+    // --- « Un autre jeu tourne déjà » ---
     ConsoleDialog {
         id: confirmDialog
         anchors.fill: parent
-        property string mode: ""
         property int pendingLaunchIndex: -1
-        onConfirmed: {
-            if (mode === "forget") {
-                settingsOverlay.close()
-                if (home.activeComputerIndex >= 0)
-                    home.computerModel.deleteComputer(home.activeComputerIndex)
-            } else if (mode === "quitLaunch") {
-                home.quitAndLaunch(pendingLaunchIndex)
-            }
-        }
-        onClosed: {
-            if (settingsOverlay.visible)
-                settingsOverlay.forceActiveFocus()
-            else
-                carousel.forceActiveFocus()
-        }
+        onConfirmed: home.quitAndLaunch(pendingLaunchIndex)
+        onClosed: homeScreen.forceActiveFocus()
     }
 
-    // --- Mise à jour requise (dialog dédié, piloté par le Companion, §9.1) ---
-    ConsoleDialog {
-        id: updateDialog
+    // --- Au-dessus de la pile d'écrans de Moonlight ---
+    // L'écran de lancement doit rester visible pendant que la page de connexion
+    // d'origine (StreamSegue) travaille : lui et le dialog de mise à jour vivent
+    // donc dans la fenêtre, pas dans cet écran-ci, que la pile masque alors.
+    Item {
+        id: topLayer
+        parent: home.Window.window ? home.Window.window.contentItem : home
         anchors.fill: parent
-        z: 60
-        confirmLabel: qsTr("Mettre à jour")
-        cancelLabel: qsTr("Annuler")
-        // Distingue « confirmé » de « simplement fermé » : ConsoleDialog émet
-        // confirmed() PUIS closed() quand on valide → sans ce flag on enverrait
-        // accept=true puis accept=false.
-        property bool answered: false
-        onConfirmed: { answered = true; CompanionClient.respondUpdate(true) }
-        onClosed: {
-            if (!answered) {
-                CompanionClient.respondUpdate(false)   // refus = retour carrousel (§9.1 ABORTED)
-                launchOverlay.hide()
-                home.pendingLaunchIndex = -1
-                carousel.forceActiveFocus()
-            } else if (launchOverlay.visible) {
-                launchOverlay.forceActiveFocus()       // garde B actif pendant la maj
+        z: 100
+
+        LaunchScreen {
+            id: launchScreen
+            anchors.fill: parent
+            onOpened: {
+                home.launchOpened = true
+                home.maybeStartStream()
+            }
+            // B : annulation pendant la préparation par le Companion, ou fermeture
+            // de l'écran après un échec.
+            onCancelRequested: {
+                if (error === "")
+                    CompanionClient.cancelLaunch()
+                Sounds.play("back")
+                home.endLaunch()
+                homeScreen.forceActiveFocus()
             }
         }
-    }
 
-    // --- Overlay de lancement (préparation / maj en cours / erreur) ---
-    LaunchOverlay {
-        id: launchOverlay
-        anchors.fill: parent
-        z: 50
-        onCancelRequested: {
-            if (phase !== "error")
-                CompanionClient.cancelLaunch()
-            home.pendingLaunchIndex = -1
-            hide()
-            carousel.forceActiveFocus()
+        // Mise à jour requise (piloté par le Companion, §9.1)
+        ConsoleDialog {
+            id: updateDialog
+            anchors.fill: parent
+            confirmLabel: qsTr("Mettre à jour")
+            cancelLabel: qsTr("Annuler")
+            property string size: ""
+            // Distingue « confirmé » de « simplement fermé » : ConsoleDialog émet
+            // confirmed() PUIS closed() quand on valide → sans ce flag on enverrait
+            // accept=true puis accept=false.
+            property bool answered: false
+            onConfirmed: {
+                answered = true
+                CompanionClient.respondUpdate(true)
+                // Une étape de plus, juste après la préparation.
+                var steps = launchScreen.steps.slice()
+                steps.splice(1, 0, size !== "" ? qsTr("Mise à jour de %1 sur le PC").arg(size)
+                                               : qsTr("Mise à jour sur le PC"))
+                launchScreen.steps = steps
+                launchScreen.stepProgress = 0
+                launchScreen.step = 1
+            }
+            onClosed: {
+                if (!answered) {
+                    CompanionClient.respondUpdate(false)   // refus = retour à l'accueil (§9.1 ABORTED)
+                    home.endLaunch()
+                    homeScreen.forceActiveFocus()
+                } else {
+                    launchScreen.forceActiveFocus()        // garde B actif pendant la maj
+                }
+            }
         }
     }
 
     // --- Saisie du code d'appairage Companion (6 chiffres, host → console) ---
     CompanionPairing {
         id: companionPairing
-        anchors.fill: parent
-        z: 70
+        parent: homeScreen.stage
+        focus: shown            // seul écran de message qui prend la manette
         // « Découvert mais pas appairé » : on a un fingerprint live mais pas de token.
-        visible: CompanionClient.certFingerprint !== "" && !CompanionClient.paired
+        shown: CompanionClient.certFingerprint !== "" && !CompanionClient.paired
         hostName: home.activeHostName !== "" ? home.activeHostName : CompanionClient.hostName
         // À l'apparition : on demande au host de GÉNÉRER + AFFICHER son code (pair/start).
         // L'utilisateur le lit sur le PC et le saisit ici ; la validation = pair/confirm.
-        onVisibleChanged: if (visible) {
+        onShownChanged: if (shown) {
             reset()
-            forceActiveFocus()
             CompanionClient.startPairing(qsTr("Console"))
         }
         onSubmitted: function(code) { CompanionClient.confirmPairing(code) }
-        onCancelled: { /* la découverte continue ; rien à fermer côté console */ }
     }
 
     // --- Branchement des événements Companion (REST + WS) ---
@@ -716,6 +741,8 @@ FocusScope {
                 ? qsTr("Code expiré — relancez la liaison depuis le PC.")
                 : qsTr("Code incorrect — réessayez.")
         }
+        function onLibraryChanged() { home.refreshCompanionGames() }
+
         function onPairingSucceeded() {
             companionPairing.errorText = ""
             // Si un appairage Moonlight est en cours, soumettre son PIN maintenant.
@@ -723,34 +750,50 @@ FocusScope {
                 CompanionClient.submitMoonlightPin(home.pairingPin)
         }
 
+        // États de la machine de lancement du host (protocol.md §9.1), ramenés
+        // aux étapes de l'écran de lancement.
         function onLaunchStateChanged(sessionId, gameId, state) {
-            if (!launchOverlay.visible) return
-            if (state === "CHECKING" || state === "ARMING" || state === "UP_TO_DATE")
-                launchOverlay.phase = "preparing"
-            else if (state === "STREAMING")
-                launchOverlay.hide()
+            if (home.launchIndex < 0) return
+            if (state === "CHECKING") {
+                launchScreen.step = 0
+            } else if (state === "UP_TO_DATE" || state === "ARMING") {
+                launchScreen.stepProgress = 1
+                launchScreen.step = launchScreen.steps.length - 2   // « Lancement de … »
+            }
         }
         function onUpdateRequired(sessionId, gameId, sizeBytes) {
+            if (home.launchIndex < 0) return
+            updateDialog.size = home.humanSize(sizeBytes)
             updateDialog.title = qsTr("Mise à jour requise")
             updateDialog.message = sizeBytes > 0
-                ? qsTr("Ce jeu doit être mis à jour (%1) avant d'y jouer.").arg(home.humanSize(sizeBytes))
+                ? qsTr("Ce jeu doit être mis à jour (%1) avant d'y jouer.").arg(updateDialog.size)
                 : qsTr("Ce jeu doit être mis à jour avant d'y jouer.")
             updateDialog.answered = false
             updateDialog.open()
         }
         function onUpdateProgress(sessionId, pct, bytesDone, bytesTotal) {
-            launchOverlay.phase = "updating"
-            launchOverlay.pct = pct
+            if (home.launchIndex >= 0)
+                launchScreen.stepProgress = pct / 100
         }
+        // L'app Apollo du jeu est prête (virtual display armé) : on peut démarrer
+        // la session Moonlight dessus (mapping par nom, §4).
         function onLaunchReady(sessionId, apolloAppId) {
-            home.streamReadyApp(apolloAppId)
+            if (home.launchIndex < 0) return
+            var index = home.findAppIndexByName(apolloAppId)
+            if (index >= 0)
+                home.launchIndex = index
+            home.launchReady = true
+            home.maybeStartStream()
         }
         function onLaunchFailed(sessionId, code, message) {
-            home.pendingLaunchIndex = -1
-            launchOverlay.phase = "error"
-            launchOverlay.message = (message && message !== "") ? message : code
-            launchOverlay.visible = true
-            launchOverlay.forceActiveFocus()   // B ferme l'écran d'erreur
+            if (home.launchIndex < 0) return
+            launchPress.stop()
+            if (!launchScreen.active) {
+                homeScreen.launching = true
+                launchScreen.open()
+            }
+            launchScreen.progressShown = true
+            launchScreen.error = (message && message !== "") ? message : code
         }
     }
 }

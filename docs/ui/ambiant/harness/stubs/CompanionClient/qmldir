@@ -1,0 +1,2 @@
+module CompanionClient
+singleton CompanionClient 1.0 CompanionClient.qml

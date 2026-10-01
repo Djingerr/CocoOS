@@ -20,14 +20,39 @@
         <file>gui/CenteredGridView.qml</file>
         <file>gui/CliPair.qml</file>
         <file>gui/console/ConsoleHome.qml</file>
-        <file>gui/console/GameCarousel.qml</file>
         <file>gui/console/StatusBar.qml</file>
         <file>gui/console/ControllerLegend.qml</file>
-        <file>gui/console/Spinner.qml</file>
-        <file>gui/console/PairingOverlay.qml</file>
         <file>gui/console/ConsoleDialog.qml</file>
-        <file>gui/console/ConsoleSettings.qml</file>
         <file>gui/console/CompanionPairing.qml</file>
-        <file>gui/console/LaunchOverlay.qml</file>
+        <file>gui/console/MessageScreen.qml</file>
+        <file>gui/console/qmldir</file>
+        <file>gui/console/Theme.qml</file>
+        <file>gui/console/Format.js</file>
+        <file>gui/console/Appear.qml</file>
+        <file>gui/console/SwapBox.qml</file>
+        <file>gui/console/ButtonGlyph.qml</file>
+        <file>gui/console/BackdropLayer.qml</file>
+        <file>gui/console/HeroBlock.qml</file>
+        <file>gui/console/GameShelf.qml</file>
+        <file>gui/console/HomeScreen.qml</file>
+        <file>gui/console/PadRepeat.qml</file>
+        <file>gui/console/OptionsSheet.qml</file>
+        <file>gui/console/LaunchScreen.qml</file>
+        <file>gui/console/Sounds.qml</file>
+        <file>gui/console/SoundBank.qml</file>
+        <file>gui/console/sounds/move.wav</file>
+        <file>gui/console/sounds/edge.wav</file>
+        <file>gui/console/sounds/select.wav</file>
+        <file>gui/console/sounds/back.wav</file>
+        <file>gui/console/sounds/open.wav</file>
+        <file>gui/console/sounds/close.wav</file>
+        <file>gui/console/sounds/tick.wav</file>
+        <file>gui/console/sounds/launch.wav</file>
+        <file>gui/console/sounds/ready.wav</file>
+        <file>gui/console/fonts/Sora-Regular.ttf</file>
+        <file>gui/console/fonts/Sora-Medium.ttf</file>
+        <file>gui/console/fonts/Sora-SemiBold.ttf</file>
+        <file>gui/console/fonts/JetBrainsMono-Regular.ttf</file>
+        <file>gui/console/fonts/JetBrainsMono-Medium.ttf</file>
     </qresource>
 </RCC>

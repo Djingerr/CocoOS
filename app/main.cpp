@@ -56,6 +56,7 @@
 #include "gui/sdlgamepadkeynavigation.h"
 #ifdef CONSOLE_UI
 #include "gui/console/backend/companionclient.h"
+#include "gui/console/backend/systemstatus.h"
 #endif
 
 #if defined(Q_OS_WIN32)
@@ -970,6 +971,12 @@ int main(int argc, char *argv[])
                                               [](QQmlEngine*, QJSEngine*) -> QObject* {
                                                   return new CompanionClient();
                                               });
+    // Batterie et signal Wi-Fi de la console, pour la barre haute.
+    qmlRegisterSingletonType<SystemStatus>("SystemStatus", 1, 0,
+                                           "SystemStatus",
+                                           [](QQmlEngine*, QJSEngine*) -> QObject* {
+                                               return new SystemStatus();
+                                           });
 #endif
 
     // Create the identity manager on the main thread

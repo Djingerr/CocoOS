@@ -10,7 +10,8 @@
 //   Tranche 1 (FAITE) : découverte mDNS de `_hostcompanion._tcp`, GET /v1/info
 //     (capture du fingerprint cert, pinning TOFU), appairage par code à 6 chiffres
 //     (/v1/pair/start + /v1/pair/confirm), persistance du token (QSettings).
-//   Tranche 2 (CE FICHIER) : GET /v1/library (+ etag), helper média, WebSocket
+//   Tranche 2 (CE FICHIER) : GET /v1/library (+ etag, copie disque), images de
+//     fond 16:9 en cache disque (GET /v1/media/{id}/bg), WebSocket
 //     /v1/events (reçoit LAUNCH_STATE/UPDATE_*/READY/GAME_*/LIBRARY_UPDATED) avec
 //     reconnexion à backoff.
 //   Tranche 3 (à venir) : recâblage du lancement — POST /v1/launch → attente de
@@ -24,6 +25,8 @@
 #include <QVector>
 #include <QVariant>
 #include <QJsonArray>
+#include <QHash>
+#include <QSet>
 #include <QSharedPointer>
 // QSslError doit être COMPLET (pas seulement forward-déclaré) : il apparaît dans
 // la signature du slot onSslErrors(QList<QSslError>) et le MOC (Qt6) génère un
@@ -102,12 +105,11 @@ public:
     // 304 → rien. Appelé automatiquement après appairage et sur LIBRARY_UPDATED.
     Q_INVOKABLE void refreshLibrary();
 
-    // Snapshot courant : liste de GameInfo (QVariantMap) telle que protocol.md §4.
+    // Snapshot courant : liste de GameInfo (QVariantMap) telle que protocol.md §4, plus
+    // `background` : URL file:// de l'image de fond 16:9 (média `bg`) une fois en
+    // cache disque, vide sinon. L'Image QML ne sait pas poser l'en-tête Bearer : elle
+    // lit cette copie locale. Chaque image arrivée émet libraryChanged().
     Q_INVOKABLE QVariantList games() const;
-
-    // URL d'un média (cover|bg|icon|screenshot-N). ⚠️ auth Bearer non posable par
-    // QML Image → résolu en tranche 3 (QQuickImageProvider ou ?token= côté host).
-    Q_INVOKABLE QString mediaUrl(const QString& gameId, const QString& kind) const;
 
     // (Dé)connecte le WebSocket /v1/events. connectEvents() est aussi appelé seul
     // dès que le host appairé est joignable (fetchInfo OK).
@@ -168,6 +170,7 @@ private:
     void scheduleReconnect();
     void loadPersisted();
     void persist();
+    void cacheBackgrounds();                  // indexe le cache, télécharge ce qui manque
 
     // Réseau (TLS auto-signé → pinning TOFU sur le SHA-256 du cert DER)
     QNetworkAccessManager* m_nam = nullptr;
@@ -201,7 +204,12 @@ private:
     // Lancement (session courante côté host)
     QString m_launchSessionId;
 
-    // Bibliothèque (snapshot + etag)
+    // Bibliothèque (snapshot + etag), gardée sur disque pour être là dès le démarrage
     QJsonArray m_libraryGames;
     QString m_libraryEtag;
+
+    // Cache disque : bibliothèque et images de fond (QStandardPaths::CacheLocation)
+    QString m_cacheDir;
+    QHash<QString, QString> m_backgrounds;    // gameId → URL file:// de l'image en cache
+    QSet<QString> m_backgroundRequests;       // fichiers en cours de téléchargement
 };
