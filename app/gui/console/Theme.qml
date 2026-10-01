@@ -237,6 +237,17 @@ QtObject {
     readonly property int toastShift: 10             // il monte de cette distance en apparaissant
     readonly property int toastDuration: 2600
 
+    // --- Veille de l'écran (SleepScreen, « .sleep » du prototype) ---
+    readonly property int sleepMinutes: 5            // inactivité avant la veille, par défaut
+    readonly property int sleepFade: 520             // linéaire
+    readonly property int wakeFade: 320
+    readonly property int sleepTextDelay: 900        // la phrase apparaît…
+    readonly property int sleepTextFade: 400
+    readonly property int sleepTextHold: 8000        // …puis s'efface : noir complet (OLED)
+    readonly property int sleepTextSize: 14          // Sora 400, ink3
+    // Bouton Home ignoré juste après le retour d'un jeu : il peut être encore enfoncé.
+    readonly property int homeGuard: 1500
+
     // --- Réveil du PC (Wake-on-LAN) ---
     readonly property int autoWakeDelay: 4000        // PC hors ligne au démarrage : réveil d'office après…
     readonly property int wakeTimeout: 90000         // …puis abandon s'il ne répond pas (démarrage à froid)

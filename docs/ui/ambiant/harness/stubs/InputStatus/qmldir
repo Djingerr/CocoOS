@@ -1,0 +1,2 @@
+module InputStatus
+singleton InputStatus 1.0 InputStatus.qml

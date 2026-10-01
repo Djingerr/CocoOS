@@ -9,6 +9,7 @@ import ComputerManager 1.0
 import StreamingPreferences 1.0
 import CompanionClient 1.0
 import SystemStatus 1.0
+import InputStatus 1.0
 
 import "Format.js" as Format
 import "Library.js" as Library
@@ -68,6 +69,7 @@ FocusScope {
         property string lastGame: ""        // dernier jeu lancé : l'accueil s'ouvre dessus
         property string favorites: "[]"     // jeux épinglés (X), le dernier épinglé en tête (JSON)
         property string recentGames: "{}"   // date de la dernière partie lancée d'ici, par jeu (JSON, ms)
+        property int sleepMinutes: Theme.sleepMinutes   // veille de l'écran après inactivité ; 0 = jamais
     }
 
     Component.onCompleted: {
@@ -106,16 +108,25 @@ FocusScope {
 
     // StreamSegue/QuitSegue ré-affichent la toolbar upstream en se dépilant :
     // on re-masque le chrome à chaque retour sur l'accueil.
-    StackView.onActivated: {
+    StackView.onActivated: returnedHome()
+
+    function returnedHome() {
         hideUpstreamChrome()
+        var fromGame = streamStarted
         if (streamStarted) {
             streamStarted = false
             Sounds.play("back")
+            homeGuardUntil = Date.now() + Theme.homeGuard   // Home peut être encore enfoncé
         }
         endLaunch()
         refreshOptions()   // (la résolution « native » n'est connue qu'une fois à l'écran)
         homeScreen.forceActiveFocus()
         homeScreen.wake()
+        rearmSleep()
+        // Revenu du jeu par le bouton Home : le jeu tourne encore, le menu propose
+        // de le reprendre ou de le quitter.
+        if (InputStatus.takeHomeExit() && fromGame)
+            openHomeMenu()
     }
 
     function hideUpstreamChrome() {
@@ -134,6 +145,13 @@ FocusScope {
     // B (Échap) est consommé : rien derrière l'accueil.
     Keys.onMenuPressed: { /* X hors de l'étagère : rien */ }
     Keys.onHangupPressed: homeScreen.options.open()
+    // Au clavier, la touche Origine (Home) tient lieu du bouton Home de la manette.
+    Keys.onPressed: function(event) {
+        if (event.key === Qt.Key_Home || event.key === Qt.Key_HomePage) {
+            event.accepted = true
+            homeButton()
+        }
+    }
     Keys.onEscapePressed: { /* accueil : rien à fermer */ }
 
     onActiveComputerIndexChanged: rebuildAppModel()
@@ -397,6 +415,106 @@ FocusScope {
         Qt.callLater(rebuildShelf)          // l'ordre suit aussi les parties jouées sur le PC
     }
 
+    // --- Veille de l'écran ---
+    // Sans action à l'accueil pendant consoleConfig.sleepMinutes, l'écran passe au
+    // noir. Jamais pendant un lancement (ni pendant un flux : Qt est alors suspendu).
+    readonly property bool onTop: StackView.view === null || StackView.status === StackView.Active
+    readonly property bool sleepAllowed: onTop && !launchScreen.active && consoleConfig.sleepMinutes > 0
+    onSleepAllowedChanged: rearmSleep()
+    property var focusBeforeSleep: null
+
+    function rearmSleep() {
+        if (sleepAllowed && !sleepScreen.asleep)
+            idleTimer.restart()
+        else
+            idleTimer.stop()
+    }
+    Timer {
+        id: idleTimer
+        interval: consoleConfig.sleepMinutes * 60000
+        onTriggered: {
+            home.focusBeforeSleep = home.Window.activeFocusItem
+            sleepScreen.sleep()
+        }
+    }
+
+    // --- Bouton Home ---
+    // À l'accueil : ouvre (ou referme) le menu Home. En veille : réveille. Pendant un
+    // jeu, c'est la session qui le reçoit : elle rend la main à l'accueil (gamepad.cpp).
+    property double homeGuardUntil: 0
+
+    Connections {
+        target: InputStatus
+        function onActivity() { home.rearmSleep() }
+        function onHomePressed() { home.homeButton() }
+    }
+
+    function homeButton() {
+        if (Date.now() < homeGuardUntil) return
+        if (sleepScreen.asleep) {
+            sleepScreen.wake()
+            return
+        }
+        if (!onTop || launchScreen.active || updateDialog.opened) return
+        if (homeMenu.opened) {
+            homeMenu.close()
+            return
+        }
+        homeScreen.options.close()
+        confirmDialog.close()
+        openHomeMenu()
+    }
+
+    function openHomeMenu() {
+        var running = appModel ? appModel.getRunningAppName() : ""
+        var actions = []
+        if (running !== "") {
+            actions.push({ label: qsTr("Reprendre %1").arg(running), key: "resume" })
+            actions.push({ label: qsTr("Quitter %1").arg(running), key: "quit" })
+        }
+        var power = SystemStatus.powerActions
+        if (power.indexOf("suspend") >= 0) actions.push({ label: qsTr("Mettre en veille"), key: "suspend" })
+        if (power.indexOf("reboot") >= 0) actions.push({ label: qsTr("Redémarrer"), key: "reboot" })
+        if (power.indexOf("poweroff") >= 0) actions.push({ label: qsTr("Éteindre"), key: "poweroff" })
+        if (actions.length === 0) return
+        homeMenu.message = running !== "" ? qsTr("%1 est en cours sur %2.").arg(running).arg(activeHostName) : ""
+        homeMenu.actions = actions
+        homeMenu.open()
+    }
+
+    function homeMenuChosen(key) {
+        var running = appModel ? appModel.getRunningAppName() : ""
+        if (key === "resume") {
+            var index = findAppIndexByName(running)
+            if (index >= 0) launchApp(index)
+        } else if (key === "quit") {
+            confirmDialog.ask(qsTr("Quitter %1 ?").arg(running),
+                              qsTr("Toute progression non sauvegardée sera perdue."),
+                              qsTr("Quitter"), function() { home.quitRunningGame() })
+        } else if (key === "suspend") {
+            SystemStatus.power("suspend")
+        } else if (key === "reboot") {
+            confirmDialog.ask(qsTr("Redémarrer la console ?"), "", qsTr("Redémarrer"),
+                              function() { SystemStatus.power("reboot") })
+        } else if (key === "poweroff") {
+            confirmDialog.ask(qsTr("Éteindre la console ?"), "", qsTr("Éteindre"),
+                              function() { SystemStatus.power("poweroff") })
+        }
+    }
+
+    function quitRunningGame() {
+        if (!appModel) return
+        homeScreen.toast(qsTr("Fermeture de %1…").arg(appModel.getRunningAppName()))
+        appModel.quitRunningApp()
+    }
+    Connections {
+        target: ComputerManager
+        function onQuitAppCompleted(error) {
+            if (error !== undefined && error !== null)
+                homeScreen.toast(qsTr("Le jeu n'a pas pu être fermé."))
+        }
+    }
+
     // --- Réveil du PC (Wake-on-LAN) ---
     // PC connu (adresse MAC) mais hors ligne : la console l'allume elle-même, une fois
     // d'office peu après le démarrage, puis avant tout lancement et à la demande (A)
@@ -518,12 +636,10 @@ FocusScope {
         // (équivalent console du quitAppDialog de AppView.qml). Chemin direct.
         var runningId = appModel.getRunningAppId()
         if (runningId !== 0 && runningId !== item.appid) {
-            confirmDialog.pendingLaunchIndex = index
-            confirmDialog.title = qsTr("Un jeu est déjà en cours")
-            confirmDialog.message = qsTr("%1 est en cours sur votre PC. Le fermer et lancer %2 ? Toute progression non sauvegardée sera perdue.")
-                .arg(appModel.getRunningAppName()).arg(item.name)
-            confirmDialog.confirmLabel = qsTr("Fermer et jouer")
-            confirmDialog.open()
+            confirmDialog.ask(qsTr("Un jeu est déjà en cours"),
+                              qsTr("%1 est en cours sur votre PC. Le fermer et lancer %2 ? Toute progression non sauvegardée sera perdue.")
+                                  .arg(appModel.getRunningAppName()).arg(item.name),
+                              qsTr("Fermer et jouer"), function() { home.quitAndLaunch(index) })
             return
         }
 
@@ -787,7 +903,7 @@ FocusScope {
         optionsHost: home.activeHostName
 
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
-        panelOpen: confirmDialog.opened
+        panelOpen: confirmDialog.opened || homeMenu.opened
 
         onLaunchRequested: function(index) { home.launchApp(shelfModel.get(index).appIndex) }
         onFavoriteRequested: home.toggleFavorite()
@@ -849,13 +965,30 @@ FocusScope {
         hints: home.legendOptions
     }
 
-    // --- « Un autre jeu tourne déjà » ---
+    // --- Confirmations (« un autre jeu tourne déjà », quitter le jeu, éteindre…) ---
     ConsoleDialog {
         id: confirmDialog
         anchors.fill: parent
-        property int pendingLaunchIndex: -1
-        onConfirmed: home.quitAndLaunch(pendingLaunchIndex)
+        property var pending: null
+        // Pose la question ; `action` est appelée si l'on confirme.
+        function ask(title, message, confirmLabel, action) {
+            confirmDialog.title = title
+            confirmDialog.message = message
+            confirmDialog.confirmLabel = confirmLabel
+            pending = action
+            open()
+        }
+        onConfirmed: if (pending) pending()
         onClosed: homeScreen.forceActiveFocus()
+    }
+
+    // --- Menu Home : reprendre ou quitter le jeu en cours, veille, redémarrage, extinction ---
+    ConsoleDialog {
+        id: homeMenu
+        anchors.fill: parent
+        title: qsTr("Menu")
+        onChosen: function(key) { home.homeMenuChosen(key) }
+        onClosed: if (!confirmDialog.opened) homeScreen.forceActiveFocus()
     }
 
     // --- Au-dessus de la pile d'écrans de Moonlight ---
@@ -883,6 +1016,20 @@ FocusScope {
                 Sounds.play("back")
                 home.endLaunch()
                 homeScreen.forceActiveFocus()
+            }
+        }
+
+        // Veille de l'écran : par-dessus tout le reste.
+        SleepScreen {
+            id: sleepScreen
+            anchors.fill: parent
+            z: 1
+            onWoke: {
+                var item = home.focusBeforeSleep
+                home.focusBeforeSleep = null
+                if (item) item.forceActiveFocus()
+                else homeScreen.forceActiveFocus()
+                home.rearmSleep()
             }
         }
 

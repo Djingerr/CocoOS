@@ -8,6 +8,8 @@ import "../.." as Harness
 ListModel {
     property var demo: Harness.DemoGames {}
     property int runningAppId: 0
+    property string runningName: ""
+    property int quits: 0
     property var lastSession: null
     property Component session: Component {
         QtObject {
@@ -24,10 +26,10 @@ ListModel {
     }
     function getDirectLaunchAppIndex() { return -1 }
     function getRunningAppId() { return runningAppId }
-    function getRunningAppName() { return "" }
+    function getRunningAppName() { return runningName }
     function createSessionForApp(index) {
         lastSession = session.createObject(null)
         return lastSession
     }
-    function quitRunningApp() {}
+    function quitRunningApp() { quits++ }
 }

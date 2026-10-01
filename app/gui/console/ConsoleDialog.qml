@@ -3,6 +3,7 @@ import QtQuick
 // Demande de confirmation, dans un panneau qui glisse depuis la droite comme celui
 // des options : un titre, un message, deux choix (Annuler en premier et par défaut :
 // le choix sûr). Haut / bas (ou gauche / droite) choisissent, A valide, B annule.
+// Avec `actions`, c'est un menu : autant de choix que d'actions, A émet chosen(key).
 // Remplit son parent et se dessine, comme LaunchScreen, sur le canevas mis à
 // l'échelle. Aucune dépendance Moonlight.
 FocusScope {
@@ -13,12 +14,18 @@ FocusScope {
     property string confirmLabel: qsTr("Confirmer")
     property string cancelLabel: qsTr("Annuler")
 
+    // Menu : [{ label, key }] à la place d'Annuler / Confirmer.
+    property var actions: []
+
     signal confirmed()
+    signal chosen(string key)
     signal closed()
 
     property bool opened: false
-    // 0 = annuler, 1 = confirmer.
+    // Choix en focus ; sans `actions` : 0 = annuler, 1 = confirmer.
     property int focusedButton: 0
+    readonly property var labels: actions.length > 0 ? actions.map(function(a) { return a.label })
+                                                     : [cancelLabel, confirmLabel]
     // 0 = fermé, 1 = ouvert ; le panneau et le voile en découlent.
     property real reveal: opened ? 1 : 0
     Behavior on reveal { NumberAnimation { duration: Theme.sheetSlide; easing.type: Theme.easeQuint } }
@@ -40,7 +47,12 @@ FocusScope {
     }
 
     function activate() {
-        if (focusedButton === 1) {
+        if (actions.length > 0) {
+            opened = false
+            Sounds.play("select")
+            chosen(actions[focusedButton].key)
+            closed()
+        } else if (focusedButton === 1) {
             opened = false
             Sounds.play("select")
             confirmed()
@@ -52,7 +64,7 @@ FocusScope {
 
     function step(dir) {
         var next = focusedButton + dir
-        if (next < 0 || next > 1) {
+        if (next < 0 || next >= labels.length) {
             Sounds.play("edge")
             return
         }
@@ -124,6 +136,7 @@ FocusScope {
                 x: Theme.sheetPadSide
                 y: title.y + title.height + Theme.dialogMessageTop
                 width: title.width
+                height: text !== "" ? implicitHeight : 0
                 text: root.message
                 color: Theme.ink2
                 wrapMode: Text.WordWrap
@@ -151,7 +164,7 @@ FocusScope {
                 }
 
                 Repeater {
-                    model: [root.cancelLabel, root.confirmLabel]
+                    model: root.labels
                     Item {
                         readonly property bool focused: root.focusedButton === index
                         y: index * Theme.sheetRowHeight
@@ -188,7 +201,8 @@ FocusScope {
                 x: Theme.sheetPadSide
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: Theme.sheetPadBottom
-                hints: [ { glyph: "B", label: root.cancelLabel }, { glyph: "A", label: qsTr("Valider") } ]
+                hints: [ { glyph: "B", label: root.actions.length > 0 ? qsTr("Fermer") : root.cancelLabel },
+                         { glyph: "A", label: qsTr("Valider") } ]
             }
         }
     }

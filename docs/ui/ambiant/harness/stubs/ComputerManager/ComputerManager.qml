@@ -1,5 +1,8 @@
 pragma Singleton
 import QtQuick
 
-// Faux ComputerManager : ConsoleHome ne fait que le passer aux modèles.
-QtObject {}
+// Faux ComputerManager : ConsoleHome le passe aux modèles et écoute la fin d'un
+// « quitter le jeu ».
+QtObject {
+    signal quitAppCompleted(var error)
+}

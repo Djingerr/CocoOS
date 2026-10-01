@@ -2,6 +2,8 @@ import QtQuick
 import QtTest
 import StreamingPreferences 1.0
 import CompanionClient 1.0
+import SystemStatus 1.0
+import InputStatus 1.0
 import "../../../../app/gui/console"
 
 // Le vrai ConsoleHome sur de faux modules Moonlight (stubs/) : les données des
@@ -41,6 +43,20 @@ Item {
         // L'écran de lancement vit dans la fenêtre, au-dessus de ConsoleHome.
         readonly property var launchScreen: find(home.Window.window.contentItem, "progressShown")
         readonly property var updateDialog: find(home.Window.window.contentItem, "answered")
+        readonly property var sleepScreen: find(home.Window.window.contentItem, "asleep")
+        // Les panneaux latéraux de ConsoleHome (confirmation, menu Home), par leur titre.
+        function dialog(title) {
+            var found = null
+            var walk = function(from) {
+                for (var i = 0; i < from.children.length && !found; i++) {
+                    var c = from.children[i]
+                    if (c.actions !== undefined && c.opened && c.title === title) found = c
+                    else walk(c)
+                }
+            }
+            walk(home)
+            return found
+        }
 
         function initTestCase() {
             Sounds.enabled = false
@@ -333,6 +349,64 @@ Item {
             pc.setProperty(0, "online", true)
             verify(!home.waking && !home.wakeFailed)
             home.rebuildAppModel()
+        }
+
+        // Bouton Home : le menu, puis « Éteindre », qui demande confirmation.
+        function test_9i_homeButtonMenuPowersOff() {
+            SystemStatus.lastPower = ""
+            InputStatus.homePressed()
+            var menu = dialog("Menu")
+            verify(menu)
+            compare(menu.labels, ["Mettre en veille", "Redémarrer", "Éteindre"])
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)
+            verify(!menu.opened)
+            var confirm = dialog("Éteindre la console ?")
+            verify(confirm)
+            compare(SystemStatus.lastPower, "")           // rien sans confirmation
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)
+            compare(SystemStatus.lastPower, "poweroff")
+            InputStatus.homePressed(); verify(dialog("Menu"))
+            InputStatus.homePressed(); verify(!dialog("Menu"))   // Home referme le menu
+            keyClick(Qt.Key_Right)
+            compare(screen.currentIndex, 1)               // la manette est revenue à l'étagère
+        }
+
+        // Revenu d'un jeu par le bouton Home : il tourne encore, le menu propose de le
+        // reprendre ou de le quitter.
+        function test_9j_leavingAGameWithHomeOffersToResume() {
+            var apps = home.appModel
+            apps.runningName = "Hades II"
+            InputStatus.homeExit = true
+            home.streamStarted = true
+            home.returnedHome()
+            var menu = dialog("Menu")
+            verify(menu)
+            compare(menu.labels[0], "Reprendre Hades II")
+            compare(menu.message, "Hades II est en cours sur Djinger.")
+            InputStatus.homePressed()                     // encore enfoncé au retour : ignoré
+            verify(menu.opened)
+            var quits = apps.quits
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)    // « Quitter Hades II »
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)    // confirmé
+            compare(apps.quits, quits + 1)
+            apps.runningName = ""
+            home.homeGuardUntil = 0
+        }
+
+        // La veille : la touche qui réveille n'atteint pas l'accueil, la suivante si.
+        function test_9k_sleepSwallowsTheWakingKey() {
+            screen.currentIndex = 2
+            sleepScreen.sleep()
+            verify(sleepScreen.asleep)
+            keyClick(Qt.Key_Right)
+            verify(!sleepScreen.asleep)
+            compare(screen.currentIndex, 2)
+            keyClick(Qt.Key_Right)
+            compare(screen.currentIndex, 3)
+            sleepScreen.sleep()
+            InputStatus.homePressed()                     // Home réveille, sans ouvrir le menu
+            verify(!sleepScreen.asleep)
+            verify(!dialog("Menu"))
         }
 
         // X épingle le jeu en tête de l'étagère (la sélection le suit), puis le détache.

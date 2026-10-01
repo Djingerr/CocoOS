@@ -152,6 +152,13 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     « Réveil de … » en tête de l'écran de lancement, qui reprend seul quand le PC répond (en
     laissant 8 s au Companion pour se reconnecter) ; écran de recherche → A Réveiller / Réessayer.
     Abandon au bout de 90 s avec un message (Wake-on-LAN à activer dans le BIOS).
+  - **Veille de l'écran** (`SleepScreen`) après `ConsoleUi/sleepMinutes` (5 par défaut) sans
+    action à l'accueil ; jamais pendant un lancement ni un flux.
+  - **Bouton Home** (`InputStatus`) : à l'accueil, ouvre le menu Home (`ConsoleDialog` en mode
+    `actions`) : reprendre / quitter le jeu en cours (quitter sans `QuitSegue`, pas de page
+    upstream), mettre en veille, redémarrer, éteindre (ces deux derniers confirmés). En jeu, la
+    couture de `gamepad.cpp` ramène à l'accueil (le jeu continue) et le menu s'ouvre au retour.
+    Au clavier : touche Origine.
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
@@ -203,7 +210,9 @@ On veut pouvoir **suivre les commits du repo officiel de moonlight** sans douleu
   Un fichier neuf ne crée jamais de conflit de merge. Toute l'interface maison vit dans son
   propre dossier isolé : `app/gui/console/`.
 - **Ne JAMAIS modifier un fichier upstream**, sauf les rares « coutures » strictement
-  nécessaires, qu'on garde minuscules (voir §9).
+  nécessaires, qu'on garde minuscules (voir §9), toujours sous `#ifdef CONSOLE_UI` ou dans le
+  scope `embedded`. Liste : `app.pro`, `qml.qrc`, `main.cpp` (enregistrement des singletons,
+  rôle PipeWire des sons), `streaming/input/gamepad.cpp` (bouton Home en jeu → accueil).
 - **Surtout, ne pas toucher `app/gui/main.qml`.**
 - Git :
   - remote `upstream` = `https://github.com/moonlight-stream/moonlight-qt.git`
@@ -261,6 +270,8 @@ Fichiers (dans `app/gui/console/`) :
 - `Library.js` — l'étagère : utilitaires écartés, ordre (favoris, récents, nom), synchronisation
   du `ListModel` sans recréer les vignettes
 - `Toast.qml` — message bref au-dessus de l'étagère (`homeScreen.toast(texte)`)
+- `SleepScreen.qml` — veille de l'écran : noir, une phrase qui s'efface à son tour (OLED) ; la
+  touche qui réveille n'atteint pas l'accueil
 - `icons/` — icônes SVG (punaise des favoris)
 - `StatusBar.qml` — barre haute : pastille de l'hôte + horloge / Wi-Fi / batterie (éclair en
   charge, orange sous `Theme.batteryLow`)
@@ -276,8 +287,14 @@ Fichiers (dans `app/gui/console/`) :
   images de fond 16:9 en cache disque (`games()[i].background`, URL `file://` : l'`Image` QML
   ne sait pas poser le Bearer), WebSocket events (cf §2). Nécessite `QT += websockets`.
 - `backend/systemstatus.{h,cpp}` — batterie et charge (`/sys/class/power_supply`) et force du
-  signal Wi-Fi (NetworkManager par D-Bus) pour la barre haute. Build `embedded` uniquement ;
-  `QT += dbus`.
+  signal Wi-Fi (NetworkManager par D-Bus) pour la barre haute ; veille / redémarrage /
+  extinction par systemd-logind (D-Bus, `powerActions` + `power()`). Build `embedded`
+  uniquement ; `QT += dbus`.
+- `backend/inputstatus.{h,cpp}` — activité de l'utilisateur (filtre d'événements sur l'app,
+  pour la veille), bouton Home de la manette (état SDL lu toutes les 50 ms, la navigation
+  upstream ne le traduit pas en touche), famille et batterie de la manette, et le « retour
+  d'un jeu par Home » signalé par la session (`noteHomeExit` / `takeHomeExit`). Build
+  `embedded` uniquement.
 
 `ConsoleHome.qml` est **branché sur le vrai backend Moonlight** (imports
 `ComputerModel`/`AppModel`/`ComputerManager`/`StreamingPreferences`/`CompanionClient`). Tout

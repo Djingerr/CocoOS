@@ -30,6 +30,7 @@
         <file>gui/console/Format.js</file>
         <file>gui/console/Library.js</file>
         <file>gui/console/Toast.qml</file>
+        <file>gui/console/SleepScreen.qml</file>
         <file>gui/console/icons/pin.svg</file>
         <file>gui/console/Appear.qml</file>
         <file>gui/console/SwapBox.qml</file>

@@ -57,6 +57,7 @@
 #ifdef CONSOLE_UI
 #include "gui/console/backend/companionclient.h"
 #include "gui/console/backend/systemstatus.h"
+#include "gui/console/backend/inputstatus.h"
 #endif
 
 #if defined(Q_OS_WIN32)
@@ -977,6 +978,12 @@ int main(int argc, char *argv[])
                                            [](QQmlEngine*, QJSEngine*) -> QObject* {
                                                return new SystemStatus();
                                            });
+    // Activité, bouton Home et manette, pour la veille, le menu Home et les glyphes.
+    qmlRegisterSingletonType<InputStatus>("InputStatus", 1, 0,
+                                          "InputStatus",
+                                          [](QQmlEngine*, QJSEngine*) -> QObject* {
+                                              return new InputStatus();
+                                          });
     // Sons de l'interface : QtMultimedia les déclare à PipeWire en rôle « Notification »,
     // que le bureau peut couper (« Sons de notification » de Plasma). Rôle « Game », comme
     // le son du flux (SDL).

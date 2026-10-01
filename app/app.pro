@@ -436,6 +436,8 @@ embedded {
     HEADERS += gui/console/backend/companionclient.h
     SOURCES += gui/console/backend/systemstatus.cpp
     HEADERS += gui/console/backend/systemstatus.h
+    SOURCES += gui/console/backend/inputstatus.cpp
+    HEADERS += gui/console/backend/inputstatus.h
 }
 glslow {
     message(GL slow build)

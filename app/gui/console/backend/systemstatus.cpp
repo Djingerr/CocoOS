@@ -18,6 +18,14 @@ const QString NM_SERVICE = QStringLiteral("org.freedesktop.NetworkManager");
 const QString NM_PATH = QStringLiteral("/org/freedesktop/NetworkManager");
 const uint NM_DEVICE_TYPE_WIFI = 2;
 
+const QString LOGIN_SERVICE = QStringLiteral("org.freedesktop.login1");
+const QString LOGIN_PATH = QStringLiteral("/org/freedesktop/login1");
+const QString LOGIN_MANAGER = QStringLiteral("org.freedesktop.login1.Manager");
+// Action de l'UI → méthodes logind (Can…, puis l'action elle-même).
+const struct { const char* action; const char* method; } POWER_METHODS[] = {
+    { "suspend", "Suspend" }, { "reboot", "Reboot" }, { "poweroff", "PowerOff" },
+};
+
 QString readLine(const QString& path)
 {
     QFile file(path);
@@ -35,9 +43,43 @@ SystemStatus::SystemStatus(QObject* parent)
     connect(&m_timer, &QTimer::timeout, this, &SystemStatus::refresh);
     m_timer.start(REFRESH_INTERVAL_MS);
     refresh();
+    m_powerActions = readPowerActions();
 
-    qInfo("SystemStatus: battery %d %%%s, Wi-Fi %d/4 (-1 = none)",
-          m_batteryPercent, m_charging ? " (charging)" : "", m_signalStrength);
+    qInfo("SystemStatus: battery %d %%%s, Wi-Fi %d/4 (-1 = none), power: %s",
+          m_batteryPercent, m_charging ? " (charging)" : "", m_signalStrength,
+          qPrintable(m_powerActions.join(QLatin1Char(' '))));
+}
+
+QStringList SystemStatus::readPowerActions()
+{
+    QStringList actions;
+    QDBusConnection bus = QDBusConnection::systemBus();
+    if (!bus.isConnected()) {
+        return actions;
+    }
+    QDBusInterface manager(LOGIN_SERVICE, LOGIN_PATH, LOGIN_MANAGER, bus);
+    manager.setTimeout(DBUS_TIMEOUT_MS);
+    for (const auto& power : POWER_METHODS) {
+        // « challenge » demanderait un mot de passe, impossible sur la console.
+        QDBusReply<QString> can = manager.call(QStringLiteral("Can") + QLatin1String(power.method));
+        if (can.isValid() && can.value() == QLatin1String("yes")) {
+            actions << QLatin1String(power.action);
+        }
+    }
+    return actions;
+}
+
+void SystemStatus::power(const QString& action)
+{
+    for (const auto& power : POWER_METHODS) {
+        if (action == QLatin1String(power.action) && m_powerActions.contains(action)) {
+            qInfo("SystemStatus: %s", power.method);
+            QDBusInterface manager(LOGIN_SERVICE, LOGIN_PATH, LOGIN_MANAGER, QDBusConnection::systemBus());
+            manager.asyncCall(QLatin1String(power.method), false);   // false : jamais de demande interactive
+            return;
+        }
+    }
+    qWarning("SystemStatus: unavailable power action %s", qPrintable(action));
 }
 
 void SystemStatus::refresh()

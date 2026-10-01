@@ -1,4 +1,5 @@
 import QtQuick
+import InputStatus 1.0
 import "../../../../app/gui/console"
 
 // Le VRAI ConsoleHome (logique et overlays compris), branché sur de faux modules
@@ -10,11 +11,12 @@ import "../../../../app/gui/console"
 //
 // Arguments du harnais :
 //   do     actions jouées à `at` ms, séparées par des virgules et espacées de
-//          150 ms : left, right, pin (bouton X)
+//          150 ms : left, right, down, a, pin (bouton X), home (bouton Home), sleep
 //   at     instant de `do`, en ms (300 par défaut)
 //   noart  noms de jeux (séparés par des virgules) privés de jaquette
 //   offline=1  le PC est hors ligne (la console tente de le réveiller)
 //   nogames=1  aucun jeu : l'écran de recherche
+//   running    nom du jeu en cours sur le PC
 Item {
     id: demo
     property var args: ({})
@@ -47,6 +49,8 @@ Item {
                     home.appModel.setProperty(i, "boxart", "")
             if (home.appModel && demo.args.nogames === "1")
                 home.appModel.clear()
+            if (home.appModel && demo.args.running)
+                home.appModel.runningName = demo.args.running
         }
         function onComputerModelChanged() {
             if (demo.args.offline === "1")
@@ -72,6 +76,14 @@ Item {
             if (action === "right") screen.currentIndex++
             else if (action === "left") screen.currentIndex--
             else if (action === "pin") home.toggleFavorite()
+            else if (action === "home") InputStatus.homePressed()
+            else if (action === "sleep") demo.find(home.Window.window.contentItem, "asleep").sleep()
+            else if (action === "down" || action === "a") {
+                var target = home.Window.activeFocusItem
+                while (target && target.step === undefined) target = target.parent
+                if (target && action === "down") target.step(1)
+                else if (target) target.activate()
+            }
         }
     }
 }
