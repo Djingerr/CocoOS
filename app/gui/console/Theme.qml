@@ -363,6 +363,7 @@ QtObject {
     readonly property real launchBackdropZoom: 1.12  // le fond zoome (backdropZoomDuration)…
     readonly property int launchScrimFade: 700       // …et son voile disparaît
     // L'illustration du jeu apparaît en plein écran, avec un léger zoom arrière.
+    readonly property int launchGrow: 620            // la vignette grandit jusqu'au plein écran, easeQuint
     readonly property int launchImageDelay: 180
     readonly property int launchImageFade: 560
     readonly property real launchImageZoom: 1.12

@@ -11,6 +11,12 @@ FocusScope {
     id: root
 
     property url image                  // illustration du jeu
+    // Vignette d'où part l'écran : sa place sur le canevas et sa jaquette. Le cadre
+    // grandit de là jusqu'au plein écran ; sans elle (origin vide), simple fondu.
+    property rect origin: Qt.rect(0, 0, 0, 0)
+    property url thumbnail
+    readonly property bool fromThumb: origin.width > 0
+    property real grow: 1               // 0 = à la place de la vignette, 1 = plein écran
     property var steps: []              // libellés des étapes, dans l'ordre
     property int step: 0                // étape en cours
     // Avancement dans l'étape en cours, de 0 à 1. À 1 (par défaut), la barre va
@@ -40,7 +46,9 @@ FocusScope {
         progressShown = false
         bar = 0
         content.opacity = 1
-        frame.opacity = 0
+        grow = fromThumb ? 0 : 1
+        art.opacity = fromThumb ? 0 : 1
+        frame.opacity = fromThumb ? 1 : 0
         shade.opacity = 0
         active = true
         forceActiveFocus()
@@ -79,12 +87,24 @@ FocusScope {
     ParallelAnimation {
         id: intro
         paused: running && root.frozen
+        // Depuis la vignette : le cadre grandit, l'illustration remplace la jaquette.
         SequentialAnimation {
-            PauseAnimation { duration: Theme.launchImageDelay }
+            PauseAnimation { duration: root.fromThumb ? 0 : Theme.launchImageDelay }
             ParallelAnimation {
-                NumberAnimation { target: frame; property: "opacity"; from: 0; to: 1; duration: Theme.launchImageFade }
                 NumberAnimation {
-                    target: art; property: "scale"; from: Theme.launchImageZoom; to: 1
+                    target: frame; property: "opacity"; to: 1
+                    duration: root.fromThumb ? 0 : Theme.launchImageFade
+                }
+                NumberAnimation {
+                    target: root; property: "grow"; to: 1
+                    duration: root.fromThumb ? Theme.launchGrow : 0; easing.type: Theme.easeQuint
+                }
+                NumberAnimation {
+                    target: art; property: "opacity"; to: 1
+                    duration: root.fromThumb ? Theme.launchGrow : 0
+                }
+                NumberAnimation {
+                    target: art; property: "scale"; from: root.fromThumb ? 1 : Theme.launchImageZoom; to: 1
                     duration: Theme.launchImageSettle; easing.type: Theme.easeQuint
                 }
             }
@@ -132,14 +152,26 @@ FocusScope {
         scale: Theme.scale
         transformOrigin: Item.TopLeft
 
-        // L'illustration, sur fond noir, qui recouvre l'accueil en fondu.
+        // L'illustration, sur fond noir, qui recouvre l'accueil : en fondu, ou en
+        // grandissant depuis la vignette du jeu.
         Rectangle {
             id: frame
-            anchors.fill: parent
+            x: root.origin.x * (1 - root.grow)
+            y: root.origin.y * (1 - root.grow)
+            width: root.origin.width + (parent.width - root.origin.width) * root.grow
+            height: root.origin.height + (parent.height - root.origin.height) * root.grow
             color: Theme.background
             opacity: 0
             clip: true
 
+            Image {
+                anchors.fill: parent
+                visible: root.fromThumb && root.grow < 1
+                source: root.thumbnail
+                fillMode: Image.PreserveAspectCrop
+                asynchronous: false         // déjà en cache : la vignette est à l'écran
+                sourceSize.height: Math.round(Theme.shelfThumbSize.height * Theme.shelfActiveScale * Theme.scale)
+            }
             Image {
                 id: art
                 anchors.fill: parent

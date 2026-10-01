@@ -61,6 +61,13 @@ FocusScope {
     // son voile) pendant que LaunchScreen prend l'écran. Tout revient quand il repasse à faux.
     property alias pressed: hero.pressed
     property bool launching: false
+    // Place de la vignette du jeu sélectionné sur le canevas (agrandie, soulevée) :
+    // l'écran de lancement en part.
+    readonly property rect activeThumbRect: Qt.rect(
+        Theme.margin,
+        Theme.shelfBottom - Theme.shelfActiveLift - Theme.shelfThumbSize.height * Theme.shelfActiveScale,
+        Theme.shelfThumbSize.width * Theme.shelfActiveScale,
+        Theme.shelfThumbSize.height * Theme.shelfActiveScale)
 
     // --- Options (bouton Y) : cf. OptionsSheet ---
     readonly property alias options: sheet           // options.open(), options.opened…

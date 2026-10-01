@@ -651,6 +651,7 @@ FocusScope {
             launchReady = false
             launchOpened = false
             launchScreen.image = homeScreen.backdrop
+            setLaunchOrigin(index)
             launchScreen.steps = [qsTr("Réveil de %1").arg(activeHostName), qsTr("Lancement de %1").arg(item.name)]
             launchScreen.step = 0
             launchScreen.stepProgress = Theme.wakeStepProgress   // durée inconnue : la barre attend à mi-chemin
@@ -698,6 +699,7 @@ FocusScope {
         if (!afterWake) {
             launchOpened = false
             launchScreen.image = homeScreen.backdrop
+            setLaunchOrigin(index)
         }
         launchScreen.steps = (afterWake ? [launchScreen.steps[0]] : [])
             .concat(gameId !== "" ? [qsTr("Préparation de %1").arg(activeHostName)] : [])
@@ -712,6 +714,15 @@ FocusScope {
         if (gameId !== "")
             CompanionClient.launch(gameId)
         maybeStartStream()
+    }
+
+    // L'écran de lancement grandit depuis la vignette, si c'est bien le jeu
+    // sélectionné sur l'étagère (pas une reprise depuis le menu Home).
+    function setLaunchOrigin(appIndex) {
+        var selected = shelfModel.count > 0 ? shelfModel.get(Math.min(homeScreen.currentIndex, shelfModel.count - 1)) : null
+        var fromShelf = selected !== null && selected.appIndex === appIndex
+        launchScreen.origin = fromShelf ? homeScreen.activeThumbRect : Qt.rect(0, 0, 0, 0)
+        launchScreen.thumbnail = fromShelf ? selected.boxart : ""
     }
 
     function resumeLaunchAfterWake() {

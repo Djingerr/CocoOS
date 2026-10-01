@@ -184,6 +184,10 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     principal, cache) la teinte qui pèse le plus, pondérée par la saturation, rendue vive ; elle
     colore le bas du voile et le soulignement (fondu de 700 ms). Image grise : l'orange reste.
     Le bouton Jouer reste orange (la marque).
+  - **Lancement depuis la vignette** : l'écran de lancement part de la place de la vignette
+    active (`HomeScreen.activeThumbRect`, sa jaquette) et grandit jusqu'au plein écran en 620 ms
+    (easeQuint) pendant que l'illustration la remplace en fondu. Reprise depuis le menu Home ou
+    démo du prototype : le fondu d'origine.
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).

@@ -168,6 +168,10 @@ Item {
             compare(stackView.pushes, before)       // le flux attend l'ouverture de l'écran de lancement
             tryCompare(launchScreen, "active", true, 1000)
             verify(screen.launching)
+            verify(launchScreen.fromThumb)              // l'écran part de la vignette du jeu…
+            compare(launchScreen.origin, screen.activeThumbRect)
+            verify(launchScreen.thumbnail.toString().endsWith("art/minecraft.jpg"))
+            tryCompare(launchScreen, "grow", 1, 2000)   // …et finit en plein écran
             compare(launchScreen.steps.length, 2)
             compare(launchScreen.steps[0], "Lancement de Minecraft")
             keyClick(Qt.Key_Right)                  // la manette n'agit plus sur l'accueil

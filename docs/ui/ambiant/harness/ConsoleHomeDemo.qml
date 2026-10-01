@@ -13,7 +13,7 @@ import "../../../../app/gui/console"
 // Arguments du harnais :
 //   do     actions jouées à `at` ms, séparées par des virgules et espacées de
 //          150 ms : left, right, down, a, pin (bouton X), home (bouton Home), sleep,
-//          wifi (liste des réseaux), net:<réseau> (le choisir)
+//          wifi (liste des réseaux), net:<réseau> (le choisir), launch (bouton A)
 //   at     instant de `do`, en ms (300 par défaut)
 //   noart  noms de jeux (séparés par des virgules) privés de jaquette
 //   offline=1  le PC est hors ligne (la console tente de le réveiller)
@@ -90,6 +90,7 @@ Item {
             else if (action === "pin") home.toggleFavorite()
             else if (action === "home") InputStatus.homePressed()
             else if (action === "sleep") demo.find(home.Window.window.contentItem, "asleep").sleep()
+            else if (action === "launch") screen.launchRequested(screen.currentIndex)
             else if (action === "wifi") home.openWifi()
             else if (action.indexOf("net:") === 0) home.chooseNetwork(action.slice(4))
             else if (action === "down" || action === "a") {
