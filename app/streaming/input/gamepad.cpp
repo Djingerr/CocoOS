@@ -7,6 +7,10 @@
 
 #include <QtMath>
 
+#ifdef CONSOLE_UI
+#include "gui/console/backend/inputstatus.h"
+#endif
+
 // How long the Start button must be pressed to toggle mouse emulation
 #define MOUSE_EMULATION_LONG_PRESS_TIME 750
 
@@ -287,6 +291,21 @@ void SdlInputHandler::handleControllerButtonEvent(SDL_ControllerButtonEvent* eve
     if (state == NULL) {
         return;
     }
+
+#ifdef CONSOLE_UI
+    // Console: Home goes back to the console home screen (the game keeps running
+    // on the PC) and is never sent to the PC. Select+Home stays the PS clickpad.
+    if (event->button == SDL_CONTROLLER_BUTTON_GUIDE && !(state->buttons & BACK_FLAG)) {
+        if (event->state == SDL_PRESSED) {
+            InputStatus::noteHomeExit();
+            SDL_Event quit;
+            quit.type = SDL_QUIT;
+            quit.quit.timestamp = SDL_GetTicks();
+            SDL_PushEvent(&quit);
+        }
+        return;
+    }
+#endif
 
     if (m_SwapFaceButtons) {
         switch (event->button) {
