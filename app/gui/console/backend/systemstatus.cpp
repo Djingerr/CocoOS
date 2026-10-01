@@ -1,5 +1,9 @@
 #include "systemstatus.h"
 
+#include "backend/computermanager.h"
+
+#include <algorithm>
+
 #include <QDir>
 #include <QFile>
 #include <QDBusConnection>
@@ -7,10 +11,14 @@
 #include <QDBusInterface>
 #include <QDBusObjectPath>
 #include <QDBusReply>
+#include <QTcpSocket>
 
 namespace {
 
 const int REFRESH_INTERVAL_MS = 10000;
+const int PROBE_INTERVAL_MS = 3000;
+const int PROBE_TIMEOUT_MS = 1500;
+const int PROBE_SAMPLES = 8;            // fenêtre glissante des mesures
 // Un NetworkManager qui ne répond pas ne doit pas figer l'interface.
 const int DBUS_TIMEOUT_MS = 300;
 
@@ -40,6 +48,7 @@ QString readLine(const QString& path)
 SystemStatus::SystemStatus(QObject* parent)
     : QObject(parent)
 {
+    connect(&m_probeTimer, &QTimer::timeout, this, &SystemStatus::probe);
     connect(&m_timer, &QTimer::timeout, this, &SystemStatus::refresh);
     m_timer.start(REFRESH_INTERVAL_MS);
     refresh();
@@ -163,4 +172,102 @@ int SystemStatus::readWifi()
         }
     }
     return -1;
+}
+
+void SystemStatus::probeHost(QObject* computerManager, const QString& hostName)
+{
+    m_probeManager = qobject_cast<ComputerManager*>(computerManager);
+    m_probeHost = hostName;
+    m_samples.clear();
+    if (m_latencyMs != -1 || m_jitterMs != -1) {
+        m_latencyMs = m_jitterMs = -1;
+        emit networkChanged();
+    }
+    m_probeTimer.start(PROBE_INTERVAL_MS);
+    probe();
+}
+
+void SystemStatus::stopProbing()
+{
+    m_probeTimer.stop();
+    m_probeManager = nullptr;
+}
+
+void SystemStatus::probe()
+{
+    if (m_probeManager == nullptr || m_probeSocket != nullptr) {
+        return;
+    }
+    NvAddress address;
+    for (NvComputer* computer : m_probeManager->getComputers()) {
+        QReadLocker lock(&computer->lock);
+        if (computer->name == m_probeHost) {
+            address = computer->activeAddress;
+            break;
+        }
+    }
+    if (address.isNull()) {
+        return;
+    }
+
+    QTcpSocket* socket = new QTcpSocket(this);
+    m_probeSocket = socket;
+    // (chaque issue ne vaut que pour CETTE sonde, pas pour une suivante)
+    connect(socket, &QTcpSocket::connected, this, [this, socket] {
+        if (m_probeSocket == socket) finishProbe(int(m_probeClock.elapsed()));
+    });
+    connect(socket, &QAbstractSocket::errorOccurred, this, [this, socket] {
+        if (m_probeSocket == socket) finishProbe(-1);
+    });
+    QTimer::singleShot(PROBE_TIMEOUT_MS, socket, [this, socket] {
+        if (m_probeSocket == socket) finishProbe(-1);
+    });
+    m_probeClock.start();
+    socket->connectToHost(address.address(), address.port());
+}
+
+void SystemStatus::finishProbe(int rttMs)
+{
+    if (m_probeSocket == nullptr) {
+        return;
+    }
+    m_probeSocket->abort();
+    m_probeSocket->deleteLater();
+    m_probeSocket = nullptr;
+    if (rttMs < 0 || m_probeManager == nullptr) {
+        return;
+    }
+
+    m_samples.append(rttMs);
+    while (m_samples.size() > PROBE_SAMPLES) {
+        m_samples.removeFirst();
+    }
+    int latency = median(m_samples);
+    int jitterMs = m_samples.size() > 1 ? jitter(m_samples) : -1;
+    if (latency != m_latencyMs || jitterMs != m_jitterMs) {
+        m_latencyMs = latency;
+        m_jitterMs = jitterMs;
+        emit networkChanged();
+    }
+}
+
+int SystemStatus::median(QList<int> samples)
+{
+    if (samples.isEmpty()) {
+        return -1;
+    }
+    std::sort(samples.begin(), samples.end());
+    return samples[samples.size() / 2];
+}
+
+int SystemStatus::jitter(const QList<int>& samples)
+{
+    if (samples.size() < 2) {
+        return -1;
+    }
+    int total = 0;
+    for (int i = 1; i < samples.size(); i++) {
+        total += qAbs(samples[i] - samples[i - 1]);
+    }
+    return qRound(double(total) / (samples.size() - 1));
 }

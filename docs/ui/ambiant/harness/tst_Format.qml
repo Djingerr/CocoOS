@@ -38,4 +38,14 @@ TestCase {
         compare(Format.lastPlayed(null, now), "")            // jamais joué
         compare(Format.lastPlayed("n'importe quoi", now), "")
     }
+
+    function test_networkQuality() {
+        compare(Format.networkQuality(-1, -1), "")             // pas de mesure
+        compare(Format.networkQuality(9, 2), "good")
+        compare(Format.networkQuality(9, -1), "good")          // une seule mesure : pas de gigue
+        compare(Format.networkQuality(35, 4), "fair")
+        compare(Format.networkQuality(12, 11), "fair")         // proche, mais irrégulier
+        compare(Format.networkQuality(80, 3), "poor")
+        compare(Format.networkQuality(15, 30), "poor")
+    }
 }

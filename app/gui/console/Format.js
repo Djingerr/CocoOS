@@ -1,7 +1,8 @@
 .pragma library
 
 // Mise en forme, pour l'accueil, des données de bibliothèque reçues du
-// HostCompanion (GameInfo : source, lastPlayed, playtimeSeconds).
+// HostCompanion (GameInfo : source, lastPlayed, playtimeSeconds), et de la
+// qualité du réseau vers le PC.
 
 var SOURCES = {
     steam: "Steam", epic: "Epic Games", gog: "GOG", ea: "EA", battlenet: "Battle.net",
@@ -46,4 +47,14 @@ function lastPlayed(iso, now) {
     if (days < 365) return qsTr("Il y a %1 mois").arg(Math.floor(days / 30))
     var years = Math.floor(days / 365)
     return years === 1 ? qsTr("Il y a 1 an") : qsTr("Il y a %1 ans").arg(years)
+}
+
+// Qualité du réseau vers le PC pour du streaming : "good", "fair", "poor", ou ""
+// sans mesure. Latence (aller-retour) et gigue en ms, -1 si inconnues.
+function networkQuality(latencyMs, jitterMs) {
+    if (latencyMs < 0) return ""
+    var jitter = Math.max(0, jitterMs)
+    if (latencyMs <= 20 && jitter <= 5) return "good"
+    if (latencyMs <= 50 && jitter <= 15) return "fair"
+    return "poor"
 }

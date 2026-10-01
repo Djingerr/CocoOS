@@ -9,6 +9,12 @@ QtObject {
     property int signalStrength: 4
     property var powerActions: ["suspend", "reboot", "poweroff"]
     property string lastPower: ""
+    // Réseau vers le PC : sondé quand ConsoleHome le demande (`probed`).
+    property int latencyMs: 9
+    property int jitterMs: 2
+    property string probed: ""
 
     function power(action) { lastPower = action }
+    function probeHost(manager, hostName) { probed = hostName }
+    function stopProbing() { probed = "" }
 }

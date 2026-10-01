@@ -26,7 +26,9 @@ QtObject {
     readonly property color ink: "#F2F0EC"
     readonly property color ink2: "#A19D97"
     readonly property color ink3: "#7C7973"          // indications discrètes (chevrons, glyphes d'aide)
-    readonly property color ok: "#69D08E"            // hôte connecté
+    readonly property color ok: "#69D08E"            // hôte connecté, réseau bon
+    readonly property color fair: "#E8C547"          // réseau moyen (latence ou gigue)
+    readonly property color poor: "#E5574F"          // réseau mauvais
     readonly property color background: "#000000"    // noir pur (OLED)
 
     // --- Courbes ---

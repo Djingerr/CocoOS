@@ -83,6 +83,8 @@ Item {
             verify(screen.backdrop.toString().endsWith("art/minecraft.jpg"))
             compare(screen.batteryPercent, 82)      // SystemStatus
             compare(screen.signalStrength, 4)
+            compare(SystemStatus.probed, "Djinger") // le réseau vers le PC est sondé…
+            compare(screen.latencyMs, 9)            // …et affiché
         }
 
         function test_2_padMovesBetweenGames() {

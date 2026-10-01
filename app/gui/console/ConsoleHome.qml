@@ -416,6 +416,11 @@ FocusScope {
         Qt.callLater(rebuildShelf)          // l'ordre suit aussi les parties jouées sur le PC
     }
 
+    // Réseau vers le PC : sondé seulement quand l'accueil est à l'écran et le PC en ligne.
+    readonly property string probedHost: onTop && activeHostOnline ? activeHostName : ""
+    onProbedHostChanged: probedHost !== "" ? SystemStatus.probeHost(ComputerManager, probedHost)
+                                           : SystemStatus.stopProbing()
+
     // Glyphes des boutons : ceux de la manette branchée, sauf réglage contraire.
     Binding {
         target: Theme; property: "buttonLayout"
@@ -901,8 +906,10 @@ FocusScope {
 
         hostName: home.activeHostName !== "" ? home.activeHostName : qsTr("Recherche…")
         connected: home.activeHostOnline && home.activeHostPaired
-        // Batterie et Wi-Fi de la console (-1 : pas de donnée, indicateur masqué).
-        // latencyMs reste masqué : aucune mesure disponible hors flux.
+        // Batterie et Wi-Fi de la console (-1 : pas de donnée, indicateur masqué), et
+        // réseau vers le PC, sondé tant que l'accueil est à l'écran.
+        latencyMs: connected ? SystemStatus.latencyMs : -1
+        jitterMs: connected ? SystemStatus.jitterMs : -1
         signalStrength: SystemStatus.signalStrength
         batteryPercent: SystemStatus.batteryPercent
         charging: SystemStatus.charging

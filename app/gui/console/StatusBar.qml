@@ -1,4 +1,5 @@
 import QtQuick
+import "Format.js" as Format
 
 // Barre haute : pastille d'état du PC hôte (gauche), horloge / Wi-Fi / batterie
 // (droite). Occupe toute la largeur en haut de l'écran ; aucune dépendance Moonlight.
@@ -9,6 +10,9 @@ Item {
     property bool connected: false
     // -1 = pas de donnée → élément masqué (jamais de fausse jauge).
     property int latencyMs: -1
+    property int jitterMs: -1
+    // Qualité du réseau vers le PC : la couleur du point d'état une fois connecté.
+    readonly property string quality: Format.networkQuality(latencyMs, jitterMs)
     property int signalStrength: -1      // 0 à 4
     property int batteryPercent: -1      // 0 à 100
     property bool charging: false        // éclair à côté de la batterie
@@ -55,11 +59,15 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Theme.hostPillGap
 
-                // Point d'état : orange clignotant pendant la connexion, vert fixe ensuite.
+                // Point d'état : orange clignotant pendant la connexion, puis fixe, de la
+                // couleur de la qualité du réseau (vert sans mesure).
                 Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     width: Theme.hostDotSize; height: width; radius: width / 2
-                    color: root.connected ? Theme.ok : Theme.accent
+                    color: !root.connected ? Theme.accent
+                         : root.quality === "poor" ? Theme.poor
+                         : root.quality === "fair" ? Theme.fair : Theme.ok
+                    Behavior on color { ColorAnimation { duration: Theme.sheetFocusFade } }
                     opacity: root.connected ? 1 : blink
                     property real blink: 1
                     SequentialAnimation on blink {

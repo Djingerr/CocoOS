@@ -31,6 +31,7 @@ FocusScope {
     property alias hostName: status.hostName
     property alias connected: status.connected
     property alias latencyMs: status.latencyMs
+    property alias jitterMs: status.jitterMs
     property alias signalStrength: status.signalStrength
     property alias batteryPercent: status.batteryPercent
     property alias charging: status.charging

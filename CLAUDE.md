@@ -163,6 +163,12 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     `ConsoleUi/buttonLayout` = auto par défaut) : lettres Xbox, lettres inversées Nintendo
     (Moonlight lit les boutons par position), ✕ ○ □ △ PlayStation. Batterie d'une manette sans
     fil dans la barre haute (silhouette + trois barres, orange à une barre).
+  - **Qualité du réseau** : `SystemStatus.probeHost` chronomètre toutes les 3 s l'ouverture d'une
+    connexion TCP vers le port HTTP Moonlight du PC (un aller-retour), seulement accueil à
+    l'écran et PC en ligne ; latence = médiane des 8 dernières, gigue = écart moyen entre
+    mesures. La pastille affiche « N ms » et son point passe au vert / jaune / rouge
+    (`Format.networkQuality` : ≤ 20 ms et ≤ 5 ms de gigue, ≤ 50 et ≤ 15, au-delà).
+    ⚠️ Jamais mesuré contre le vrai PC.
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
