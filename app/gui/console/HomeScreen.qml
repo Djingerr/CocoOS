@@ -59,6 +59,8 @@ FocusScope {
     readonly property alias options: sheet           // options.open(), options.opened…
     property alias optionRows: sheet.rows
     property alias optionsHost: sheet.hostName       // PC que le panneau propose d'oublier
+    // Un autre panneau latéral (ConsoleDialog) est ouvert par-dessus l'accueil.
+    property bool panelOpen: false
 
     signal launchRequested(int index)
     signal optionChanged(string key, int index)
@@ -120,7 +122,11 @@ FocusScope {
                 hideDuration: Theme.launchHide
                 animateInitially: false
 
-                StatusBar { id: status; anchors.fill: parent }
+                StatusBar {
+                    id: status
+                    anchors.fill: parent
+                    systemShown: !sheet.opened && !root.panelOpen
+                }
             }
         }
 

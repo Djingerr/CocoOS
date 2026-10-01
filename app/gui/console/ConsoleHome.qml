@@ -598,6 +598,7 @@ FocusScope {
         optionsHost: home.activeHostName
 
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
+        panelOpen: confirmDialog.opened
 
         onLaunchRequested: function(index) { home.launchApp(index) }
         onOptionChanged: function(key, index) { home.applyOption(key, index) }

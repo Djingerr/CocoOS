@@ -12,6 +12,8 @@ Item {
     property int signalStrength: -1      // 0 à 4
     property int batteryPercent: -1      // 0 à 100
     property bool charging: false        // éclair à côté de la batterie
+    // Horloge, Wi-Fi et batterie : masqués sous un panneau latéral (il est translucide).
+    property bool systemShown: true
     // Heure affichée : l'horloge système, sauf si on lui assigne un texte fixe.
     property string timeText: Qt.formatTime(clock.now, "HH:mm")
 
@@ -90,6 +92,8 @@ Item {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.sysGap
+            opacity: root.systemShown ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Theme.sheetDimFade } }
 
             Text {
                 anchors.verticalCenter: parent.verticalCenter
