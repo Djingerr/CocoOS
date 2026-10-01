@@ -1,125 +1,122 @@
 <div align="center">
 
-# 🎮 CocoOS
+# CocoOS
 
-**Une console de jeu portable qui ne fait pas tourner les jeux — elle les _streame_.**
+A handheld game console that streams games from your PC instead of running them.
 
-_Vous allumez, vous jouez. Aucun menu, aucun bureau, aucune friction._
-
-[![Basé sur Moonlight](https://img.shields.io/badge/bas%C3%A9%20sur-Moonlight-5b8def)](https://github.com/moonlight-stream/moonlight-qt)
-[![Licence GPLv3](https://img.shields.io/badge/licence-GPLv3-blue)](LICENSE)
-![Statut](https://img.shields.io/badge/statut-prototype-f2802a)
-![Cible](https://img.shields.io/badge/cible-RK3588S%20/%20Orange%20Pi%205B-333)
-![Qt](https://img.shields.io/badge/Qt-6-41cd52)
+[![Based on Moonlight](https://img.shields.io/badge/based%20on-Moonlight-5b8def)](https://github.com/moonlight-stream/moonlight-qt)
+[![License: GPLv3](https://img.shields.io/badge/license-GPLv3-blue)](LICENSE)
+![Status: prototype](https://img.shields.io/badge/status-prototype-f2802a)
+![Target: RK3588S](https://img.shields.io/badge/target-RK3588S-333)
+![Qt 6](https://img.shields.io/badge/Qt-6-41cd52)
 
 </div>
 
----
+## Overview
 
-**CocoOS** transforme un petit SoC ARM en **console de streaming de jeux vidéo**. Les jeux — même
-les AAA gourmands — tournent sur votre **PC** ; la console, elle, se contente de **décoder le flux,
-l'afficher et transmettre la manette**. Résultat : jouer à des jeux lourds sur un appareil léger, à
-bonne autonomie, dès qu'on a une bonne connexion.
+CocoOS turns a small ARM board into a dedicated game streaming console. Your PC renders and
+encodes the game; the handheld decodes the video, shows it, and sends back controller input.
+The goal is simple: play demanding PC games on a light, cheap, long-lasting device, at home
+over Wi-Fi and eventually on the go over 5G.
 
-C'est un **fork de [moonlight-qt](https://github.com/moonlight-stream/moonlight-qt)** : on ne
-réécrit pas le streaming, **on l'habille**. Tout le moteur éprouvé de Moonlight (décodage matériel,
-réseau, manette) est conservé intact ; CocoOS ajoute une **couche console** — interface « Big
-Picture » maison, démarrage direct, appairage invisible.
+The software is a fork of [moonlight-qt](https://github.com/moonlight-stream/moonlight-qt).
+Moonlight already does the hard part (hardware decoding, low-latency networking, controller
+support) and does it well, so CocoOS does not rewrite any of it. It adds a console layer on
+top: a controller-first interface, direct boot into that interface, and pairing the user
+never has to think about.
 
-## ✨ Le principe directeur : zéro friction
+## Design principles
 
-L'expérience doit être aussi proche que possible d'une **vraie console**, pour un novice comme pour
-un expert :
+**Turn it on, play.** The device should feel like a console, not like a Linux computer
+running a streaming app. No desktop, no windows, no IP addresses, no settings to get through
+before the first game. It boots straight into the game library, finds the PC on its own, and
+pairing happens once with a short code, the way a TV app does it.
 
-- 🚫 **Aucun menu Linux, aucune fenêtre, aucun bureau.** Jamais.
-- ⚡ Au démarrage, la console **boote directement** sur l'interface de jeux et **se connecte toute
-  seule** au PC.
-- 🤝 L'**appairage est invisible** (code affiché sur le PC ou auto-accepté) — pas d'IP ni de réglage
-  réseau à voir.
-- 🕹️ **100 % navigable à la manette.** « J'allume, je joue. »
+**Dress the stream, don't rewrite it.** Moonlight's streaming engine is kept intact. Every
+line of console code lives in its own directory (`app/gui/console/`), and the upstream files
+are only touched at a handful of small, documented integration points. This keeps the fork
+easy to rebase on new Moonlight releases.
 
-## 🧩 Comment ça marche
+**Two builds from one tree.** The console layer is compiled only with `CONFIG+=embedded`.
+Without it, the tree builds an unmodified Moonlight, which stays useful as a reference.
+
+**Honest about latency.** Streaming adds roughly 20 to 60 ms on a good network. That is
+excellent for single-player games and depends heavily on the network for competitive ones.
+The project does not pretend otherwise.
+
+**Open by necessity and by choice.** Moonlight, Sunshine and Apollo are GPLv3, and so is
+CocoOS. Any distributed build ships with its source. If this ever becomes a product, the
+value lies in the hardware and the experience, not in closed software.
+
+## How it works
 
 ```
-  PC HOST  (le muscle)                                  CocoOS  (le client léger)
-  ┌───────────────────────────┐                        ┌───────────────────────────┐
-  │ Apollo / Sunshine         │   flux vidéo H.264 /   │ décodage matériel         │
-  │ Playnite (bibliothèque)   │ ───── HEVC / AV1 ────► │ affichage plein écran     │
-  │ vos jeux Steam/Epic/GOG   │                        │ manette (RP2040 + Hall)   │
-  │ rendu 3D + encodage       │ ◄──── entrées manette  │ RK3588S, ~5 W             │
-  └───────────────────────────┘                        └───────────────────────────┘
-          Wi-Fi 6   ·   5G (à venir)   ·   Tailscale (traversée du NAT)
+  Host PC                                     CocoOS handheld
+  Apollo or Sunshine (stream server)          hardware video decoding
+  Playnite (game library)        -- video --> fullscreen display
+  Steam, Epic, GOG, emulators    <-- input -- controller (RP2040, Hall-effect sticks)
+  game rendering + encoding                   RK3588S SoC, about 5 W
+
+             Wi-Fi 6  ·  5G (planned)  ·  Tailscale for remote access
 ```
 
-Le PC fait le rendu 3D et encode ; CocoOS décode et affiche. La latence typique (~20–60 ms sur bon
-réseau) est excellente pour les AAA solo.
+A companion service on the host (developed in a separate repository, HostCompanion) handles
+what Moonlight alone cannot: exporting the game library with artwork, launching the right
+game, and applying game updates before the stream starts.
 
-## 🖥️ L'interface console
+## The console interface
 
-Une interface **« Big Picture »** maison (façon Steam), sombre et immersive, pensée **manette
-d'abord**. Elle vit dans son propre dossier isolé `app/gui/console/` pour ne jamais diverger du
-moteur Moonlight :
+The home screen, called *Ambiant*, is designed to be driven entirely with a controller:
 
-- **Carrousel horizontal** de jaquettes 16:9 — la sélection centrée, agrandie et cerclée d'orange.
-- **État du PC affiché en permanence** (point vert + nom de l'hôte) : on voit d'un coup d'œil que
-  tout marche, sans jamais voir d'IP.
-- **Appairage plein écran** façon app TV, **écran Paramètres** au bouton Y (résolution / débit /
-  « oublier ce PC »), **légende manette contextuelle** en bas.
-- **Couche « Companion »** optionnelle : orchestration du lancement côté PC (mise à jour de jeu,
-  écran virtuel) via une petite API compagnon, pour que « Jouer » démarre le bon jeu du premier coup.
+- The artwork of the selected game fills the screen, with its title in large type.
+- A shelf of 16:9 thumbnails runs along the bottom; the selected game is underlined in orange.
+- A status bar shows the connected host, the time, Wi-Fi strength and battery level.
+- Stream options (resolution, frame rate, bitrate, codec, HDR) open in a side panel.
+- Launching a game shows a full-screen launch screen while the host prepares it.
+- Waiting, pairing and confirmation screens all follow the same visual language.
 
-## 🧬 L'ADN Moonlight
+Design reference and a test harness that renders the interface without a host PC are in
+[`docs/ui/ambiant/`](docs/ui/ambiant/).
 
-CocoOS hérite de **tout** le moteur de [Moonlight](https://moonlight-stream.org) :
+## Hardware
 
-- Décodage vidéo **matériel** — H.264, HEVC et **AV1**
-- **HDR**, YUV 4:4:4, son surround **7.1**
-- **Manette** avec retour de force et capteurs de mouvement
-- Faible latence, réseau robuste, traversée du NAT via Tailscale
+Development board: Orange Pi 5B (RK3588S), chosen for AV1 hardware decoding, its Mali-G610
+GPU, built-in Wi-Fi 6 and USB-C power.
 
-Compatible avec les hôtes **[Sunshine](https://github.com/LizardByte/Sunshine)** et
-**[Apollo](https://github.com/ClassicOldSong/Apollo)** (le setup de développement tourne sous
-Apollo). Moonlight existe aussi sur [Android](https://github.com/moonlight-stream/moonlight-android)
-et [iOS](https://github.com/moonlight-stream/moonlight-ios).
+| Component   | Prototype                                   | Product target                    |
+|-------------|---------------------------------------------|-----------------------------------|
+| SoC         | Orange Pi 5B (RK3588S)                      | RK3588S SoM on a custom carrier   |
+| Display     | 5.5–6" HDMI IPS                             | MIPI-DSI panel (7" AMOLED considered) |
+| Controls    | RP2040 with GP2040-CE, Hall-effect sticks   | integrated                        |
+| Power       | USB-C PD power bank                         | 2× 18650 cells with boost converter |
+| Connectivity| Wi-Fi                                       | 5G module (Quectel RM520N-GL)     |
 
-Pour suivre le développement du moteur amont, rejoignez le
-**[Discord Moonlight](https://moonlight-stream.org/discord)** ; pour aider à le traduire, passez par
-**[Weblate](https://hosted.weblate.org/projects/moonlight/moonlight-qt/)**.
+## Status
 
-## 🔩 Le matériel
+CocoOS is an advanced software prototype. The console layer works end to end on a
+development PC: host discovery, automatic pairing, the Ambiant home screen, launching through
+the companion service, streaming, and returning to the home screen. The next milestone is
+running it on the ARM board.
 
-Carte de développement : **Orange Pi 5B (RK3588S)** — décodage AV1, GPU Mali-G610 (Panthor/Panfrost),
-Wi-Fi 6 + BT 5.0, alim USB-C.
+- [x] Streaming concept validated (Moonlight, Sunshine and Tailscale, including over 5G)
+- [x] Fork builds, hardware decoding works (H.264, HEVC, AV1)
+- [x] Console interface integrated behind the `embedded` build flag
+- [x] Interface wired to real Moonlight data (hosts, apps, sessions)
+- [x] Automatic pairing and console-style options and dialogs
+- [x] Companion client: discovery, pairing, library, launch orchestration
+- [x] Ambiant redesign of every screen
+- [ ] Hands-on validation with a controller against a real host
+- [ ] Kiosk mode: direct boot through gamescope or cage
+- [ ] Board bring-up: 1080p60 hardware decoding on RK3588S (mainline kernel, Panthor)
+- [ ] Stream profiles, adaptive jitter buffering and upscaling ([plan](docs/stream/STREAM-OPTIMISATION.md))
+- [ ] One-click host installer (Apollo, Playnite, Tailscale, Wake-on-LAN)
+- [ ] Compact hardware revision, then 5G
 
-| Élément    | Prototype                              | Cible produit                     |
-|------------|----------------------------------------|-----------------------------------|
-| SoC        | Orange Pi 5B (RK3588S)                  | SoM RK3588S / carte porteuse custom |
-| Écran      | HDMI IPS 5,5–6"                         | MIPI-DSI (AMOLED 7" envisagé)     |
-| Manette    | RP2040 + GP2040-CE, joysticks à effet Hall | intégrée                       |
-| Alimentation | power bank USB-C PD                   | batterie 2× 18650 + boost         |
-| Mobilité   | Wi-Fi                                   | module **5G** (Quectel RM520N-GL) |
+## Building
 
-## 🗺️ État du projet
+CocoOS builds like Moonlight, plus the `embedded` flag for the console layer.
 
-- [x] Concept de streaming validé (Moonlight + Sunshine + Tailscale, y compris en 5G)
-- [x] Fork moonlight-qt, compilation et décodage matériel OK
-- [x] Interface « Big Picture » conçue et intégrée au build (flag `embedded`)
-- [x] UI branchée sur les vraies données Moonlight (hôtes, jeux, sessions)
-- [x] Appairage automatique + Paramètres console + illusion « zéro bureau »
-- [x] Couche Companion console ↔ host (découverte, appairage, bibliothèque, lancement)
-- [ ] Mode kiosk : boot direct via gamescope / cage
-- [ ] Bring-up hardware Orange Pi — valider le décodage **1080p60 sur RK3588S** (mainline + Panthor)
-- [ ] Installeur host 1-clic (Apollo + Playnite + Tailscale + Wake-on-LAN)
-- [ ] Version compacte (SoM, batterie, coque 3D), puis module **5G**
-
-> **Statut : prototype logiciel avancé.** La couche console (interface, appairage, lancement) est
-> fonctionnelle sur PC de dev ; l'étape suivante est le passage sur carte ARM.
-
-## 🛠️ Construire CocoOS
-
-CocoOS se construit comme Moonlight, avec un flag `embedded` qui active la couche console.
-
-**Prérequis (Fedora / RPM Fusion) :**
+Dependencies on Fedora (with RPM Fusion):
 
 ```bash
 sudo dnf install openssl-devel SDL2-devel SDL2_ttf-devel ffmpeg-devel \
@@ -127,40 +124,51 @@ sudo dnf install openssl-devel SDL2-devel SDL2_ttf-devel ffmpeg-devel \
   libdrm-devel qt6-qtsvg-devel qt6-qtdeclarative-devel qt6-qtwebsockets-devel
 ```
 
-> Debian/Ubuntu ainsi que les prérequis Windows/macOS : voir le
-> [README amont de Moonlight](https://github.com/moonlight-stream/moonlight-qt#building).
-> `qt6-qtwebsockets-devel` est requis **en plus** par la couche Companion (build `embedded`).
+`qt6-qtwebsockets-devel` is only needed by the console build. For other platforms, see the
+[upstream build instructions](https://github.com/moonlight-stream/moonlight-qt#building).
 
-**Compiler en mode console :**
+Build and run the console version:
 
 ```bash
 git submodule update --init --recursive
 qmake6 "CONFIG+=embedded" moonlight-qt.pro
 make release -j$(nproc)
-./app/moonlight     # démarre directement sur l'accueil console
+./app/moonlight
 ```
 
-Un `qmake6 moonlight-qt.pro` **sans** `embedded` produit le Moonlight vanilla intact — pratique
-pour comparer le comportement de référence.
+Running `qmake6 moonlight-qt.pro` without the flag produces stock Moonlight.
 
-## 🤝 Contribuer
+## Repository layout
 
-CocoOS est un projet DIY ouvert. Pour proposer une amélioration :
+| Path | Contents |
+|------|----------|
+| `app/gui/console/` | The console layer: QML screens and C++ backends (companion client, system status) |
+| `docs/ui/ambiant/` | Interface design brief, HTML prototype, test harness |
+| `docs/stream/` | Stream optimisation plan |
+| `CLAUDE.md` | Full project context and working rules (in French) |
+| everything else | Moonlight upstream, kept as close to the original as possible |
 
-1. **Forkez** le dépôt
-2. **Écrivez** votre code
-3. **Ouvrez** une Pull Request
+## How this project is built
 
-Convention n°1 : la couche console vit dans son dossier isolé `app/gui/console/` pour ne jamais
-diverger du moteur Moonlight amont. Merci de garder toute contribution console dans ce périmètre et
-de ne pas modifier les fichiers upstream, afin qu'on puisse continuer à suivre les mises à jour de
-Moonlight sans douleur.
+CocoOS is developed with heavy use of AI. Most of the code is written with
+[Claude Code](https://claude.com/claude-code), working from the project context in
+[`CLAUDE.md`](CLAUDE.md). The direction, architecture decisions, design, hardware choices and
+every test on real hardware are done by a human, and changes are reviewed before they are
+merged. AI makes it possible for one person to move a project of this size forward; it does
+not replace testing with a controller in hand.
 
-## 🙏 Crédits & licence
+## Contributing
 
-CocoOS est un fork de **[moonlight-stream/moonlight-qt](https://github.com/moonlight-stream/moonlight-qt)**
-et n'existe que grâce au travail des communautés **Moonlight**, **Sunshine** et **Apollo**. Un immense
-merci à elles — CocoOS n'est que l'habillage « console » de leur streaming.
+Issues and pull requests are welcome. One rule matters more than any other: keep console
+code inside `app/gui/console/` and avoid modifying upstream Moonlight files, so the fork can
+keep following Moonlight releases.
 
-Distribué sous **[GPLv3](LICENSE)**, comme Moonlight : toute version distribuée de CocoOS l'est avec
-ses sources.
+## Credits and license
+
+CocoOS exists thanks to the work of the [Moonlight](https://moonlight-stream.org),
+[Sunshine](https://github.com/LizardByte/Sunshine) and
+[Apollo](https://github.com/ClassicOldSong/Apollo) projects. The streaming engine is theirs;
+CocoOS is the console built around it. Questions about the engine itself belong on the
+[Moonlight Discord](https://moonlight-stream.org/discord).
+
+Licensed under the [GNU GPL v3](LICENSE), like Moonlight.
