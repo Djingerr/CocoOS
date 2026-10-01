@@ -6,9 +6,9 @@
 //
 //   - activité : toute touche, clic ou mouvement (la manette arrive en touches par
 //     SdlGamepadKeyNavigation), pour l'écran de veille ;
-//   - bouton Home (Guide) de la manette : SdlGamepadKeyNavigation ne le traduit en
-//     aucune touche, on lit donc son état dans SDL (que cette navigation met à jour
-//     toutes les 50 ms). Pendant un flux, Qt est suspendu : rien n'est lu ici ;
+//   - boutons Home (Guide), L1 et R1 de la manette : SdlGamepadKeyNavigation ne les
+//     traduit en aucune touche, on lit donc leur état dans SDL (que cette navigation
+//     met à jour toutes les 50 ms). Pendant un flux, Qt est suspendu : rien n'est lu ici ;
 //   - manette branchée : sa famille (disposition des boutons) et sa batterie ;
 //   - retour d'un jeu par le bouton Home : la session (gamepad.cpp, build console)
 //     le signale ici, l'accueil le lit au retour (takeHomeExit).
@@ -48,13 +48,14 @@ public:
 signals:
     void activity();            // l'utilisateur a agi (au plus une fois toutes les 500 ms)
     void homePressed();         // bouton Home de la manette
+    void bumperPressed(int direction);   // L1 (-1) ou R1 (+1)
     void controllersChanged();
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;
 
 private slots:
-    void pollHomeButton();
+    void pollButtons();
     void refreshControllers();
 
 private:
@@ -64,6 +65,8 @@ private:
     QTimer m_controllersTimer;
     qint64 m_lastActivity = 0;
     bool m_homeDown = false;
+    bool m_leftDown = false;
+    bool m_rightDown = false;
     QString m_layout;
     int m_controllerBattery = -1;
 };

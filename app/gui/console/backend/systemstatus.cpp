@@ -11,6 +11,8 @@
 #include <QDBusInterface>
 #include <QDBusObjectPath>
 #include <QDBusReply>
+#include <QProcess>
+#include <QRegularExpression>
 #include <QTcpSocket>
 
 namespace {
@@ -96,10 +98,79 @@ void SystemStatus::refresh()
     bool charging = false;
     int battery = readBattery(QStringLiteral("/sys/class/power_supply"), &charging);
     int wifi = readWifi();
-    if (battery != m_batteryPercent || charging != m_charging || wifi != m_signalStrength) {
+    int brightness = -1;
+    const QString backlight = backlightDir();
+    if (!backlight.isEmpty()) {
+        int max = readLine(backlight + QStringLiteral("/max_brightness")).toInt();
+        if (max > 0) {
+            brightness = qRound(100.0 * readLine(backlight + QStringLiteral("/brightness")).toInt() / max);
+        }
+    }
+    if (battery != m_batteryPercent || charging != m_charging || wifi != m_signalStrength ||
+            brightness != m_brightness) {
         m_batteryPercent = battery;
         m_charging = charging;
         m_signalStrength = wifi;
+        m_brightness = brightness;
+        emit changed();
+    }
+    readVolume();
+}
+
+QString SystemStatus::backlightDir()
+{
+    const QString root = QStringLiteral("/sys/class/backlight");
+    const QStringList devices = QDir(root).entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
+    return devices.isEmpty() ? QString() : root + QLatin1Char('/') + devices.first();
+}
+
+void SystemStatus::setBrightness(int percent)
+{
+    const QString backlight = backlightDir();
+    if (backlight.isEmpty()) {
+        return;
+    }
+    int max = readLine(backlight + QStringLiteral("/max_brightness")).toInt();
+    // Jamais tout à fait noir : 5 % au moins, sinon on ne voit plus rien pour remonter.
+    percent = qBound(5, percent, 100);
+    QDBusInterface session(LOGIN_SERVICE, LOGIN_PATH + QStringLiteral("/session/auto"),
+                           QStringLiteral("org.freedesktop.login1.Session"), QDBusConnection::systemBus());
+    session.asyncCall(QStringLiteral("SetBrightness"), QStringLiteral("backlight"),
+                      QDir(backlight).dirName(), uint(qRound(max * percent / 100.0)));
+    if (percent != m_brightness) {
+        m_brightness = percent;
+        emit changed();
+    }
+}
+
+void SystemStatus::readVolume()
+{
+    QProcess* wpctl = new QProcess(this);
+    connect(wpctl, &QProcess::finished, this, [this, wpctl] {
+        // « Volume: 0.55 » (suivi de « [MUTED] » si coupé)
+        QRegularExpressionMatch match = QRegularExpression(QStringLiteral("Volume: ([0-9.]+)"))
+                                            .match(QString::fromLatin1(wpctl->readAllStandardOutput()));
+        int volume = match.hasMatch() ? qRound(match.captured(1).toDouble() * 100) : -1;
+        wpctl->deleteLater();
+        if (volume != m_volume) {
+            m_volume = volume;
+            emit changed();
+        }
+    });
+    connect(wpctl, &QProcess::errorOccurred, wpctl, &QObject::deleteLater);   // pas de wpctl
+    wpctl->start(QStringLiteral("wpctl"), { QStringLiteral("get-volume"), QStringLiteral("@DEFAULT_AUDIO_SINK@") });
+}
+
+void SystemStatus::setVolume(int percent)
+{
+    if (m_volume < 0) {
+        return;
+    }
+    percent = qBound(0, percent, 100);
+    QProcess::startDetached(QStringLiteral("wpctl"), { QStringLiteral("set-volume"),
+                            QStringLiteral("@DEFAULT_AUDIO_SINK@"), QString::number(percent / 100.0) });
+    if (percent != m_volume) {
+        m_volume = percent;
         emit changed();
     }
 }

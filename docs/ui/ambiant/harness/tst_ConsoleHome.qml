@@ -261,17 +261,40 @@ Item {
 
         function test_9b_soundsSetting() {
             keyClick(Qt.Key_Hangup)
-            for (var i = 0; i < 5; i++) keyClick(Qt.Key_Down)
-            var row = screen.optionRows[5]
+            keyClick(Qt.Key_PageDown)                       // onglet Console (R1)
+            for (var i = 0; i < 4; i++) keyClick(Qt.Key_Down)
+            var row = screen.optionRows[4]
             compare(row.label, "Sons")
             compare(row.options[row.index], "Activés")
             keyClick(Qt.Key_Right)
-            compare(screen.optionRows[5].index, 1)          // « Coupés »
+            compare(screen.optionRows[4].index, 1)          // « Coupés »
             verify(!Sounds.enabled)
             keyClick(Qt.Key_Left)
-            compare(screen.optionRows[5].index, 0)
+            compare(screen.optionRows[4].index, 0)
             verify(Sounds.enabled)
             Sounds.enabled = false
+            keyClick(Qt.Key_Escape)
+        }
+
+        // Onglet Console : luminosité, volume, veille de l'écran, boutons. L1 / R1
+        // (InputStatus) changent d'onglet.
+        function test_9c_consoleSettings() {
+            keyClick(Qt.Key_Hangup)
+            InputStatus.bumperPressed(1)
+            compare(screen.optionRows.map(function(r) { return r.label }),
+                    ["Luminosité", "Volume", "Veille de l'écran", "Boutons", "Sons"])
+            keyClick(Qt.Key_Right)                          // luminosité 60 → 70 %
+            compare(SystemStatus.brightness, 70)
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Left)    // volume 80 → 70 % (le stub part de 75)
+            verify(SystemStatus.volume === 70 || SystemStatus.volume === 60)
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Right)   // veille : 5 → 10 min
+            compare(screen.optionRows[2].options[screen.optionRows[2].index], "10 min")
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Right); keyClick(Qt.Key_Right)   // Boutons : PlayStation
+            compare(Theme.buttonLayout, "playstation")
+            keyClick(Qt.Key_Left); keyClick(Qt.Key_Left)    // Auto : sans manette, Xbox
+            compare(Theme.buttonLayout, "xbox")
+            InputStatus.bumperPressed(-1)                   // retour à l'onglet Flux
+            compare(screen.optionRows[0].label, "Résolution")
             keyClick(Qt.Key_Escape)
         }
 

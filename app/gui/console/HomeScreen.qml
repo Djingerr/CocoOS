@@ -58,15 +58,17 @@ FocusScope {
     property alias pressed: hero.pressed
     property bool launching: false
 
-    // --- Options du flux (bouton Y) : cf. OptionsSheet ---
+    // --- Options (bouton Y) : cf. OptionsSheet ---
     readonly property alias options: sheet           // options.open(), options.opened…
-    property alias optionRows: sheet.rows
+    property alias optionTabs: sheet.tabs            // [{ label, rows }]
+    readonly property alias optionRows: sheet.rows   // lignes de l'onglet affiché
     property alias optionsHost: sheet.hostName       // PC que le panneau propose d'oublier
     // Un autre panneau latéral (ConsoleDialog) est ouvert par-dessus l'accueil.
     property bool panelOpen: false
 
     signal launchRequested(int index)
     signal optionChanged(string key, int index)
+    signal optionAction(string key)
     signal forgetRequested()
     signal favoriteRequested()                       // X sur l'étagère
 
@@ -198,6 +200,7 @@ FocusScope {
             anchors.fill: parent
             connected: status.connected
             onChanged: function(key, index) { root.optionChanged(key, index) }
+            onActionRequested: function(key) { root.optionAction(key) }
             onForgetConfirmed: root.forgetRequested()
             onClosed: idle.restart()
         }

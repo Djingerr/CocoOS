@@ -109,6 +109,7 @@ QtObject {
     readonly property real glyphBorder: 1.5
     readonly property real glyphFontSize: 10.5       // 500
     readonly property real glyphSymbolScale: 0.42    // symboles PlayStation, part du diamètre
+    readonly property real glyphPillScale: 1.5       // gâchettes (LB, L1…) : largeur / hauteur
     // Glyphes à dessiner : "xbox", "playstation" ou "nintendo" (posé par ConsoleHome
     // d'après la manette branchée ou le réglage « Boutons »).
     property string buttonLayout: "xbox"
@@ -278,6 +279,10 @@ QtObject {
     readonly property int sheetHostTop: 8            // point d'état + nom de l'hôte, sous le titre
     readonly property int sheetHostGap: 8
     readonly property int sheetHostSize: 14
+    readonly property int sheetTabsTop: 24           // onglets, sous le nom de l'hôte
+    readonly property int sheetTabGap: 18
+    readonly property int sheetTabHeight: 28         // libellé + soulignement orange
+    readonly property int sheetTabSize: 16           // Sora 600 (actif) / 500
     readonly property int sheetRowsTop: 34
     readonly property int sheetRowHeight: 60
     readonly property int sheetRowGap: 16            // entre le libellé et la valeur

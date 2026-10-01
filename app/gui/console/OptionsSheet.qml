@@ -1,21 +1,29 @@
 import QtQuick
 
-// Panneau « Options du flux » (bouton Y) : glisse depuis la droite pendant que le
-// reste de l'écran s'assombrit. Haut / bas choisissent une ligne, gauche / droite
-// (ou A) changent sa valeur, B ou Y referment. Aucune dépendance Moonlight.
+// Panneau « Options » (bouton Y) : glisse depuis la droite pendant que le reste de
+// l'écran s'assombrit. Des onglets (L1 / R1) ; haut / bas choisissent une ligne,
+// gauche / droite (ou A) changent sa valeur, B ou Y referment. Aucune dépendance
+// Moonlight.
 //
-// Le panneau ne garde aucun réglage : il affiche `rows` et signale les choix
-// (`changed`), à l'appelant d'appliquer la valeur et de mettre `rows` à jour.
+// Le panneau ne garde aucun réglage : il affiche `tabs` et signale les choix
+// (`changed`, `actionRequested`), à l'appelant d'appliquer la valeur et de mettre
+// `tabs` à jour.
 FocusScope {
     id: root
 
-    // Réglages, dans l'ordre : [{ key, label, options: [libellés], index }]
-    property var rows: []
-    // PC hôte, rappelé sous le titre. S'il est connu, la dernière ligne propose de l'oublier.
+    // Onglets : [{ label, rows }]. Une ligne est un réglage { key, label, options:
+    // [libellés], index }, ou une action { key, label, value, action: true } (A la
+    // déclenche ; `value` est affichée à droite).
+    property var tabs: []
+    property int tab: 0
+    readonly property var rows: tabs.length > 0 ? tabs[Math.min(tab, tabs.length - 1)].rows : []
+    // PC hôte, rappelé sous le titre. S'il est connu, la dernière ligne du premier
+    // onglet propose de l'oublier.
     property string hostName
     property bool connected: false
 
     signal changed(string key, int index)
+    signal actionRequested(string key)
     signal forgetConfirmed()
     signal closed()
 
@@ -23,7 +31,8 @@ FocusScope {
     property int current: 0              // ligne en focus ; rows.length = « Oublier ce PC »
     property bool confirming: false      // « Oublier ce PC » attend sa confirmation
     property int direction: 1            // sens du dernier changement de valeur
-    readonly property int lineCount: rows.length + (hostName !== "" ? 1 : 0)
+    readonly property bool forgettable: tab === 0 && hostName !== ""
+    readonly property int lineCount: rows.length + (forgettable ? 1 : 0)
     // 0 = fermé, 1 = ouvert ; le panneau et le voile en découlent.
     property real reveal: opened ? 1 : 0
     Behavior on reveal { NumberAnimation { duration: Theme.sheetSlide; easing.type: Theme.easeQuint } }
@@ -31,6 +40,7 @@ FocusScope {
     visible: reveal > 0 || dim.opacity > 0
 
     function open() {
+        tab = 0
         current = 0
         confirming = false
         opened = true
@@ -56,10 +66,31 @@ FocusScope {
         current = next
         Sounds.play("move")
     }
+    // L1 / R1 : onglet voisin, la première ligne en focus.
+    function switchTab(dir) {
+        var next = tab + dir
+        if (next < 0 || next >= tabs.length) {
+            Sounds.play("edge")
+            return
+        }
+        tab = next
+        current = 0
+        confirming = false
+        Sounds.play("move")
+    }
     // Gauche / droite : valeur voisine, bute aux extrémités. A : valeur suivante, en boucle.
     function change(dir, wrap) {
         if (current >= rows.length) return
         var row = rows[current]
+        if (row.action) {
+            if (wrap) {
+                Sounds.play("select")
+                actionRequested(row.key)
+            } else {
+                Sounds.play("edge")
+            }
+            return
+        }
         var next = wrap ? (row.index + 1) % row.options.length : row.index + dir
         if (next < 0 || next >= row.options.length) {
             Sounds.play("edge")
@@ -104,6 +135,10 @@ FocusScope {
         case Qt.Key_Return:
         case Qt.Key_Enter:
             activate()
+            break
+        case Qt.Key_PageUp:          // L1 / R1 au clavier
+        case Qt.Key_PageDown:
+            switchTab(event.key === Qt.Key_PageUp ? -1 : 1)
             break
         }
     }
@@ -175,7 +210,7 @@ FocusScope {
         Text {
             id: title
             x: Theme.sheetPadSide; y: Theme.sheetPadTop
-            text: qsTr("Options du flux")
+            text: qsTr("Options")
             color: Theme.ink
             font.family: Theme.fontUi; font.pixelSize: Theme.sheetTitleSize; font.weight: Font.DemiBold
             font.letterSpacing: Theme.sheetTitleSpacing
@@ -200,10 +235,47 @@ FocusScope {
             }
         }
 
+        // Onglets : [L1] Flux  Console [R1]
+        Row {
+            id: tabStrip
+            x: Theme.sheetPadSide
+            y: host.y + host.height + Theme.sheetTabsTop
+            spacing: Theme.sheetTabGap
+            visible: root.tabs.length > 1
+
+            ButtonGlyph { anchors.verticalCenter: parent.verticalCenter; label: "LB"; ink: Theme.ink3 }
+            Repeater {
+                model: root.tabs
+                Item {
+                    readonly property bool active: index === root.tab
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: tabLabel.width; height: Theme.sheetTabHeight
+                    Text {
+                        id: tabLabel
+                        anchors.verticalCenter: parent.verticalCenter
+                        text: modelData.label
+                        color: parent.active ? Theme.ink : Theme.ink3
+                        font.family: Theme.fontUi; font.pixelSize: Theme.sheetTabSize
+                        font.weight: parent.active ? Font.DemiBold : Font.Medium
+                        Behavior on color { ColorAnimation { duration: Theme.sheetFocusFade } }
+                    }
+                    Rectangle {
+                        anchors.bottom: parent.bottom
+                        width: parent.width; height: Theme.underlineHeight; radius: Theme.underlineRadius
+                        color: Theme.accent
+                        opacity: parent.active ? 1 : 0
+                        Behavior on opacity { NumberAnimation { duration: Theme.sheetFocusFade } }
+                    }
+                    MouseArea { anchors.fill: parent; onClicked: root.switchTab(index - root.tab) }
+                }
+            }
+            ButtonGlyph { anchors.verticalCenter: parent.verticalCenter; label: "RB"; ink: Theme.ink3 }
+        }
+
         Item {
             id: list
             x: Theme.sheetPadSide
-            y: host.y + host.height + Theme.sheetRowsTop
+            y: (tabStrip.visible ? tabStrip.y + tabStrip.height : host.y + host.height) + Theme.sheetRowsTop
             width: panel.width - 2 * Theme.sheetPadSide
 
             Rectangle {
@@ -250,7 +322,7 @@ FocusScope {
 
                         Chevron {
                             dir: -1
-                            opacity: line.focused ? 1 : 0
+                            opacity: line.focused && !line.row.action ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: Theme.sheetFocusFade } }
                         }
                         SwapBox {
@@ -260,7 +332,7 @@ FocusScope {
                             duration: Theme.sheetValueSwap
                             direction: root.direction
                             animated: root.opened
-                            key: line.row.options[line.row.index] || ""
+                            key: line.row.action ? (line.row.value || "") : (line.row.options[line.row.index] || "")
                             value: key
 
                             ValueText { color: line.ink }
@@ -290,7 +362,7 @@ FocusScope {
             // « Oublier ce PC » : une première pression demande confirmation.
             Item {
                 readonly property bool focused: root.current === root.rows.length
-                visible: root.hostName !== ""
+                visible: root.forgettable
                 y: root.rows.length * Theme.sheetRowHeight
                 width: list.width; height: Theme.sheetRowHeight
 

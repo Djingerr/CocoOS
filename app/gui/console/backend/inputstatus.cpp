@@ -33,7 +33,7 @@ InputStatus::InputStatus(QObject* parent)
 {
     QCoreApplication::instance()->installEventFilter(this);
 
-    connect(&m_homeTimer, &QTimer::timeout, this, &InputStatus::pollHomeButton);
+    connect(&m_homeTimer, &QTimer::timeout, this, &InputStatus::pollButtons);
     m_homeTimer.start(HOME_POLL_MS);
     connect(&m_controllersTimer, &QTimer::timeout, this, &InputStatus::refreshControllers);
     m_controllersTimer.start(CONTROLLERS_POLL_MS);
@@ -95,25 +95,35 @@ void InputStatus::noteActivity()
     }
 }
 
-void InputStatus::pollHomeButton()
+void InputStatus::pollButtons()
 {
-    if (!SDL_WasInit(SDL_INIT_GAMECONTROLLER)) {
-        m_homeDown = false;
-        return;
-    }
-    bool down = false;
-    for (int i = 0; i < SDL_NumJoysticks(); i++) {
-        SDL_GameController* gc = SDL_GameControllerFromInstanceID(SDL_JoystickGetDeviceInstanceID(i));
-        if (gc != nullptr && SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_GUIDE)) {
-            down = true;
-            break;
+    bool home = false, left = false, right = false;
+    if (SDL_WasInit(SDL_INIT_GAMECONTROLLER)) {
+        for (int i = 0; i < SDL_NumJoysticks(); i++) {
+            SDL_GameController* gc = SDL_GameControllerFromInstanceID(SDL_JoystickGetDeviceInstanceID(i));
+            if (gc != nullptr) {
+                home |= SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_GUIDE) != 0;
+                left |= SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_LEFTSHOULDER) != 0;
+                right |= SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) != 0;
+            }
         }
     }
-    if (down && !m_homeDown) {
+    // Sur l'appui seulement (front montant)
+    if (home && !m_homeDown) {
         noteActivity();
         emit homePressed();
     }
-    m_homeDown = down;
+    if (left && !m_leftDown) {
+        noteActivity();
+        emit bumperPressed(-1);
+    }
+    if (right && !m_rightDown) {
+        noteActivity();
+        emit bumperPressed(1);
+    }
+    m_homeDown = home;
+    m_leftDown = left;
+    m_rightDown = right;
 }
 
 void InputStatus::refreshControllers()

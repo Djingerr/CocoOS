@@ -460,6 +460,14 @@ FocusScope {
         target: InputStatus
         function onActivity() { home.rearmSleep() }
         function onHomePressed() { home.homeButton() }
+        function onBumperPressed(direction) {
+            if (homeScreen.options.opened) homeScreen.options.switchTab(direction)
+        }
+    }
+    // Luminosité ou volume changés ailleurs (touches de la console) : le panneau suit.
+    Connections {
+        target: SystemStatus
+        function onChanged() { if (homeScreen.options.opened) home.refreshOptions() }
     }
 
     function homeButton() {
@@ -789,11 +797,12 @@ FocusScope {
         }))
     }
 
-    // --- Options du flux (bouton Y) ---
-    // Les choix proposés par ligne du panneau, et les lignes elles-mêmes. Tout est
-    // lu dans les préférences Moonlight et y est écrit aussitôt : pas d'état à part.
+    // --- Options (bouton Y) : onglets Flux et Console ---
+    // Les choix proposés par ligne du panneau, et les onglets eux-mêmes. Tout est lu
+    // dans les préférences Moonlight, la conf console ou le système, et y est écrit
+    // aussitôt : pas d'état à part.
     property var optionChoices: ({})
-    property var optionRows: []
+    property var optionTabs: []
     property bool optionAutoBitrate: false   // le débit suit résolution et fréquence
 
     function refreshOptions() {
@@ -830,32 +839,76 @@ FocusScope {
                       { label: "HEVC", value: p.VCC_FORCE_HEVC }, { label: "AV1", value: p.VCC_FORCE_AV1 } ]
         var codecIndex = codec.findIndex(function(c) { return c.value === p.videoCodecConfig })
         var hdr = [ { label: qsTr("Désactivé"), value: false }, { label: qsTr("Activé"), value: true } ]
+
+        // Console : réglages du système et de la conf console (ConsoleUi).
+        var percents = function(from) {
+            var list = []
+            for (var v = from; v <= 100; v += 10) list.push({ label: v + " %", value: v })
+            return list
+        }
+        var nearest = function(list, value) {
+            var best = 0
+            for (var i = 1; i < list.length; i++)
+                if (Math.abs(list[i].value - value) < Math.abs(list[best].value - value)) best = i
+            return best
+        }
+        var brightness = percents(10), volume = percents(0)
+        var sleep = [ { label: qsTr("2 min"), value: 2 }, { label: qsTr("5 min"), value: 5 },
+                      { label: qsTr("10 min"), value: 10 }, { label: qsTr("30 min"), value: 30 },
+                      { label: qsTr("Jamais"), value: 0 } ]
+        var buttons = [ { label: qsTr("Auto"), value: "auto" }, { label: "Xbox", value: "xbox" },
+                        { label: "PlayStation", value: "playstation" }, { label: "Nintendo", value: "nintendo" } ]
         var sounds = [ { label: qsTr("Activés"), value: true }, { label: qsTr("Coupés"), value: false } ]
 
         optionChoices = { res: res, fps: fps.map(function(f) { return { label: "" + f, value: f } }),
-                          rate: rate, codec: codec, hdr: hdr, sounds: sounds }
+                          rate: rate, codec: codec, hdr: hdr, brightness: brightness, volume: volume,
+                          sleep: sleep, buttons: buttons, sounds: sounds }
         var row = function(key, label, index) {
             return { key: key, label: label, index: index,
                      options: optionChoices[key].map(function(c) { return c.label }) }
         }
-        optionRows = [
-            row("res", qsTr("Résolution"), res.findIndex(same(p.width, p.height))),
-            row("fps", qsTr("Images par seconde"), fps.indexOf(p.fps)),
-            row("rate", qsTr("Débit"), optionAutoBitrate ? 0 : 1 + kbps.indexOf(p.bitrateKbps)),
-            // (un ancien réglage « HEVC HDR » est montré comme HEVC)
-            row("codec", qsTr("Codec"), codecIndex >= 0 ? codecIndex : 2),
-            row("hdr", qsTr("HDR"), p.enableHdr ? 1 : 0),
-            // (réglage de la console, pas du flux : rangé dans ConsoleUi)
-            row("sounds", qsTr("Sons"), consoleConfig.sounds ? 0 : 1)
+        var consoleRows = []
+        if (SystemStatus.brightness >= 0)
+            consoleRows.push(row("brightness", qsTr("Luminosité"), nearest(brightness, SystemStatus.brightness)))
+        if (SystemStatus.volume >= 0)
+            consoleRows.push(row("volume", qsTr("Volume"), nearest(volume, SystemStatus.volume)))
+        consoleRows.push(row("sleep", qsTr("Veille de l'écran"),
+                             Math.max(0, sleep.findIndex(function(c) { return c.value === consoleConfig.sleepMinutes }))))
+        consoleRows.push(row("buttons", qsTr("Boutons"),
+                             Math.max(0, buttons.findIndex(function(c) { return c.value === consoleConfig.buttonLayout }))))
+        consoleRows.push(row("sounds", qsTr("Sons"), consoleConfig.sounds ? 0 : 1))
+
+        optionTabs = [
+            { label: qsTr("Flux"), rows: [
+                row("res", qsTr("Résolution"), res.findIndex(same(p.width, p.height))),
+                row("fps", qsTr("Images par seconde"), fps.indexOf(p.fps)),
+                row("rate", qsTr("Débit"), optionAutoBitrate ? 0 : 1 + kbps.indexOf(p.bitrateKbps)),
+                // (un ancien réglage « HEVC HDR » est montré comme HEVC)
+                row("codec", qsTr("Codec"), codecIndex >= 0 ? codecIndex : 2),
+                row("hdr", qsTr("HDR"), p.enableHdr ? 1 : 0)
+            ] },
+            { label: qsTr("Console"), rows: consoleRows }
         ]
     }
 
     function applyOption(key, index) {
         var p = StreamingPreferences
         var choice = optionChoices[key][index]
+        // Console : rien à voir avec les préférences du flux.
         if (key === "sounds") {
             consoleConfig.sounds = choice.value
             Sounds.enabled = choice.value
+        } else if (key === "brightness") {
+            SystemStatus.setBrightness(choice.value)
+        } else if (key === "volume") {
+            SystemStatus.setVolume(choice.value)
+        } else if (key === "sleep") {
+            consoleConfig.sleepMinutes = choice.value
+            rearmSleep()
+        } else if (key === "buttons") {
+            consoleConfig.buttonLayout = choice.value
+        }
+        if (["sounds", "brightness", "volume", "sleep", "buttons"].indexOf(key) >= 0) {
             refreshOptions()
             return
         }
@@ -915,7 +968,7 @@ FocusScope {
         charging: SystemStatus.charging
         controllerBattery: InputStatus.controllerBattery
 
-        optionRows: home.optionRows
+        optionTabs: home.optionTabs
         optionsHost: home.activeHostName
 
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown

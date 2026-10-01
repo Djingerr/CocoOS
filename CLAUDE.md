@@ -169,6 +169,10 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     mesures. La pastille affiche « N ms » et son point passe au vert / jaune / rouge
     (`Format.networkQuality` : ≤ 20 ms et ≤ 5 ms de gigue, ≤ 50 et ≤ 15, au-delà).
     ⚠️ Jamais mesuré contre le vrai PC.
+  - **Options en onglets** (L1 / R1, lus dans SDL par `InputStatus` ; PageUp / PageDown au
+    clavier) : **Flux** (résolution, fréquence, débit, codec, HDR, Oublier ce PC) et **Console**
+    (luminosité par logind `SetBrightness`, volume par `wpctl`, veille de l'écran, boutons,
+    sons). Une ligne peut être une action (`action: true`, A la déclenche, chevron ›).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
@@ -265,7 +269,7 @@ Fichiers (dans `app/gui/console/`) :
   étagère et panneau d'options ; règle l'entrée en cascade, la dérive du fond, l'effacement au
   lancement. `stage` reçoit les écrans de message (`staged` efface héros et étagère et leur
   donne la manette)
-- `OptionsSheet.qml` — panneau « Options du flux » (bouton Y), sans état propre
+- `OptionsSheet.qml` — panneau « Options » (bouton Y) en onglets (Flux, Console), sans état propre
 - `LaunchScreen.qml` — écran de lancement d'un jeu (remplace l'ancien `LaunchOverlay`)
 - `Sounds.qml`, `SoundBank.qml`, `sounds/` — sons de l'interface (singleton `Sounds.play("move")`)
 - `PadRepeat.qml` — répétition des flèches à l'appui prolongé (étagère, options)

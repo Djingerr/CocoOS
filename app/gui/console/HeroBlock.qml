@@ -198,7 +198,7 @@ Item {
                 ButtonGlyph {
                     anchors.verticalCenter: parent.verticalCenter
                     label: "A"
-                    width: Theme.playGlyphSize
+                    size: Theme.playGlyphSize
                     color: Theme.inkOnAccent
                     ink: Theme.accent
                     fontSize: Theme.playGlyphFontSize

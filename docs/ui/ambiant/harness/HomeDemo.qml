@@ -11,7 +11,7 @@ import "../../../../app/gui/console/Format.js" as Format
 //   focus  index du jeu sélectionné au départ (0 à 9)
 //   goto   index vers lequel se déplacer à `at` ms (pour capturer une transition)
 //   do     actions jouées à `at` ms, séparées par des virgules et espacées de
-//          150 ms : options, up, down, left, right, a, launch
+//          150 ms : options, up, down, left, right, a, launch, tab (onglet suivant)
 //   at     instant de `goto` / `do`, en ms (300 par défaut)
 //   drift  0 pour figer la dérive du fond (captures comparables aux références)
 //   sound  0 pour couper les sons (coupés d'office pendant une capture)
@@ -49,12 +49,22 @@ HomeScreen {
     timeText: "21:30"
 
     optionsHost: "Djinger"
-    optionRows: [
-        { key: "res", label: "Résolution", options: ["720p", "Natif 1280×800", "1080p"], index: settings.res },
-        { key: "fps", label: "Images par seconde", options: ["30", "60", "90", "120"], index: settings.fps },
-        { key: "rate", label: "Débit", options: ["Auto", "10 Mb/s", "20 Mb/s", "40 Mb/s", "80 Mb/s"], index: settings.rate },
-        { key: "codec", label: "Codec", options: ["Auto (AV1)", "H.264", "HEVC", "AV1"], index: settings.codec },
-        { key: "hdr", label: "HDR", options: ["Désactivé", "Activé"], index: settings.hdr }
+    optionTabs: [
+        { label: "Flux", rows: [
+            { key: "res", label: "Résolution", options: ["720p", "Natif 1280×800", "1080p"], index: settings.res },
+            { key: "fps", label: "Images par seconde", options: ["30", "60", "90", "120"], index: settings.fps },
+            { key: "rate", label: "Débit", options: ["Auto", "10 Mb/s", "20 Mb/s", "40 Mb/s", "80 Mb/s"], index: settings.rate },
+            { key: "codec", label: "Codec", options: ["Auto (AV1)", "H.264", "HEVC", "AV1"], index: settings.codec },
+            { key: "hdr", label: "HDR", options: ["Désactivé", "Activé"], index: settings.hdr }
+        ] },
+        { label: "Console", rows: [
+            { key: "brightness", label: "Luminosité", options: ["40 %", "50 %", "60 %", "70 %"], index: 2 },
+            { key: "volume", label: "Volume", options: ["60 %", "70 %", "80 %"], index: 1 },
+            { key: "sleep", label: "Veille de l'écran", options: ["2 min", "5 min", "10 min"], index: 1 },
+            { key: "buttons", label: "Boutons", options: ["Auto", "Xbox", "PlayStation", "Nintendo"], index: 0 },
+            { key: "sounds", label: "Sons", options: ["Activés", "Coupés"], index: 0 },
+            { key: "wifi", label: "Wi-Fi", value: "Maison-5G", action: true }
+        ] }
     ]
     onOptionChanged: function(key, index) {
         var next = Object.assign({}, settings)
@@ -147,6 +157,7 @@ HomeScreen {
             else if (action === "right") demo.options.change(1, false)
             else if (action === "a") demo.options.activate()
             else if (action === "launch") demo.launch()
+            else if (action === "tab") demo.options.switchTab(1)
         }
     }
 }

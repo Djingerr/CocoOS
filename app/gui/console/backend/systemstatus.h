@@ -9,7 +9,9 @@
 //   - Wi-Fi    : NetworkManager, par D-Bus (point d'accès actif du premier adaptateur) ;
 //   - alimentation : systemd-logind, par D-Bus (veille, redémarrage, extinction) ;
 //   - réseau vers le PC : temps d'ouverture d'une connexion TCP vers son port HTTP
-//     Moonlight (un aller-retour), mesuré toutes les 3 s tant qu'on le demande.
+//     Moonlight (un aller-retour), mesuré toutes les 3 s tant qu'on le demande ;
+//   - luminosité : /sys/class/backlight (lecture), logind SetBrightness (écriture,
+//     sans droits root) ; volume : wpctl (PipeWire / WirePlumber).
 // Une valeur de -1 signifie « pas de donnée » : la barre haute masque l'indicateur.
 
 #include <QElapsedTimer>
@@ -36,6 +38,9 @@ class SystemStatus : public QObject
     // Réseau vers le PC sondé (probeHost) : latence (médiane) et gigue, en ms ; -1 sans mesure.
     Q_PROPERTY(int latencyMs READ latencyMs NOTIFY networkChanged)
     Q_PROPERTY(int jitterMs READ jitterMs NOTIFY networkChanged)
+    // Luminosité de l'écran et volume de la sortie son, en % ; -1 si non réglable.
+    Q_PROPERTY(int brightness READ brightness NOTIFY changed)
+    Q_PROPERTY(int volume READ volume NOTIFY changed)
 
 public:
     explicit SystemStatus(QObject* parent = nullptr);
@@ -46,6 +51,11 @@ public:
     QStringList powerActions() const { return m_powerActions; }
     int latencyMs() const { return m_latencyMs; }
     int jitterMs() const { return m_jitterMs; }
+    int brightness() const { return m_brightness; }
+    int volume() const { return m_volume; }
+
+    Q_INVOKABLE void setBrightness(int percent);
+    Q_INVOKABLE void setVolume(int percent);
 
     // Sonde le PC `hostName` connu de `computerManager` (le singleton QML), jusqu'à
     // stopProbing(). Les mesures repartent de zéro.
@@ -77,12 +87,16 @@ private slots:
 private:
     static int readWifi();
     static QStringList readPowerActions();
+    static QString backlightDir();
+    void readVolume();
 
     QTimer m_timer;
     int m_batteryPercent = -1;
     bool m_charging = false;
     int m_signalStrength = -1;
     QStringList m_powerActions;
+    int m_brightness = -1;
+    int m_volume = -1;
 
     void finishProbe(int rttMs);
 

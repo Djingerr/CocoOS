@@ -2,7 +2,7 @@ pragma Singleton
 import QtQuick
 
 // Faux InputStatus : pas de manette par défaut. Les tests émettent ses signaux à
-// la main (activity, homePressed) et posent `homeExit` pour simuler le retour d'un
+// la main (activity, homePressed, bumperPressed) et posent `homeExit` pour simuler le retour d'un
 // jeu par le bouton Home.
 QtObject {
     property string layout: ""
@@ -11,6 +11,7 @@ QtObject {
 
     signal activity()
     signal homePressed()
+    signal bumperPressed(int direction)
 
     function takeHomeExit() {
         var exit = homeExit
