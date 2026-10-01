@@ -1,0 +1,8 @@
+[Plymouth Theme]
+Name=CocoOS
+Description=Mot-symbole CocoOS sur noir, comme l'écran de démarrage de l'interface
+ModuleName=script
+
+[script]
+ImageDir=/usr/share/plymouth/themes/cocoos
+ScriptFile=/usr/share/plymouth/themes/cocoos/cocoos.script

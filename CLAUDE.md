@@ -188,6 +188,10 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     active (`HomeScreen.activeThumbRect`, sa jaquette) et grandit jusqu'au plein écran en 620 ms
     (easeQuint) pendant que l'illustration la remplace en fondu. Reprise depuis le menu Home ou
     démo du prototype : le fondu d'origine.
+  - **Démarrage** : `BootSplash` (mot-symbole « Coco**OS** » sur noir, 1,1 s puis fondu pendant
+    que l'accueil entre) et le thème Plymouth au même dessin dans `deploy/plymouth/` (logo
+    généré par `make-logo.py`, notice d'installation et ligne de commande du noyau). ⚠️ Thème
+    Plymouth jamais installé ni vu en vrai (à faire sur l'Orange Pi, pas sur le laptop).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
@@ -302,6 +306,7 @@ Fichiers (dans `app/gui/console/`) :
 - `SleepScreen.qml` — veille de l'écran : noir, une phrase qui s'efface à son tour (OLED) ; la
   touche qui réveille n'atteint pas l'accueil
 - `OnScreenKeyboard.qml` — clavier à l'écran, à la manette (mot de passe Wi-Fi)
+- `BootSplash.qml` — écran de démarrage (mot-symbole), même dessin que `deploy/plymouth/`
 - `icons/` — icônes SVG (punaise des favoris)
 - `StatusBar.qml` — barre haute : pastille de l'hôte + horloge / Wi-Fi / batterie (éclair en
   charge, orange sous `Theme.batteryLow`)

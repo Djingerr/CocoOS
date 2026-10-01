@@ -1238,6 +1238,9 @@ FocusScope {
             }
         }
 
+        // Écran de démarrage, le temps que l'accueil se mette en place.
+        BootSplash { anchors.fill: parent; z: 2 }
+
         // Veille de l'écran : par-dessus tout le reste.
         SleepScreen {
             id: sleepScreen
