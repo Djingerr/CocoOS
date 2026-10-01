@@ -4,7 +4,9 @@ import QtQuick.Effects
 // Étagère de vignettes 16:9 en bas de l'accueil : le jeu sélectionné est calé à
 // gauche, agrandi et souligné d'orange ; les suivants défilent vers la droite,
 // les précédents s'estompent en sortant.
-// Consomme un modèle exposant le rôle `boxart` (url). Aucune dépendance Moonlight.
+// Consomme un modèle exposant le rôle `boxart` (url ; vide = pas de jaquette) et,
+// s'il les a, `name` (écrit sur la vignette de repli) et `favorite` (pastille). Aucune
+// dépendance Moonlight.
 //
 // Tout le mouvement découle d'UNE valeur animée, `pos` (la position en index,
 // portée par un ressort) : aucune vignette n'a d'animation propre.
@@ -21,6 +23,14 @@ FocusScope {
     property bool shown: true
     property int enterStep: 0
     signal launchRequested(int index)
+
+    // Vignette de repli : une teinte stable par jeu, tirée de son nom.
+    function hue(name) {
+        var h = 0
+        for (var i = 0; i < name.length; i++)
+            h = (h * 31 + name.charCodeAt(i)) % 360
+        return h / 360
+    }
 
     // Rebond aux extrémités : décalage temporaire ajouté à la cible du ressort.
     property real bump: 0
@@ -103,7 +113,8 @@ FocusScope {
         readonly property size thumbTextureSize: Qt.size(
             Math.ceil(Theme.shelfThumbSize.width * Theme.shelfActiveScale * Theme.scale),
             Math.ceil(Theme.shelfThumbSize.height * Theme.shelfActiveScale * Theme.scale))
-        readonly property real wantedX: root.pos * root.pitch - Theme.margin
+        // (originX : la vue décale son origine quand un élément passe devant les autres.)
+        readonly property real wantedX: originX + root.pos * root.pitch - Theme.margin
 
         width: parent.width; height: Theme.shelfThumbSize.height
         orientation: ListView.Horizontal
@@ -121,6 +132,9 @@ FocusScope {
 
             required property int index
             required property url boxart
+            required property var model
+            readonly property string name: model.name || ""
+            readonly property bool favorite: model.favorite === true
             readonly property real d: index - root.pos            // écart à la position courante
             readonly property real f: Math.max(0, 1 - Math.abs(d))    // 1 = vignette active
 
@@ -152,12 +166,45 @@ FocusScope {
                         layer.textureSize: list.thumbTextureSize
 
                         Rectangle { anchors.fill: parent; color: Theme.shelfThumbFill }
+                        // Pas de jaquette (ou illisible) : le nom du jeu sur un dégradé.
+                        Rectangle {
+                            id: fallback
+                            anchors.fill: parent
+                            visible: del.boxart.toString() === "" || art.status === Image.Error
+                            readonly property real tint: root.hue(del.name)
+                            gradient: Gradient {
+                                GradientStop {
+                                    position: 0
+                                    color: Qt.hsla(fallback.tint, Theme.placeholderSaturation, Theme.placeholderLightTop, 1)
+                                }
+                                GradientStop {
+                                    position: 1
+                                    color: Qt.hsla(fallback.tint, Theme.placeholderSaturation, Theme.placeholderLightBottom, 1)
+                                }
+                            }
+                            Text {
+                                anchors.fill: parent
+                                anchors.margins: Theme.placeholderPad
+                                text: del.name
+                                color: Theme.placeholderInk
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
+                                wrapMode: Text.WordWrap
+                                maximumLineCount: 2
+                                elide: Text.ElideRight
+                                font.family: Theme.fontUi; font.pixelSize: Theme.placeholderTextSize
+                                font.weight: Font.DemiBold
+                            }
+                        }
                         Image {
+                            id: art
                             anchors.fill: parent
                             source: del.boxart
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
                             sourceSize.height: list.thumbTextureSize.height
+                            opacity: status === Image.Ready ? 1 : 0
+                            Behavior on opacity { NumberAnimation { duration: Theme.thumbFadeIn } }
                         }
                     }
                     MultiEffect {
@@ -168,6 +215,19 @@ FocusScope {
                         maskSource: thumbMask
                         maskThresholdMin: 0.5
                         maskSpreadAtMin: 1.0
+                    }
+                    Rectangle {
+                        visible: del.favorite
+                        anchors { top: parent.top; right: parent.right; margins: Theme.pinBadgeInset }
+                        width: Theme.pinBadgeSize; height: width; radius: width / 2
+                        color: Theme.accent
+                        Image {
+                            anchors.centerIn: parent
+                            width: Theme.pinIconSize; height: width
+                            source: "icons/pin.svg"
+                            sourceSize: Qt.size(Math.ceil(width * Theme.shelfActiveScale * Theme.scale),
+                                                Math.ceil(height * Theme.shelfActiveScale * Theme.scale))
+                        }
                     }
                 }
 

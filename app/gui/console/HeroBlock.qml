@@ -1,7 +1,7 @@
 import QtQuick
 
 // Bloc héros de l'accueil : méta (source | dernière session), titre du jeu,
-// sous-titre (temps de jeu, mise à jour) et actions (Jouer, Options).
+// sous-titre (temps de jeu, mise à jour) et actions (Jouer, Options, Épingler).
 // Tout est posé à partir du BAS du bloc : un titre sur deux lignes le fait
 // grandir vers le haut, sans déplacer les actions. Quand le jeu change, chaque
 // champ se remplace en glissant (SwapBox). Aucune dépendance Moonlight.
@@ -14,6 +14,7 @@ Item {
     property string playtime         // « 412 h de jeu » ; vide = masqué
     property string updateNote       // mise à jour en attente côté PC ; vide = masqué
     property bool running: false     // le jeu tourne déjà : « Reprendre »
+    property bool favorite: false    // épinglé en tête de l'étagère : X le détache
     // Sens du dernier déplacement dans la liste (+1 vers la droite) : les textes
     // glissent dans ce sens. `animated` à false : ils changent sans transition.
     property int direction: 1
@@ -22,6 +23,7 @@ Item {
 
     signal playRequested()
     signal optionsRequested()
+    signal favoriteRequested()
 
     // Hauteur de la boîte du titre pour `lines` lignes.
     function titleHeight(lines) {
@@ -231,6 +233,28 @@ Item {
                 }
             }
             MouseArea { anchors.fill: parent; onClicked: root.optionsRequested() }
+        }
+
+        Item {
+            anchors.verticalCenter: parent.verticalCenter
+            width: favoriteRow.width; height: favoriteRow.height
+
+            Row {
+                id: favoriteRow
+                spacing: Theme.optionsGap
+                ButtonGlyph {
+                    anchors.verticalCenter: parent.verticalCenter
+                    label: "X"
+                    ink: Theme.optionsColor
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.favorite ? qsTr("Désépingler") : qsTr("Épingler")
+                    color: Theme.optionsColor
+                    font.family: Theme.fontUi; font.pixelSize: Theme.optionsLabelSize; font.weight: Font.Medium
+                }
+            }
+            MouseArea { anchors.fill: parent; onClicked: root.favoriteRequested() }
         }
     }
 }

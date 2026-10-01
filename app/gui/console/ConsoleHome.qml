@@ -11,6 +11,7 @@ import CompanionClient 1.0
 import SystemStatus 1.0
 
 import "Format.js" as Format
+import "Library.js" as Library
 
 // Écran d'accueil de la console : la logique. La présentation est ailleurs :
 // HomeScreen.qml (fond, barre haute, bloc héros, étagère, panneau d'options) et
@@ -64,6 +65,8 @@ FocusScope {
         property bool streamProfileInitialized: false
         property bool sounds: true          // réglage « Sons » du panneau d'options
         property string lastGame: ""        // dernier jeu lancé : l'accueil s'ouvre dessus
+        property string favorites: "[]"     // jeux épinglés (X), le dernier épinglé en tête (JSON)
+        property string recentGames: "{}"   // date de la dernière partie lancée d'ici, par jeu (JSON, ms)
     }
 
     Component.onCompleted: {
@@ -124,10 +127,11 @@ FocusScope {
     }
 
     // --- Boutons console au niveau de l'accueil ---
-    // Y/Start (Hangup) et X (Menu) ouvrent NOS options ; sans ça, les
-    // événements remonteraient à main.qml qui ouvrirait la SettingsView
-    // Material du bureau. B (Échap) est consommé : rien derrière l'accueil.
-    Keys.onMenuPressed: homeScreen.options.open()
+    // Y/Start (Hangup) ouvrent NOS options ; sans ça, les événements remonteraient
+    // à main.qml qui ouvrirait la SettingsView Material du bureau. X (Menu) épingle
+    // le jeu (géré par l'étagère) ; ici, il est consommé pour la même raison.
+    // B (Échap) est consommé : rien derrière l'accueil.
+    Keys.onMenuPressed: { /* X hors de l'étagère : rien */ }
     Keys.onHangupPressed: homeScreen.options.open()
     Keys.onEscapePressed: { /* accueil : rien à fermer */ }
 
@@ -150,11 +154,82 @@ FocusScope {
 
     // NB : AppModel/ComputerModel (C++) n'exposent PAS de propriété `count` ;
     // on passe toujours par le count des Instantiator (appViewer/hostScanner).
+    // L'app (objet d'appViewer) du jeu sélectionné sur l'étagère.
     function currentApp() {
-        if (appViewer.count === 0) return null
-        var idx = Math.max(0, Math.min(homeScreen.currentIndex, appViewer.count - 1))
-        var item = appViewer.objectAt(idx)
-        return item ? item : null
+        if (shelfModel.count === 0 || appViewer.count === 0) return null
+        var idx = Math.max(0, Math.min(homeScreen.currentIndex, shelfModel.count - 1))
+        return appViewer.objectAt(shelfModel.get(idx).appIndex) || null
+    }
+
+    // --- Étagère : les apps du PC sans les utilitaires, favoris puis jeux récents ---
+    // Ses index ne sont PAS ceux d'AppModel : chaque élément porte son `appIndex`.
+    ListModel { id: shelfModel }        // name, appIndex, boxart, favorite
+    property int shelfRevision: 0       // change à chaque réordonnancement (liaisons)
+
+    function favoriteNames() { return Library.parse(consoleConfig.favorites, []) }
+
+    // Dernière partie, en ms : lancée d'ici, ou d'après le Companion (jouée sur le PC).
+    function lastPlayedTime(name, recent) {
+        var info = companionGames[name.toLowerCase()]
+        var companion = info && info.lastPlayed ? Date.parse(info.lastPlayed) : 0
+        return Math.max(recent[name] || 0, companion || 0)
+    }
+
+    function rebuildShelf() {
+        var apps = []
+        for (var i = 0; i < appViewer.count; i++) {
+            var it = appViewer.objectAt(i)
+            if (!it) continue
+            var art = it.boxart.toString()
+            // (Moonlight donne une icône générique aux apps sans jaquette : l'étagère
+            // dessine plutôt son propre repli.)
+            apps.push({ name: it.name, appIndex: i, boxart: art === "qrc:/res/no_app_image.png" ? "" : art })
+        }
+        var favorites = favoriteNames()
+        var recent = Library.parse(consoleConfig.recentGames, {})
+        var ordered = Library.order(apps, favorites, function(name) { return home.lastPlayedTime(name, recent) })
+
+        // Le jeu affiché le reste : la sélection le suit à sa nouvelle place. Au
+        // chargement, avant l'entrée de l'accueil, c'est le dernier jeu lancé.
+        var selected = homeScreen.ready && homeScreen.currentIndex < shelfModel.count
+                       ? shelfModel.get(homeScreen.currentIndex).name : consoleConfig.lastGame
+        Library.sync(shelfModel, ordered.map(function(a) {
+            return { name: a.name, appIndex: a.appIndex, boxart: a.boxart,
+                     favorite: favorites.indexOf(a.name) >= 0 }
+        }))
+        shelfRevision++
+        var index = ordered.findIndex(function(a) { return a.name === selected })
+        if (index >= 0)
+            homeScreen.currentIndex = index
+        maybeDirectLaunch()
+    }
+
+    function shelfIndexOf(appIndex) {
+        for (var i = 0; i < shelfModel.count; i++)
+            if (shelfModel.get(i).appIndex === appIndex) return i
+        return -1
+    }
+
+    // X : épingle le jeu en tête de l'étagère, ou le détache.
+    function toggleFavorite() {
+        var app = currentApp()
+        if (!app) return
+        var favorites = Library.toggled(favoriteNames(), app.name)
+        var pinned = favorites.indexOf(app.name) >= 0
+        consoleConfig.favorites = JSON.stringify(favorites)
+        rebuildShelf()
+        Sounds.play(pinned ? "select" : "back")
+        homeScreen.toast(pinned ? qsTr("%1 est épinglé en tête de liste").arg(app.name)
+                                : qsTr("%1 n'est plus épinglé").arg(app.name))
+    }
+
+    // Un jeu vient d'être lancé : il passe en tête des jeux récents.
+    function markPlayed(name) {
+        var recent = Library.parse(consoleConfig.recentGames, {})
+        recent[name] = Date.now()
+        consoleConfig.recentGames = JSON.stringify(recent)
+        consoleConfig.lastGame = name
+        Qt.callLater(rebuildShelf)
     }
 
     // --- Appairage automatique ("silent pair" côté console, cf CLAUDE.md §9 6b) ---
@@ -284,23 +359,24 @@ FocusScope {
             readonly property bool running: model.running
             readonly property int appid: model.appid
             readonly property url boxart: model.boxart
+            // (les jaquettes arrivent après la liste)
+            onNameChanged: Qt.callLater(home.rebuildShelf)
+            onBoxartChanged: Qt.callLater(home.rebuildShelf)
         }
-        onObjectAdded: function(index, obj) {
-            // À l'arrivée de la liste, avant l'entrée de l'accueil : reprendre sur le
-            // dernier jeu lancé (sans ressort, l'étagère n'est pas encore montrée).
-            if (!homeScreen.ready && obj.name === consoleConfig.lastGame)
-                homeScreen.currentIndex = index
-            // Lancement direct éventuel (§9 6a).
-            home.maybeDirectLaunch()
-        }
+        // Reconstruite une fois la liste arrivée (Qt.callLater regroupe les appels).
+        onObjectAdded: Qt.callLater(home.rebuildShelf)
+        onObjectRemoved: Qt.callLater(home.rebuildShelf)
     }
 
+    // Lancement direct éventuel (§9 6a), une fois l'étagère construite.
     function maybeDirectLaunch() {
         if (directLaunchDone || !appModel) return
         var idx = appModel.getDirectLaunchAppIndex()
         if (idx >= 0) {
             directLaunchDone = true
-            homeScreen.currentIndex = idx
+            var shelfIndex = shelfIndexOf(idx)
+            if (shelfIndex >= 0)
+                homeScreen.currentIndex = shelfIndex
             launchApp(idx)
         }
     }
@@ -315,6 +391,7 @@ FocusScope {
         for (var i = 0; i < games.length; i++)
             byName[(games[i].name || "").toLowerCase()] = games[i]
         companionGames = byName
+        Qt.callLater(rebuildShelf)          // l'ordre suit aussi les parties jouées sur le PC
     }
 
     // --- Lancement d'un jeu ---
@@ -416,7 +493,7 @@ FocusScope {
         var item = appViewer.objectAt(index)
         var session = appModel.createSessionForApp(index)
         if (item)
-            consoleConfig.lastGame = item.name
+            markPlayed(item.name)
 
         // Dernière étape : la barre avance au rythme de la connexion. C'est le
         // moment de rappeler comment on reviendra (la page d'origine de Moonlight,
@@ -462,7 +539,7 @@ FocusScope {
         if (!appModel) return
         var item = appViewer.objectAt(nextIndex)
         if (item)
-            consoleConfig.lastGame = item.name
+            markPlayed(item.name)
         var component = Qt.createComponent("qrc:/gui/QuitSegue.qml")
         stackView.push(component.createObject(stackView, {
             "appName": appModel.getRunningAppName(),
@@ -569,14 +646,15 @@ FocusScope {
         anchors.fill: parent
         focus: true
 
-        readonly property var app: home.currentApp()
+        readonly property var app: { home.shelfRevision; return home.currentApp() }
         // Fiche du jeu dans la bibliothèque du Companion (absente sans Companion).
         readonly property var info: app ? (home.companionGames[app.name.toLowerCase()] || null) : null
 
-        model: home.appModel
-        ready: appViewer.count > 0
+        model: shelfModel
+        ready: shelfModel.count > 0
         title: app ? app.name : ""
         running: app ? app.running : false
+        favorite: app ? home.favoriteNames().indexOf(app.name) >= 0 : false
         source: info ? Format.sourceName(info.source) : ""
         lastPlayed: info ? Format.lastPlayed(info.lastPlayed, new Date()) : ""
         playtime: info ? Format.playtime(info.playtimeSeconds) : ""
@@ -600,7 +678,8 @@ FocusScope {
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
         panelOpen: confirmDialog.opened
 
-        onLaunchRequested: function(index) { home.launchApp(index) }
+        onLaunchRequested: function(index) { home.launchApp(shelfModel.get(index).appIndex) }
+        onFavoriteRequested: home.toggleFavorite()
         onOptionChanged: function(key, index) { home.applyOption(key, index) }
         // Oublier ce PC : son appairage Moonlight ET celui du Companion.
         onForgetRequested: {
@@ -620,7 +699,7 @@ FocusScope {
     MessageScreen {
         id: searchScreen
         parent: homeScreen.stage
-        shown: appViewer.count === 0 && !pinScreen.shown && !companionPairing.shown
+        shown: shelfModel.count === 0 && !pinScreen.shown && !companionPairing.shown
         title: !home.activeHostOnline ? qsTr("Recherche de votre PC") : qsTr("Chargement de vos jeux")
         text: !home.activeHostOnline ? qsTr("Vérifiez qu'il est allumé et sur le même réseau que la console.") : ""
         busy: true

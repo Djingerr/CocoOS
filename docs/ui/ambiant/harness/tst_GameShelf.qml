@@ -109,6 +109,26 @@ Item {
             tryCompare(late, "opacity", 0, 2000)
         }
 
+        // Un jeu déplacé en tête (épinglé, joué) : une fois le ressort posé, la
+        // vignette sélectionnée est bien à sa place, calée sur la marge.
+        function test_currentThumbStaysInPlaceAfterReorder() {
+            var list = null
+            for (var i = 0; i < shelf.children.length; i++)
+                if (shelf.children[i].contentX !== undefined) list = shelf.children[i]
+            shelf.currentIndex = 3
+            tryCompare(shelf, "pos", 3, 3000)
+            games.move(3, 0, 1)
+            shelf.currentIndex = 0
+            tryCompare(shelf, "pos", 0, 3000)
+            wait(50)
+            compare(Math.round(list.itemAtIndex(0).mapToItem(shelf, 0, 0).x), Theme.margin)
+            games.insert(0, { boxart: "" })      // une app ajoutée devant la sélection
+            shelf.currentIndex = 1
+            tryCompare(shelf, "pos", 1, 3000)
+            wait(50)
+            compare(Math.round(list.itemAtIndex(1).mapToItem(shelf, 0, 0).x), Theme.margin)
+        }
+
         function test_returnLaunchesCurrentGame() {
             shelf.currentIndex = 4
             keyClick(Qt.Key_Return)

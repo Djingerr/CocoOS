@@ -157,6 +157,18 @@ QtObject {
     // Coins arrondis des vignettes : un masque GPU par vignette visible. Passer à
     // false (coins droits) si la carte cible ne tient pas ses 60 images par seconde.
     readonly property bool shelfRounded: true
+    readonly property int thumbFadeIn: 260           // la jaquette chargée apparaît en fondu
+    // Jeu sans jaquette : dégradé teinté d'après son nom, le nom au centre.
+    readonly property real placeholderSaturation: 0.28
+    readonly property real placeholderLightTop: 0.22
+    readonly property real placeholderLightBottom: 0.10
+    readonly property int placeholderTextSize: 15    // Sora 600, deux lignes au plus
+    readonly property int placeholderPad: 12
+    readonly property color placeholderInk: Qt.rgba(1, 1, 1, 0.82)
+    // Jeu épinglé : pastille orange (punaise) dans le coin haut droit de la vignette.
+    readonly property int pinBadgeSize: 20
+    readonly property int pinBadgeInset: 6
+    readonly property int pinIconSize: 13
     readonly property int underlineY: 750            // soulignement orange sous la vignette active
     readonly property int underlineHeight: 3
     readonly property int underlineRadius: 2
@@ -208,6 +220,22 @@ QtObject {
     readonly property point backdropZoomOrigin: Qt.point(0.62, 0.46)   // fraction de l'écran
     // La dérive du fond s'arrête après ce délai sans action (économie de batterie).
     readonly property int driftIdleTimeout: 10000
+
+    // --- Message bref (Toast), centré au-dessus de l'étagère ---
+    readonly property int toastTop: 650
+    readonly property int toastMaxWidth: 760
+    readonly property int toastPadH: 20
+    readonly property int toastPadV: 12
+    readonly property color toastFill: Qt.rgba(24 / 255, 24 / 255, 26 / 255, 0.96)
+    readonly property color toastStroke: Qt.rgba(1, 1, 1, 0.10)
+    readonly property int toastSize: 15              // Sora 400
+    readonly property int toastShadowOffset: 20
+    readonly property int toastShadowBlur: 40
+    readonly property color toastShadow: Qt.rgba(0, 0, 0, 0.5)
+    readonly property int toastFade: 220             // linéaire
+    readonly property int toastMove: 340             // easeQuint
+    readonly property int toastShift: 10             // il monte de cette distance en apparaissant
+    readonly property int toastDuration: 2600
 
     // --- Panneau d'options (OptionsSheet), bouton Y ---
     readonly property int sheetWidth: 472

@@ -287,9 +287,37 @@ Item {
             var again = createTemporaryObject(anotherHome, window)
             var screen2 = find(again, "ready")
             tryCompare(screen2, "count", 10)
-            compare(screen2.currentIndex, 3)
+            compare(screen2.currentIndex, 0)               // le plus récent passe en tête
             compare(screen2.title, "Hades II")
             Sounds.enabled = false
+        }
+
+        // X épingle le jeu en tête de l'étagère (la sélection le suit), puis le détache.
+        function test_9e_xPinsTheGameInFront() {
+            keyClick(Qt.Key_Right); keyClick(Qt.Key_Right)
+            var name = screen.title
+            verify(!screen.favorite)
+            keyClick(Qt.Key_Menu)                           // bouton X
+            compare(screen.currentIndex, 0)
+            compare(screen.title, name)
+            verify(screen.favorite)
+            verify(find(screen, "shown").shown !== undefined)
+            keyClick(Qt.Key_Right); keyClick(Qt.Key_Left)   // il reste en tête
+            compare(screen.title, name)
+            keyClick(Qt.Key_Menu)
+            verify(!screen.favorite)
+            compare(screen.title, name)
+            verify(screen.currentIndex > 0)                 // revenu à sa place
+        }
+
+        // Les utilitaires d'Apollo (ici « Desktop ») ne sont pas sur l'étagère.
+        function test_9f_utilitiesAreNotOnTheShelf() {
+            compare(home.appModel.count, 11)
+            compare(screen.count, 10)
+            for (var i = 0; i < 10; i++) {
+                screen.currentIndex = i
+                verify(screen.title !== "Desktop")
+            }
         }
 
         // En dernier : l'hôte du faux modèle est supprimé.

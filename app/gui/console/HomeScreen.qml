@@ -24,6 +24,7 @@ FocusScope {
     property alias playtime: hero.playtime
     property alias updateNote: hero.updateNote
     property alias running: hero.running
+    property alias favorite: hero.favorite          // épinglé : X le détache
     property alias backdrop: backdropLayer.source    // image de fond du jeu sélectionné
 
     // --- PC hôte et état de la console ---
@@ -65,6 +66,10 @@ FocusScope {
     signal launchRequested(int index)
     signal optionChanged(string key, int index)
     signal forgetRequested()
+    signal favoriteRequested()                       // X sur l'étagère
+
+    // Message bref au-dessus de l'étagère.
+    function toast(message) { toastItem.show(message) }
 
     // À appeler quand l'utilisateur agit sans changer de jeu : relance la dérive.
     function wake() { idle.restart() }
@@ -152,6 +157,7 @@ FocusScope {
                     animated: root.entered
                     onPlayRequested: root.launchRequested(shelf.currentIndex)
                     onOptionsRequested: sheet.open()
+                    onFavoriteRequested: root.favoriteRequested()
                 }
             }
         }
@@ -173,8 +179,11 @@ FocusScope {
                 shown: root.entered
                 enterStep: root.settled ? 0 : Theme.enterStagger
                 onLaunchRequested: function(index) { root.launchRequested(index) }
+                Keys.onMenuPressed: root.favoriteRequested()      // bouton X
             }
         }
+
+        Toast { id: toastItem }
 
         FocusScope {
             id: stage

@@ -139,8 +139,14 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   lancement direct, lancement Companion avec mise à jour, annulation, erreur, fond 16:9, saisie
   du code Companion, dernier jeu, oubli du PC). Build `embedded` OK, démarre sans erreur QML.
   ⚠️ **Rien de tout cela n'est encore validé à la manette contre le vrai host**, et les sons
-  n'ont pas été écoutés. Restent : filtrage des apps qui ne sont pas des jeux, mesure des 60 fps
-  sur la carte.
+  n'ont pas été écoutés. Reste : mesure des 60 fps sur la carte.
+- ✅ **Fonctions « console » (2026-10-02)** — série de points validés avec Marco, un commit chacun :
+  - **Étagère** (`Library.js`, testé par `tst_Library`) : les utilitaires d'Apollo / Sunshine
+    (Desktop, Steam Big Picture, Virtual Display, Playnite…) sont écartés tant qu'il reste un jeu ;
+    ordre = favoris (X épingle / désépingle, le dernier épinglé en tête), puis du plus récent au
+    plus ancien (lancé d'ici, ou joué sur le PC d'après le Companion), puis par nom. Les index de
+    l'étagère ne sont PAS ceux d'`AppModel` (`shelfModel`, rôle `appIndex`). Jeu sans jaquette :
+    son nom sur un dégradé ; jaquette en fondu. Toast (`Toast.qml`) repris du prototype.
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
@@ -247,6 +253,10 @@ Fichiers (dans `app/gui/console/`) :
 - `SwapBox.qml`, `Appear.qml`, `ButtonGlyph.qml` — remplacement de texte en glissant,
   apparition en fondu-glissé, glyphe de bouton
 - `Format.js` — mise en forme des données Companion (source, dernière session, temps de jeu)
+- `Library.js` — l'étagère : utilitaires écartés, ordre (favoris, récents, nom), synchronisation
+  du `ListModel` sans recréer les vignettes
+- `Toast.qml` — message bref au-dessus de l'étagère (`homeScreen.toast(texte)`)
+- `icons/` — icônes SVG (punaise des favoris)
 - `StatusBar.qml` — barre haute : pastille de l'hôte + horloge / Wi-Fi / batterie (éclair en
   charge, orange sous `Theme.batteryLow`)
 - `ControllerLegend.qml` — légende des boutons (glyphe + libellé), panneaux et écrans de message
@@ -378,7 +388,7 @@ maintenant sur le laptop Fedora (`cage -- ./app/moonlight`) ; à documenter en �
 À réception de la carte : valider d'abord le **décodage matériel** (cf roadmap 7).
 
 ### C — Suites de la refonte « Ambiant »
-Filtrage des apps qui ne sont pas des jeux, mesure des 60 fps sur la carte. (Faits : batterie
+Mesure des 60 fps sur la carte. (Faits : filtrage des apps qui ne sont pas des jeux, batterie
 et Wi-Fi, fonds 16:9 du Companion, dernier jeu, réglage Sons, écrans d'attente / appairage /
 dialogs.) À valider contre le vrai HostCompanion : le téléchargement des fonds (`/v1/media/{id}/bg`
 n'a jamais été appelé en réel).
@@ -512,9 +522,12 @@ qml-qt6 Harness.qml -- view=PagesDemo page=code        # search|loading|pin|pin-
 ./shot.sh /tmp/a.png view=HomeDemo focus=6 drift=0 delay=2500   # capture (rendu GPU, sans fenêtre)
 ./compare.py /tmp/a.png ../ref/home-6-rdr2.png -o /tmp/diff.png # écart avec le prototype
 ./shot.sh /tmp/b.png view=HomeDemo do=options,down at=2500 delay=3700   # idem, après des actions
+./shot.sh /tmp/c.png view=ConsoleHomeDemo do=right,pin noart=Hades\ II at=2600 delay=6500   # vrai ConsoleHome
 ./ref-capture.py                                       # régénère ../ref/ et art/ depuis le prototype
 ./make-sounds.py                                       # régénère app/gui/console/sounds/*.wav
-QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import stubs -input tst_GameShelf.qml   # idem tst_Format, tst_ConsoleHome
+XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import stubs -input tst_GameShelf.qml
+# idem tst_Format, tst_Library, tst_ConsoleHome. XDG_CONFIG_HOME vierge : sinon les réglages
+# (favoris, jeux récents, dernier jeu) écrits par un passage précédent faussent les tests.
 ```
 
 - `shot.sh` lance un **mutter headless** le temps de la capture : `QT_QPA_PLATFORM=offscreen`
