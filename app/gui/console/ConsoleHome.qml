@@ -81,6 +81,7 @@ FocusScope {
         property int sleepMinutes: Theme.sleepMinutes   // veille de l'écran après inactivité ; 0 = jamais
         property string buttonLayout: "auto"   // glyphes : auto (la manette branchée), xbox, playstation, nintendo
         property bool setupDone: false      // premier démarrage fait (bienvenue, réseau)
+        property string gameProfiles: "{}"  // réglages de flux propres à un jeu, par nom (JSON)
     }
 
     Component.onCompleted: {
@@ -474,6 +475,11 @@ FocusScope {
             if (homeScreen.options.opened) homeScreen.options.switchTab(direction)
         }
     }
+    // À l'ouverture, le panneau suit le jeu sélectionné (ligne de ses réglages à part).
+    Connections {
+        target: homeScreen.options
+        function onOpenedChanged() { if (homeScreen.options.opened) home.refreshOptions() }
+    }
     // Luminosité ou volume changés ailleurs (touches de la console) : le panneau suit.
     Connections {
         target: SystemStatus
@@ -705,7 +711,7 @@ FocusScope {
             .concat(gameId !== "" ? [qsTr("Préparation de %1").arg(activeHostName)] : [])
             .concat([
                 launchResume ? qsTr("Reprise de %1").arg(item.name) : qsTr("Lancement de %1").arg(item.name),
-                qsTr("Ouverture du flux %1").arg(streamSummary())
+                qsTr("Ouverture du flux %1").arg(streamSummary(item.name))
             ])
         launchScreen.step = afterWake ? 1 : 0
         launchScreen.stepProgress = 1
@@ -743,12 +749,13 @@ FocusScope {
     }
 
     // « 1080p60 », « 1080p60 HEVC HDR » : le flux tel qu'il est réglé.
-    function streamSummary() {
+    function streamSummary(game) {
         var p = StreamingPreferences
-        var codec = p.videoCodecConfig === p.VCC_FORCE_H264 ? " H.264"
-                  : p.videoCodecConfig === p.VCC_FORCE_AV1 ? " AV1"
-                  : p.videoCodecConfig === p.VCC_AUTO ? "" : " HEVC"
-        return p.height + "p" + p.fps + codec + (p.enableHdr ? " HDR" : "")
+        var s = settingsFor(game && gameProfiles()[game] ? game : "")
+        var codec = s.videoCodecConfig === p.VCC_FORCE_H264 ? " H.264"
+                  : s.videoCodecConfig === p.VCC_FORCE_AV1 ? " AV1"
+                  : s.videoCodecConfig === p.VCC_AUTO ? "" : " HEVC"
+        return s.height + "p" + s.fps + codec + (s.enableHdr ? " HDR" : "")
     }
 
     // Démarre la session Moonlight (page StreamSegue d'origine, cachée sous
@@ -758,6 +765,8 @@ FocusScope {
         var index = launchIndex
         launchIndex = -1
         var item = appViewer.objectAt(index)
+        if (item)
+            applyGameProfile(item.name)     // (remis par endLaunch)
         var session = appModel.createSessionForApp(index)
         if (item)
             markPlayed(item.name)
@@ -793,6 +802,7 @@ FocusScope {
 
     // Retour à l'accueil : fin du jeu, échec, annulation.
     function endLaunch() {
+        restoreCommonSettings()
         launchPress.stop()
         companionWait.stop()
         launchWaking = false
@@ -807,8 +817,10 @@ FocusScope {
     function quitAndLaunch(nextIndex) {
         if (!appModel) return
         var item = appViewer.objectAt(nextIndex)
-        if (item)
+        if (item) {
             markPlayed(item.name)
+            applyGameProfile(item.name)     // (remis au retour sur l'accueil)
+        }
         var component = Qt.createComponent("qrc:/gui/QuitSegue.qml")
         stackView.push(component.createObject(stackView, {
             "appName": appModel.getRunningAppName(),
@@ -828,6 +840,10 @@ FocusScope {
 
     function refreshOptions() {
         var p = StreamingPreferences
+        // Réglages de flux affichés : ceux du jeu sélectionné s'il en a, sinon les communs.
+        var game = homeScreen.app ? homeScreen.app.name : ""
+        var own = game !== "" && gameProfiles()[game] !== undefined
+        var s = settingsFor(own ? game : "")
 
         // Résolution : 720p, celle de l'écran, 1080p (et l'actuelle si elle n'y est pas).
         var nativeW = Math.round(Screen.width * Screen.devicePixelRatio)
@@ -836,21 +852,21 @@ FocusScope {
         var same = function(w, h) { return function(r) { return r.w === w && r.h === h } }
         if (nativeW > 0 && !res.some(same(nativeW, nativeH)))
             res.splice(1, 0, { label: qsTr("Natif %1×%2").arg(nativeW).arg(nativeH), w: nativeW, h: nativeH })
-        if (!res.some(same(p.width, p.height)))
-            res.push({ label: p.width + "×" + p.height, w: p.width, h: p.height })
+        if (!res.some(same(s.width, s.height)))
+            res.push({ label: s.width + "×" + s.height, w: s.width, h: s.height })
 
         var fps = [30, 60, 90, 120]
-        if (fps.indexOf(p.fps) < 0)
-            fps.push(p.fps)
+        if (fps.indexOf(s.fps) < 0)
+            fps.push(s.fps)
         fps.sort(function(a, b) { return a - b })
 
         // Débit : « Auto » est la valeur que Moonlight calcule pour la résolution et
         // la fréquence ; sinon une valeur fixe (l'actuelle est ajoutée si besoin).
-        optionAutoBitrate = p.autoAdjustBitrate
-                && p.bitrateKbps === p.getDefaultBitrate(p.width, p.height, p.fps, p.enableYUV444)
+        optionAutoBitrate = s.autoAdjustBitrate
+                && s.bitrateKbps === p.getDefaultBitrate(s.width, s.height, s.fps, p.enableYUV444)
         var kbps = [10000, 20000, 40000, 80000]
-        if (!optionAutoBitrate && kbps.indexOf(p.bitrateKbps) < 0)
-            kbps.push(p.bitrateKbps)
+        if (!optionAutoBitrate && kbps.indexOf(s.bitrateKbps) < 0)
+            kbps.push(s.bitrateKbps)
         kbps.sort(function(a, b) { return a - b })
         var rate = [ { label: qsTr("Auto"), auto: true } ].concat(kbps.map(function(k) {
             return { label: qsTr("%1 Mb/s").arg(Math.round(k / 1000)), kbps: k }
@@ -858,7 +874,7 @@ FocusScope {
 
         var codec = [ { label: qsTr("Auto"), value: p.VCC_AUTO }, { label: "H.264", value: p.VCC_FORCE_H264 },
                       { label: "HEVC", value: p.VCC_FORCE_HEVC }, { label: "AV1", value: p.VCC_FORCE_AV1 } ]
-        var codecIndex = codec.findIndex(function(c) { return c.value === p.videoCodecConfig })
+        var codecIndex = codec.findIndex(function(c) { return c.value === s.videoCodecConfig })
         var hdr = [ { label: qsTr("Désactivé"), value: false }, { label: qsTr("Activé"), value: true } ]
 
         // Console : réglages du système et de la conf console (ConsoleUi).
@@ -902,15 +918,20 @@ FocusScope {
             consoleRows.push({ key: "wifi", label: qsTr("Wi-Fi"), action: true,
                                value: WifiSetup.currentNetwork !== "" ? WifiSetup.currentNetwork : qsTr("Non connecté") })
 
+        optionChoices.profile = [ { label: qsTr("Réglages communs"), value: false },
+                                  { label: qsTr("Réglages à part"), value: true } ]
+        var profileRow = game !== "" ? [ { key: "profile", label: game, index: own ? 1 : 0,
+                                           options: optionChoices.profile.map(function(c) { return c.label }) } ]
+                                     : []
         optionTabs = [
-            { label: qsTr("Flux"), rows: [
-                row("res", qsTr("Résolution"), res.findIndex(same(p.width, p.height))),
-                row("fps", qsTr("Images par seconde"), fps.indexOf(p.fps)),
-                row("rate", qsTr("Débit"), optionAutoBitrate ? 0 : 1 + kbps.indexOf(p.bitrateKbps)),
+            { label: qsTr("Flux"), rows: profileRow.concat([
+                row("res", qsTr("Résolution"), res.findIndex(same(s.width, s.height))),
+                row("fps", qsTr("Images par seconde"), fps.indexOf(s.fps)),
+                row("rate", qsTr("Débit"), optionAutoBitrate ? 0 : 1 + kbps.indexOf(s.bitrateKbps)),
                 // (un ancien réglage « HEVC HDR » est montré comme HEVC)
                 row("codec", qsTr("Codec"), codecIndex >= 0 ? codecIndex : 2),
-                row("hdr", qsTr("HDR"), p.enableHdr ? 1 : 0)
-            ] },
+                row("hdr", qsTr("HDR"), s.enableHdr ? 1 : 0)
+            ]) },
             { label: qsTr("Console"), rows: consoleRows }
         ]
     }
@@ -936,25 +957,92 @@ FocusScope {
             refreshOptions()
             return
         }
+        // Flux : les réglages du jeu sélectionné s'il en a, sinon les communs.
+        var game = homeScreen.app ? homeScreen.app.name : ""
+        if (key === "profile") {
+            setOwnProfile(game, choice.value)
+            refreshOptions()
+            return
+        }
+        var own = game !== "" && gameProfiles()[game] !== undefined
+        var s = settingsFor(own ? game : "")
         if (key === "res") {
-            p.width = choice.w
-            p.height = choice.h
+            s.width = choice.w
+            s.height = choice.h
         } else if (key === "fps") {
-            p.fps = choice.value
+            s.fps = choice.value
         } else if (key === "rate") {
-            p.autoAdjustBitrate = choice.auto === true
-            optionAutoBitrate = p.autoAdjustBitrate
+            s.autoAdjustBitrate = choice.auto === true
+            optionAutoBitrate = s.autoAdjustBitrate
             if (!choice.auto)
-                p.bitrateKbps = choice.kbps
+                s.bitrateKbps = choice.kbps
         } else if (key === "codec") {
-            p.videoCodecConfig = choice.value
+            s.videoCodecConfig = choice.value
         } else if (key === "hdr") {
-            p.enableHdr = choice.value
+            s.enableHdr = choice.value
         }
         if (optionAutoBitrate)
-            p.bitrateKbps = p.getDefaultBitrate(p.width, p.height, p.fps, p.enableYUV444)
-        p.save()
+            s.bitrateKbps = p.getDefaultBitrate(s.width, s.height, s.fps, p.enableYUV444)
+        writeSettings(own ? game : "", s)
         refreshOptions()
+    }
+
+    // --- Réglages de flux propres à un jeu ---
+    // Un jeu peut avoir ses réglages de flux (ConsoleUi/gameProfiles, par nom) ; sinon
+    // il suit les réglages communs, ceux des préférences Moonlight. Au lancement d'un
+    // jeu qui en a, ils remplacent les communs le temps de la session, sans jamais
+    // être enregistrés à leur place.
+    readonly property var streamKeys: ["width", "height", "fps", "bitrateKbps", "autoAdjustBitrate",
+                                       "videoCodecConfig", "enableHdr"]
+    property var commonSaved: null      // réglages communs mis de côté pendant un jeu à profil
+
+    function gameProfiles() { return Library.parse(consoleConfig.gameProfiles, {}) }
+
+    function commonSettings() {
+        var p = StreamingPreferences, s = {}
+        streamKeys.forEach(function(k) { s[k] = p[k] })
+        return s
+    }
+
+    function settingsFor(game) {
+        var profile = game !== "" ? gameProfiles()[game] : undefined
+        return profile ? Object.assign({}, profile) : commonSettings()
+    }
+
+    function writeSettings(game, s) {
+        if (game !== "") {
+            var profiles = gameProfiles()
+            profiles[game] = s
+            consoleConfig.gameProfiles = JSON.stringify(profiles)
+        } else {
+            var p = StreamingPreferences
+            streamKeys.forEach(function(k) { p[k] = s[k] })
+            p.save()
+        }
+    }
+
+    // Réglages à part pour `game` (copie des communs), ou retour aux communs.
+    function setOwnProfile(game, own) {
+        var profiles = gameProfiles()
+        if (own) profiles[game] = commonSettings()
+        else delete profiles[game]
+        consoleConfig.gameProfiles = JSON.stringify(profiles)
+    }
+
+    function applyGameProfile(game) {
+        var profile = gameProfiles()[game]
+        if (!profile || commonSaved) return
+        commonSaved = commonSettings()
+        var p = StreamingPreferences
+        streamKeys.forEach(function(k) { p[k] = profile[k] })
+    }
+
+    function restoreCommonSettings() {
+        if (!commonSaved) return
+        var p = StreamingPreferences
+        var saved = commonSaved
+        commonSaved = null
+        streamKeys.forEach(function(k) { p[k] = saved[k] })
     }
 
     // --- Accueil « Ambiant » ---

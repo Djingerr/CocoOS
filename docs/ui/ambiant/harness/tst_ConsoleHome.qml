@@ -109,9 +109,12 @@ Item {
 
             keyClick(Qt.Key_Hangup)                 // bouton Y
             verify(screen.options.opened)
-            compare(shown(0), "1080p")
-            compare(shown(2), "30 Mb/s")            // 30 Mb/s n'est pas la valeur automatique : affiché tel quel
+            compare(rows()[0].label, "Minecraft")   // en tête : les réglages du jeu sélectionné
+            compare(shown(0), "Réglages communs")
+            compare(shown(1), "1080p")
+            compare(shown(3), "30 Mb/s")            // 30 Mb/s n'est pas la valeur automatique : affiché tel quel
 
+            keyClick(Qt.Key_Down)
             keyClick(Qt.Key_Left)                   // résolution précédente (celle de l'écran, ou 720p)
             verify(p.width !== 1920 || p.height !== 1080)
             compare(p.bitrateKbps, 30000)           // débit fixe : inchangé
@@ -125,8 +128,8 @@ Item {
             compare(p.fps, 60)
 
             keyClick(Qt.Key_Down)                   // débit : gauche jusqu'à « Auto »
-            for (var i = 0; i < 4 && shown(2) !== "Auto"; i++) keyClick(Qt.Key_Left)
-            compare(shown(2), "Auto")
+            for (var i = 0; i < 4 && shown(3) !== "Auto"; i++) keyClick(Qt.Key_Left)
+            compare(shown(3), "Auto")
             verify(p.autoAdjustBitrate)
             compare(p.bitrateKbps, p.getDefaultBitrate(1920, 1080, 60, false))
             keyClick(Qt.Key_Up); keyClick(Qt.Key_Right)         // 90 images par seconde : le débit automatique suit
@@ -300,7 +303,7 @@ Item {
             keyClick(Qt.Key_Left); keyClick(Qt.Key_Left)    // Auto : sans manette, Xbox
             compare(Theme.buttonLayout, "xbox")
             InputStatus.bumperPressed(-1)                   // retour à l'onglet Flux
-            compare(screen.optionRows[0].label, "Résolution")
+            compare(screen.optionRows[1].label, "Résolution")
             keyClick(Qt.Key_Escape)
         }
 
@@ -438,6 +441,37 @@ Item {
             InputStatus.homePressed()                     // Home réveille, sans ouvrir le menu
             verify(!sleepScreen.asleep)
             verify(!dialog("Menu"))
+        }
+
+        // Réglages à part pour un jeu : ils ne touchent pas aux réglages communs, et ne
+        // remplacent ceux-ci que le temps de sa session.
+        function test_9m_gameWithItsOwnStreamSettings() {
+            var p = StreamingPreferences
+            p.fps = 60
+            var name = screen.title
+            keyClick(Qt.Key_Hangup)
+            compare(screen.optionRows[0].label, name)
+            keyClick(Qt.Key_Right)                          // « Réglages à part »
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down); keyClick(Qt.Key_Right)   // 60 → 90 images par seconde
+            compare(screen.optionRows[2].options[screen.optionRows[2].index], "90")
+            compare(p.fps, 60)                              // les réglages communs n'ont pas bougé
+            keyClick(Qt.Key_Escape)
+
+            ignoreWarning(/.*/)
+            var before = stackView.pushes
+            keyClick(Qt.Key_Return)
+            tryCompare(launchScreen, "active", true, 1000)
+            verify(launchScreen.steps[launchScreen.steps.length - 1].indexOf("p90") > 0)
+            tryCompare(stackView, "pushes", before + 1, 3000)
+            compare(p.fps, 90)                              // le temps de la session…
+            home.appModel.lastSession.sessionFinished(0)
+            compare(p.fps, 60)                              // …puis les communs reviennent
+            home.returnedHome()                             // (ce que fait la pile d'écrans au retour)
+
+            keyClick(Qt.Key_Hangup)                         // retour aux réglages communs
+            keyClick(Qt.Key_Left)
+            compare(screen.optionRows[2].options[screen.optionRows[2].index], "60")
+            keyClick(Qt.Key_Escape)
         }
 
         // Premier démarrage hors ligne : bienvenue, choix du réseau, mot de passe au

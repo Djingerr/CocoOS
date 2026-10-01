@@ -169,6 +169,11 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     mesures. La pastille affiche « N ms » et son point passe au vert / jaune / rouge
     (`Format.networkQuality` : ≤ 20 ms et ≤ 5 ms de gigue, ≤ 50 et ≤ 15, au-delà).
     ⚠️ Jamais mesuré contre le vrai PC.
+  - **Réglages de flux par jeu** (`ConsoleUi/gameProfiles`, JSON par nom) : en tête de l'onglet
+    Flux, une ligne au nom du jeu sélectionné passe de « Réglages communs » à « Réglages à
+    part » (copie des communs) ; les lignes suivantes règlent alors ce jeu. Au lancement, ses
+    réglages remplacent les communs dans `StreamingPreferences` sans `save()`, et `endLaunch`
+    remet les communs (la session ne réenregistre jamais les préférences).
   - **Options en onglets** (L1 / R1, lus dans SDL par `InputStatus` ; PageUp / PageDown au
     clavier) : **Flux** (résolution, fréquence, débit, codec, HDR, Oublier ce PC) et **Console**
     (luminosité par logind `SetBrightness`, volume par `wpctl`, veille de l'écran, boutons,
