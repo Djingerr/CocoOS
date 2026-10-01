@@ -37,14 +37,13 @@ QtObject {
     // --- Polices ---
     // Embarquées (la console est hors ligne), en graisses statiques : un fichier
     // par graisse fonctionne sur tout Qt 6, contrairement aux polices variables.
+    // Une seule famille, comme sur une console : pas de police à chasse fixe, les
+    // chiffres qui changent (latence) prennent les chiffres tabulaires de Sora (tnum).
     readonly property string fontUi: "Sora"              // 400 / 500 / 600
-    readonly property string fontMono: "JetBrains Mono"  // 400 / 500
     readonly property list<FontLoader> fontFiles: [
         FontLoader { source: "fonts/Sora-Regular.ttf" },
         FontLoader { source: "fonts/Sora-Medium.ttf" },
-        FontLoader { source: "fonts/Sora-SemiBold.ttf" },
-        FontLoader { source: "fonts/JetBrainsMono-Regular.ttf" },
-        FontLoader { source: "fonts/JetBrainsMono-Medium.ttf" }
+        FontLoader { source: "fonts/Sora-SemiBold.ttf" }
     ]
 
     // --- Fond (BackdropLayer) ---
@@ -89,7 +88,7 @@ QtObject {
     readonly property int hostDotBlink: 1100         // période du clignotement « connexion… »
     readonly property real hostDotBlinkMin: 0.2
     readonly property int hostNameSize: 14           // Sora 500
-    readonly property int hostDetailSize: 12         // mono, ink2
+    readonly property int hostDetailSize: 12         // ink2, chiffres tabulaires
     // Horloge, Wi-Fi, batterie
     readonly property int clockSize: 17              // Sora 500
     readonly property int sysGap: 14
@@ -103,7 +102,7 @@ QtObject {
     // --- Glyphe de bouton de manette (ButtonGlyph) ---
     readonly property int glyphSize: 22
     readonly property real glyphBorder: 1.5
-    readonly property real glyphFontSize: 10.5       // mono 500
+    readonly property real glyphFontSize: 10.5       // 500
 
     // --- Bloc héros (HeroBlock), ancré par le bas : il grandit vers le haut ---
     readonly property int heroBottom: 586
@@ -234,8 +233,8 @@ QtObject {
     readonly property int sheetFocusOutset: 16       // il déborde de la ligne de chaque côté
     readonly property int sheetFocusMove: 220        // easeOut
     readonly property int sheetFocusFade: 160        // couleur du libellé, chevrons
-    readonly property int sheetValueSize: 13         // mono
-    readonly property size sheetValueBox: Qt.size(150, 20)
+    readonly property int sheetValueSize: 14
+    readonly property size sheetValueBox: Qt.size(136, 20)   // « Natif 2560×1600 » : 119 px
     readonly property int sheetValueGap: 6           // entre la valeur et ses chevrons
     readonly property int sheetValueSwap: 260        // l'ancienne valeur sort, la nouvelle entre…
     readonly property int sheetValueTravel: 36       // …en glissant de cette distance
@@ -264,7 +263,7 @@ QtObject {
     readonly property int codeCellRadius: 14
     readonly property color codeCellFill: Qt.rgba(1, 1, 1, 0.06)
     readonly property color codeCellFocusFill: Qt.rgba(1, 1, 1, 0.12)   // case en cours de saisie
-    readonly property int codeDigitSize: 40          // mono 500
+    readonly property int codeDigitSize: 40          // 500
     readonly property int codeUnderlineInset: 16     // soulignement orange de la case en cours de saisie
     // Attente sans durée connue : un segment orange parcourt la piste de lancement.
     readonly property real waitBarSpan: 0.28         // part de la piste
@@ -294,7 +293,7 @@ QtObject {
     readonly property int launchProgressShift: 8
     readonly property int launchProgressWidth: 420   // bloc centré
     readonly property int launchProgressY: 568
-    readonly property int launchStageSize: 13        // ligne d'étape, mono
+    readonly property int launchStageSize: 13        // ligne d'étape
     readonly property int launchStageHeight: 22
     readonly property int launchStageSwap: 340
     readonly property int launchTrackTop: 12

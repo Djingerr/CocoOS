@@ -79,7 +79,8 @@ Item {
                     text: !root.connected ? qsTr("connexion…")
                         : root.latencyMs >= 0 ? qsTr("%1 ms").arg(root.latencyMs) : ""
                     color: Theme.ink2
-                    font.family: Theme.fontMono; font.pixelSize: Theme.hostDetailSize
+                    font.family: Theme.fontUi; font.pixelSize: Theme.hostDetailSize
+                    font.features: { "tnum": 1 }
                 }
             }
         }

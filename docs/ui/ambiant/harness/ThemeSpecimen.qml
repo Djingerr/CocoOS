@@ -18,7 +18,7 @@ Item {
             Column {
                 spacing: 8
                 Rectangle { width: 120; height: 56; radius: 8; color: modelData.c; border.color: Theme.ink2; border.width: 1 }
-                Text { text: modelData.name + " " + modelData.c; color: Theme.ink2; font.family: Theme.fontMono; font.pixelSize: 12 }
+                Text { text: modelData.name + " " + modelData.c; color: Theme.ink2; font.family: Theme.fontUi; font.pixelSize: 12 }
             }
         }
     }
@@ -33,16 +33,16 @@ Item {
                 { label: "Sora 16 / 500", t: "Options", f: Theme.fontUi, s: 16, w: Font.Medium, ls: 0 },
                 { label: "Sora 14 / 500", t: "Prism Launcher   Hier, 23:40", f: Theme.fontUi, s: 14, w: Font.Medium, ls: 0 },
                 { label: "Sora 15 / 400", t: "412 h de jeu · Mise à jour de 2,4 Go : le PC l’installe avant le lancement", f: Theme.fontUi, s: 15, w: Font.Normal, ls: 0 },
-                { label: "JetBrains Mono 13 / 400", t: "Ouverture du flux 800p60 AV1", f: Theme.fontMono, s: 13, w: Font.Normal, ls: 0 },
-                { label: "JetBrains Mono 12 / 400", t: "9 ms", f: Theme.fontMono, s: 12, w: Font.Normal, ls: 0 },
-                { label: "JetBrains Mono 12 / 500", t: "A  Y  B", f: Theme.fontMono, s: 12, w: Font.Medium, ls: 0 }
+                { label: "Sora 14 / 400", t: "Natif 2560×1600   Auto (AV1)", f: Theme.fontUi, s: 14, w: Font.Normal, ls: 0 },
+                { label: "Sora 13 / 400", t: "Ouverture du flux 800p60 AV1", f: Theme.fontUi, s: 13, w: Font.Normal, ls: 0 },
+                { label: "Sora 12 / 500", t: "A  Y  B", f: Theme.fontUi, s: 12, w: Font.Medium, ls: 0 }
             ]
             Row {
                 spacing: 24
                 Text {
                     width: 220; anchors.baseline: sample.baseline
                     text: modelData.label; color: Theme.ink2
-                    font.family: Theme.fontMono; font.pixelSize: 12
+                    font.family: Theme.fontUi; font.pixelSize: 12
                 }
                 Text {
                     id: sample

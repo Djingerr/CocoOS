@@ -147,7 +147,7 @@ FocusScope {
             anchors.verticalCenter: parent.verticalCenter
             text: slot.value
             color: slot.color
-            font.family: Theme.fontMono; font.pixelSize: Theme.sheetValueSize
+            font.family: Theme.fontUi; font.pixelSize: Theme.sheetValueSize
         }
     }
 

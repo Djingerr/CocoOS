@@ -240,7 +240,7 @@ Fichiers (dans `app/gui/console/`) :
 - `Sounds.qml`, `SoundBank.qml`, `sounds/` — sons de l'interface (singleton `Sounds.play("move")`)
 - `PadRepeat.qml` — répétition des flèches à l'appui prolongé (étagère, options)
 - `Theme.qml` (+ `qmldir`) — singleton des jetons de design : couleurs, tailles, durées, ressort
-- `fonts/` — Sora et JetBrains Mono embarquées (OFL), chargées par `Theme.qml`
+- `fonts/` — Sora embarquée (OFL), chargée par `Theme.qml` ; seule famille de l'interface (pas de mono)
 - `BackdropLayer.qml` — fond en fondu croisé (deux calques) + voile + dérive lente
 - `HeroBlock.qml` — méta, titre, sous-titre, boutons Jouer / Options
 - `GameShelf.qml` — l'étagère de vignettes, son ressort, la répétition manette

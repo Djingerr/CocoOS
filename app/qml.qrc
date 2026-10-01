@@ -52,7 +52,5 @@
         <file>gui/console/fonts/Sora-Regular.ttf</file>
         <file>gui/console/fonts/Sora-Medium.ttf</file>
         <file>gui/console/fonts/Sora-SemiBold.ttf</file>
-        <file>gui/console/fonts/JetBrainsMono-Regular.ttf</file>
-        <file>gui/console/fonts/JetBrainsMono-Medium.ttf</file>
     </qresource>
 </RCC>

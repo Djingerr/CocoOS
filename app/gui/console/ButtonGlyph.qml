@@ -21,6 +21,6 @@ Rectangle {
         anchors.centerIn: parent
         text: root.label
         color: root.ink
-        font.family: Theme.fontMono; font.pixelSize: root.fontSize; font.weight: Font.Medium
+        font.family: Theme.fontUi; font.pixelSize: root.fontSize; font.weight: Font.Medium
     }
 }

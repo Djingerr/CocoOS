@@ -122,7 +122,7 @@ FocusScope {
         text: value
         color: root.error !== "" ? Theme.accent : Theme.ink
         elide: Text.ElideRight
-        font.family: Theme.fontMono; font.pixelSize: Theme.launchStageSize
+        font.family: Theme.fontUi; font.pixelSize: Theme.launchStageSize
     }
 
     Item {

@@ -29,8 +29,8 @@ Ce document en extrait les valeurs exactes. En cas de doute entre ce texte et le
 
 Polices (à **embarquer** dans les ressources Qt et charger avec `QFontDatabase.addApplicationFont` : la console est hors ligne) :
 - **Sora** 400 / 500 / 600 : interface et titres.
-- **JetBrains Mono** 400 / 500 : données techniques (latence, spécifications du flux).
-Les deux sont sous licence OFL.
+- ~~JetBrains Mono~~ : abandonnée le 2026-10-01 (aspect « terminal ») ; les données techniques sont en Sora, chiffres tabulaires (`tnum`) quand ils changent.
+Sora est sous licence OFL.
 
 ## 2. Structure de l'écran (de l'arrière vers l'avant)
 

@@ -74,7 +74,7 @@ FocusScope {
                             anchors.centerIn: parent
                             text: root.code.charAt(index)
                             color: root.codeFocus < 0 || parent.focused ? Theme.ink : Theme.ink2
-                            font.family: Theme.fontMono; font.pixelSize: Theme.codeDigitSize; font.weight: Font.Medium
+                            font.family: Theme.fontUi; font.pixelSize: Theme.codeDigitSize; font.weight: Font.Medium
                         }
                         Rectangle {
                             visible: parent.focused
@@ -92,7 +92,7 @@ FocusScope {
                 visible: root.status !== ""
                 text: root.status
                 color: root.error ? Theme.accent : Theme.ink2
-                font.family: Theme.fontMono; font.pixelSize: Theme.launchStageSize
+                font.family: Theme.fontUi; font.pixelSize: Theme.launchStageSize
             }
             // La piste de l'écran de lancement, parcourue par un segment orange.
             Item {
