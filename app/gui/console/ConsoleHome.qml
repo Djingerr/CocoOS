@@ -11,6 +11,7 @@ import CompanionClient 1.0
 import SystemStatus 1.0
 import InputStatus 1.0
 import WifiSetup 1.0
+import AmbientColor 1.0
 
 import "Format.js" as Format
 import "Library.js" as Library
@@ -968,7 +969,13 @@ FocusScope {
         // icône générique).
         backdrop: info && info.background ? info.background
                 : app && app.boxart.toString() !== "qrc:/res/no_app_image.png" ? app.boxart : ""
-
+        // La couleur dominante du fond (calculée à part), sinon l'accent.
+        readonly property color backdropColor: {
+            AmbientColor.revision
+            return AmbientColor.colorFor(backdrop)
+        }
+        ambient: backdropColor.valid ? backdropColor : Theme.accent
+        ambientTint: backdropColor.valid
         hostName: home.activeHostName !== "" ? home.activeHostName : qsTr("Recherche…")
         connected: home.activeHostOnline && home.activeHostPaired
         // Batterie et Wi-Fi de la console (-1 : pas de donnée, indicateur masqué), et

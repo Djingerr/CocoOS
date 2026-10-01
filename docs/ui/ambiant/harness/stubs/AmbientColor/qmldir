@@ -1,0 +1,2 @@
+module AmbientColor
+singleton AmbientColor 1.0 AmbientColor.qml

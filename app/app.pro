@@ -440,6 +440,8 @@ embedded {
     HEADERS += gui/console/backend/inputstatus.h
     SOURCES += gui/console/backend/wifisetup.cpp
     HEADERS += gui/console/backend/wifisetup.h
+    SOURCES += gui/console/backend/ambientcolor.cpp
+    HEADERS += gui/console/backend/ambientcolor.h
 }
 glslow {
     message(GL slow build)

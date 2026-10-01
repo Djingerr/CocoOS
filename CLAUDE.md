@@ -180,6 +180,10 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     « Connexion à Internet » si la console n'est pas en ligne, puis le flux habituel (recherche
     du PC, liaisons). ⚠️ La connexion à un réseau n'a jamais été essayée en vrai (la lecture
     des réseaux, si : vérifiée contre le NetworkManager du laptop).
+  - **Teinte ambiante** : `AmbientColor` tire de l'image de fond (miniature décodée hors du fil
+    principal, cache) la teinte qui pèse le plus, pondérée par la saturation, rendue vive ; elle
+    colore le bas du voile et le soulignement (fondu de 700 ms). Image grise : l'orange reste.
+    Le bouton Jouer reste orange (la marque).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
@@ -314,6 +318,8 @@ Fichiers (dans `app/gui/console/`) :
   uniquement ; `QT += dbus`.
 - `backend/wifisetup.{h,cpp}` — réseaux Wi-Fi visibles, connexion (profil NetworkManager créé
   par `AddAndActivateConnection`, WPA2 ou WPA3), état « en ligne ». Build `embedded` uniquement.
+- `backend/ambientcolor.{h,cpp}` — couleur dominante d'une image, pour la teinte ambiante.
+  Build `embedded` uniquement.
 - `backend/inputstatus.{h,cpp}` — activité de l'utilisateur (filtre d'événements sur l'app,
   pour la veille), bouton Home de la manette (état SDL lu toutes les 50 ms, la navigation
   upstream ne le traduit pas en touche), famille et batterie de la manette, et le « retour

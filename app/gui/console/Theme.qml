@@ -71,6 +71,11 @@ QtObject {
         GradientStop { position: 0.78; color: Qt.rgba(0, 0, 0, 0.50) }
         GradientStop { position: 1.00; color: Qt.rgba(0, 0, 0, 0.92) }
     }
+    // Teinte ambiante (couleur dominante du fond) : elle colore le bas du voile et le
+    // soulignement de la vignette active, en fondu d'un jeu à l'autre.
+    readonly property real ambientTintBottom: 0.20   // opacité de la teinte au bas de l'écran
+    readonly property real ambientTintStart: 0.55    // hauteur (part de l'écran) où elle commence
+    readonly property int ambientFade: 700
     readonly property Gradient scrimTop: Gradient {          // de haut en bas
         GradientStop { position: 0.00; color: Qt.rgba(0, 0, 0, 0.50) }
         GradientStop { position: 0.16; color: Qt.rgba(0, 0, 0, 0) }

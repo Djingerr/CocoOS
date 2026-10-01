@@ -17,6 +17,9 @@ Item {
     // fait pas partie. `unveiled` le retire (lancement d'un jeu).
     property real zoom: 1
     property bool unveiled: false
+    // Teinte ambiante : colore le bas du voile (transparente = aucune).
+    property color tint: "transparent"
+    Behavior on tint { ColorAnimation { duration: Theme.ambientFade } }
 
     // Calque au premier plan (0 ou 1) ; -1 tant que rien n'est affiché.
     property int front: -1
@@ -168,5 +171,15 @@ Item {
         Rectangle { anchors.fill: parent; gradient: Theme.scrimLeft }
         Rectangle { anchors.fill: parent; gradient: Theme.scrimBottom }
         Rectangle { anchors.fill: parent; gradient: Theme.scrimTop }
+        Rectangle {
+            anchors.fill: parent
+            gradient: Gradient {
+                GradientStop { position: Theme.ambientTintStart; color: "transparent" }
+                GradientStop {
+                    position: 1
+                    color: Qt.rgba(root.tint.r, root.tint.g, root.tint.b, root.tint.a * Theme.ambientTintBottom)
+                }
+            }
+        }
     }
 }

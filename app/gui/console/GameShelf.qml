@@ -22,6 +22,9 @@ FocusScope {
     // délai par rang de la cascade d'entrée (0 = tous ensemble).
     property bool shown: true
     property int enterStep: 0
+    // Couleur du soulignement (la teinte ambiante, sinon l'accent).
+    property color accentColor: Theme.accent
+    Behavior on accentColor { ColorAnimation { duration: Theme.ambientFade } }
     signal launchRequested(int index)
 
     // Vignette de repli : une teinte stable par jeu, tirée de son nom.
@@ -255,6 +258,6 @@ FocusScope {
         shown: root.shown
         delay: root.enterStep * Theme.enterRankUnderline
 
-        Rectangle { anchors.fill: parent; radius: Theme.underlineRadius; color: Theme.accent }
+        Rectangle { anchors.fill: parent; radius: Theme.underlineRadius; color: root.accentColor }
     }
 }

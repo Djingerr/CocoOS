@@ -26,6 +26,10 @@ FocusScope {
     property alias running: hero.running
     property alias favorite: hero.favorite          // épinglé : X le détache
     property alias backdrop: backdropLayer.source    // image de fond du jeu sélectionné
+    // Teinte ambiante (couleur dominante du fond) : voile et soulignement. Par
+    // défaut l'accent, sans teinte du voile.
+    property color ambient: Theme.accent
+    property bool ambientTint: false
 
     // --- PC hôte et état de la console ---
     property alias hostName: status.hostName
@@ -113,6 +117,7 @@ FocusScope {
             opacity: root.entered ? 1 : 0
             zoom: !root.entered ? Theme.backdropEnterZoom : root.launching ? Theme.launchBackdropZoom : 1
             unveiled: root.launching
+            tint: root.ambientTint ? root.ambient : "transparent"
             Behavior on opacity { NumberAnimation { duration: Theme.backdropEnterFade } }
             Behavior on zoom { NumberAnimation { duration: Theme.backdropZoomDuration; easing.type: Theme.easeOut } }
         }
@@ -182,6 +187,7 @@ FocusScope {
                 focus: !root.staged && !sheet.opened
                 shown: root.entered
                 enterStep: root.settled ? 0 : Theme.enterStagger
+                accentColor: root.ambient
                 onLaunchRequested: function(index) { root.launchRequested(index) }
                 Keys.onMenuPressed: root.favoriteRequested()      // bouton X
             }

@@ -59,6 +59,7 @@
 #include "gui/console/backend/systemstatus.h"
 #include "gui/console/backend/inputstatus.h"
 #include "gui/console/backend/wifisetup.h"
+#include "gui/console/backend/ambientcolor.h"
 #endif
 
 #if defined(Q_OS_WIN32)
@@ -991,6 +992,12 @@ int main(int argc, char *argv[])
                                         [](QQmlEngine*, QJSEngine*) -> QObject* {
                                             return new WifiSetup();
                                         });
+    // Couleur dominante du fond du jeu, qui teinte l'accueil.
+    qmlRegisterSingletonType<AmbientColor>("AmbientColor", 1, 0,
+                                           "AmbientColor",
+                                           [](QQmlEngine*, QJSEngine*) -> QObject* {
+                                               return new AmbientColor();
+                                           });
     // Sons de l'interface : QtMultimedia les déclare à PipeWire en rôle « Notification »,
     // que le bureau peut couper (« Sons de notification » de Plasma). Rôle « Game », comme
     // le son du flux (SDL).
