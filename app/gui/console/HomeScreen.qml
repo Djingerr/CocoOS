@@ -34,6 +34,7 @@ FocusScope {
     property alias signalStrength: status.signalStrength
     property alias batteryPercent: status.batteryPercent
     property alias charging: status.charging
+    property alias controllerBattery: status.controllerBattery
     property alias timeText: status.timeText
 
     // --- Écrans de message (recherche du PC, appairage) : cf. MessageScreen ---

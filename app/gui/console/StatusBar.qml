@@ -12,6 +12,7 @@ Item {
     property int signalStrength: -1      // 0 à 4
     property int batteryPercent: -1      // 0 à 100
     property bool charging: false        // éclair à côté de la batterie
+    property int controllerBattery: -1   // manette sans fil : 0 (vide) à 3 (pleine)
     // Horloge, Wi-Fi et batterie : masqués sous un panneau latéral (il est translucide).
     property bool systemShown: true
     // Heure affichée : l'horloge système, sauf si on lui assigne un texte fixe.
@@ -100,6 +101,43 @@ Item {
                 text: root.timeText
                 color: Theme.ink
                 font.family: Theme.fontUi; font.pixelSize: Theme.clockSize; font.weight: Font.Medium
+            }
+
+            // Manette sans fil : sa silhouette et trois barres, sur une grille 24 × 16
+            // puis 10 × 10. Orange quand il ne reste qu'une barre (ou aucune).
+            Row {
+                id: pad
+                anchors.verticalCenter: parent.verticalCenter
+                visible: root.controllerBattery >= 0
+                spacing: Theme.padBarsGap
+                readonly property color ink: root.controllerBattery <= 1 ? Theme.accent : Theme.ink
+
+                Item {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Theme.padIconSize.width; height: Theme.padIconSize.height
+                    Rectangle {
+                        x: 1; y: 2; width: 22; height: 12; radius: 6
+                        color: "transparent"
+                        border.width: 1.6; border.color: Theme.ink
+                        border.pixelAligned: false
+                    }
+                    Rectangle { x: 4.6; y: 7.3; width: 5.4; height: 1.4; radius: 0.7; color: Theme.ink }
+                    Rectangle { x: 6.6; y: 5.3; width: 1.4; height: 5.4; radius: 0.7; color: Theme.ink }
+                    Rectangle { x: 15; y: 5.4; width: 2; height: 2; radius: 1; color: Theme.ink }
+                    Rectangle { x: 17.6; y: 8; width: 2; height: 2; radius: 1; color: Theme.ink }
+                }
+                Row {
+                    anchors.verticalCenter: parent.verticalCenter
+                    spacing: 1.5
+                    Repeater {
+                        model: [4, 7, 10]
+                        Rectangle {
+                            anchors.bottom: parent.bottom
+                            width: 2; height: modelData; radius: 1
+                            color: root.controllerBattery > index ? pad.ink : Theme.inkOff
+                        }
+                    }
+                }
             }
 
             // Wi-Fi : un point et trois arcs, allumés selon signalStrength (1 à 4).

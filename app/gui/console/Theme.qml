@@ -95,6 +95,9 @@ QtObject {
     readonly property int wifiSize: 18
     readonly property size batterySize: Qt.size(27, 14)
     readonly property int batteryLow: 20             // en dessous (hors charge), l'icône passe en orange
+    // Manette sans fil : silhouette, puis trois barres de charge (orange à une barre).
+    readonly property size padIconSize: Qt.size(24, 16)
+    readonly property int padBarsGap: 3
     readonly property real boltStroke: 1.8           // éclair de la charge, sur sa grille 10 × 16
     readonly property int boltGap: 4                 // entre l'éclair et la batterie
     readonly property color inkOff: Qt.rgba(1, 1, 1, 0.28)           // segment éteint d'une icône
@@ -103,6 +106,10 @@ QtObject {
     readonly property int glyphSize: 22
     readonly property real glyphBorder: 1.5
     readonly property real glyphFontSize: 10.5       // 500
+    readonly property real glyphSymbolScale: 0.42    // symboles PlayStation, part du diamètre
+    // Glyphes à dessiner : "xbox", "playstation" ou "nintendo" (posé par ConsoleHome
+    // d'après la manette branchée ou le réglage « Boutons »).
+    property string buttonLayout: "xbox"
 
     // --- Bloc héros (HeroBlock), ancré par le bas : il grandit vers le haut ---
     readonly property int heroBottom: 586

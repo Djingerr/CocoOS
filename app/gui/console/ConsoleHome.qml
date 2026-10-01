@@ -70,6 +70,7 @@ FocusScope {
         property string favorites: "[]"     // jeux épinglés (X), le dernier épinglé en tête (JSON)
         property string recentGames: "{}"   // date de la dernière partie lancée d'ici, par jeu (JSON, ms)
         property int sleepMinutes: Theme.sleepMinutes   // veille de l'écran après inactivité ; 0 = jamais
+        property string buttonLayout: "auto"   // glyphes : auto (la manette branchée), xbox, playstation, nintendo
     }
 
     Component.onCompleted: {
@@ -413,6 +414,13 @@ FocusScope {
             byName[(games[i].name || "").toLowerCase()] = games[i]
         companionGames = byName
         Qt.callLater(rebuildShelf)          // l'ordre suit aussi les parties jouées sur le PC
+    }
+
+    // Glyphes des boutons : ceux de la manette branchée, sauf réglage contraire.
+    Binding {
+        target: Theme; property: "buttonLayout"
+        value: consoleConfig.buttonLayout !== "auto" ? consoleConfig.buttonLayout
+             : InputStatus.layout !== "" ? InputStatus.layout : "xbox"
     }
 
     // --- Veille de l'écran ---
@@ -898,6 +906,7 @@ FocusScope {
         signalStrength: SystemStatus.signalStrength
         batteryPercent: SystemStatus.batteryPercent
         charging: SystemStatus.charging
+        controllerBattery: InputStatus.controllerBattery
 
         optionRows: home.optionRows
         optionsHost: home.activeHostName

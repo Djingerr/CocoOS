@@ -159,6 +159,10 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     upstream), mettre en veille, redémarrer, éteindre (ces deux derniers confirmés). En jeu, la
     couture de `gamepad.cpp` ramène à l'accueil (le jeu continue) et le menu s'ouvre au retour.
     Au clavier : touche Origine.
+  - **Manettes** : les glyphes suivent la manette branchée (`Theme.buttonLayout`, réglage
+    `ConsoleUi/buttonLayout` = auto par défaut) : lettres Xbox, lettres inversées Nintendo
+    (Moonlight lit les boutons par position), ✕ ○ □ △ PlayStation. Batterie d'une manette sans
+    fil dans la barre haute (silhouette + trois barres, orange à une barre).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).

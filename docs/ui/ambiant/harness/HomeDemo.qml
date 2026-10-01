@@ -16,6 +16,7 @@ import "../../../../app/gui/console/Format.js" as Format
 //   drift  0 pour figer la dérive du fond (captures comparables aux références)
 //   sound  0 pour couper les sons (coupés d'office pendant une capture)
 //   connected=0, signal=0..4, battery=0..100, charging=1   états de la barre haute
+//   pad=xbox|playstation|nintendo, padbattery=0..3          manette (glyphes, batterie)
 // Pour comparer à une référence, capturer après l'entrée de l'écran : delay=2500.
 HomeScreen {
     id: demo
@@ -44,6 +45,7 @@ HomeScreen {
     signalStrength: Number(args.signal || 4)
     batteryPercent: Number(args.battery || 82)
     charging: args.charging === "1"
+    controllerBattery: args.padbattery !== undefined ? Number(args.padbattery) : -1
     timeText: "21:30"
 
     optionsHost: "Djinger"
@@ -62,7 +64,10 @@ HomeScreen {
     onForgetRequested: console.info("[demo] oublier Djinger")
     onLaunchRequested: launch()
 
-    Component.onCompleted: Sounds.enabled = args.out === undefined && args.sound !== "0"
+    Component.onCompleted: {
+        Sounds.enabled = args.out === undefined && args.sound !== "0"
+        Theme.buttonLayout = args.pad || "xbox"
+    }
     Keys.onHangupPressed: options.open()
     Keys.onPressed: function(event) { if (event.key === Qt.Key_Y) options.open() }
 
