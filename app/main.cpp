@@ -977,6 +977,12 @@ int main(int argc, char *argv[])
                                            [](QQmlEngine*, QJSEngine*) -> QObject* {
                                                return new SystemStatus();
                                            });
+    // Sons de l'interface : QtMultimedia les déclare à PipeWire en rôle « Notification »,
+    // que le bureau peut couper (« Sons de notification » de Plasma). Rôle « Game », comme
+    // le son du flux (SDL).
+    if (!qEnvironmentVariableIsSet("PIPEWIRE_PROPS")) {
+        qputenv("PIPEWIRE_PROPS", "{ media.role = Game }");
+    }
 #endif
 
     // Create the identity manager on the main thread

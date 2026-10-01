@@ -530,7 +530,9 @@ QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import stubs -input tst_GameShelf.q
 - **QtMultimedia** (module QML) pour les sons : `qt6-qtmultimedia` sur Fedora,
   `qml6-module-qtmultimedia` sur Debian/Ubuntu. Absent, l'interface marche sans son
   (`Sounds.qml` charge `SoundBank.qml` à part). Il faut un serveur de son (PipeWire/PulseAudio)
-  pour que ces sons cohabitent avec l'audio du flux.
+  pour que ces sons cohabitent avec l'audio du flux. Qt les déclare en rôle PipeWire
+  « Notification » (coupé par les « Sons de notification » de Plasma) : `main.cpp` pose
+  `PIPEWIRE_PROPS={ media.role = Game }` au démarrage, sauf si la variable existe déjà.
 - **NetworkManager** pour l'icône Wi-Fi ; sans lui (ou sans Wi-Fi associé) l'icône est masquée.
 - Une batterie système dans `/sys/class/power_supply` pour l'icône batterie ; sinon masquée
   (ce sera le cas du proto sur power bank). Relue toutes les 10 s (l'éclair de charge peut
