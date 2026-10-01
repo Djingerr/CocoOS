@@ -1,0 +1,2 @@
+module WifiSetup
+singleton WifiSetup 1.0 WifiSetup.qml

@@ -10,6 +10,7 @@ import StreamingPreferences 1.0
 import CompanionClient 1.0
 import SystemStatus 1.0
 import InputStatus 1.0
+import WifiSetup 1.0
 
 import "Format.js" as Format
 import "Library.js" as Library
@@ -59,6 +60,13 @@ FocusScope {
     // Lancement direct (mode "direct launch" du host) : une seule fois par session.
     property bool directLaunchDone: false
 
+    // Premier démarrage : bienvenue, puis réseau si la console n'est pas en ligne ;
+    // ensuite seulement la recherche du PC et les liaisons.
+    property alias setupDone: consoleConfig.setupDone
+    property bool welcomed: false
+    readonly property bool needsNetwork: WifiSetup.available && !WifiSetup.online
+    onNeedsNetworkChanged: if (welcomed && !needsNetwork) setupDone = true
+
     Settings {
         id: consoleConfig
         category: "ConsoleUi"
@@ -71,6 +79,7 @@ FocusScope {
         property string recentGames: "{}"   // date de la dernière partie lancée d'ici, par jeu (JSON, ms)
         property int sleepMinutes: Theme.sleepMinutes   // veille de l'écran après inactivité ; 0 = jamais
         property string buttonLayout: "auto"   // glyphes : auto (la manette branchée), xbox, playstation, nintendo
+        property bool setupDone: false      // premier démarrage fait (bienvenue, réseau)
     }
 
     Component.onCompleted: {
@@ -877,6 +886,9 @@ FocusScope {
         consoleRows.push(row("buttons", qsTr("Boutons"),
                              Math.max(0, buttons.findIndex(function(c) { return c.value === consoleConfig.buttonLayout }))))
         consoleRows.push(row("sounds", qsTr("Sons"), consoleConfig.sounds ? 0 : 1))
+        if (WifiSetup.available)
+            consoleRows.push({ key: "wifi", label: qsTr("Wi-Fi"), action: true,
+                               value: WifiSetup.currentNetwork !== "" ? WifiSetup.currentNetwork : qsTr("Non connecté") })
 
         optionTabs = [
             { label: qsTr("Flux"), rows: [
@@ -972,11 +984,18 @@ FocusScope {
         optionsHost: home.activeHostName
 
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
-        panelOpen: confirmDialog.opened || homeMenu.opened
+                || welcomeScreen.shown || networkScreen.shown
+        panelOpen: confirmDialog.opened || homeMenu.opened || wifiSheet.opened
 
         onLaunchRequested: function(index) { home.launchApp(shelfModel.get(index).appIndex) }
         onFavoriteRequested: home.toggleFavorite()
         onOptionChanged: function(key, index) { home.applyOption(key, index) }
+        onOptionAction: function(key) {
+            if (key === "wifi") {
+                options.close()
+                home.openWifi()
+            }
+        }
         // Oublier ce PC : son appairage Moonlight ET celui du Companion.
         onForgetRequested: {
             options.close()
@@ -995,7 +1014,7 @@ FocusScope {
     MessageScreen {
         id: searchScreen
         parent: homeScreen.stage
-        shown: shelfModel.count === 0 && !pinScreen.shown && !companionPairing.shown
+        shown: home.setupDone && shelfModel.count === 0 && !pinScreen.shown && !companionPairing.shown
         // Un PC connu et réveillable, mais hors ligne : A le réveille.
         readonly property bool canWake: !home.activeHostOnline && home.activeHostWakeable && !home.waking
         focus: shown && canWake
@@ -1022,7 +1041,7 @@ FocusScope {
     MessageScreen {
         id: pinScreen
         parent: homeScreen.stage
-        shown: home.activeHostOnline && !home.activeHostPaired && home.pairingPin !== ""
+        shown: home.setupDone && home.activeHostOnline && !home.activeHostPaired && home.pairingPin !== ""
                && !CompanionClient.paired && !companionPairing.shown
         title: qsTr("Liaison avec %1").arg(home.activeHostName !== "" ? home.activeHostName : qsTr("votre PC"))
         text: qsTr("Saisissez ce code sur votre PC. La console se connectera ensuite toute seule.")
@@ -1032,6 +1051,86 @@ FocusScope {
         error: home.pairingError !== ""
         busy: !error
         hints: home.legendOptions
+    }
+
+    // --- Premier démarrage ---
+    MessageScreen {
+        id: welcomeScreen
+        parent: homeScreen.stage
+        shown: !home.setupDone && !home.welcomed
+        focus: shown
+        title: qsTr("Bienvenue")
+        text: qsTr("Quelques secondes de réglages, puis vos jeux.")
+        hints: [ { glyph: "A", label: qsTr("Commencer") } ]
+        Keys.onReturnPressed: home.welcome()
+        Keys.onEnterPressed: home.welcome()
+    }
+    MessageScreen {
+        id: networkScreen
+        parent: homeScreen.stage
+        shown: !home.setupDone && home.welcomed && home.needsNetwork
+        focus: shown
+        title: qsTr("Connexion à Internet")
+        text: qsTr("Choisissez le réseau Wi-Fi de la maison : la console y retrouvera votre PC.")
+        status: WifiSetup.connecting ? qsTr("Connexion…") : ""
+        busy: WifiSetup.connecting
+        hints: [ { glyph: "A", label: qsTr("Choisir un réseau") } ]
+        Keys.onReturnPressed: home.openWifi()
+        Keys.onEnterPressed: home.openWifi()
+    }
+    function welcome() {
+        Sounds.play("select")
+        welcomed = true
+        if (!needsNetwork)
+            setupDone = true
+    }
+
+    // --- Wi-Fi : la liste des réseaux (un panneau d'options), puis le mot de passe ---
+    property string wifiTarget: ""      // réseau en cours de connexion
+
+    readonly property var wifiRows: WifiSetup.networks.map(function(n) {
+        return { key: n.ssid, label: n.ssid, bars: n.bars, action: true,
+                 value: n.active ? qsTr("Connecté") : n.known ? qsTr("Enregistré") : n.secured ? "" : qsTr("Ouvert") }
+    })
+
+    function openWifi() {
+        WifiSetup.scan()
+        wifiSheet.open()
+    }
+
+    function chooseNetwork(ssid) {
+        var network = WifiSetup.networks.find(function(n) { return n.ssid === ssid })
+        if (!network || network.active) return
+        wifiTarget = ssid
+        if (network.secured && !network.known) {
+            keyboard.prompt = qsTr("Mot de passe de %1").arg(ssid)
+            keyboard.open("")
+            wifiSheet.close()           // (B sur le clavier vide y ramène)
+        } else {
+            connectWifi("")
+        }
+    }
+
+    function connectWifi(password) {
+        wifiSheet.close()
+        homeScreen.toast(qsTr("Connexion à %1…").arg(wifiTarget))
+        WifiSetup.connectTo(wifiTarget, password)
+    }
+
+    Connections {
+        target: WifiSetup
+        function onConnectFinished(ok, error, badPassword) {
+            if (ok) {
+                homeScreen.toast(qsTr("Connecté à %1").arg(home.wifiTarget))
+                return
+            }
+            homeScreen.toast(error)
+            // Mauvais mot de passe : on le redemande aussitôt.
+            if (badPassword) {
+                keyboard.prompt = qsTr("Mot de passe de %1").arg(home.wifiTarget)
+                keyboard.open("")
+            }
+        }
     }
 
     // --- Confirmations (« un autre jeu tourne déjà », quitter le jeu, éteindre…) ---
@@ -1049,6 +1148,39 @@ FocusScope {
         }
         onConfirmed: if (pending) pending()
         onClosed: homeScreen.forceActiveFocus()
+    }
+
+    // Panneau des réseaux : sur le canevas, comme le panneau d'options.
+    Item {
+        width: home.width / Theme.scale
+        height: Theme.canvasHeight
+        scale: Theme.scale
+        transformOrigin: Item.TopLeft
+
+        OptionsSheet {
+            id: wifiSheet
+            anchors.fill: parent
+            title: qsTr("Wi-Fi")
+            subtitle: WifiSetup.currentNetwork !== "" ? qsTr("Connecté à %1").arg(WifiSetup.currentNetwork)
+                    : WifiSetup.scanning ? qsTr("Recherche des réseaux…") : qsTr("Non connecté")
+            connected: WifiSetup.online
+            tabs: [ { label: qsTr("Wi-Fi"), rows: home.wifiRows } ]
+            onActionRequested: function(key) { home.chooseNetwork(key) }
+            onClosed: if (!keyboard.opened) homeScreen.forceActiveFocus()
+        }
+        // Tant que le panneau est ouvert, la liste se met à jour.
+        Timer { interval: Theme.wifiRescan; repeat: true; running: wifiSheet.opened; onTriggered: WifiSetup.scan() }
+    }
+
+    OnScreenKeyboard {
+        id: keyboard
+        anchors.fill: parent
+        minLength: 8                    // WPA : 8 caractères au moins
+        onAccepted: function(text) {
+            home.connectWifi(text)
+            homeScreen.forceActiveFocus()   // le clavier fermé ne doit plus rien avaler
+        }
+        onCancelled: home.openWifi()
     }
 
     // --- Menu Home : reprendre ou quitter le jeu en cours, veille, redémarrage, extinction ---
@@ -1142,7 +1274,7 @@ FocusScope {
         parent: homeScreen.stage
         focus: shown            // seul écran de message qui prend la manette
         // « Découvert mais pas appairé » : on a un fingerprint live mais pas de token.
-        shown: CompanionClient.certFingerprint !== "" && !CompanionClient.paired
+        shown: home.setupDone && CompanionClient.certFingerprint !== "" && !CompanionClient.paired
         hostName: home.activeHostName !== "" ? home.activeHostName : CompanionClient.hostName
         // À l'apparition : on demande au host de GÉNÉRER + AFFICHER son code (pair/start).
         // L'utilisateur le lit sur le PC et le saisit ici ; la validation = pair/confirm.

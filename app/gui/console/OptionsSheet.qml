@@ -13,7 +13,9 @@ FocusScope {
 
     // Onglets : [{ label, rows }]. Une ligne est un réglage { key, label, options:
     // [libellés], index }, ou une action { key, label, value, action: true } (A la
-    // déclenche ; `value` est affichée à droite).
+    // déclenche ; `value` est affichée à droite). `bars` (0 à 4), facultatif, ajoute
+    // une icône de signal devant la valeur (réseaux Wi-Fi).
+    property string title: qsTr("Options")
     property var tabs: []
     property int tab: 0
     readonly property var rows: tabs.length > 0 ? tabs[Math.min(tab, tabs.length - 1)].rows : []
@@ -21,6 +23,8 @@ FocusScope {
     // onglet propose de l'oublier.
     property string hostName
     property bool connected: false
+    // Sous le titre, un point d'état (vert si `connected`) et ce texte.
+    property string subtitle: hostName
 
     signal changed(string key, int index)
     signal actionRequested(string key)
@@ -210,7 +214,7 @@ FocusScope {
         Text {
             id: title
             x: Theme.sheetPadSide; y: Theme.sheetPadTop
-            text: qsTr("Options")
+            text: root.title
             color: Theme.ink
             font.family: Theme.fontUi; font.pixelSize: Theme.sheetTitleSize; font.weight: Font.DemiBold
             font.letterSpacing: Theme.sheetTitleSpacing
@@ -223,13 +227,13 @@ FocusScope {
             spacing: Theme.sheetHostGap
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
-                visible: root.hostName !== ""
+                visible: root.subtitle !== ""
                 width: Theme.hostDotSize; height: width; radius: width / 2
                 color: root.connected ? Theme.ok : Theme.accent
             }
             Text {
                 id: hostLabel
-                text: root.hostName
+                text: root.subtitle
                 color: Theme.ink2
                 font.family: Theme.fontUi; font.pixelSize: Theme.sheetHostSize
             }
@@ -320,6 +324,22 @@ FocusScope {
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: Theme.sheetValueGap
 
+                        // Signal d'un réseau : quatre barres, allumées selon `bars`.
+                        Row {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: line.row.bars !== undefined
+                            spacing: Theme.signalBarGap
+                            Repeater {
+                                model: 4
+                                Rectangle {
+                                    anchors.bottom: parent.bottom
+                                    width: Theme.signalBarWidth
+                                    height: Theme.signalBarStep * (index + 1)
+                                    radius: width / 2
+                                    color: (line.row.bars || 0) > index ? line.ink : Theme.inkOff
+                                }
+                            }
+                        }
                         Chevron {
                             dir: -1
                             opacity: line.focused && !line.row.action ? 1 : 0

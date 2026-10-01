@@ -58,6 +58,7 @@
 #include "gui/console/backend/companionclient.h"
 #include "gui/console/backend/systemstatus.h"
 #include "gui/console/backend/inputstatus.h"
+#include "gui/console/backend/wifisetup.h"
 #endif
 
 #if defined(Q_OS_WIN32)
@@ -984,6 +985,12 @@ int main(int argc, char *argv[])
                                           [](QQmlEngine*, QJSEngine*) -> QObject* {
                                               return new InputStatus();
                                           });
+    // Choix du réseau Wi-Fi depuis la console (NetworkManager).
+    qmlRegisterSingletonType<WifiSetup>("WifiSetup", 1, 0,
+                                        "WifiSetup",
+                                        [](QQmlEngine*, QJSEngine*) -> QObject* {
+                                            return new WifiSetup();
+                                        });
     // Sons de l'interface : QtMultimedia les déclare à PipeWire en rôle « Notification »,
     // que le bureau peut couper (« Sons de notification » de Plasma). Rôle « Game », comme
     // le son du flux (SDL).

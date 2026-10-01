@@ -438,6 +438,8 @@ embedded {
     HEADERS += gui/console/backend/systemstatus.h
     SOURCES += gui/console/backend/inputstatus.cpp
     HEADERS += gui/console/backend/inputstatus.h
+    SOURCES += gui/console/backend/wifisetup.cpp
+    HEADERS += gui/console/backend/wifisetup.h
 }
 glslow {
     message(GL slow build)

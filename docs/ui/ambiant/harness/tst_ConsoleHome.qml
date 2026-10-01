@@ -4,6 +4,7 @@ import StreamingPreferences 1.0
 import CompanionClient 1.0
 import SystemStatus 1.0
 import InputStatus 1.0
+import WifiSetup 1.0
 import "../../../../app/gui/console"
 
 // Le vrai ConsoleHome sur de faux modules Moonlight (stubs/) : les données des
@@ -66,6 +67,7 @@ Item {
             CompanionClient.paired = false
             CompanionClient.eventsConnected = false
             home.autoWakeDone = true                // pas de réveil d'office hors des tests qui le veulent
+            home.setupDone = true                   // premier démarrage : cf. test_9l
             home.forceActiveFocus()
             tryCompare(screen, "count", 10)
             tryCompare(launchScreen, "active", false, 2000)
@@ -282,7 +284,7 @@ Item {
             keyClick(Qt.Key_Hangup)
             InputStatus.bumperPressed(1)
             compare(screen.optionRows.map(function(r) { return r.label }),
-                    ["Luminosité", "Volume", "Veille de l'écran", "Boutons", "Sons"])
+                    ["Luminosité", "Volume", "Veille de l'écran", "Boutons", "Sons", "Wi-Fi"])
             keyClick(Qt.Key_Right)                          // luminosité 60 → 70 %
             compare(SystemStatus.brightness, 70)
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Left)    // volume 80 → 70 % (le stub part de 75)
@@ -432,6 +434,41 @@ Item {
             InputStatus.homePressed()                     // Home réveille, sans ouvrir le menu
             verify(!sleepScreen.asleep)
             verify(!dialog("Menu"))
+        }
+
+        // Premier démarrage hors ligne : bienvenue, choix du réseau, mot de passe au
+        // clavier à l'écran ; l'accueil arrive une fois la console en ligne.
+        function test_9l_firstRunAsksForTheNetwork() {
+            WifiSetup.online = false
+            home.welcomed = false
+            home.setupDone = false
+            verify(screen.staged)
+            keyClick(Qt.Key_Return)                         // « Commencer »
+            verify(home.welcomed && !home.setupDone)
+            keyClick(Qt.Key_Return)                         // « Choisir un réseau »
+            var sheet = null
+            var walk = function(from) {
+                for (var i = 0; i < from.children.length && !sheet; i++) {
+                    var c = from.children[i]
+                    if (c.tabs !== undefined && c.title === "Wi-Fi") sheet = c
+                    else walk(c)
+                }
+            }
+            walk(home)
+            verify(sheet && sheet.opened)
+            compare(sheet.rows.map(function(r) { return r.label }), ["Maison", "Voisins", "Café"])
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)  // « Voisins » : protégé, inconnu
+            verify(!sheet.opened)
+            keyClick(Qt.Key_S); keyClick(Qt.Key_E); keyClick(Qt.Key_C); keyClick(Qt.Key_R)
+            keyClick(Qt.Key_E); keyClick(Qt.Key_T); keyClick(Qt.Key_1); keyClick(Qt.Key_2)
+            keyClick(Qt.Key_Return)
+            compare(WifiSetup.lastConnect.ssid, "Voisins")
+            compare(WifiSetup.lastConnect.password, "secret12")
+            WifiSetup.online = true                         // connecté : la suite du démarrage
+            verify(home.setupDone)
+            verify(!screen.staged)
+            keyClick(Qt.Key_Right)                          // la manette est revenue à l'étagère
+            compare(screen.currentIndex, 1)
         }
 
         // X épingle le jeu en tête de l'étagère (la sélection le suit), puis le détache.

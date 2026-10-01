@@ -172,7 +172,14 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   - **Options en onglets** (L1 / R1, lus dans SDL par `InputStatus` ; PageUp / PageDown au
     clavier) : **Flux** (résolution, fréquence, débit, codec, HDR, Oublier ce PC) et **Console**
     (luminosité par logind `SetBrightness`, volume par `wpctl`, veille de l'écran, boutons,
-    sons). Une ligne peut être une action (`action: true`, A la déclenche, chevron ›).
+    sons, Wi-Fi). Une ligne peut être une action (`action: true`, A la déclenche, chevron ›).
+  - **Wi-Fi et premier démarrage** : `WifiSetup` (NetworkManager par D-Bus) liste les réseaux
+    et s'y connecte ; la liste est un `OptionsSheet` (titre « Wi-Fi », icône de signal), le mot
+    de passe se tape sur `OnScreenKeyboard` (AZERTY, quatre couches, A / B / X / Y ; un vrai
+    clavier marche aussi). Premier démarrage (`ConsoleUi/setupDone`) : « Bienvenue » (A), puis
+    « Connexion à Internet » si la console n'est pas en ligne, puis le flux habituel (recherche
+    du PC, liaisons). ⚠️ La connexion à un réseau n'a jamais été essayée en vrai (la lecture
+    des réseaux, si : vérifiée contre le NetworkManager du laptop).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
@@ -286,6 +293,7 @@ Fichiers (dans `app/gui/console/`) :
 - `Toast.qml` — message bref au-dessus de l'étagère (`homeScreen.toast(texte)`)
 - `SleepScreen.qml` — veille de l'écran : noir, une phrase qui s'efface à son tour (OLED) ; la
   touche qui réveille n'atteint pas l'accueil
+- `OnScreenKeyboard.qml` — clavier à l'écran, à la manette (mot de passe Wi-Fi)
 - `icons/` — icônes SVG (punaise des favoris)
 - `StatusBar.qml` — barre haute : pastille de l'hôte + horloge / Wi-Fi / batterie (éclair en
   charge, orange sous `Theme.batteryLow`)
@@ -304,6 +312,8 @@ Fichiers (dans `app/gui/console/`) :
   signal Wi-Fi (NetworkManager par D-Bus) pour la barre haute ; veille / redémarrage /
   extinction par systemd-logind (D-Bus, `powerActions` + `power()`). Build `embedded`
   uniquement ; `QT += dbus`.
+- `backend/wifisetup.{h,cpp}` — réseaux Wi-Fi visibles, connexion (profil NetworkManager créé
+  par `AddAndActivateConnection`, WPA2 ou WPA3), état « en ligne ». Build `embedded` uniquement.
 - `backend/inputstatus.{h,cpp}` — activité de l'utilisateur (filtre d'événements sur l'app,
   pour la veille), bouton Home de la manette (état SDL lu toutes les 50 ms, la navigation
   upstream ne le traduit pas en touche), famille et batterie de la manette, et le « retour
@@ -582,7 +592,10 @@ XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import
   pour que ces sons cohabitent avec l'audio du flux. Qt les déclare en rôle PipeWire
   « Notification » (coupé par les « Sons de notification » de Plasma) : `main.cpp` pose
   `PIPEWIRE_PROPS={ media.role = Game }` au démarrage, sauf si la variable existe déjà.
-- **NetworkManager** pour l'icône Wi-Fi ; sans lui (ou sans Wi-Fi associé) l'icône est masquée.
+- **NetworkManager** pour l'icône Wi-Fi et le choix du réseau ; sans lui (ou sans Wi-Fi associé)
+  l'icône est masquée et la ligne Wi-Fi des options n'apparaît pas. La session de la console
+  doit être « active » pour que polkit la laisse créer un profil Wi-Fi et régler la luminosité
+  (cas d'une session kiosk en connexion automatique).
 - Une batterie système dans `/sys/class/power_supply` pour l'icône batterie ; sinon masquée
   (ce sera le cas du proto sur power bank). Relue toutes les 10 s (l'éclair de charge peut
   mettre ce temps à apparaître).

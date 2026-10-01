@@ -264,6 +264,23 @@ QtObject {
     readonly property int companionWait: 8000        // PC réveillé : délai laissé au Companion pour se reconnecter
     readonly property real wakeStepProgress: 0.35    // avancement affiché de l'étape « Réveil » tant qu'il dort
 
+    readonly property int wifiRescan: 10000          // liste des réseaux rafraîchie pendant qu'elle est ouverte
+
+    // --- Clavier à l'écran (OnScreenKeyboard), en bas de l'écran ---
+    readonly property int keyboardHeight: 430
+    readonly property int keyboardPadTop: 28
+    readonly property int keyboardPromptSize: 15     // Sora 400, ink2
+    readonly property int keyboardFieldGap: 10
+    readonly property int keyboardFieldHeight: 48
+    readonly property int keyboardFieldPad: 18
+    readonly property int keyboardFieldSize: 20
+    readonly property int keyboardKeysTop: 22
+    readonly property size keyboardKeySize: Qt.size(64, 48)
+    readonly property int keyboardKeyGap: 8
+    readonly property int keyboardKeyRadius: 10
+    readonly property color keyboardKeyFill: Qt.rgba(1, 1, 1, 0.07)
+    readonly property int keyboardKeyTextSize: 18    // Sora 500
+
     // --- Panneau d'options (OptionsSheet), bouton Y ---
     readonly property int sheetWidth: 472
     readonly property color sheetFill: Qt.rgba(18 / 255, 18 / 255, 20 / 255, 0.95)
@@ -298,6 +315,9 @@ QtObject {
     readonly property int sheetValueSwap: 260        // l'ancienne valeur sort, la nouvelle entre…
     readonly property int sheetValueTravel: 36       // …en glissant de cette distance
     readonly property int sheetChevronSize: 18
+    readonly property int signalBarWidth: 3          // signal d'un réseau Wi-Fi : 4 barres
+    readonly property int signalBarStep: 3           // hauteur ajoutée par barre
+    readonly property int signalBarGap: 2
     readonly property int sheetHintRight: 24         // retrait du glyphe (A) de la ligne « Oublier ce PC »
 
     // --- Légende des boutons (ControllerLegend) : panneaux et écrans de message ---
