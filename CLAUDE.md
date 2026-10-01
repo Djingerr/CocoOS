@@ -147,6 +147,11 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     plus ancien (lancé d'ici, ou joué sur le PC d'après le Companion), puis par nom. Les index de
     l'étagère ne sont PAS ceux d'`AppModel` (`shelfModel`, rôle `appIndex`). Jeu sans jaquette :
     son nom sur un dégradé ; jaquette en fondu. Toast (`Toast.qml`) repris du prototype.
+  - **Réveil du PC** (Wake-on-LAN, `ComputerModel.wakeComputer`, rien d'upstream modifié) : PC
+    connu (MAC) mais hors ligne → réveil d'office 4 s après le démarrage ; A sur un jeu → étape
+    « Réveil de … » en tête de l'écran de lancement, qui reprend seul quand le PC répond (en
+    laissant 8 s au Companion pour se reconnecter) ; écran de recherche → A Réveiller / Réessayer.
+    Abandon au bout de 90 s avec un message (Wake-on-LAN à activer dans le BIOS).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).

@@ -13,6 +13,8 @@ import "../../../../app/gui/console"
 //          150 ms : left, right, pin (bouton X)
 //   at     instant de `do`, en ms (300 par défaut)
 //   noart  noms de jeux (séparés par des virgules) privés de jaquette
+//   offline=1  le PC est hors ligne (la console tente de le réveiller)
+//   nogames=1  aucun jeu : l'écran de recherche
 Item {
     id: demo
     property var args: ({})
@@ -43,6 +45,12 @@ Item {
             for (var i = 0; home.appModel && i < home.appModel.count; i++)
                 if (noArt.indexOf(home.appModel.get(i).name) >= 0)
                     home.appModel.setProperty(i, "boxart", "")
+            if (home.appModel && demo.args.nogames === "1")
+                home.appModel.clear()
+        }
+        function onComputerModelChanged() {
+            if (demo.args.offline === "1")
+                home.computerModel.setProperty(0, "online", false)
         }
     }
 

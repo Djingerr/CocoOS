@@ -48,6 +48,7 @@ FocusScope {
     property bool   activeHostOnline: false
     property bool   activeHostPaired: false
     property bool   activeHostStatusUnknown: true
+    property bool   activeHostWakeable: false     // adresse MAC connue : réveil à distance possible
 
     // --- État de l'appairage automatique ---
     property string pairingPin: ""
@@ -136,7 +137,6 @@ FocusScope {
     Keys.onEscapePressed: { /* accueil : rien à fermer */ }
 
     onActiveComputerIndexChanged: rebuildAppModel()
-    onActiveHostOnlineChanged: maybeStartPairing()
     onActiveHostPairedChanged: maybeStartPairing()
 
     function rebuildAppModel() {
@@ -303,6 +303,7 @@ FocusScope {
             readonly property bool isOnline: model.online
             readonly property bool isPaired: model.paired
             readonly property bool isUnknown: model.statusUnknown
+            readonly property bool isWakeable: model.wakeable
             readonly property string hostName: model.name
             // Chaque changement de rôle relance la sélection : un host qui
             // passe online (même non appairé) doit rafraîchir l'affichage.
@@ -341,11 +342,13 @@ FocusScope {
             activeHostOnline = it.isOnline
             activeHostPaired = it.isPaired
             activeHostStatusUnknown = it.isUnknown
+            activeHostWakeable = it.isWakeable
         } else {
             activeHostName = ""
             activeHostOnline = false
             activeHostPaired = false
             activeHostStatusUnknown = true
+            activeHostWakeable = false
         }
         maybeStartPairing()
     }
@@ -394,6 +397,70 @@ FocusScope {
         Qt.callLater(rebuildShelf)          // l'ordre suit aussi les parties jouées sur le PC
     }
 
+    // --- Réveil du PC (Wake-on-LAN) ---
+    // PC connu (adresse MAC) mais hors ligne : la console l'allume elle-même, une fois
+    // d'office peu après le démarrage, puis avant tout lancement et à la demande (A)
+    // sur l'écran de recherche.
+    property bool waking: false          // réveil envoyé, on attend que le PC réponde
+    property bool wakeFailed: false      // il n'a pas répondu à temps
+    property bool autoWakeDone: false
+
+    function wakeHost() {
+        if (activeComputerIndex < 0 || !activeHostWakeable || activeHostOnline) return
+        console.info("[console-ui] Réveil de \"" + activeHostName + "\"")
+        computerModel.wakeComputer(activeComputerIndex)
+        waking = true
+        wakeFailed = false
+        wakeTimeout.restart()
+    }
+
+    Timer {
+        id: autoWake
+        interval: Theme.autoWakeDelay
+        running: !home.autoWakeDone && home.activeComputerIndex >= 0
+                 && home.activeHostWakeable && !home.activeHostOnline
+        onTriggered: {
+            home.autoWakeDone = true
+            home.wakeHost()
+        }
+    }
+    Timer {
+        id: wakeTimeout
+        interval: Theme.wakeTimeout
+        onTriggered: {
+            home.waking = false
+            home.wakeFailed = true
+            if (home.launchWaking)
+                launchScreen.error = qsTr("%1 ne répond pas. Vérifiez qu'il est branché et que le réveil à distance (Wake-on-LAN) est activé.")
+                                     .arg(home.activeHostName)
+        }
+    }
+    onActiveHostOnlineChanged: {
+        maybeStartPairing()
+        if (!activeHostOnline) return
+        waking = false
+        wakeFailed = false
+        wakeTimeout.stop()
+        if (launchWaking)
+            companionWait.restart()
+    }
+    // Le PC répond : le Companion (s'il est appairé) se reconnecte un peu après lui.
+    // On lui laisse ce temps avant de reprendre le lancement, sinon il partirait en direct.
+    Timer {
+        id: companionWait
+        interval: 250
+        repeat: true
+        property int waited: 0
+        onRunningChanged: if (running) waited = 0
+        onTriggered: {
+            waited += interval
+            if (!CompanionClient.paired || CompanionClient.eventsConnected || waited >= Theme.companionWait) {
+                stop()
+                home.resumeLaunchAfterWake()
+            }
+        }
+    }
+
     // --- Lancement d'un jeu ---
     // A enfonce le bouton Jouer, puis LaunchScreen s'ouvre par-dessus l'accueil. Le
     // flux Moonlight ne démarre que lorsque l'hôte est prêt (tout de suite en
@@ -403,6 +470,7 @@ FocusScope {
     property bool launchReady: false     // l'hôte est prêt
     property bool launchOpened: false    // LaunchScreen couvre l'écran
     property bool streamStarted: false   // le flux a démarré : au retour, son de retour
+    property bool launchWaking: false    // le PC dormait : le lancement attend son réveil
 
     function findAppIndexByName(name) {
         for (var i = 0; i < appViewer.count; i++) {
@@ -426,6 +494,26 @@ FocusScope {
         var item = appViewer.objectAt(index)
         if (!item) return
 
+        // PC éteint : on le réveille d'abord, l'écran de lancement en première étape.
+        if (!activeHostOnline && activeHostWakeable) {
+            launchIndex = index
+            launchWaking = true
+            launchResume = false
+            launchReady = false
+            launchOpened = false
+            launchScreen.image = homeScreen.backdrop
+            launchScreen.steps = [qsTr("Réveil de %1").arg(activeHostName), qsTr("Lancement de %1").arg(item.name)]
+            launchScreen.step = 0
+            launchScreen.stepProgress = Theme.wakeStepProgress   // durée inconnue : la barre attend à mi-chemin
+            launchScreen.cancellable = true
+            launchScreen.hint = ""
+            wakeHost()
+            Sounds.play("select")
+            homeScreen.pressed = true
+            launchPress.start()
+            return
+        }
+
         // Un AUTRE jeu tourne déjà sur le host : demander confirmation
         // (équivalent console du quitAppDialog de AppView.qml). Chemin direct.
         var runningId = appModel.getRunningAppId()
@@ -439,31 +527,52 @@ FocusScope {
             return
         }
 
+        beginLaunch(index, false)
+        Sounds.play("select")
+        homeScreen.pressed = true
+        launchPress.start()
+    }
+
+    // Étapes et départ du lancement. `afterWake` : l'écran est déjà ouvert sur
+    // l'étape du réveil, qui est faite.
+    function beginLaunch(index, afterWake) {
+        var item = appViewer.objectAt(index)
+        if (!item) return
         // Chemin Companion = LE différenciateur : POST /v1/launch → (maj si besoin)
         // → READY → stream. On NE démarre PAS le stream nous-mêmes ici (§4 host).
         // Repli direct si le Companion est absent ou ne connaît pas ce jeu.
         var gameId = CompanionClient.paired && CompanionClient.eventsConnected
                      ? CompanionClient.gameIdForName(item.name) : ""
+        var runningId = appModel.getRunningAppId()
 
         launchIndex = index
         launchResume = runningId === item.appid
         launchReady = gameId === ""
-        launchOpened = false
-        launchScreen.image = homeScreen.backdrop
-        launchScreen.steps = (gameId !== "" ? [qsTr("Préparation de %1").arg(activeHostName)] : []).concat([
-            launchResume ? qsTr("Reprise de %1").arg(item.name) : qsTr("Lancement de %1").arg(item.name),
-            qsTr("Ouverture du flux %1").arg(streamSummary())
-        ])
-        launchScreen.step = 0
+        if (!afterWake) {
+            launchOpened = false
+            launchScreen.image = homeScreen.backdrop
+        }
+        launchScreen.steps = (afterWake ? [launchScreen.steps[0]] : [])
+            .concat(gameId !== "" ? [qsTr("Préparation de %1").arg(activeHostName)] : [])
+            .concat([
+                launchResume ? qsTr("Reprise de %1").arg(item.name) : qsTr("Lancement de %1").arg(item.name),
+                qsTr("Ouverture du flux %1").arg(streamSummary())
+            ])
+        launchScreen.step = afterWake ? 1 : 0
         launchScreen.stepProgress = 1
         launchScreen.cancellable = gameId !== ""
         launchScreen.hint = ""
         if (gameId !== "")
             CompanionClient.launch(gameId)
+        maybeStartStream()
+    }
 
-        Sounds.play("select")
-        homeScreen.pressed = true
-        launchPress.start()
+    function resumeLaunchAfterWake() {
+        if (!launchWaking) return
+        launchWaking = false
+        var index = launchIndex
+        launchIndex = -1
+        beginLaunch(index, true)
     }
 
     Timer {
@@ -487,7 +596,7 @@ FocusScope {
     // Démarre la session Moonlight (page StreamSegue d'origine, cachée sous
     // LaunchScreen) dès que l'hôte est prêt et que l'écran de lancement est en place.
     function maybeStartStream() {
-        if (launchIndex < 0 || !launchReady || !launchOpened || !appModel) return
+        if (launchIndex < 0 || launchWaking || !launchReady || !launchOpened || !appModel) return
         var index = launchIndex
         launchIndex = -1
         var item = appViewer.objectAt(index)
@@ -527,6 +636,8 @@ FocusScope {
     // Retour à l'accueil : fin du jeu, échec, annulation.
     function endLaunch() {
         launchPress.stop()
+        companionWait.stop()
+        launchWaking = false
         launchIndex = -1
         launchScreen.close(true)
         homeScreen.launching = false
@@ -695,15 +806,30 @@ FocusScope {
     // lui qui transmet le code Moonlight à Apollo (plus rien à saisir sur le PC).
     readonly property var legendOptions: [ { glyph: "Y", label: qsTr("Options") } ]
 
-    // Recherche du PC, puis chargement de la bibliothèque.
+    // Recherche du PC (et son réveil), puis chargement de la bibliothèque.
     MessageScreen {
         id: searchScreen
         parent: homeScreen.stage
         shown: shelfModel.count === 0 && !pinScreen.shown && !companionPairing.shown
-        title: !home.activeHostOnline ? qsTr("Recherche de votre PC") : qsTr("Chargement de vos jeux")
-        text: !home.activeHostOnline ? qsTr("Vérifiez qu'il est allumé et sur le même réseau que la console.") : ""
-        busy: true
-        hints: home.legendOptions
+        // Un PC connu et réveillable, mais hors ligne : A le réveille.
+        readonly property bool canWake: !home.activeHostOnline && home.activeHostWakeable && !home.waking
+        focus: shown && canWake
+        title: home.activeHostOnline ? qsTr("Chargement de vos jeux")
+             : home.waking ? qsTr("Réveil de %1").arg(home.activeHostName)
+             : home.wakeFailed ? qsTr("%1 ne répond pas").arg(home.activeHostName)
+             : home.activeHostWakeable ? qsTr("%1 est hors ligne").arg(home.activeHostName)
+             : qsTr("Recherche de votre PC")
+        text: home.activeHostOnline ? ""
+            : home.waking ? qsTr("Votre PC démarre, cela peut prendre une minute.")
+            : home.wakeFailed ? qsTr("Vérifiez qu'il est branché et que le réveil à distance (Wake-on-LAN) est activé.")
+            : home.activeHostWakeable ? qsTr("Il est peut-être éteint ou en veille.")
+            : qsTr("Vérifiez qu'il est allumé et sur le même réseau que la console.")
+        busy: !canWake
+        hints: canWake ? [ { glyph: "A", label: home.wakeFailed ? qsTr("Réessayer") : qsTr("Réveiller") } ]
+                         .concat(home.legendOptions)
+                       : home.legendOptions
+        Keys.onReturnPressed: { home.wakeHost(); Sounds.play("select") }
+        Keys.onEnterPressed: { home.wakeHost(); Sounds.play("select") }
     }
 
     // Liaison Moonlight : le code à saisir une fois sur le PC (repli quand le
@@ -752,7 +878,7 @@ FocusScope {
             // B : annulation pendant la préparation par le Companion, ou fermeture
             // de l'écran après un échec.
             onCancelRequested: {
-                if (error === "")
+                if (error === "" && !home.launchWaking)
                     CompanionClient.cancelLaunch()
                 Sounds.play("back")
                 home.endLaunch()

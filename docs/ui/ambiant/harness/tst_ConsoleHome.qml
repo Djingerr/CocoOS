@@ -49,6 +49,7 @@ Item {
         function init() {
             CompanionClient.paired = false
             CompanionClient.eventsConnected = false
+            home.autoWakeDone = true                // pas de réveil d'office hors des tests qui le veulent
             home.forceActiveFocus()
             tryCompare(screen, "count", 10)
             tryCompare(launchScreen, "active", false, 2000)
@@ -290,6 +291,48 @@ Item {
             compare(screen2.currentIndex, 0)               // le plus récent passe en tête
             compare(screen2.title, "Hades II")
             Sounds.enabled = false
+        }
+
+        // PC endormi : A le réveille d'abord (première étape du lancement), puis le
+        // lancement reprend tout seul quand il répond.
+        function test_9g_launchWakesTheSleepingPc() {
+            var pc = home.computerModel
+            pc.setProperty(0, "online", false)
+            var wakes = pc.wakes, before = stackView.pushes, name = screen.title
+            ignoreWarning(/.*/)
+            keyClick(Qt.Key_Return)
+            compare(pc.wakes, wakes + 1)
+            tryCompare(launchScreen, "active", true, 1000)
+            compare(launchScreen.steps[0], "Réveil de Djinger")
+            compare(launchScreen.step, 0)
+            wait(1200)
+            compare(stackView.pushes, before)       // rien tant que le PC dort
+            pc.setProperty(0, "online", true)
+            tryCompare(launchScreen, "step", 2, 2000)   // réveil fait, lancement fait : ouverture du flux
+            compare(launchScreen.steps.length, 3)
+            compare(launchScreen.steps[1], "Lancement de " + name)
+            tryCompare(stackView, "pushes", before + 1, 2000)
+            home.appModel.lastSession.sessionFinished(0)
+        }
+
+        // Au démarrage, un PC connu mais hors ligne est réveillé d'office, une fois.
+        // Sans jeu à afficher, l'écran de recherche propose A pour le réveiller.
+        function test_9h_offlinePcIsWokenAtStartAndOnDemand() {
+            var pc = home.computerModel
+            var wakes = pc.wakes
+            pc.setProperty(0, "online", false)
+            home.autoWakeDone = false
+            tryCompare(pc, "wakes", wakes + 1, Theme.autoWakeDelay + 1000)
+            verify(home.waking)
+            home.waking = false                     // (sans réponse du PC)
+            home.wakeFailed = true
+            home.appModel.clear()                   // pas de jeu : l'écran de recherche
+            tryCompare(screen, "staged", true, 1000)
+            keyClick(Qt.Key_Return)                 // A : réessayer
+            compare(pc.wakes, wakes + 2)
+            pc.setProperty(0, "online", true)
+            verify(!home.waking && !home.wakeFailed)
+            home.rebuildAppModel()
         }
 
         // X épingle le jeu en tête de l'étagère (la sélection le suit), puis le détache.

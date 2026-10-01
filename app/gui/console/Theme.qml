@@ -237,6 +237,12 @@ QtObject {
     readonly property int toastShift: 10             // il monte de cette distance en apparaissant
     readonly property int toastDuration: 2600
 
+    // --- Réveil du PC (Wake-on-LAN) ---
+    readonly property int autoWakeDelay: 4000        // PC hors ligne au démarrage : réveil d'office après…
+    readonly property int wakeTimeout: 90000         // …puis abandon s'il ne répond pas (démarrage à froid)
+    readonly property int companionWait: 8000        // PC réveillé : délai laissé au Companion pour se reconnecter
+    readonly property real wakeStepProgress: 0.35    // avancement affiché de l'étape « Réveil » tant qu'il dort
+
     // --- Panneau d'options (OptionsSheet), bouton Y ---
     readonly property int sheetWidth: 472
     readonly property color sheetFill: Qt.rgba(18 / 255, 18 / 255, 20 / 255, 0.95)
