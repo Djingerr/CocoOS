@@ -141,6 +141,9 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   ⚠️ **Rien de tout cela n'est encore validé à la manette contre le vrai host**, et les sons
   n'ont pas été écoutés. Restent : filtrage des apps qui ne sont pas des jeux, mesure des 60 fps
   sur la carte.
+- 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
+  anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
+  `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
 - **Tâche en cours** : la **validation E2E à la manette** contre le vrai host (Apollo +
   HostCompanion, jamais éprouvé en face), puis le mode kiosk (boot direct, §9 6c) et
   l'auto-accept du pairing côté host (installeur, §9 6b).
@@ -330,6 +333,9 @@ porteuse + antennes + slot SIM. Le mur n'est pas le débit mais **latence + gigu
    **carte commandée en juin 2026**. Premier objectif à réception : valider le décodage
    matériel 1080p60 (V4L2/FFmpeg sur RK3588S, kernel mainline + Panthor) — c'est LE
    risque technique restant du projet.
+7b. 📋 Optimisation du flux côté console (profils, télémétrie, anti-gigue adaptatif, choix
+    du palier au démarrage, FSR 1.0) — planifié, cf §12. Les phases 0 à 4 sont faisables sur
+    le laptop Fedora ; la phase 5 (FSR) et les mesures se font sur l'Orange Pi.
 8. Installeur host 1-clic (Apollo/Sunshine + Playnite + Tailscale + Wake-on-LAN).
 9. Version compacte v2 (SoM/carte custom, batterie, coque 3D).
 10. Module 5G.
@@ -381,6 +387,11 @@ n'a jamais été appelé en réel).
 Pré-injecter l'identité/certificat de la console dans la conf d'Apollo (ou auto-accept),
 pour que l'écran de code Moonlight (`pinScreen` de `ConsoleHome`) ne s'affiche jamais en
 usage normal.
+
+### E — Optimisation du flux (quand A à D le permettent)
+Chantier complet décrit dans `docs/stream/STREAM-OPTIMISATION.md` (résumé en §12). Commencer
+par la **phase 0 (audit, sans code)** et s'arrêter à son gate : aucune couture upstream sans
+l'accord de Coco.
 
 Contraintes (rappel §4) : tout le code console reste dans `app/gui/console/`. Aucun
 fichier upstream touché. Build vanilla inchangé.
@@ -574,3 +585,29 @@ config.log
 app/moonlight
 config.tests/*/EGL
 ```
+
+---
+
+## 12. Chantier : optimisation du flux (planifié)
+
+> Source de vérité : **`docs/stream/STREAM-OPTIMISATION.md`** — le lire en entier avant de
+> commencer. Ce paragraphe n'en est que le résumé.
+
+- **But** : un flux fluide pour le joueur lambda sur réseau variable (Wi-Fi, 4G/5G), et un
+  contrôle total pour les experts. Profils : **Manuel** (paramètres figés, comportement
+  actuel), **Compétitif**, **Équilibré** (Auto par défaut), **Chill / Qualité**, **Économie**.
+- **Apollo reste non modifié (no-fork)** : résolution / fps / débit sont fixés au lancement
+  de la session. On n'agit que côté console : choix intelligent du palier au démarrage,
+  buffer anti-gigue adaptatif, politique de frame en retard, upscale FSR 1.0 avec RCAS piloté.
+  **Pas de renégociation de session en cours de partie** (coupure visible = contraire au §1).
+- **Architecture** : `StreamHealthMonitor` (capteur : percentiles, gigue, gradient de délai)
+  → `StreamController` (politique du profil) → **interface de leviers abstraite**, prête à
+  accueillir plus tard des leviers hôte sans réécriture.
+- **Coutures** : la télémétrie et l'upscale toucheront probablement des fichiers upstream.
+  **Proposer chaque couture à Coco (diff, taille, justification) AVANT de la faire.**
+- **Phases avec gates** : 0 audit → 1 profils → 2 télémétrie + scénarios `netem` → 3
+  anti-gigue → 4 choix au démarrage → 5 FSR. Mécanique vérifiée objectivement ; seuils et
+  ressenti validés par Coco à la manette uniquement.
+- **Rejeté** : génération de frames (latence). **Hors périmètre** sans décision de Coco :
+  tout levier côté hôte, signaux du modem 5G, super-résolution NPU, multipath.
+
