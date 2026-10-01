@@ -19,6 +19,7 @@ FocusScope {
 
     // --- Jeu sélectionné ---
     property alias title: hero.title
+    property alias logo: hero.logo
     property alias source: hero.source
     property alias lastPlayed: hero.lastPlayed
     property alias playtime: hero.playtime

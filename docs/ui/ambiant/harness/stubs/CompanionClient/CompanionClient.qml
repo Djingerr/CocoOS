@@ -19,8 +19,9 @@ QtObject {
     property int forgets: 0
     property string confirmedCode: ""
     property var updateAnswers: []
-    // Images de fond « en cache », par gameId (file://…)
+    // Images de fond et logos « en cache », par gameId (file://…)
     property var backgrounds: ({})
+    property var logos: ({})
 
     signal libraryChanged()
     signal pairingFailed(string code)
@@ -38,7 +39,8 @@ QtObject {
             var g = demo.get(i)
             list.push({ id: "game-" + i, name: g.name, source: g.source,
                         lastPlayed: g.lastPlayed, playtimeSeconds: g.playtimeSeconds,
-                        background: backgrounds["game-" + i] || "" })
+                        background: backgrounds["game-" + i] || "",
+                        logo: logos["game-" + i] || "" })
         }
         return list
     }

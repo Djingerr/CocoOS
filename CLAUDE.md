@@ -193,6 +193,10 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     active (`HomeScreen.activeThumbRect`, sa jaquette) et grandit jusqu'au plein écran en 620 ms
     (easeQuint) pendant que l'illustration la remplace en fondu. Reprise depuis le menu Home ou
     démo du prototype : le fondu d'origine.
+  - **Logo du jeu** à la place du titre : média `logo` du Companion (PNG d'« Extra Metadata
+    Loader », côté HostCompanion), mis en cache comme les fonds (`games()[i].logo`) ; le héros
+    l'affiche une fois chargé (deux lignes de titre de haut au plus), le titre en texte sinon.
+    ⚠️ Côté host, écrit mais pas compilé (pas de .NET sur le laptop).
   - **Démarrage** : `BootSplash` (mot-symbole « Coco**OS** » sur noir, 1,1 s puis fondu pendant
     que l'accueil entre) et le thème Plymouth au même dessin dans `deploy/plymouth/` (logo
     généré par `make-logo.py`, notice d'installation et ligne de commande du noyau). ⚠️ Thème

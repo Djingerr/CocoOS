@@ -104,7 +104,7 @@ void CompanionClient::loadPersisted()
             const QJsonObject saved = QJsonDocument::fromJson(file.readAll()).object();
             m_libraryGames = saved.value(QStringLiteral("games")).toArray();
             m_libraryEtag = saved.value(QStringLiteral("etag")).toString();
-            cacheBackgrounds();
+            cacheMedia();
         }
     }
 }
@@ -409,7 +409,7 @@ void CompanionClient::refreshLibrary()
             file.commit();
         }
 
-        cacheBackgrounds();
+        cacheMedia();
         emit libraryChanged();
         qInfo() << "CompanionClient: library updated," << m_libraryGames.size() << "games";
     });
@@ -420,59 +420,70 @@ QVariantList CompanionClient::games() const
     QVariantList list;
     for (const QJsonValue& v : m_libraryGames) {
         QVariantMap game = v.toObject().toVariantMap();
-        game.insert(QStringLiteral("background"),
-                    m_backgrounds.value(game.value(QStringLiteral("id")).toString()));
+        const QString id = game.value(QStringLiteral("id")).toString();
+        game.insert(QStringLiteral("background"), m_media.value(QStringLiteral("bg:") + id));
+        game.insert(QStringLiteral("logo"), m_media.value(QStringLiteral("logo:") + id));
         list.append(game);
     }
     return list;
 }
 
-// Images de fond 16:9 : recense celles déjà en cache et télécharge celles des jeux
-// installés (ceux qu'on peut lancer) qui manquent. Le chemin de l'image côté PC
-// entre dans le nom du fichier : quand Playnite la change, elle est retéléchargée.
+// Images de fond 16:9 (`bg`) et logos (`logo`) : recense ceux déjà en cache et
+// télécharge ceux des jeux installés (ceux qu'on peut lancer) qui manquent. Le chemin
+// de l'image côté PC entre dans le nom du fichier : quand Playnite la change, elle est
+// retéléchargée.
 // ponytail: le cache ne fait que grandir (une image par jeu et par version) ;
 // purger les fichiers inconnus de la bibliothèque s'il pèse trop sur l'eMMC.
-void CompanionClient::cacheBackgrounds()
+void CompanionClient::cacheMedia()
 {
-    m_backgrounds.clear();
+    // Média → champ de GameInfo qui dit s'il existe sur le PC (et où).
+    static const QList<QPair<QString, QString>> kinds = {
+        { QStringLiteral("bg"), QStringLiteral("backgroundPath") },
+        { QStringLiteral("logo"), QStringLiteral("logoPath") },
+    };
+    m_media.clear();
     for (const QJsonValue& v : m_libraryGames) {
         const QJsonObject game = v.toObject();
         const QString id = game.value(QStringLiteral("id")).toString();
-        const QString hostPath = game.value(QStringLiteral("backgroundPath")).toString();
-        if (id.isEmpty() || hostPath.isEmpty()) {
-            continue;
-        }
-        const QString file = m_cacheDir + QStringLiteral("/bg-") + QString::fromLatin1(
-            QCryptographicHash::hash((id + QLatin1Char('\n') + hostPath).toUtf8(),
-                                     QCryptographicHash::Sha1).toHex());
-        if (QFile::exists(file)) {
-            m_backgrounds.insert(id, QUrl::fromLocalFile(file).toString());
-            continue;
-        }
-        if (!game.value(QStringLiteral("isInstalled")).toBool() || m_backgroundRequests.contains(file)
-                || m_hostAddress.isNull() || m_token.isEmpty()) {
-            continue;
-        }
+        for (const auto& kind : kinds) {
+            const QString hostPath = game.value(kind.second).toString();
+            if (id.isEmpty() || hostPath.isEmpty()) {
+                continue;
+            }
+            const QString key = kind.first + QLatin1Char(':') + id;
+            const QString file = m_cacheDir + QLatin1Char('/') + kind.first + QLatin1Char('-') + QString::fromLatin1(
+                QCryptographicHash::hash((id + QLatin1Char('\n') + hostPath).toUtf8(),
+                                         QCryptographicHash::Sha1).toHex());
+            if (QFile::exists(file)) {
+                m_media.insert(key, QUrl::fromLocalFile(file).toString());
+                continue;
+            }
+            if (!game.value(QStringLiteral("isInstalled")).toBool() || m_mediaRequests.contains(file)
+                    || m_hostAddress.isNull() || m_token.isEmpty()) {
+                continue;
+            }
 
-        m_backgroundRequests.insert(file);
-        QNetworkReply* reply = m_nam->get(authedRequest(QStringLiteral("/v1/media/") + id + QStringLiteral("/bg")));
-        connect(reply, &QNetworkReply::finished, this, [this, reply, id, file]() {
-            reply->deleteLater();
-            // Échec : on réessaiera au prochain rafraîchissement de la bibliothèque.
-            m_backgroundRequests.remove(file);
-            if (reply->error() != QNetworkReply::NoError) {
-                qWarning() << "CompanionClient: background of" << id << "failed:" << reply->errorString();
-                return;
-            }
-            QDir().mkpath(m_cacheDir);
-            QSaveFile out(file);
-            if (!out.open(QIODevice::WriteOnly) || out.write(reply->readAll()) < 0 || !out.commit()) {
-                qWarning() << "CompanionClient: cannot write" << file;
-                return;
-            }
-            m_backgrounds.insert(id, QUrl::fromLocalFile(file).toString());
-            emit libraryChanged();
-        });
+            m_mediaRequests.insert(file);
+            QNetworkReply* reply = m_nam->get(authedRequest(QStringLiteral("/v1/media/") + id
+                                                            + QLatin1Char('/') + kind.first));
+            connect(reply, &QNetworkReply::finished, this, [this, reply, key, file]() {
+                reply->deleteLater();
+                // Échec : on réessaiera au prochain rafraîchissement de la bibliothèque.
+                m_mediaRequests.remove(file);
+                if (reply->error() != QNetworkReply::NoError) {
+                    qWarning() << "CompanionClient:" << key << "failed:" << reply->errorString();
+                    return;
+                }
+                QDir().mkpath(m_cacheDir);
+                QSaveFile out(file);
+                if (!out.open(QIODevice::WriteOnly) || out.write(reply->readAll()) < 0 || !out.commit()) {
+                    qWarning() << "CompanionClient: cannot write" << file;
+                    return;
+                }
+                m_media.insert(key, QUrl::fromLocalFile(file).toString());
+                emit libraryChanged();
+            });
+        }
     }
 }
 

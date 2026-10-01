@@ -1058,6 +1058,7 @@ FocusScope {
         model: shelfModel
         ready: shelfModel.count > 0
         title: app ? app.name : ""
+        logo: info && info.logo ? info.logo : ""
         running: app ? app.running : false
         favorite: app ? home.favoriteNames().indexOf(app.name) >= 0 : false
         source: info ? Format.sourceName(info.source) : ""

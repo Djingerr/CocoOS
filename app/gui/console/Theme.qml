@@ -137,6 +137,10 @@ QtObject {
     readonly property int heroTitleTopMargin: 12
     readonly property int heroTitlePadBottom: 6
     readonly property int heroTitleResize: 460       // easeQuint, quand le nombre de lignes change
+    // Logo du jeu (Companion) à la place du titre : au plus deux lignes de haut.
+    readonly property int heroLogoLines: 2
+    readonly property int heroLogoMaxWidth: 460
+    readonly property int heroLogoFade: 260
     // Sous-titre : temps de jeu, puis mise à jour éventuelle
     readonly property color heroSubColor: Qt.rgba(1, 1, 1, 0.76)
     readonly property int heroSubSize: 15            // Sora 400

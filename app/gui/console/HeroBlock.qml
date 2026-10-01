@@ -9,6 +9,7 @@ Item {
     id: root
 
     property string title
+    property url logo                // logo du jeu (Companion) ; vide = le titre en texte
     property string source           // « Steam », « GOG »… ; vide = masqué
     property string lastPlayed       // « Hier, 23:40 » ; vide = masqué
     property string playtime         // « 412 h de jeu » ; vide = masqué
@@ -78,23 +79,43 @@ Item {
         MetaLine {}
     }
 
-    // --- Titre ---
+    // --- Titre : le logo du jeu s'il en a un (une fois chargé), sinon son nom ---
     component TitleLines: Item {
         id: lines
-        property string value
-        readonly property int lineCount: Math.max(1, label.lineCount)
+        property var value: ({})
+        readonly property bool showLogo: logoImage.status === Image.Ready
+        readonly property int lineCount: showLogo ? Theme.heroLogoLines : Math.max(1, label.lineCount)
 
         width: Theme.heroWidth
         height: root.titleHeight(lineCount)
 
+        Image {
+            id: logoImage
+            anchors.left: parent.left
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: Theme.heroTitlePadBottom
+            width: Theme.heroLogoMaxWidth
+            height: root.titleHeight(Theme.heroLogoLines) - Theme.heroTitlePadBottom
+            source: lines.value.logo || ""
+            fillMode: Image.PreserveAspectFit
+            horizontalAlignment: Image.AlignLeft
+            verticalAlignment: Image.AlignBottom
+            asynchronous: true
+            sourceSize.width: Math.ceil(width * Theme.scale)
+            opacity: lines.showLogo ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Theme.heroLogoFade } }
+        }
+
         FontMetrics { id: metrics; font: label.font }
         Text {
             id: label
+            opacity: lines.showLogo ? 0 : 1
+            Behavior on opacity { NumberAnimation { duration: Theme.heroLogoFade } }
             // L'interligne (1.04) est plus serré que la hauteur naturelle de la
             // police : on remonte le texte de la moitié de l'écart, comme en CSS.
             y: (Theme.heroTitleLineHeight - metrics.height) / 2
             width: parent.width
-            text: lines.value
+            text: lines.value.title || ""
             color: Theme.ink
             wrapMode: Text.WordWrap
             maximumLineCount: Theme.heroTitleMaxLines
@@ -117,7 +138,7 @@ Item {
             NumberAnimation { duration: Theme.heroTitleResize; easing.type: Theme.easeQuint }
         }
         key: root.title
-        value: root.title
+        value: ({ title: root.title, logo: root.logo.toString() })
         direction: root.direction
         animated: root.animated
         duration: Theme.heroTitleSwap; delay: Theme.heroTitleSwapDelay

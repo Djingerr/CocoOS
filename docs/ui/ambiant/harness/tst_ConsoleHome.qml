@@ -268,6 +268,25 @@ Item {
             CompanionClient.libraryChanged()
         }
 
+        // Un logo dans la bibliothèque du Companion : il remplace le titre en texte.
+        function test_9a_companionLogoReplacesTheTitle() {
+            CompanionClient.logos = { "game-1": Qt.resolvedUrl("art/logo-elden.png").toString() }
+            CompanionClient.libraryChanged()
+            compare(screen.logo.toString(), "")            // Minecraft : pas de logo
+            keyClick(Qt.Key_Right)                          // Elden Ring
+            verify(screen.logo.toString().endsWith("art/logo-elden.png"))
+            var lines = find(screen, "showLogo")
+            tryVerify(function() {
+                for (var i = 0; i < lines.parent.children.length; i++) {
+                    var c = lines.parent.children[i]
+                    if (c.showLogo && c.value.title === "Elden Ring") return true
+                }
+                return false
+            }, 2000)
+            CompanionClient.logos = {}
+            CompanionClient.libraryChanged()
+        }
+
         function test_9b_soundsSetting() {
             keyClick(Qt.Key_Hangup)
             keyClick(Qt.Key_PageDown)                       // onglet Console (R1)

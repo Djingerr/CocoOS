@@ -1,5 +1,6 @@
 import QtQuick
 import InputStatus 1.0
+import CompanionClient 1.0
 import WifiSetup 1.0
 import "../../../../app/gui/console"
 
@@ -19,6 +20,7 @@ import "../../../../app/gui/console"
 //   offline=1  le PC est hors ligne (la console tente de le réveiller)
 //   nogames=1  aucun jeu : l'écran de recherche
 //   running    nom du jeu en cours sur le PC
+//   logos=1    un logo pour Elden Ring (art/logo-elden.png), comme le Companion en sert
 //   setup=1    premier démarrage (bienvenue)
 //   nonet=1    la console n'est pas en ligne (premier démarrage : le choix du réseau)
 Item {
@@ -38,6 +40,10 @@ Item {
         Component.onCompleted: {
             setupDone = demo.args.setup !== "1"
             if (demo.args.nonet === "1") WifiSetup.online = false
+            if (demo.args.logos === "1") {
+                CompanionClient.logos = { "game-1": Qt.resolvedUrl("art/logo-elden.png").toString() }
+                CompanionClient.libraryChanged()
+            }
         }
     }
 
