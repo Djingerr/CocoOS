@@ -320,6 +320,9 @@ Fichiers (dans `app/gui/console/`) :
   le prototype fait foi), pilotée par un temps `t` avancé par `FrameAnimation` ; A accélère ×4
 - `BootTimeline.js` — port pur du JavaScript du prototype de démarrage (easings, ressorts,
   chargeur, sortie), testé contre des valeurs tirées du prototype lui-même
+- `shaders/` — `ConicMask.frag` (tracé du O, chargeur) et `EllipseMask.frag` (lettres qui sortent
+  de derrière le O) ; les `.qsb` embarqués se régénèrent avec `shaders/build-shaders.sh` (qsb :
+  SPIR-V + GLSL 100 es / 120 / 150 / 300 es, ces deux derniers pour la Mali)
 - `Logotype.qml` — le logotype « CocoOS » lettre par lettre (Sora Bold), géométrie du prototype
   de `docs/boot-animation/` ; sert à la barre haute (réduit) et à l'animation de démarrage
 - `icons/` — icônes SVG (punaise des favoris)

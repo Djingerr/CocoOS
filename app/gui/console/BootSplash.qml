@@ -101,38 +101,100 @@ FocusScope {
     Rectangle { anchors.fill: parent; color: Theme.background }
 
     // --- Le logo : lettres et O, état tiré de la chronologie ---
-    Logotype {
-        id: logo
-        fontSize: Theme.logoSize * root.k
-        width: implicitWidth; height: implicitHeight
-        // Centré sur l'écran ; origine calée au pixel.
-        x: Math.round((root.width - geo.w) / 2)
-        y: Math.round((root.height - height) / 2)
+    // Les lettres sortent de derrière la silhouette du O : masque elliptique, le temps
+    // du déploiement seulement, posé sur un cadre plus grand que le logo (les lettres
+    // et leurs ressorts débordent un peu de son rectangle).
+    Item {
+        id: maskFrame
+        readonly property real margin: Math.ceil(0.2 * logo.geo.w)
+        x: logo.screenX - margin; y: logo.screenY - margin
+        width: logo.width + 2 * margin; height: logo.height + 2 * margin
 
-        readonly property real cx: root.width / 2 - x            // centre de l'écran, repère du logo
-        readonly property var oState: Boot.oState(root.t, cx, geo.ocx)
+        layer.enabled: root.t >= Boot.release && root.t < Boot.revealEnd
+        layer.effect: ShaderEffect {
+            readonly property size itemSize: Qt.size(maskFrame.width, maskFrame.height)
+            readonly property point ellipseCenter: Qt.point(logo.oState.x + maskFrame.margin,
+                                                            logo.geo.ocy + maskFrame.margin)
+            readonly property size ellipseRadii: Qt.size(logo.geo.rxo * logo.oState.s * 0.97,
+                                                         logo.geo.ryo * logo.oState.s * 0.97)
+            fragmentShader: "shaders/EllipseMask.frag.qsb"
+        }
 
-        oShift: oState.x - geo.ocx
-        oScale: oState.s
-        oVisible: root.t >= Boot.T.drawStart
-        // ponytail: le tracé conique du O (ConicMask) arrive à l'étape 3 ; d'ici là, un fondu.
-        opacity: 1
-        oColor: { var c = Boot.oColor(root.t); return Qt.rgba(c[0], c[1], c[2], root.t < Boot.drawEnd ? Boot.draw(root.t).len : 1) }
+        Logotype {
+            id: logo
+            fontSize: Theme.logoSize * root.k
+            width: implicitWidth; height: implicitHeight
+            // Centré sur l'écran ; origine calée au pixel (repère : le cadre du masque).
+            readonly property real screenX: Math.round((root.width - geo.w) / 2)
+            readonly property real screenY: Math.round((root.height - height) / 2)
+            x: maskFrame.margin
+            y: maskFrame.margin
 
-        letters: {
-            var t = root.t
-            if (t >= Boot.revealEnd) {
-                // Au repos : chaque lettre calée au pixel.
-                var rest = geo.xs.concat([geo.xS])
-                return rest.map(function(x) { return { x: Math.round(x), lum: 1, shown: true } })
+            readonly property real cx: root.width / 2 - screenX      // centre de l'écran, repère du logo
+            readonly property var oState: Boot.oState(root.t, cx, geo.ocx)
+
+            // Jusqu'au repos, le O est celui de `drawnO`, dessiné à part (tracé, élan, ressort).
+            oVisible: root.t >= Boot.revealEnd
+            oColor: Theme.accent
+
+            letters: {
+                var t = root.t
+                if (t >= Boot.revealEnd) {
+                    // Au repos : chaque lettre calée au pixel.
+                    var rest = geo.xs.concat([geo.xS])
+                    return rest.map(function(x) { return { x: Math.round(x), lum: 1, shown: true } })
+                }
+                var out = []
+                for (var i = 0; i < 5; i++) {
+                    var fx = i < 4 ? geo.xs[i] : geo.xS
+                    var l = Boot.letter(t, i, oState.x, fx, geo.widths[i])
+                    out.push({ x: l.x, lum: l.lum, shown: t >= Boot.release && l.shown })
+                }
+                return out
             }
-            var out = []
-            for (var i = 0; i < 5; i++) {
-                var fx = i < 4 ? geo.xs[i] : geo.xS
-                var l = Boot.letter(t, i, oState.x, fx, geo.widths[i])
-                out.push({ x: l.x, lum: l.lum, shown: t >= Boot.release && l.shown })
-            }
-            return out
+        }
+    }
+
+    // --- Le O, de son tracé à sa place ---
+    // Rendu à sa taille maximale (celle du tracé, ×1,25) puis réduit : jamais agrandi,
+    // donc net. Le masque conique ne sert que pendant le tracé, à l'échelle 1.
+    Text {
+        id: drawnO
+        readonly property real fullScale: Boot.T.oScale
+        // Centre du glyphe dans l'élément.
+        readonly property var tight: { Theme.fontsReady; bigMetrics.font; return bigMetrics.tightBoundingRect("O") }
+        readonly property real localCx: tight.x + tight.width / 2
+        readonly property real localCy: baselineOffset + tight.y + tight.height / 2
+        readonly property var path: Boot.draw(root.t)
+
+        visible: root.t >= Boot.T.drawStart && root.t < Boot.revealEnd
+        text: "O"
+        font: bigMetrics.font
+        color: { var c = Boot.oColor(root.t); return Qt.rgba(c[0], c[1], c[2], 1) }
+        x: logo.screenX + logo.oState.x - localCx
+        y: logo.screenY + logo.geo.ocy - localCy
+        transform: Scale {
+            origin.x: drawnO.localCx; origin.y: drawnO.localCy
+            xScale: logo.oState.s / drawnO.fullScale; yScale: xScale
+        }
+
+        layer.enabled: visible && root.t < Boot.drawEnd
+        layer.effect: ShaderEffect {
+            readonly property point center: Qt.point(drawnO.localCx / drawnO.width, drawnO.localCy / drawnO.height)
+            readonly property size itemSize: Qt.size(drawnO.width, drawnO.height)
+            readonly property real startAngle: drawnO.path.a0
+            readonly property real len: drawnO.path.len
+            readonly property real featherHead: 0.035
+            readonly property real featherTail: 0
+            fragmentShader: "shaders/ConicMask.frag.qsb"
+        }
+
+        FontMetrics {
+            id: bigMetrics
+            font.family: Theme.fontUi
+            font.weight: Font.Bold
+            font.pixelSize: Theme.logoSize * root.k * Boot.T.oScale
+            font.hintingPreference: Font.PreferNoHinting
         }
     }
 }
