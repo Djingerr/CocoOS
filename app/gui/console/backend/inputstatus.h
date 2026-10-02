@@ -10,13 +10,14 @@
 //     traduit en aucune touche, on lit donc leur état dans SDL (que cette navigation
 //     met à jour toutes les 50 ms). Pendant un flux, Qt est suspendu : rien n'est lu ici ;
 //   - manette branchée : sa famille (disposition des boutons) et sa batterie ;
-//   - retour d'un jeu par le bouton Home : la session (gamepad.cpp, build console)
-//     le signale ici, l'accueil le lit au retour (takeHomeExit).
+//   - menu en jeu (StreamMenu) : l'accueil le prépare avant chaque flux et lit au
+//     retour l'action qui a fait quitter le jeu.
 // Rien n'est ouvert ni modifié côté SDL : on lit l'état des manettes que
 // SdlGamepadKeyNavigation a déjà ouvertes.
 
 #include <QObject>
 #include <QString>
+#include <QStringList>
 #include <QTimer>
 
 class InputStatus : public QObject
@@ -36,10 +37,12 @@ public:
     QString layout() const { return m_layout; }
     int controllerBattery() const { return m_controllerBattery; }
 
-    // Appelé par la session de jeu quand le bouton Home la quitte (le jeu continue
-    // sur le PC). takeHomeExit() le dit une fois, puis l'oublie.
-    static void noteHomeExit();
-    Q_INVOKABLE bool takeHomeExit();
+    // Menu en jeu (StreamMenu) : le nom du jeu, les actions d'alimentation et les
+    // glyphes à montrer, avant chaque flux ; au retour, l'action choisie ("home",
+    // "quit", "suspend", "reboot", "poweroff"), vide si le flux s'est fini autrement.
+    Q_INVOKABLE void prepareStreamMenu(const QString& game, const QStringList& powerActions,
+                                       const QString& buttonLayout);
+    Q_INVOKABLE QString takeStreamExit();
 
     // Correspondances SDL → UI (statiques pour être vérifiables seules).
     static QString layoutForType(int sdlControllerType);

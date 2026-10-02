@@ -1,8 +1,7 @@
 #include "inputstatus.h"
+#include "streammenu.h"
 
 #include "SDL_compat.h"
-
-#include <atomic>
 
 #include <QCoreApplication>
 #include <QDateTime>
@@ -14,18 +13,17 @@ const int HOME_POLL_MS = 50;              // le rythme de SdlGamepadKeyNavigatio
 const int CONTROLLERS_POLL_MS = 2000;
 const qint64 ACTIVITY_THROTTLE_MS = 500;
 
-std::atomic<bool> s_homeExit { false };
-
 }
 
-void InputStatus::noteHomeExit()
+void InputStatus::prepareStreamMenu(const QString& game, const QStringList& powerActions,
+                                    const QString& buttonLayout)
 {
-    s_homeExit = true;
+    StreamMenu::prepare(game, powerActions, buttonLayout);
 }
 
-bool InputStatus::takeHomeExit()
+QString InputStatus::takeStreamExit()
 {
-    return s_homeExit.exchange(false);
+    return StreamMenu::takeExit();
 }
 
 InputStatus::InputStatus(QObject* parent)

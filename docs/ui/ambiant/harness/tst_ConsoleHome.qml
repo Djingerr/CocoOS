@@ -190,6 +190,7 @@ Item {
             verify(!launchScreen.frozen)
             verify(launchScreen.stepProgress > 0)
 
+            compare(InputStatus.streamMenu, ["Minecraft", SystemStatus.powerActions, "xbox"])   // le menu en jeu
             session.connectionStarted()             // le flux est à l'écran
             verify(!launchScreen.active)
             session.sessionFinished(0)              // fin du jeu : l'accueil revient
@@ -426,24 +427,29 @@ Item {
             compare(screen.currentIndex, 1)               // la manette est revenue à l'étagère
         }
 
-        // Revenu d'un jeu par le bouton Home : il tourne encore, le menu propose de le
-        // reprendre ou de le quitter.
-        function test_9j_leavingAGameWithHomeOffersToResume() {
+        // Quitté par le menu en jeu : « Quitter » ferme le jeu sur le PC, « Retour à
+        // l'accueil » ne fait rien de plus, une action d'alimentation part aussitôt
+        // (déjà confirmée dans le menu).
+        function test_9j_leavingAGameFromTheInGameMenu() {
             var apps = home.appModel
             apps.runningName = "Hades II"
-            InputStatus.homeExit = true
+            var quits = apps.quits
+            InputStatus.streamExit = "quit"
             home.streamStarted = true
             home.returnedHome()
-            var menu = dialog("Menu")
-            verify(menu)
-            compare(menu.labels[0], "Reprendre Hades II")
-            compare(menu.message, "Hades II est en cours sur Djinger.")
-            InputStatus.homePressed()                     // encore enfoncé au retour : ignoré
-            verify(menu.opened)
-            var quits = apps.quits
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)    // « Quitter Hades II »
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)    // confirmé
             compare(apps.quits, quits + 1)
+
+            InputStatus.streamExit = "home"
+            home.streamStarted = true
+            home.returnedHome()
+            compare(apps.quits, quits + 1)
+            verify(!dialog("Menu"))
+
+            SystemStatus.lastPower = ""
+            InputStatus.streamExit = "suspend"
+            home.streamStarted = true
+            home.returnedHome()
+            compare(SystemStatus.lastPower, "suspend")
             apps.runningName = ""
             home.homeGuardUntil = 0
         }

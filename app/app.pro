@@ -442,6 +442,9 @@ embedded {
     HEADERS += gui/console/backend/wifisetup.h
     SOURCES += gui/console/backend/ambientcolor.cpp
     HEADERS += gui/console/backend/ambientcolor.h
+    # Menu en jeu (bouton Home), dessine sur l'overlay de Moonlight.
+    SOURCES += gui/console/backend/streammenu.cpp gui/console/backend/streampainter.cpp
+    HEADERS += gui/console/backend/streammenu.h gui/console/backend/streampainter.h
 }
 glslow {
     message(GL slow build)

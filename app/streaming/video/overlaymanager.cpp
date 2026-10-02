@@ -122,6 +122,14 @@ void OverlayManager::notifyOverlayUpdated(OverlayType type)
         return;
     }
 
+#ifdef CONSOLE_UI
+    // Console: the debug overlay shows StreamMenu's images (setOverlaySurface),
+    // never the stock text.
+    if (type == OverlayDebug) {
+        return;
+    }
+#endif
+
     // Construct the required font to render the overlay
     if (m_Overlays[type].font == nullptr) {
         if (m_FontData.isEmpty()) {
@@ -209,3 +217,20 @@ SDL_Surface* OverlayManager::RenderTextOutlinedWrapped(TTF_Font* font, const cha
 }
 
 
+
+#ifdef CONSOLE_UI
+void OverlayManager::setOverlaySurface(OverlayType type, SDL_Surface* surface)
+{
+    m_Overlays[type].enabled = surface != nullptr;
+
+    SDL_Surface* oldSurface = (SDL_Surface*)SDL_AtomicSetPtr((void**)&m_Overlays[type].surface, surface);
+
+    if (m_Renderer != nullptr) {
+        m_Renderer->notifyOverlayUpdated(type);
+    }
+
+    if (oldSurface != nullptr) {
+        SDL_FreeSurface(oldSurface);
+    }
+}
+#endif

@@ -136,10 +136,13 @@ FocusScope {
         homeScreen.forceActiveFocus()
         homeScreen.wake()
         rearmSleep()
-        // Revenu du jeu par le bouton Home : le jeu tourne encore, le menu propose
-        // de le reprendre ou de le quitter.
-        if (InputStatus.takeHomeExit() && fromGame)
-            openHomeMenu()
+        // Quitté par le menu en jeu (StreamMenu) : la suite de l'action choisie
+        // (« Retour à l'accueil » : rien de plus, le jeu tourne encore).
+        var exit = InputStatus.takeStreamExit()
+        if (fromGame && exit === "quit")
+            quitRunningGame()
+        else if (fromGame && SystemStatus.powerActions.indexOf(exit) >= 0)
+            SystemStatus.power(exit)
     }
 
     function hideUpstreamChrome() {
@@ -806,6 +809,7 @@ FocusScope {
         if (item)
             applyGameProfile(item.name)     // (remis par endLaunch)
         var session = appModel.createSessionForApp(index)
+        prepareStreamMenu(item ? item.name : "")
         if (item)
             markPlayed(item.name)
 
@@ -838,6 +842,11 @@ FocusScope {
         }))
     }
 
+    // Le menu en jeu (bouton Home pendant le flux) : son titre, ses actions, ses glyphes.
+    function prepareStreamMenu(game) {
+        InputStatus.prepareStreamMenu(game, SystemStatus.powerActions, Theme.buttonLayout)
+    }
+
     // Retour à l'accueil : fin du jeu, échec, annulation.
     function endLaunch() {
         restoreCommonSettings()
@@ -859,6 +868,7 @@ FocusScope {
             markPlayed(item.name)
             applyGameProfile(item.name)     // (remis au retour sur l'accueil)
         }
+        prepareStreamMenu(item ? item.name : "")
         var component = Qt.createComponent("qrc:/gui/QuitSegue.qml")
         stackView.push(component.createObject(stackView, {
             "appName": appModel.getRunningAppName(),

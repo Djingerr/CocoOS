@@ -39,6 +39,12 @@ public:
 
     void setOverlayRenderer(IOverlayRenderer* renderer);
 
+#ifdef CONSOLE_UI
+    // Console (StreamMenu): a ready-made image instead of the debug text; nullptr
+    // removes the overlay. Takes ownership of the surface.
+    void setOverlaySurface(OverlayType type, SDL_Surface* surface);
+#endif
+
 private:
     void notifyOverlayUpdated(OverlayType type);
     SDL_Surface* RenderTextOutlinedWrapped(TTF_Font* font, const char* text, SDL_Color textColor, SDL_Color outlineColor, int outlineWidth, int wrapWidth);

@@ -8,7 +8,7 @@
 #include <QtMath>
 
 #ifdef CONSOLE_UI
-#include "gui/console/backend/inputstatus.h"
+#include "gui/console/backend/streammenu.h"
 #endif
 
 // How long the Start button must be pressed to toggle mouse emulation
@@ -221,6 +221,14 @@ void SdlInputHandler::handleControllerAxisEvent(SDL_ControllerAxisEvent* event)
         return;
     }
 
+#ifdef CONSOLE_UI
+    // Console: the left stick also drives the in-game menu, nothing reaches the PC
+    if (StreamMenu::isOpen()) {
+        StreamMenu::onAxis(event->axis, event->value);
+        return;
+    }
+#endif
+
     // Batch all pending axis motion events for this gamepad to save CPU time
     SDL_Event nextEvent;
     bool dirty = false;
@@ -293,16 +301,23 @@ void SdlInputHandler::handleControllerButtonEvent(SDL_ControllerButtonEvent* eve
     }
 
 #ifdef CONSOLE_UI
-    // Console: Home goes back to the console home screen (the game keeps running
-    // on the PC) and is never sent to the PC. Select+Home stays the PS clickpad.
+    // Console: Home opens or closes the in-game menu (StreamMenu) and is never sent
+    // to the PC. Select+Home stays the PS clickpad. While the menu is open, the
+    // buttons drive it and the PC sees a released gamepad.
     if (event->button == SDL_CONTROLLER_BUTTON_GUIDE && !(state->buttons & BACK_FLAG)) {
         if (event->state == SDL_PRESSED) {
-            InputStatus::noteHomeExit();
-            SDL_Event quit;
-            quit.type = SDL_QUIT;
-            quit.quit.timestamp = SDL_GetTicks();
-            SDL_PushEvent(&quit);
+            if (!StreamMenu::isOpen()) {
+                state->buttons = 0;
+                state->lt = state->rt = 0;
+                state->lsX = state->lsY = state->rsX = state->rsY = 0;
+                sendGamepadState(state);
+            }
+            StreamMenu::toggle();
         }
+        return;
+    }
+    if (StreamMenu::isOpen()) {
+        StreamMenu::onButton(event->button, event->state == SDL_PRESSED);
         return;
     }
 #endif
