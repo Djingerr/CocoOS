@@ -105,7 +105,12 @@ int main(int argc, char* argv[])
         frame.backdrop = StreamPainter::blurred(game.scaled(game.size() / 8, Qt::IgnoreAspectRatio,
                                                             Qt::SmoothTransformation), screen);
     }
-    const QImage image = page == QLatin1String("stats") ? StreamPainter::paintStats(stats, number("opacity", 1), screen)
-                                                         : StreamPainter::paintFrame(frame, screen);
+    QImage image(screen, QImage::Format_ARGB32_Premultiplied);
+    if (page == QLatin1String("stats")) {
+        image = StreamPainter::paintStats(stats, number("opacity", 1), screen);
+    }
+    else {
+        StreamPainter::paintFrame(frame, image);
+    }
     return image.save(args[1]) ? 0 : 1;
 }

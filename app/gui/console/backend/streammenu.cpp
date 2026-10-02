@@ -41,6 +41,10 @@ const int PAGE_FADE = 260;          // liste ↔ confirmation, easeOut (à l'acc
 const int BLUR_FADE = 200;          // l'image floutée remplace le voile
 const int STATS_FADE = 220;         // Theme.toastFade
 const int FRAME_MS = 16;            // une image toutes les 16 ms pendant une animation
+// Moonlight ne compose l'overlay qu'en affichant une image du flux ; sur un écran
+// immobile, le PC n'en envoie presque plus. Sans image reçue depuis ce délai (un peu
+// plus qu'une image à 60 i/s), le décodeur réaffiche la dernière sous le menu.
+const Uint32 REPEAT_AFTER_MS = 20;
 
 // Sons de l'accueil (sounds/*.wav, 44,1 kHz mono 16 bits), joués par SDL :
 // QtMultimedia ne tourne pas pendant un flux.
@@ -111,6 +115,14 @@ StreamPainter::Page s_previous;         // la page qui s'efface
 int s_swapRow = -1;
 QString s_swapFrom;
 SDL_TimerID s_timer = 0;
+bool s_dirty = false;                   // une image est demandée (requestRender)
+
+// Dernière image décodée, gardée pendant que le menu est à l'écran pour être
+// réaffichée (frameToRepeat). Fil du décodeur seulement.
+AVFrame* s_lastFrame = nullptr;
+std::atomic<bool> s_keepFrames { false };
+std::atomic<bool> s_repeat { false };       // l'overlay a changé depuis la dernière image
+std::atomic<Uint32> s_lastFrameTicks { 0 };
 
 bool s_soundsOn = false;
 QHash<QString, QByteArray> s_sounds;    // échantillons, volume appliqué
@@ -352,51 +364,103 @@ SDL_Surface* toSurface(const QImage& image)
     return surface;
 }
 
-Uint32 tick(Uint32 interval, void* param);
-
-// Pose sur l'image du flux le menu (ouvert ou en train de se fermer), sinon les
-// statistiques, sinon rien ; lance le minuteur si une animation est en cours.
-// s_lock tenu.
-void render(Uint32 now)
+// Le menu dessiné directement dans la mémoire d'une surface SDL (ni conversion ni
+// copie d'une image entière : à 2560 × 1600, elle pèse 16 Mo).
+SDL_Surface* menuSurface(const StreamPainter::Frame& frame, QSize screen)
 {
-    Session* session = Session::get();
-    if (session == nullptr || session != s_session) {
-        return;
+    SDL_Surface* surface = SDL_CreateRGBSurfaceWithFormat(0, screen.width(), screen.height(), 32,
+                                                          SDL_PIXELFORMAT_ARGB8888);
+    if (surface == nullptr) {
+        return nullptr;
     }
-    if (!s_screen.isValid()) {
-        SDL_DisplayMode mode;   // pas encore de fenêtre connue : l'écran
-        if (SDL_GetCurrentDisplayMode(0, &mode) == 0) {
-            s_screen = QSize(mode.w, mode.h);
+    QImage image(static_cast<uchar*>(surface->pixels), surface->w, surface->h, surface->pitch,
+                 QImage::Format_ARGB32_Premultiplied);
+    if (!StreamPainter::paintFrame(frame, image)) {
+        // Transparente par endroits (fondus) : Moonlight attend un alpha non prémultiplié.
+        // La conversion de Qt est vectorisée ; si elle ne se fait pas sur place, on recopie.
+        image.convertTo(QImage::Format_ARGB32);
+        if (image.constBits() != surface->pixels) {
+            for (int y = 0; y < surface->h; y++) {
+                memcpy(static_cast<uchar*>(surface->pixels) + y * surface->pitch, image.constScanLine(y), surface->w * 4);
+            }
         }
     }
-    const bool menuShown = s_open || s_reveal.at(now) > 0 || s_veil.at(now) > 0;
-    const QImage image = menuShown ? StreamPainter::paintFrame(frame(now), s_screen)
-                                   : StreamPainter::paintStats(s_statsView, s_statsFade.at(now), s_screen);
-    session->getOverlayManager().setOverlaySurface(Overlay::OverlayDebug, toSurface(image));
-    if (s_timer == 0 && animating(now)) {
-        s_timer = SDL_AddTimer(FRAME_MS, tick, nullptr);
-    }
+    return surface;
 }
 
-// Minuteur SDL (son propre fil) : une image par tour tant qu'une animation court.
+// Minuteur SDL (son propre fil) : tout le dessin se fait ici, ni dans le fil de la
+// manette ni dans celui du décodeur, et hors du verrou (seules la photo de l'état et
+// la pose de l'image le prennent) ; une image par tour tant que quelque chose bouge.
 Uint32 tick(Uint32, void*)
 {
+    Uint32 now;
+    QSize screen;
+    bool menuShown;
+    StreamPainter::Frame view;
+    StreamPainter::Stats stats;
+    qreal statsOpacity;
+    {
+        QMutexLocker locker(&s_lock);
+        if (Session::get() == nullptr || Session::get() != s_session) {
+            s_timer = 0;
+            return 0;
+        }
+        now = SDL_GetTicks();
+        s_dirty = false;
+        if (!s_screen.isValid()) {
+            SDL_DisplayMode mode;   // pas encore de fenêtre connue : l'écran
+            if (SDL_GetCurrentDisplayMode(0, &mode) == 0) {
+                s_screen = QSize(mode.w, mode.h);
+            }
+        }
+        screen = s_screen;
+        menuShown = s_open || s_reveal.at(now) > 0 || s_veil.at(now) > 0;
+        if (menuShown) {
+            view = frame(now);
+        }
+        stats = s_statsView;
+        statsOpacity = s_statsFade.at(now);
+    }
+
+    // Le menu (ouvert ou en train de se fermer), sinon les statistiques, sinon rien.
+    SDL_Surface* surface = menuShown ? menuSurface(view, screen)
+                                     : toSurface(StreamPainter::paintStats(stats, statsOpacity, screen));
+
     QMutexLocker locker(&s_lock);
-    if (Session::get() == nullptr || Session::get() != s_session) {
+    Session* session = Session::get();
+    if (session == nullptr || session != s_session) {
+        SDL_FreeSurface(surface);
         s_timer = 0;
         return 0;
     }
-    const Uint32 now = SDL_GetTicks();
-    render(now);
-    if (animating(now)) {
+    session->getOverlayManager().setOverlaySurface(Overlay::OverlayDebug, surface);
+
+    // Si le PC n'envoie rien, le décodeur réaffiche la dernière image pour que
+    // l'overlay apparaisse (FFmpegVideoDecoder::decoderThreadProc, frameToRepeat).
+    s_keepFrames = surface != nullptr;
+    s_repeat = true;
+    if (SDL_GetTicks() - s_lastFrameTicks >= REPEAT_AFTER_MS) {
+        LiWakeWaitForVideoFrame();
+    }
+
+    if (animating(now) || s_dirty) {
         return FRAME_MS;
     }
     s_timer = 0;
-    if (!s_open) {   // menu refermé : le fond et la sortie son ne servent plus
-        s_backdrop = QImage();
+    if (!s_open && s_exit.isEmpty()) {   // menu refermé (pas quitté : son son finit) :
+        s_backdrop = QImage();              // le fond et la sortie son ne servent plus
         closeAudio();
     }
     return 0;
+}
+
+// Demande une image au minuteur. s_lock tenu.
+void requestRender()
+{
+    s_dirty = true;
+    if (s_timer == 0) {
+        s_timer = SDL_AddTimer(1, tick, nullptr);
+    }
 }
 
 // Le flux en cours ; un nouveau flux repart menu fermé. s_lock tenu.
@@ -432,7 +496,7 @@ void openMenu()
     s_swapRow = -1;
     resetHighlights(0);
     play("open");
-    render(now);
+    requestRender();
 }
 
 void closeMenu(bool sound = true)
@@ -446,7 +510,7 @@ void closeMenu(bool sound = true)
     if (sound) {
         play("close");
     }
-    render(now);
+    requestRender();
 }
 
 // Liste ↔ confirmation : l'ancienne page s'efface pendant que la nouvelle apparaît.
@@ -462,7 +526,7 @@ void switchPage(const QString& confirm, int focus)
     s_swap.set(1);
     s_swapRow = -1;
     resetHighlights(focus);
-    render(now);
+    requestRender();
 }
 
 // Quitte le flux ; l'accueil fera la suite (ConsoleHome.returnedHome). Le menu reste
@@ -492,7 +556,7 @@ void step(int direction)
     s_focus = next;
     s_focusY.go(next, SHEET_FOCUS_MOVE, now, QEasingCurve::OutCubic);
     play("move");
-    render(now);
+    requestRender();
 }
 
 void back()
@@ -523,7 +587,7 @@ void switchStats()
     else {
         s_statsFade.go(0, STATS_FADE, now);
     }
-    render(now);
+    requestRender();
 }
 
 void activate()
@@ -608,7 +672,7 @@ StreamPainter::Stats statsView(const VIDEO_STATS& stats, int videoFormat, int wi
 
     StreamPainter::Stats view;
     view.lines.append(tr("%1 × %2 · %3 i/s · %4 · %5 Mb/s").arg(width).arg(height)
-                          .arg(number(stats.renderedFps), codecName(videoFormat), number(megabitsPerSec)));
+                          .arg(number(stats.decodedFps), codecName(videoFormat), number(megabitsPerSec)));
     view.dotLine = 1;
     view.dot = StreamPainter::networkColor(stats.lastRtt, stats.lastRttVariance);
     view.lines.append(stats.lastRtt != 0 ? tr("Latence réseau %1 ms (± %2 ms)").arg(stats.lastRtt).arg(stats.lastRttVariance)
@@ -760,11 +824,19 @@ void StreamMenu::updateStats(const VIDEO_STATS& stats, int videoFormat, int widt
         s_statsFade.go(1, STATS_FADE, now);
     }
     s_statsView = view;
-    render(now);
+    requestRender();
 }
 
 void StreamMenu::offerFrame(const AVFrame* frame)
 {
+    // Cette image portera l'overlay en cours : rien à réafficher.
+    s_lastFrameTicks = SDL_GetTicks();
+    s_repeat = false;
+    av_frame_free(&s_lastFrame);
+    if (s_keepFrames) {
+        s_lastFrame = av_frame_clone(frame);
+    }
+
     if (!s_wantFrame || !s_wantFrame.exchange(false)) {
         return;
     }
@@ -788,6 +860,23 @@ void StreamMenu::offerFrame(const AVFrame* frame)
         if (s_blurMix.to < 1) {
             s_blurMix.go(1, BLUR_FADE, now);
         }
-        render(now);
+        requestRender();
     }
+}
+
+AVFrame* StreamMenu::frameToRepeat()
+{
+    if (!s_repeat.exchange(false) || s_lastFrame == nullptr) {
+        return nullptr;
+    }
+    AVFrame* copy = av_frame_clone(s_lastFrame);
+    if (copy != nullptr) {
+        copy->pkt_dts = LiGetMicroseconds();   // le Pacer y mesure l'attente de l'image
+    }
+    return copy;
+}
+
+void StreamMenu::releaseFrame()
+{
+    av_frame_free(&s_lastFrame);
 }

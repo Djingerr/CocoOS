@@ -7,6 +7,8 @@
 #include <QPainter>
 #include <QTextLayout>
 #include <QVector>
+
+#include <cstring>
 #include <QtMath>
 
 namespace {
@@ -402,20 +404,37 @@ void drawPage(QPainter& p, const StreamPainter::Page& page, const StreamPainter:
 
 }
 
-QImage StreamPainter::paintFrame(const Frame& frame, QSize screen)
+bool StreamPainter::paintFrame(const Frame& frame, QImage& image)
 {
-    QImage image = canvasImage(screen);
-    image.fill(Qt::transparent);
-    QPainter p(&image);
+    const QSize screen = image.size();
+    image.setDotsPerMeterX(2835);   // 72 ppp, comme canvasImage
+    image.setDotsPerMeterY(2835);
 
     // --- Fond : l'image du jeu floutée, ou un voile en attendant ---
-    if (frame.backdrop.size() == screen && frame.blurMix > 0 && frame.veil > 0) {
+    // Posée entièrement (presque tout le temps), elle est simplement recopiée : c'est
+    // le plus gros de l'image, inutile de la mélanger à quoi que ce soit.
+    const bool solid = frame.backdrop.size() == screen && frame.veil >= 1 && frame.blurMix >= 1;
+    if (solid) {
+        const QImage backdrop = frame.backdrop.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+        for (int y = 0; y < screen.height(); y++) {
+            memcpy(image.scanLine(y), backdrop.constScanLine(y), screen.width() * 4);
+        }
+    }
+    else if (frame.backdrop.size() != screen || frame.blurMix <= 0) {
+        image.fill(QColor(0, 0, 0, qRound(SHEET_DIM * 255 * frame.veil)));
+    }
+    QPainter p(&image);
+    if (!solid && frame.backdrop.size() == screen && frame.blurMix > 0) {
+        // En fondu : l'image floutée remplace ce qu'il y avait (une seule passe)…
+        p.setCompositionMode(QPainter::CompositionMode_Source);
         p.setOpacity(frame.veil * frame.blurMix);
         p.drawImage(0, 0, frame.backdrop);
+        p.setCompositionMode(QPainter::CompositionMode_SourceOver);
         p.setOpacity(1);
-    }
-    if (frame.blurMix < 1 && frame.veil > 0) {
-        p.fillRect(image.rect(), QColor(0, 0, 0, qRound(SHEET_DIM * 255 * frame.veil * (1 - frame.blurMix))));
+        // …et le voile qu'elle remplace s'efface par-dessus.
+        if (frame.blurMix < 1) {
+            p.fillRect(image.rect(), QColor(0, 0, 0, qRound(SHEET_DIM * 255 * frame.veil * (1 - frame.blurMix))));
+        }
     }
 
     beginCanvas(p, screen);
@@ -425,7 +444,7 @@ QImage StreamPainter::paintFrame(const Frame& frame, QSize screen)
     const qreal canvasWidth = screen.width() * CANVAS_HEIGHT / screen.height();
     const qreal panelX = canvasWidth - SHEET_WIDTH * frame.reveal + SHEET_WIDTH * SHEET_HIDDEN_SHIFT * (1 - frame.reveal);
     if (panelX >= canvasWidth) {
-        return image;
+        return solid;
     }
     p.fillRect(QRectF(panelX, 0, SHEET_WIDTH, CANVAS_HEIGHT), SHEET_FILL);
     p.fillRect(QRectF(panelX - 1, 0, 1, CANVAS_HEIGHT), SHEET_EDGE);
@@ -437,5 +456,5 @@ QImage StreamPainter::paintFrame(const Frame& frame, QSize screen)
     }
     drawPage(p, frame.page, frame, frame.focusY < 0 ? frame.page.focus : frame.focusY, frame.highlight,
              panelX, frame.pageMix < 1 ? qMax<qreal>(0, 2 * frame.pageMix - 1) : 1, true);
-    return image;
+    return solid;
 }

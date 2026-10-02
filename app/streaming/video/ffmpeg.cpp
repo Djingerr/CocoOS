@@ -1862,6 +1862,14 @@ void FFmpegVideoDecoder::decoderThreadProc()
             // Waiting for input. All output frames have been received.
             // Block until we receive a new frame from the host.
             if (!LiWaitForNextVideoFrame(&handle, &du)) {
+#ifdef CONSOLE_UI
+                // Console: StreamMenu woke us because its overlay changed while the
+                // host sends nothing (still picture): show the last frame again
+                if (AVFrame* again = StreamMenu::frameToRepeat()) {
+                    m_Pacer->submitFrame(again);
+                }
+#endif
+
                 // This might be a signal from the main thread to exit
                 continue;
             }
@@ -2100,6 +2108,11 @@ void FFmpegVideoDecoder::decoderThreadProc()
             }
         }
     }
+
+#ifdef CONSOLE_UI
+    // Console: StreamMenu's copy of the last frame must not outlive this decoder
+    StreamMenu::releaseFrame();
+#endif
 }
 
 int FFmpegVideoDecoder::submitDecodeUnit(PDECODE_UNIT du)

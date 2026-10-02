@@ -173,7 +173,12 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     surlignage glisse (220 ms), les libellés changent de couleur (160 ms), la valeur « Affichées /
     Masquées » glisse comme une `SwapBox`, la confirmation remplace la liste en fondu enchaîné,
     les statistiques apparaissent en fondu. Un minuteur SDL redessine l'overlay toutes les 16 ms,
-    seulement pendant une transition (≈ 7 ms par image en 1080p sur le laptop). Sons open / close /
+    seulement pendant une transition, hors du verrou et directement dans la surface SDL (à
+    2560 × 1600 sur le laptop : ≈ 6 ms image posée, 9 à 14 ms en fondu). **Piège** : Moonlight ne
+    compose un overlay qu'en affichant une image du flux, et le PC n'en envoie presque plus quand
+    son écran ne bouge pas (bureau : 18 i/s en moyenne) ; le menu ramait. Sans image reçue depuis
+    20 ms, le minuteur réveille donc le décodeur (`LiWakeWaitForVideoFrame`), qui réaffiche une
+    copie de la dernière image (`StreamMenu::frameToRepeat`). Sons open / close /
     move / edge / select / tick joués par SDL (QtMultimedia ne tourne pas pendant un flux), au
     volume de `Theme.soundVolume`, coupés avec le réglage « Sons ».
     ⚠️ Le menu a été vu dans un vrai flux par Marco, mais pas encore ses animations ni ses sons.
@@ -282,7 +287,8 @@ On veut pouvoir **suivre les commits du repo officiel de moonlight** sans douleu
   (`setOverlaySurface` : une image toute faite sur l'overlay de débogage, dont le texte
   d'origine est ignoré ; un verrou empêche le moteur de rendu de disparaître pendant qu'on le
   notifie depuis le minuteur d'animation), `streaming/video/ffmpeg.cpp` (chiffres du flux chaque seconde, image
-  décodée pour le flou). Ces coutures n'ajoutent que des lignes (sauf celle de Home, déjà là).
+  décodée pour le flou, réaffichage de la dernière image quand le menu change sur un écran
+  immobile, copie lâchée à l'arrêt du décodeur). Ces coutures n'ajoutent que des lignes (sauf celle de Home, déjà là).
 - **Surtout, ne pas toucher `app/gui/main.qml`.**
 - Git :
   - remote `upstream` = `https://github.com/moonlight-stream/moonlight-qt.git`

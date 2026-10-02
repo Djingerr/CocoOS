@@ -52,8 +52,11 @@ struct Frame {
     QString layout;                 // glyphes : "xbox", "playstation" ou "nintendo"
 };
 
-// Le menu plein écran : le fond, les statistiques, le panneau à droite.
-QImage paintFrame(const Frame& frame, QSize screen);
+// Le menu plein écran (le fond, les statistiques, le panneau à droite), dessiné dans
+// `image` (ARGB32 prémultiplié, à la taille de l'écran ; elle peut envelopper la
+// mémoire d'une surface SDL). Renvoie vrai si l'image est entièrement opaque : elle
+// n'a alors pas besoin d'être « dé-prémultipliée ».
+bool paintFrame(const Frame& frame, QImage& image);
 
 // Les statistiques seules, sur une image qui part du coin haut gauche de l'écran.
 QImage paintStats(const Stats& stats, qreal opacity, QSize screen);

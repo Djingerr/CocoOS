@@ -10,7 +10,9 @@
 // ouvert, lui donne les boutons : le PC voit une manette relâchée. ffmpeg.cpp lui
 // passe chaque seconde les chiffres du flux quand les statistiques sont affichées
 // (réglage ConsoleUi/streamStats, ligne du menu ou Select + L1 + R1 + X), et, à
-// l'ouverture du menu, une image décodée : le fond flouté, figé.
+// l'ouverture du menu, une image décodée : le fond flouté, figé. Quand l'écran du PC
+// ne bouge pas, le décodeur réaffiche la dernière image, sans quoi l'overlay ne
+// serait pas redessiné.
 // L'accueil le prépare avant chaque flux (InputStatus.prepareStreamMenu) et lit au
 // retour l'action qui a fait quitter le flux (InputStatus.takeStreamExit).
 
@@ -41,5 +43,10 @@ void toggleStats();
 bool wantsStats();
 void updateStats(const _VIDEO_STATS& stats, int videoFormat, int width, int height, double megabitsPerSec);
 void offerFrame(const AVFrame* frame);
+// Copie de la dernière image à réafficher pour que l'overlay apparaisse, si le menu a
+// changé depuis (le PC n'envoie pas d'image quand son écran ne bouge pas) ; nullptr
+// sinon. releaseFrame : le décodeur s'arrête, la copie gardée ne doit pas lui survivre.
+AVFrame* frameToRepeat();
+void releaseFrame();
 
 }
