@@ -247,20 +247,23 @@ QtObject {
     readonly property int heroSubSwap: 300
     readonly property int heroSubSwapDelay: 90
 
-    // --- Entrée de l'écran (une seule fois) : chaque bloc apparaît en cascade ---
+    // --- Réapparition d'un bloc (Appear), au retour d'un lancement ---
     readonly property int enterFade: 460             // opacité 0 → 1, linéaire
     readonly property int enterMove: 720             // glissement vers sa place, easeQuint
     readonly property int enterShift: 18             // décalage vertical de départ
-    readonly property int enterStagger: 60           // délai par rang :
-    readonly property int enterRankHero: 1           //   barre haute 0, héros 1,
-    readonly property int enterRankShelf: 2          //   vignettes 2 + index…
-    readonly property int enterRankShelfSpan: 5      //   …(au plus 5 rangs d'écart),
-    readonly property int enterRankUnderline: 3      //   soulignement 3
-    readonly property int enterSettle: 1300          // après quoi plus rien n'est décalé
-    // Le fond entre avec un léger zoom arrière et un fondu.
-    readonly property real backdropEnterZoom: 1.06
-    readonly property int backdropZoomDuration: 1100 // easeOut
-    readonly property int backdropEnterFade: 900
+
+    // --- Entrée de l'accueil, après l'animation de démarrage (BOOT_ANIMATION.md §7) ---
+    // Courbe « emphasized » du prototype de démarrage (E_EMPH), pour Easing.BezierSpline.
+    readonly property var curveEmph: [0.2, 0, 0, 1, 1, 1]
+    readonly property int entryTextFade: 350         // textes (barre haute, héros) : OutCubic
+    readonly property int entryLegendDelay: 300      // glyphes du héros (« légende ») : après…
+    readonly property int entryCardFade: 500         // vignettes : fondu + échelle, E_EMPH…
+    readonly property int entryCardDelay: 60         // …après ce délai…
+    readonly property int entryCardStagger: 45       // …décalées d'autant chacune…
+    readonly property int entryCardSpan: 6           // …(au plus 6 rangs d'écart)
+    readonly property real entryCardScale: 0.97      // …depuis cette échelle
+    readonly property int enterSettle: 1100          // après quoi plus rien n'est décalé
+    readonly property int backdropZoomDuration: 1100 // easeOut (lancement)
     readonly property point backdropZoomOrigin: Qt.point(0.62, 0.46)   // fraction de l'écran
     // La dérive du fond s'arrête après ce délai sans action (économie de batterie).
     readonly property int driftIdleTimeout: 10000
@@ -283,8 +286,7 @@ QtObject {
 
     // --- Veille de l'écran (SleepScreen, « .sleep » du prototype) ---
     readonly property int sleepMinutes: 5            // inactivité avant la veille, par défaut
-    readonly property int sleepFade: 520             // linéaire
-    readonly property int wakeFade: 320
+    readonly property int sleepFade: 520             // linéaire (le réveil est instantané : BootSplash, mode « wake »)
     readonly property int sleepTextDelay: 900        // la phrase apparaît…
     readonly property int sleepTextFade: 400
     readonly property int sleepTextHold: 8000        // …puis s'efface : noir complet (OLED)

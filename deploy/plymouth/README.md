@@ -1,8 +1,8 @@
 # Thème Plymouth « CocoOS »
 
-L'écran affiché pendant que Linux démarre : le mot-symbole CocoOS sur noir, sans
-texte ni barre. Il a le même dessin que l'écran de démarrage de l'interface
-(`app/gui/console/BootSplash.qml`), pour que le passage de l'un à l'autre ne se voie pas.
+L'écran affiché pendant que Linux démarre : du noir, sans texte ni barre. Le premier
+visuel est l'animation de démarrage de l'interface (`app/gui/console/BootSplash.qml`,
+le O de « OS » qui se trace), qui part elle aussi du noir : le passage ne se voit pas.
 
 À installer sur la console (Orange Pi), pas sur une machine de développement :
 
@@ -18,5 +18,3 @@ quiet splash loglevel=3 vt.global_cursor_default=0 systemd.show_status=false rd.
 ```
 
 Sur Armbian, l'ajouter à `extraargs=` dans `/boot/armbianEnv.txt`.
-
-Le logo (`cocoos/logo.png`) se régénère avec `./make-logo.py` (Python + Pillow).

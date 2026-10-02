@@ -18,8 +18,8 @@ FocusScope {
     property int currentIndex: 0
     // Sens du dernier déplacement (+1 vers la droite, -1 vers la gauche).
     property int direction: 1
-    // Apparition des vignettes et du soulignement (cf. Appear) : `enterStep` est le
-    // délai par rang de la cascade d'entrée (0 = tous ensemble).
+    // Apparition des vignettes et du soulignement (cf. Appear) : fondu et échelle,
+    // `enterStep` étant le délai par rang de l'entrée (0 = tous ensemble, sans délai).
     property bool shown: true
     property int enterStep: 0
     // Couleur du soulignement (la teinte ambiante, sinon l'accent).
@@ -157,7 +157,14 @@ FocusScope {
                 Appear {
                     anchors.fill: parent
                     shown: root.shown
-                    delay: root.enterStep * (Theme.enterRankShelf + Math.min(del.index, Theme.enterRankShelfSpan))
+                    delay: root.enterStep > 0 ? Theme.entryCardDelay + root.enterStep * Math.min(del.index, Theme.entryCardSpan) : 0
+                    hiddenY: 0
+                    hiddenScale: Theme.entryCardScale
+                    hideDuration: 0
+                    fadeDuration: Theme.entryCardFade
+                    moveDuration: Theme.entryCardFade
+                    fadeEasing: Easing.BezierSpline
+                    moveEasing: Easing.BezierSpline
                     // Hors cascade d'entrée, une vignette créée en défilant est là d'emblée.
                     animateInitially: root.enterStep > 0
 
@@ -256,7 +263,11 @@ FocusScope {
         width: Theme.shelfThumbSize.width * Theme.shelfActiveScale
         height: Theme.underlineHeight
         shown: root.shown
-        delay: root.enterStep * Theme.enterRankUnderline
+        delay: root.enterStep > 0 ? Theme.entryCardDelay : 0
+        hiddenY: 0
+        hideDuration: 0
+        fadeDuration: Theme.entryCardFade
+        fadeEasing: Easing.BezierSpline
 
         Rectangle { anchors.fill: parent; radius: Theme.underlineRadius; color: root.accentColor }
     }

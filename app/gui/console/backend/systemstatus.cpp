@@ -61,6 +61,8 @@ void SystemStatus::start()
     }
     m_started = true;
     m_timer.start(REFRESH_INTERVAL_MS);
+    QDBusConnection::systemBus().connect(LOGIN_SERVICE, LOGIN_PATH, LOGIN_MANAGER, QStringLiteral("PrepareForSleep"),
+                                         this, SLOT(onPrepareForSleep(bool)));
     m_powerActions = readPowerActions();
     refresh();
     emit changed();
@@ -350,4 +352,11 @@ int SystemStatus::jitter(const QList<int>& samples)
         total += qAbs(samples[i] - samples[i - 1]);
     }
     return qRound(double(total) / (samples.size() - 1));
+}
+
+void SystemStatus::onPrepareForSleep(bool start)
+{
+    if (!start) {
+        emit resumed();
+    }
 }

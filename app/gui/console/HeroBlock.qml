@@ -21,6 +21,8 @@ Item {
     property int direction: 1
     property bool animated: true
     property bool pressed: false     // le bouton Jouer s'enfonce (lancement)
+    // Glyphes (« légende manette ») : à l'entrée de l'accueil, ils apparaissent après le reste.
+    property bool actionsShown: true
 
     signal playRequested()
     signal optionsRequested()
@@ -202,6 +204,14 @@ Item {
         id: actions
         anchors.bottom: parent.bottom
         spacing: Theme.heroActionsGap
+        opacity: root.actionsShown ? 1 : 0
+        Behavior on opacity {
+            enabled: root.actionsShown
+            SequentialAnimation {
+                PauseAnimation { duration: Theme.entryLegendDelay }
+                NumberAnimation { duration: Theme.entryTextFade; easing.type: Easing.OutCubic }
+            }
+        }
 
         Rectangle {
             width: Theme.playPadLeft + playRow.width + Theme.playPadRight

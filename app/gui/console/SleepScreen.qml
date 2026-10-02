@@ -3,7 +3,9 @@ import QtQuick
 // Veille de l'écran (« .sleep » du prototype) : tout passe au noir, une phrase
 // discrète apparaît puis s'efface à son tour (dalle OLED : rien de fixe ne doit
 // rester allumé). Une touche ou un clic réveille ; cette première action n'atteint
-// pas l'écran du dessous. Aucune dépendance Moonlight.
+// pas l'écran du dessous. Au réveil, elle disparaît d'un coup : la sortie de veille
+// de l'animation de démarrage (noir, puis l'accueil qui rentre) prend le relais.
+// Aucune dépendance Moonlight.
 FocusScope {
     id: root
 
@@ -22,13 +24,12 @@ FocusScope {
         if (!asleep) return
         asleep = false
         hintIn.stop(); hintOut.stop()
-        Sounds.play("open")
         woke()
     }
 
     visible: opacity > 0
     opacity: asleep ? 1 : 0
-    Behavior on opacity { NumberAnimation { duration: root.asleep ? Theme.sleepFade : Theme.wakeFade } }
+    Behavior on opacity { NumberAnimation { duration: root.asleep ? Theme.sleepFade : 0 } }
 
     Rectangle { anchors.fill: parent; color: Theme.background }
 

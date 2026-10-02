@@ -6,6 +6,7 @@ import SystemStatus 1.0
 import InputStatus 1.0
 import WifiSetup 1.0
 import "../../../../app/gui/console"
+import "../../../../app/gui/console/BootTimeline.js" as Boot
 
 // Le vrai ConsoleHome sur de faux modules Moonlight (stubs/) : les données des
 // modèles arrivent dans l'accueil, la manette navigue, Y ouvre les options et les
@@ -509,6 +510,53 @@ Item {
             pc.setProperty(0, "online", true)
             home.rebuildAppModel()
             tryCompare(screen, "count", 10)
+        }
+
+        // Fin de l'animation de démarrage : l'accueil n'entre qu'à E + 250, et le logo
+        // vole jusqu'à celui de la barre haute, au pixel près (BOOT_ANIMATION.md §11.6).
+        Component { id: freshHome; ConsoleHome { anchors.fill: parent } }
+        function test_9o_bootLogoLandsOnTheTopBarLogo() {
+            var h = createTemporaryObject(freshHome, window)
+            var sp = h.splash
+            var screen2 = find(h, "ready")
+            tryVerify(function() { return sp.running && sp.readyAt >= 0 }, 3000)
+            sp.running = false                              // le temps avance à la main
+            var E = sp.exitAt
+            sp.advance(E + 200 - sp.t)
+            verify(!screen2.entryAllowed)
+            verify(!screen2.statusLogoShown)                // le vrai logo attend le relais
+            sp.advance(100)                                 // E + 300
+            verify(screen2.entryAllowed)
+            sp.advance(E + Boot.T.exitDur - 0.01 - sp.t)    // fin du vol
+            var flying = find(sp, "letters"), bar = screen2.statusLogo
+            var a = flying.mapToItem(null, 0, 0), b = flying.mapToItem(null, flying.width, flying.height)
+            var c = bar.mapToItem(null, 0, 0), d = bar.mapToItem(null, bar.width, bar.height)
+            ;[[a.x, c.x], [a.y, c.y], [b.x, d.x], [b.y, d.y]].forEach(function(p) {
+                verify(Math.abs(p[0] - p[1]) <= 1, "écart au relais : " + p[0] + " / " + p[1])
+            })
+            sp.advance(1)
+            verify(!sp.visible)
+            verify(screen2.statusLogoShown)                 // même image : le vrai logo prend le relais
+        }
+
+        // Sortie de veille : l'accueil rentre, le logo de la barre haute respire puis
+        // revient tel quel ; la manette reste à l'accueil.
+        function test_9p_wakeReplaysTheEntry() {
+            var sp = home.splash, bar = screen.statusLogo
+            home.playWake()
+            sp.running = false
+            verify(!screen.entryAllowed)
+            sp.advance(200)                                 // u = 120 ms
+            verify(screen.entryAllowed)
+            verify(bar.opacity > 0 && bar.opacity < 1)
+            verify(bar.lum < 1)
+            sp.advance(400)                                 // u = 520 ms : le O respire
+            verify(bar.oScale > 1)
+            sp.advance(600)
+            verify(sp.done)
+            compare([bar.opacity, bar.lum, bar.oScale], [1, 1, 1])
+            keyClick(Qt.Key_Right)
+            compare(screen.currentIndex, 1)
         }
 
         // Premier démarrage hors ligne : bienvenue, choix du réseau, mot de passe au

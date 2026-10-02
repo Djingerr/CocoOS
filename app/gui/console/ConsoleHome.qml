@@ -439,6 +439,21 @@ FocusScope {
              : InputStatus.layout !== "" ? InputStatus.layout : "xbox"
     }
 
+    // L'animation de démarrage (tests : la finir d'office).
+    readonly property alias splash: bootSplash
+
+    // Sortie de veille (écran, ou suspension du système) : l'accueil rentre, le logo
+    // de la barre haute respire (BOOT_ANIMATION.md §7).
+    function playWake() {
+        if (!bootSplash.done) return
+        bootSplash.mode = "wake"
+        bootSplash.start()
+    }
+    Connections {
+        target: SystemStatus
+        function onResumed() { home.playWake() }
+    }
+
     // --- Animation de démarrage : l'accueil sait-il quoi montrer ? ---
     // Prêt : des jeux sur l'étagère, ou un écran de message qui n'attend plus le
     // réseau (bienvenue, choix du Wi-Fi, codes de liaison, PC hors ligne confirmé,
@@ -1105,6 +1120,11 @@ FocusScope {
         optionTabs: home.optionTabs
         optionsHost: home.activeHostName
 
+        // L'accueil entre quand l'animation de démarrage en est à sa sortie ; le logo de
+        // la barre haute n'apparaît qu'une fois celui du démarrage arrivé à sa place.
+        entryAllowed: bootSplash.entryOpen
+        statusLogoShown: !bootSplash.visible || bootSplash.mode === "wake"
+
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
                 || welcomeScreen.shown || networkScreen.shown
         panelOpen: confirmDialog.opened || homeMenu.opened || wifiSheet.opened
@@ -1349,9 +1369,11 @@ FocusScope {
             z: 2
             systemReady: home.bootReady
             stepText: home.bootStep
+            statusBarLogo: homeScreen.statusLogo
             onSoundCue: function(name) { Sounds.play("boot-" + name) }
             onFinished: {
-                homeScreen.forceActiveFocus()
+                if (mode === "cold")
+                    homeScreen.forceActiveFocus()
                 // Leurs premiers relevés (D-Bus, synchrones) attendaient la fin de la
                 // séquence : rien ne doit bloquer le fil GUI pendant l'animation.
                 SystemStatus.start()
@@ -1370,6 +1392,7 @@ FocusScope {
                 if (item) item.forceActiveFocus()
                 else homeScreen.forceActiveFocus()
                 home.rearmSleep()
+                home.playWake()
             }
         }
 

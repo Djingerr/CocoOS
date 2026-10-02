@@ -197,10 +197,13 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     Loader », côté HostCompanion), mis en cache comme les fonds (`games()[i].logo`) ; le héros
     l'affiche une fois chargé (deux lignes de titre de haut au plus), le titre en texte sinon.
     ⚠️ Côté host, écrit mais pas compilé (pas de .NET sur le laptop).
-  - **Démarrage** : `BootSplash` (mot-symbole « Coco**OS** » sur noir, 1,1 s puis fondu pendant
-    que l'accueil entre) et le thème Plymouth au même dessin dans `deploy/plymouth/` (logo
-    généré par `make-logo.py`, notice d'installation et ligne de commande du noyau). ⚠️ Thème
-    Plymouth jamais installé ni vu en vrai (à faire sur l'Orange Pi, pas sur le laptop).
+  - **Démarrage** : animation « le O » (`BootSplash`, cf. `docs/boot-animation/`) : tracé du O,
+    lettres sur ressorts, chargeur si le système tarde, vol du logo jusqu'à celui de la barre
+    haute (relais au pixel près) pendant que l'accueil entre (spec §7 : textes en fondu 350 ms,
+    vignettes en fondu + échelle 0,97 → 1 sur 500 ms, glyphes du héros à 300 ms). Sortie de
+    veille (écran ou suspension logind) : l'accueil rentre, le O du logo de la barre respire.
+    Thème Plymouth en noir pur dans `deploy/plymouth/` (notice, ligne de commande du noyau).
+    ⚠️ Plymouth jamais installé ni vu en vrai (à faire sur l'Orange Pi, pas sur le laptop).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
@@ -294,8 +297,8 @@ esthétiques arrêtés :
 Fichiers (dans `app/gui/console/`) :
 - `ConsoleHome.qml` — l'écran d'accueil côté logique (hosts, appairage, lancement, overlays)
 - `HomeScreen.qml` — l'écran d'accueil côté présentation : assemble fond, barre haute, héros,
-  étagère et panneau d'options ; règle l'entrée en cascade, la dérive du fond, l'effacement au
-  lancement. `stage` reçoit les écrans de message (`staged` efface héros et étagère et leur
+  étagère et panneau d'options ; règle l'entrée (quand `entryAllowed` : sortie de l'animation
+  de démarrage), la dérive du fond, l'effacement au lancement. `stage` reçoit les écrans de message (`staged` efface héros et étagère et leur
   donne la manette)
 - `OptionsSheet.qml` — panneau « Options » (bouton Y) en onglets (Flux, Console), sans état propre
 - `LaunchScreen.qml` — écran de lancement d'un jeu (remplace l'ancien `LaunchOverlay`)
@@ -318,6 +321,9 @@ Fichiers (dans `app/gui/console/`) :
 - `OnScreenKeyboard.qml` — clavier à l'écran, à la manette (mot de passe Wi-Fi)
 - `BootSplash.qml` — animation de démarrage « le O » (`docs/boot-animation/BOOT_ANIMATION.md`,
   le prototype fait foi), pilotée par un temps `t` avancé par `FrameAnimation` ; A accélère ×4.
+  Sortie : le logo vole jusqu'au `Logotype` de la barre haute (`statusBarLogo`, `mapToItem`) ;
+  `exitStarted` ouvre l'entrée de l'accueil, `finished` passe le relais au vrai logo. `mode:
+  "wake"` (sortie de veille) : 80 ms de noir, puis il anime le logo de la barre haute.
   Tant que `ConsoleHome.bootReady` est faux (ni jeux, ni écran de message définitif), le O de OS
   fait le chargeur (au moins 600 ms). Ses sons : `boot-close` / `boot-open`. `SystemStatus` et
   `WifiSetup` ne font leurs premiers relevés D-Bus (synchrones) qu'à sa fin (`start()`).

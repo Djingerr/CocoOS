@@ -3,7 +3,8 @@ import "BootTimeline.js" as Boot
 
 // Animation de démarrage « le O » (docs/boot-animation/BOOT_ANIMATION.md, le
 // prototype fait foi) : le O de « OS » se trace, les lettres en sortent, puis le
-// logo laisse la place à l'accueil. Tout est fonction du temps `t` (ms), avancé
+// logo vole jusqu'à celui de la barre haute pendant que l'accueil entre dessous.
+// En sortie de veille (`mode: "wake"`), seul le logo de la barre haute s'anime. Tout est fonction du temps `t` (ms), avancé
 // image par image ; BootTimeline.js en donne l'état. Si le système tarde, le O devient
 // le chargeur (au moins 600 ms), puis se referme. Le A de la manette accélère
 // (×4) ; les autres touches sont avalées le temps de la séquence.
@@ -30,6 +31,7 @@ FocusScope {
     property bool done: false
     property real readyAt: -1                // t où le système est devenu prêt, -1 : pas encore
     property bool exitAnnounced: false
+    property bool entryOpen: false           // l'accueil peut entrer (à partir de exitStarted)
 
     readonly property real k: height / Theme.bootRefHeight
     readonly property var ready: readyAt < 0 ? null : readyAt
@@ -46,6 +48,7 @@ FocusScope {
         done = false
         skipping = false
         exitAnnounced = false
+        entryOpen = false
         readyAt = systemReady ? 0 : -1
         running = true
     }
@@ -57,9 +60,29 @@ FocusScope {
         if (done) return
         running = false
         done = true
-        if (!exitAnnounced) { exitAnnounced = true; exitStarted() }
+        if (!exitAnnounced) { exitAnnounced = true; entryOpen = true; exitStarted() }
+        restoreStatusLogo()
         finished()
     }
+
+    // Sortie de veille : le logo de la barre haute, en fondu, luminance et O qui respire.
+    function driveStatusLogo() {
+        if (!statusBarLogo) return
+        var w = Boot.wake(t)
+        statusBarLogo.opacity = w.opacity
+        statusBarLogo.lum = w.lum
+        statusBarLogo.oScale = w.oScale
+    }
+    function restoreStatusLogo() {
+        if (!statusBarLogo || mode !== "wake") return
+        statusBarLogo.opacity = 1
+        statusBarLogo.lum = 1
+        statusBarLogo.oScale = 1
+    }
+
+    // Début de l'entrée de l'accueil et fin de la séquence, selon la variante.
+    readonly property real entryAt: mode === "wake" ? Boot.T.wakeStart : exitAt + 250
+    readonly property real endAt: mode === "wake" ? Boot.T.wakeStart + Boot.T.wakeDur : exitAt + Boot.T.exitDur
 
     function advance(dt) {
         var previous = t
@@ -67,14 +90,18 @@ FocusScope {
         var cues = Boot.soundCues(mode, ready)
         for (var i = 0; i < cues.length; i++)
             if (previous < cues[i].t && t >= cues[i].t) soundCue(cues[i].name)
-        if (!exitAnnounced && t >= exitAt + 250) {
+        if (mode === "wake")
+            driveStatusLogo()
+        if (!exitAnnounced && t >= entryAt) {
             exitAnnounced = true
+            entryOpen = true
             exitStarted()
         }
-        if (t >= exitAt + Boot.T.exitDur) {
+        if (t >= endAt) {
             skipping = false
             running = false
             done = true
+            restoreStatusLogo()
             finished()
         }
     }
@@ -90,8 +117,9 @@ FocusScope {
         running: root.running
         property bool focused: false
         onTriggered: {
-            // (après la mise en place de la pile d'écrans, qui donne le focus à l'accueil)
-            if (!focused) { focused = true; root.forceActiveFocus() }
+            // (après la mise en place de la pile d'écrans, qui donne le focus à l'accueil ;
+            // en sortie de veille, la manette reste à l'accueil)
+            if (!focused && root.mode === "cold") { focused = true; root.forceActiveFocus() }
             root.advance(frameTime * 1000)
         }
     }
@@ -102,10 +130,31 @@ FocusScope {
     }
 
     visible: !done
-    // ponytail: sortie provisoire (fondu) ; le vol vers la barre haute arrive à l'étape 5.
-    opacity: 1 - Boot.clamp01((t - exitAt) / Boot.T.exitDur)
 
-    Rectangle { anchors.fill: parent; color: Theme.background }
+    // Fond noir : il s'efface quand l'accueil commence à entrer, dessous.
+    Rectangle {
+        anchors.fill: parent
+        color: Theme.background
+        opacity: root.mode === "wake" ? (root.t < Boot.T.wakeStart ? 1 : 0)
+                                      : 1 - Boot.E_OUT(Boot.clamp01((root.t - root.entryAt) / Theme.entryTextFade))
+    }
+
+    // --- Sortie : vers le logo de la barre haute (Bézier quadratique, E_EMPH) ---
+    readonly property real exitProgress: Boot.E_EMPH(Boot.clamp01((t - exitAt) / Boot.T.exitDur))
+    readonly property point flyFrom: Qt.point(logo.screenX + logo.width / 2, logo.screenY + logo.height / 2)
+    // Centre et échelle du logo de la barre haute dans ce repère (à défaut : en haut à
+    // gauche, comme le prototype).
+    readonly property var flyTarget: {
+        t
+        if (statusBarLogo) {
+            var a = statusBarLogo.mapToItem(root, 0, 0)
+            var b = statusBarLogo.mapToItem(root, statusBarLogo.width, statusBarLogo.height)
+            return { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2, scale: (b.x - a.x) / logo.width }
+        }
+        return { x: (40 + Boot.T.statusScale * logo.width / k / 2) * k, y: 42 * k, scale: Boot.T.statusScale }
+    }
+    readonly property point flyPos: { var p = Boot.exitPos(exitProgress, flyFrom, flyTarget); return Qt.point(p.x, p.y) }
+    readonly property real flyScale: Boot.lerp(1, flyTarget.scale, exitProgress)
 
     // --- Le logo : lettres et O, état tiré de la chronologie ---
     // Les lettres sortent de derrière la silhouette du O : masque elliptique, le temps
@@ -114,8 +163,16 @@ FocusScope {
     Item {
         id: maskFrame
         readonly property real margin: Math.ceil(0.2 * logo.geo.w)
+        visible: root.mode === "cold"
         x: logo.screenX - margin; y: logo.screenY - margin
         width: logo.width + 2 * margin; height: logo.height + 2 * margin
+        transform: [
+            Scale {
+                origin.x: root.flyFrom.x - maskFrame.x; origin.y: root.flyFrom.y - maskFrame.y
+                xScale: root.flyScale; yScale: root.flyScale
+            },
+            Translate { x: root.flyPos.x - root.flyFrom.x; y: root.flyPos.y - root.flyFrom.y }
+        ]
 
         layer.enabled: root.t >= Boot.release && root.t < Boot.revealEnd
         layer.effect: ShaderEffect {
@@ -188,7 +245,7 @@ FocusScope {
         }
         readonly property real bump: root.loaderState ? root.loaderState.bump : 0
 
-        visible: (root.t >= Boot.T.drawStart && root.t < Boot.revealEnd) || root.loading
+        visible: root.mode === "cold" && ((root.t >= Boot.T.drawStart && root.t < Boot.revealEnd) || root.loading)
         text: "O"
         font: bigMetrics.font
         color: {

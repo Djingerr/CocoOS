@@ -1,6 +1,6 @@
 [Plymouth Theme]
 Name=CocoOS
-Description=Mot-symbole CocoOS sur noir, comme l'écran de démarrage de l'interface
+Description=Noir pur : l'animation de démarrage de l'interface prend le relais
 ModuleName=script
 
 [script]

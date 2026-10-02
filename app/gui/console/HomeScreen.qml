@@ -41,6 +41,9 @@ FocusScope {
     property alias batteryPercent: status.batteryPercent
     property alias charging: status.charging
     property alias controllerBattery: status.controllerBattery
+    // Le logotype de la barre haute (cible de l'animation de démarrage) et sa visibilité.
+    readonly property alias statusLogo: status.logo
+    property alias statusLogoShown: status.logoShown
     property alias timeText: status.timeText
 
     // --- Écrans de message (recherche du PC, appairage) : cf. MessageScreen ---
@@ -49,9 +52,12 @@ FocusScope {
     readonly property alias stage: stage
     property bool staged: false
 
-    // La barre haute est là dès le départ. Le reste n'entre (une seule fois, en
-    // cascade) que lorsque `ready` passe à vrai : typiquement, les jeux sont chargés.
+    // L'accueil entre quand on le lui permet (`entryAllowed` : l'animation de démarrage
+    // en est à sa sortie) : la barre haute d'emblée, le héros et l'étagère dès que
+    // `ready` (les jeux sont chargés). Retirer la permission le masque d'un coup
+    // (sortie de veille, qui le refait entrer).
     property bool ready: false
+    property bool entryAllowed: true
     // Autorise la dérive lente du fond ; elle se coupe de toute façon d'elle-même
     // après Theme.driftIdleTimeout sans action.
     property bool driftAllowed: true
@@ -90,16 +96,13 @@ FocusScope {
     // À appeler quand l'utilisateur agit sans changer de jeu : relance la dérive.
     function wake() { idle.restart() }
 
-    property bool started: false     // écran en place : la barre haute peut apparaître
-    property bool entered: false     // l'entrée en cascade a commencé
-    property bool settled: false     // …et elle est terminée : plus aucun délai par rang
+    readonly property bool entered: ready && entryAllowed   // héros et étagère sont entrés
+    property bool settled: false     // …et c'est fini : plus aucun délai par rang
 
-    Component.onCompleted: {
-        started = true
-        if (ready) entered = true
+    onEnteredChanged: {
+        if (!entered) settled = false
+        idle.restart()
     }
-    onReadyChanged: if (ready) entered = true
-    onEnteredChanged: idle.restart()
     onCurrentIndexChanged: idle.restart()
 
     Binding {
@@ -123,32 +126,34 @@ FocusScope {
             anchors.fill: parent
             driftEnabled: root.driftAllowed && idle.running && !root.launching && !sheet.opened
             opacity: root.entered ? 1 : 0
-            zoom: !root.entered ? Theme.backdropEnterZoom : root.launching ? Theme.launchBackdropZoom : 1
+            zoom: root.launching ? Theme.launchBackdropZoom : 1
             unveiled: root.launching
             tint: root.ambientTint ? root.ambient : "transparent"
-            Behavior on opacity { NumberAnimation { duration: Theme.backdropEnterFade } }
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: root.entered ? Theme.entryCardFade : 0
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveEmph
+                }
+            }
             Behavior on zoom { NumberAnimation { duration: Theme.backdropZoomDuration; easing.type: Theme.easeOut } }
         }
 
-        // Chaque bloc est enveloppé deux fois : pour son entrée (une seule fois, en
-        // cascade), puis pour son effacement à chaque lancement d'un jeu.
+        // Chaque bloc est enveloppé deux fois : pour son entrée, puis pour son
+        // effacement à chaque lancement d'un jeu. La barre haute fait entrer ses textes
+        // elle-même (son logo arrive de l'animation de démarrage).
         Appear {
             anchors { top: parent.top; left: parent.left; right: parent.right }
             height: status.implicitHeight
-            shown: root.started
+            shown: !root.launching
+            hiddenY: 0
+            hideDuration: Theme.launchHide
+            animateInitially: false
 
-            Appear {
+            StatusBar {
+                id: status
                 anchors.fill: parent
-                shown: !root.launching
-                hiddenY: 0
-                hideDuration: Theme.launchHide
-                animateInitially: false
-
-                StatusBar {
-                    id: status
-                    anchors.fill: parent
-                    systemShown: !sheet.opened && !root.panelOpen
-                }
+                systemShown: !sheet.opened && !root.panelOpen
+                contentShown: root.entryAllowed
             }
         }
 
@@ -157,7 +162,10 @@ FocusScope {
             y: Theme.heroBottom - height
             width: hero.width; height: hero.implicitHeight
             shown: root.entered
-            delay: root.settled ? 0 : Theme.enterStagger * Theme.enterRankHero
+            hiddenY: 0
+            hideDuration: 0
+            fadeDuration: Theme.entryTextFade
+            fadeEasing: Easing.OutCubic
 
             Appear {
                 anchors.fill: parent
@@ -172,6 +180,7 @@ FocusScope {
                     anchors.bottom: parent.bottom
                     direction: shelf.direction
                     animated: root.entered
+                    actionsShown: root.entered
                     onPlayRequested: root.launchRequested(shelf.currentIndex)
                     onOptionsRequested: sheet.open()
                     onFavoriteRequested: root.favoriteRequested()
@@ -194,7 +203,7 @@ FocusScope {
                 // ouvert : le focus suit ces liaisons, il revient seul à la fermeture.
                 focus: !root.staged && !sheet.opened
                 shown: root.entered
-                enterStep: root.settled ? 0 : Theme.enterStagger
+                enterStep: root.settled ? 0 : Theme.entryCardStagger
                 accentColor: root.ambient
                 onLaunchRequested: function(index) { root.launchRequested(index) }
                 Keys.onMenuPressed: root.favoriteRequested()      // bouton X

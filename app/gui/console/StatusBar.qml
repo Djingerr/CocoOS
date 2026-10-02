@@ -22,6 +22,13 @@ Item {
     // temps de voler jusqu'à lui (BootSplash).
     readonly property alias logo: logo
     property bool logoShown: true
+    // Pastille de l'hôte, horloge, Wi-Fi, batterie : en fondu à l'entrée de l'accueil.
+    property bool contentShown: true
+    property real contentOpacity: contentShown ? 1 : 0
+    Behavior on contentOpacity {
+        enabled: root.contentShown
+        NumberAnimation { duration: Theme.entryTextFade; easing.type: Easing.OutCubic }
+    }
     // Horloge, Wi-Fi et batterie : masqués sous un panneau latéral (il est translucide).
     property bool systemShown: true
     // Heure affichée : l'horloge système, sauf si on lui assigne un texte fixe.
@@ -60,6 +67,7 @@ Item {
 
         // --- Pastille de l'hôte ---
         Rectangle {
+            opacity: root.contentOpacity
             x: logoBox.width + Theme.statusLogoGap
             anchors.verticalCenter: parent.verticalCenter
             width: Theme.hostPillPadLeft + pillRow.width + Theme.hostPillPadRight
@@ -120,6 +128,10 @@ Item {
         }
 
         // --- Horloge, Wi-Fi, batterie ---
+        Item {
+            anchors.fill: parent
+            opacity: root.contentOpacity
+
         Row {
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
@@ -273,6 +285,7 @@ Item {
                     }
                 }
             }
+        }
         }
     }
 }

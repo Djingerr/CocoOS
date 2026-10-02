@@ -17,6 +17,7 @@ QtObject {
     property int volume: 75
 
     signal changed()
+    signal resumed()
 
     property bool started: false
 

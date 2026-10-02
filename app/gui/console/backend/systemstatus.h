@@ -7,7 +7,8 @@
 // Sources, toutes génériques Linux (rien de propre à une carte) :
 //   - batterie : /sys/class/power_supply (première batterie du système) ;
 //   - Wi-Fi    : NetworkManager, par D-Bus (point d'accès actif du premier adaptateur) ;
-//   - alimentation : systemd-logind, par D-Bus (veille, redémarrage, extinction) ;
+//   - alimentation : systemd-logind, par D-Bus (veille, redémarrage, extinction, et
+//     sortie de suspension : signal PrepareForSleep) ;
 //   - réseau vers le PC : temps d'ouverture d'une connexion TCP vers son port HTTP
 //     Moonlight (un aller-retour), mesuré toutes les 3 s tant qu'on le demande ;
 //   - luminosité : /sys/class/backlight (lecture), logind SetBrightness (écriture,
@@ -83,10 +84,12 @@ public:
 signals:
     void changed();
     void networkChanged();
+    void resumed();             // le système sort de suspension (logind)
 
 private slots:
     void refresh();
     void probe();
+    void onPrepareForSleep(bool start);
 
 private:
     static int readWifi();
