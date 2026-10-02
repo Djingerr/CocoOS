@@ -1,6 +1,7 @@
 #include "streampainter.h"
 
 #include <QCoreApplication>
+#include <QEasingCurve>
 #include <QFontMetricsF>
 #include <QHash>
 #include <QPainter>
@@ -36,6 +37,13 @@ const qreal SHEET_VALUE_SIZE = 14;
 const qreal SHEET_FOCUS_RADIUS = 14;
 const qreal SHEET_FOCUS_OUTSET = 16;
 const qreal SHEET_HINT_RIGHT = 24;
+const qreal SHEET_HIDDEN_SHIFT = 0.04;   // fermé, il attend juste au-delà du bord droit
+const qreal SHEET_VALUE_BOX = 136;       // Theme.sheetValueBox.width
+const qreal SHEET_VALUE_TRAVEL = 36;
+const qreal SWAP_ENTER_FADE = 0.7;       // Theme.swapEnterFade, swapExitTravel…
+const qreal SWAP_EXIT_TRAVEL = 0.8;
+const qreal SWAP_EXIT_DURATION = 0.8;
+const qreal SWAP_EXIT_FADE = 0.45;
 const qreal DIALOG_MESSAGE_TOP = 14;
 const qreal DIALOG_MESSAGE_SIZE = 15;
 const qreal DIALOG_MESSAGE_LINE_HEIGHT = 1.45;
@@ -162,11 +170,12 @@ QSizeF statsSize(const StreamPainter::Stats& stats, QPaintDevice* device)
     return QSizeF(width + 2 * STATS_PAD_X, height + 2 * STATS_PAD_Y);
 }
 
-void drawStats(QPainter& p, const StreamPainter::Stats& stats)
+void drawStats(QPainter& p, const StreamPainter::Stats& stats, qreal opacity)
 {
-    if (stats.lines.isEmpty()) {
+    if (stats.lines.isEmpty() || opacity <= 0) {
         return;
     }
+    p.setOpacity(opacity);
     const QSizeF size = statsSize(stats, p.device());
     p.setPen(Qt::NoPen);
     p.setBrush(STATS_FILL);
@@ -189,6 +198,7 @@ void drawStats(QPainter& p, const StreamPainter::Stats& stats)
         p.drawText(QRectF(x, line.y(), line.right() - x, lineHeight), Qt::AlignLeft | Qt::AlignVCenter, stats.lines[i]);
         y += lineHeight;
     }
+    p.setOpacity(1);
 }
 
 // Une image à 72 ppp (1 point = 1 pixel) et un peintre à l'échelle du canevas.
@@ -272,9 +282,9 @@ QColor StreamPainter::networkColor(int latencyMs, int jitterMs)
     return POOR;
 }
 
-QImage StreamPainter::paintStats(const Stats& stats, QSize screen)
+QImage StreamPainter::paintStats(const Stats& stats, qreal opacity, QSize screen)
 {
-    if (stats.lines.isEmpty() || screen.isEmpty()) {
+    if (stats.lines.isEmpty() || opacity <= 0 || screen.isEmpty()) {
         return QImage();
     }
     const qreal scale = screen.height() / CANVAS_HEIGHT;
@@ -285,71 +295,101 @@ QImage StreamPainter::paintStats(const Stats& stats, QSize screen)
     image.fill(Qt::transparent);
     QPainter p(&image);
     beginCanvas(p, screen);
-    drawStats(p, stats);
+    drawStats(p, stats, opacity);
     return image;
 }
 
-QImage StreamPainter::paintMenu(const Menu& menu, QSize screen)
+namespace {
+
+QColor mix(const QColor& a, const QColor& b, qreal t)
 {
-    QImage image = canvasImage(screen);
-    if (menu.backdrop.size() != screen) {
-        // Pas encore d'image du jeu : un voile sur le flux, qui bouge dessous.
-        image.fill(QColor(0, 0, 0, qRound(SHEET_DIM * 255)));
+    return QColor::fromRgbF(a.redF() + (b.redF() - a.redF()) * t, a.greenF() + (b.greenF() - a.greenF()) * t,
+                            a.blueF() + (b.blueF() - a.blueF()) * t, a.alphaF() + (b.alphaF() - a.alphaF()) * t);
+}
+
+qreal ease(QEasingCurve::Type type, qreal t)
+{
+    return QEasingCurve(type).valueForProgress(qBound<qreal>(0, t, 1));
+}
+
+void drawValue(QPainter& p, const QRectF& row, const QString& value, qreal dx, qreal opacity, const QColor& ink)
+{
+    if (value.isEmpty() || opacity <= 0) {
+        return;
     }
+    const qreal base = p.opacity();
+    p.setOpacity(base * opacity);
+    p.setFont(sora(SHEET_VALUE_SIZE));
+    p.setPen(ink);
+    p.drawText(row.translated(dx, 0), Qt::AlignRight | Qt::AlignVCenter, value);
+    p.setOpacity(base);
+}
 
-    QPainter p(&image);
-    if (menu.backdrop.size() == screen) {
-        p.drawImage(0, 0, menu.backdrop);
+// Le contenu du panneau (titre, message, choix, légende), à l'opacité donnée.
+void drawPage(QPainter& p, const StreamPainter::Page& page, const StreamPainter::Frame& frame,
+              qreal focusY, const QVector<qreal>& highlight, qreal panelX, qreal opacity, bool current)
+{
+    if (opacity <= 0) {
+        return;
     }
-    beginCanvas(p, screen);
-    const qreal canvasWidth = screen.width() * CANVAS_HEIGHT / screen.height();
-    drawStats(p, menu.stats);
-
-    // --- Panneau ---
-    const QRectF panel(canvasWidth - SHEET_WIDTH, 0, SHEET_WIDTH, CANVAS_HEIGHT);
-    p.fillRect(panel, SHEET_FILL);
-    p.fillRect(QRectF(panel.x() - 1, 0, 1, CANVAS_HEIGHT), SHEET_EDGE);
-
-    const qreal x = panel.x() + SHEET_PAD_SIDE;
+    p.setOpacity(opacity);
+    const qreal x = panelX + SHEET_PAD_SIDE;
     const qreal width = SHEET_WIDTH - 2 * SHEET_PAD_SIDE;
-    qreal y = drawWrapped(p, menu.title, sora(SHEET_TITLE_SIZE, QFont::DemiBold, SHEET_TITLE_SPACING),
+    qreal y = drawWrapped(p, page.title, sora(SHEET_TITLE_SIZE, QFont::DemiBold, SHEET_TITLE_SPACING),
                           INK, x, SHEET_PAD_TOP, width);
-    y = drawWrapped(p, menu.message, sora(DIALOG_MESSAGE_SIZE), INK2,
+    y = drawWrapped(p, page.message, sora(DIALOG_MESSAGE_SIZE), INK2,
                     x, y + DIALOG_MESSAGE_TOP, width, DIALOG_MESSAGE_LINE_HEIGHT);
     y += DIALOG_CHOICES_TOP;
 
     // --- Choix ---
     p.setPen(Qt::NoPen);
     p.setBrush(FOCUS_FILL);
-    p.drawRoundedRect(QRectF(x - SHEET_FOCUS_OUTSET, y + menu.focus * SHEET_ROW_HEIGHT,
+    p.drawRoundedRect(QRectF(x - SHEET_FOCUS_OUTSET, y + focusY * SHEET_ROW_HEIGHT,
                              width + 2 * SHEET_FOCUS_OUTSET, SHEET_ROW_HEIGHT),
                       SHEET_FOCUS_RADIUS, SHEET_FOCUS_RADIUS);
-    for (int i = 0; i < menu.labels.size(); i++) {
+    for (int i = 0; i < page.labels.size(); i++) {
         const QRectF row(x, y + i * SHEET_ROW_HEIGHT, width, SHEET_ROW_HEIGHT);
-        const bool focused = i == menu.focus;
-        const QString value = menu.values.value(i);
+        const qreal h = highlight.value(i, i == page.focus ? 1 : 0);
+        const QColor ink = mix(INK2, INK, h);
+        const QString value = page.values.value(i);
         p.setFont(sora(SHEET_LABEL_SIZE));
-        p.setPen(focused ? INK : INK2);
-        p.drawText(row, Qt::AlignLeft | Qt::AlignVCenter, menu.labels[i]);
+        p.setPen(ink);
+        p.drawText(row, Qt::AlignLeft | Qt::AlignVCenter, page.labels[i]);
         if (!value.isEmpty()) {
-            p.setFont(sora(SHEET_VALUE_SIZE));
-            p.setPen(INK2);
-            p.drawText(row, Qt::AlignRight | Qt::AlignVCenter, value);
+            if (current && i == frame.swapRow && frame.swapProgress < 1) {
+                // SwapBox : la nouvelle valeur entre par la droite, l'ancienne sort à gauche.
+                const qreal t = frame.swapProgress;
+                p.save();
+                p.setClipRect(QRectF(row.right() - SHEET_VALUE_BOX, row.y(), SHEET_VALUE_BOX, row.height()));
+                drawValue(p, row, frame.swapFrom,
+                          -SHEET_VALUE_TRAVEL * SWAP_EXIT_TRAVEL * ease(QEasingCurve::OutCubic, t / SWAP_EXIT_DURATION),
+                          1 - qMin<qreal>(1, t / SWAP_EXIT_FADE), ink);
+                drawValue(p, row, value, SHEET_VALUE_TRAVEL * (1 - ease(QEasingCurve::OutQuint, t)),
+                          qMin<qreal>(1, t / SWAP_ENTER_FADE), ink);
+                p.restore();
+            }
+            else {
+                drawValue(p, row, value, 0, 1, ink);
+            }
         }
-        else if (focused) {
+        else if (h > 0) {
+            p.setOpacity(opacity * h);
             drawGlyph(p, QPointF(row.right() - SHEET_HINT_RIGHT - GLYPH_SIZE, row.center().y() - GLYPH_SIZE / 2),
-                      QStringLiteral("A"), menu.layout, INK3);
+                      QStringLiteral("A"), frame.layout, INK3);
+            p.setOpacity(opacity);
         }
     }
 
     // --- Légende ---
     const QFont legendFont = sora(LEGEND_SIZE);
-    const QFontMetricsF metrics(legendFont, &image);
+    const QFontMetricsF metrics(legendFont, p.device());
     qreal legendX = x;
     const qreal legendY = CANVAS_HEIGHT - SHEET_PAD_BOTTOM - GLYPH_SIZE;
-    const QList<QPair<QString, QString>> hints = { { "B", menu.backLabel }, { "A", QCoreApplication::translate("StreamMenu", "Valider") } };
+    const QList<QPair<QString, QString>> hints = {
+        { "B", page.backLabel }, { "A", QCoreApplication::translate("StreamMenu", "Valider") }
+    };
     for (const auto& hint : hints) {
-        drawGlyph(p, QPointF(legendX, legendY), hint.first, menu.layout, INK2);
+        drawGlyph(p, QPointF(legendX, legendY), hint.first, frame.layout, INK2);
         legendX += GLYPH_SIZE + LEGEND_GLYPH_GAP;
         const qreal labelWidth = metrics.horizontalAdvance(hint.second);
         p.setFont(legendFont);
@@ -357,6 +397,45 @@ QImage StreamPainter::paintMenu(const Menu& menu, QSize screen)
         p.drawText(QRectF(legendX, legendY, labelWidth + 1, GLYPH_SIZE), Qt::AlignLeft | Qt::AlignVCenter, hint.second);
         legendX += labelWidth + LEGEND_GAP;
     }
+    p.setOpacity(1);
+}
 
+}
+
+QImage StreamPainter::paintFrame(const Frame& frame, QSize screen)
+{
+    QImage image = canvasImage(screen);
+    image.fill(Qt::transparent);
+    QPainter p(&image);
+
+    // --- Fond : l'image du jeu floutée, ou un voile en attendant ---
+    if (frame.backdrop.size() == screen && frame.blurMix > 0 && frame.veil > 0) {
+        p.setOpacity(frame.veil * frame.blurMix);
+        p.drawImage(0, 0, frame.backdrop);
+        p.setOpacity(1);
+    }
+    if (frame.blurMix < 1 && frame.veil > 0) {
+        p.fillRect(image.rect(), QColor(0, 0, 0, qRound(SHEET_DIM * 255 * frame.veil * (1 - frame.blurMix))));
+    }
+
+    beginCanvas(p, screen);
+    drawStats(p, frame.stats, frame.statsOpacity);
+
+    // --- Panneau ---
+    const qreal canvasWidth = screen.width() * CANVAS_HEIGHT / screen.height();
+    const qreal panelX = canvasWidth - SHEET_WIDTH * frame.reveal + SHEET_WIDTH * SHEET_HIDDEN_SHIFT * (1 - frame.reveal);
+    if (panelX >= canvasWidth) {
+        return image;
+    }
+    p.fillRect(QRectF(panelX, 0, SHEET_WIDTH, CANVAS_HEIGHT), SHEET_FILL);
+    p.fillRect(QRectF(panelX - 1, 0, 1, CANVAS_HEIGHT), SHEET_EDGE);
+
+    // Changement de page : l'ancienne s'efface sur la première moitié, la nouvelle
+    // apparaît sur la seconde (un fondu croisé superposerait deux textes).
+    if (frame.pageMix < 0.5) {
+        drawPage(p, frame.previous, frame, frame.previous.focus, QVector<qreal>(), panelX, 1 - 2 * frame.pageMix, false);
+    }
+    drawPage(p, frame.page, frame, frame.focusY < 0 ? frame.page.focus : frame.focusY, frame.highlight,
+             panelX, frame.pageMix < 1 ? qMax<qreal>(0, 2 * frame.pageMix - 1) : 1, true);
     return image;
 }

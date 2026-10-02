@@ -168,9 +168,17 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     relâchée. **Statistiques** en haut à gauche, en Sora et en français (définition, i/s, codec,
     débit, latence réseau ± variance avec le point de qualité de l'accueil, pertes, temps de
     décodage / affichage / PC), réglage `ConsoleUi/streamStats`, aussi par Select + L1 + R1 + X.
-    ⚠️ Jamais essayé dans un vrai flux : vérifié au harnais (`streammenu-shot`) et à la
-    compilation. Le flou sur l'Orange Pi est incertain (images AFBC du décodeur Rockchip) : si
-    la copie échoue, le voile reste. Dessin du menu ≈ 18 ms par appui en 1080p sur le laptop.
+    **Animations et sons** comme à l'accueil (mêmes durées et courbes que `ConsoleDialog` /
+    `OptionsSheet`) : le panneau glisse (440 ms), le fond flouté apparaît en fondu (320 ms), le
+    surlignage glisse (220 ms), les libellés changent de couleur (160 ms), la valeur « Affichées /
+    Masquées » glisse comme une `SwapBox`, la confirmation remplace la liste en fondu enchaîné,
+    les statistiques apparaissent en fondu. Un minuteur SDL redessine l'overlay toutes les 16 ms,
+    seulement pendant une transition (≈ 7 ms par image en 1080p sur le laptop). Sons open / close /
+    move / edge / select / tick joués par SDL (QtMultimedia ne tourne pas pendant un flux), au
+    volume de `Theme.soundVolume`, coupés avec le réglage « Sons ».
+    ⚠️ Le menu a été vu dans un vrai flux par Marco, mais pas encore ses animations ni ses sons.
+    Le flou sur l'Orange Pi est incertain (images AFBC du décodeur Rockchip) : si la copie échoue,
+    le voile reste. Cadence des animations sur la carte à mesurer (objectif 60 i/s).
   - **Manettes** : les glyphes suivent la manette branchée (`Theme.buttonLayout`, réglage
     `ConsoleUi/buttonLayout` = auto par défaut) : lettres Xbox, lettres inversées Nintendo
     (Moonlight lit les boutons par position), ✕ ○ □ △ PlayStation. Batterie d'une manette sans
@@ -272,7 +280,8 @@ On veut pouvoir **suivre les commits du repo officiel de moonlight** sans douleu
   rôle PipeWire des sons), `streaming/input/gamepad.cpp` (Home ouvre le menu en jeu, boutons
   et stick routés vers lui, combinaison des statistiques), `streaming/video/overlaymanager.{h,cpp}`
   (`setOverlaySurface` : une image toute faite sur l'overlay de débogage, dont le texte
-  d'origine est ignoré), `streaming/video/ffmpeg.cpp` (chiffres du flux chaque seconde, image
+  d'origine est ignoré ; un verrou empêche le moteur de rendu de disparaître pendant qu'on le
+  notifie depuis le minuteur d'animation), `streaming/video/ffmpeg.cpp` (chiffres du flux chaque seconde, image
   décodée pour le flou). Ces coutures n'ajoutent que des lignes (sauf celle de Home, déjà là).
 - **Surtout, ne pas toucher `app/gui/main.qml`.**
 - Git :
@@ -378,7 +387,8 @@ Fichiers (dans `app/gui/console/`) :
   menu en jeu (`prepareStreamMenu` avant chaque flux, `takeStreamExit` au retour). Build
   `embedded` uniquement.
 - `backend/streammenu.{h,cpp}` — menu en jeu et statistiques du flux (état, manette, chiffres,
-  capture et flou de l'image), sur l'overlay de Moonlight. Build `embedded` uniquement.
+  capture et flou de l'image, animations, sons par SDL), sur l'overlay de Moonlight. Build
+  `embedded` uniquement.
 - `backend/streampainter.{h,cpp}` — leur dessin en QPainter, jetons de `Theme.qml` recopiés ;
   sans SDL ni Moonlight (le harnais le dessine seul : `streammenu-shot.cpp`).
 
@@ -635,6 +645,7 @@ qml-qt6 Harness.qml -- view=PagesDemo page=code        # search|loading|pin|pin-
 ./make-sounds.py                                       # régénère app/gui/console/sounds/*.wav (dont boot-*)
 # menu en jeu (C++, hors appli) : compiler streammenu-shot.cpp (commande en tête du fichier), puis
 QT_QPA_PLATFORM=offscreen /tmp/streammenu-shot /tmp/m.png page=menu stats=1 backdrop=art/hades2.jpg
+QT_QPA_PLATFORM=offscreen /tmp/streammenu-shot /tmp/m.png reveal=0.4 veil=0.5 blur=0.5 backdrop=art/hades2.jpg   # une étape d'animation
 ./shot.sh /tmp/d.png view=BootDemo size=1280x720 t=1400   # animation de démarrage, instant figé
 ../../../boot-animation/ref-capture.py [--slow]        # références du prototype de démarrage (ref/cold-<t>.png, slow-<t>.png)
 node ../../../boot-animation/reference-values.js       # valeurs du prototype pour tst_BootTimeline

@@ -5,6 +5,9 @@
 #include "streaming/video/decoder.h"
 
 #include <QCoreApplication>
+#include <QEasingCurve>
+#include <QFile>
+#include <QHash>
 #include <QLocale>
 #include <QMutex>
 #include <QMutexLocker>
@@ -26,6 +29,58 @@ const int STICK_PUSH = 20000;
 const int STICK_REST = 10000;
 
 const char* STATS_SETTING = "ConsoleUi/streamStats";
+const char* SOUNDS_SETTING = "ConsoleUi/sounds";
+
+// Durées et courbes de Theme.qml (ConsoleDialog, OptionsSheet, Toast), en ms.
+const int SHEET_SLIDE = 440;        // panneau, easeQuint
+const int SHEET_DIM_FADE = 320;     // fond, linéaire
+const int SHEET_FOCUS_MOVE = 220;   // surlignage, easeOut
+const int SHEET_FOCUS_FADE = 160;   // couleur des libellés, glyphe A
+const int SHEET_VALUE_SWAP = 260;   // « Affichées » / « Masquées »
+const int PAGE_FADE = 260;          // liste ↔ confirmation, easeOut (à l'accueil, deux dialogs se croisent)
+const int BLUR_FADE = 200;          // l'image floutée remplace le voile
+const int STATS_FADE = 220;         // Theme.toastFade
+const int FRAME_MS = 16;            // une image toutes les 16 ms pendant une animation
+
+// Sons de l'accueil (sounds/*.wav, 44,1 kHz mono 16 bits), joués par SDL :
+// QtMultimedia ne tourne pas pendant un flux.
+const int SOUND_RATE = 44100;
+const double SOUND_VOLUME = 0.125;  // Theme.soundVolume
+const char* const SOUND_NAMES[] = { "move", "edge", "select", "open", "close", "tick" };
+
+// Une valeur qui va de `from` à `to` en `duration` ms à partir de `start`.
+struct Anim {
+    double from = 0;
+    double to = 0;
+    Uint32 start = 0;
+    int duration = 0;
+    QEasingCurve::Type easing = QEasingCurve::Linear;
+
+    double at(Uint32 now) const
+    {
+        if (!running(now)) {
+            return to;
+        }
+        return from + (to - from) * QEasingCurve(easing).valueForProgress(double(now - start) / duration);
+    }
+    bool running(Uint32 now) const
+    {
+        return duration > 0 && now - start < (Uint32)duration;
+    }
+    void go(double target, int ms, Uint32 now, QEasingCurve::Type curve = QEasingCurve::Linear)
+    {
+        from = at(now);
+        to = target;
+        start = now;
+        duration = ms;
+        easing = curve;
+    }
+    void set(double value)
+    {
+        from = to = value;
+        duration = 0;
+    }
+};
 
 struct Action {
     QString key;
@@ -49,9 +104,26 @@ StreamPainter::Stats s_statsView;       // les dernières reçues
 std::atomic<bool> s_wantFrame { false };    // le menu attend une image du jeu
 QImage s_backdrop;                      // l'image du jeu floutée, à la taille de l'écran
 
+// Animations (StreamPainter::Frame) et le minuteur qui les fait avancer.
+Anim s_reveal, s_veil, s_blurMix, s_focusY, s_pageMix, s_swap, s_statsFade;
+QVector<Anim> s_highlight;              // par ligne de la page
+StreamPainter::Page s_previous;         // la page qui s'efface
+int s_swapRow = -1;
+QString s_swapFrom;
+SDL_TimerID s_timer = 0;
+
+bool s_soundsOn = false;
+QHash<QString, QByteArray> s_sounds;    // échantillons, volume appliqué
+SDL_AudioDeviceID s_audio = 0;
+
 QString tr(const char* text)
 {
     return QCoreApplication::translate("StreamMenu", text);
+}
+
+QString statsValue(bool shown)
+{
+    return shown ? tr("Affichées") : tr("Masquées");
 }
 
 QList<Action> actions()
@@ -68,40 +140,177 @@ QList<Action> actions()
     return list;
 }
 
-// Les mêmes confirmations que l'accueil (ConsoleHome.homeMenuChosen).
-StreamPainter::Menu view()
+int actionIndex(const QString& key)
 {
-    StreamPainter::Menu menu;
-    menu.layout = s_layout;
-    menu.focus = s_focus;
-    menu.stats = s_statsView;
-    menu.backdrop = s_backdrop;
-    if (s_confirm.isEmpty()) {
-        menu.title = s_game.isEmpty() ? tr("Menu") : s_game;
-        for (const Action& action : actions()) {
-            menu.labels.append(action.label);
-            menu.values.append(action.key == QLatin1String("stats") ? (s_stats ? tr("Affichées") : tr("Masquées"))
-                                                                    : QString());
+    const QList<Action> list = actions();
+    for (int i = 0; i < list.size(); i++) {
+        if (list[i].key == key) {
+            return i;
         }
-        menu.backLabel = tr("Fermer");
-        return menu;
+    }
+    return 0;
+}
+
+// Les mêmes confirmations que l'accueil (ConsoleHome.homeMenuChosen).
+StreamPainter::Page page()
+{
+    StreamPainter::Page page;
+    page.focus = s_focus;
+    if (s_confirm.isEmpty()) {
+        page.title = s_game.isEmpty() ? tr("Menu") : s_game;
+        for (const Action& action : actions()) {
+            page.labels.append(action.label);
+            page.values.append(action.key == QLatin1String("stats") ? statsValue(s_stats) : QString());
+        }
+        page.backLabel = tr("Fermer");
+        return page;
     }
     if (s_confirm == QLatin1String("quit")) {
-        menu.title = s_game.isEmpty() ? tr("Quitter le jeu ?") : tr("Quitter %1 ?").arg(s_game);
-        menu.message = tr("Toute progression non sauvegardée sera perdue.");
-        menu.labels = QStringList { tr("Annuler"), tr("Quitter") };
+        page.title = s_game.isEmpty() ? tr("Quitter le jeu ?") : tr("Quitter %1 ?").arg(s_game);
+        page.message = tr("Toute progression non sauvegardée sera perdue.");
+        page.labels = QStringList { tr("Annuler"), tr("Quitter") };
     }
     else if (s_confirm == QLatin1String("reboot")) {
-        menu.title = tr("Redémarrer la console ?");
-        menu.labels = QStringList { tr("Annuler"), tr("Redémarrer") };
+        page.title = tr("Redémarrer la console ?");
+        page.labels = QStringList { tr("Annuler"), tr("Redémarrer") };
     }
     else {
-        menu.title = tr("Éteindre la console ?");
-        menu.labels = QStringList { tr("Annuler"), tr("Éteindre") };
+        page.title = tr("Éteindre la console ?");
+        page.labels = QStringList { tr("Annuler"), tr("Éteindre") };
     }
-    menu.backLabel = tr("Annuler");
-    return menu;
+    page.backLabel = tr("Annuler");
+    return page;
 }
+
+void resetHighlights(int focus)
+{
+    s_highlight = QVector<Anim>(page().labels.size());
+    for (int i = 0; i < s_highlight.size(); i++) {
+        s_highlight[i].set(i == focus ? 1 : 0);
+    }
+}
+
+StreamPainter::Frame frame(Uint32 now)
+{
+    StreamPainter::Frame frame;
+    frame.page = page();
+    frame.focusY = s_focusY.at(now);
+    for (const Anim& highlight : s_highlight) {
+        frame.highlight.append(highlight.at(now));
+    }
+    frame.previous = s_previous;
+    frame.pageMix = s_pageMix.at(now);
+    frame.swapRow = s_swapRow;
+    frame.swapFrom = s_swapFrom;
+    frame.swapProgress = s_swap.at(now);
+    frame.reveal = s_reveal.at(now);
+    frame.veil = s_veil.at(now);
+    frame.blurMix = s_blurMix.at(now);
+    frame.backdrop = s_backdrop;
+    frame.stats = s_statsView;
+    frame.statsOpacity = s_statsFade.at(now);
+    frame.layout = s_layout;
+    return frame;
+}
+
+bool animating(Uint32 now)
+{
+    for (const Anim* anim : { &s_reveal, &s_veil, &s_blurMix, &s_focusY, &s_pageMix, &s_swap, &s_statsFade }) {
+        if (anim->running(now)) {
+            return true;
+        }
+    }
+    for (const Anim& highlight : s_highlight) {
+        if (highlight.running(now)) {
+            return true;
+        }
+    }
+    return false;
+}
+
+// Arrête toutes les animations là où elles en sont.
+void freeze(Uint32 now)
+{
+    for (Anim* anim : { &s_reveal, &s_veil, &s_blurMix, &s_focusY, &s_pageMix, &s_swap, &s_statsFade }) {
+        anim->set(anim->at(now));
+    }
+    for (Anim& highlight : s_highlight) {
+        highlight.set(highlight.at(now));
+    }
+}
+
+// --- Sons ---
+
+// Fil de Qt (prepare) : les fichiers sont dans les ressources de l'application.
+void loadSounds()
+{
+    if (!s_sounds.isEmpty()) {
+        return;
+    }
+    for (const char* name : SOUND_NAMES) {
+        QFile file(QStringLiteral(":/gui/console/sounds/%1.wav").arg(QLatin1String(name)));
+        if (!file.open(QIODevice::ReadOnly)) {
+            continue;
+        }
+        const QByteArray wav = file.readAll();
+        SDL_AudioSpec spec;
+        Uint8* buffer = nullptr;
+        Uint32 length = 0;
+        if (SDL_LoadWAV_RW(SDL_RWFromConstMem(wav.constData(), wav.size()), 1, &spec, &buffer, &length) == nullptr) {
+            continue;
+        }
+        if (spec.format == AUDIO_S16SYS && spec.channels == 1 && spec.freq == SOUND_RATE) {
+            QByteArray samples(reinterpret_cast<const char*>(buffer), length);
+            int16_t* data = reinterpret_cast<int16_t*>(samples.data());
+            for (int i = 0; i < samples.size() / 2; i++) {
+                data[i] = int16_t(data[i] * SOUND_VOLUME);
+            }
+            s_sounds.insert(QLatin1String(name), samples);
+        }
+        SDL_FreeWAV(buffer);
+    }
+}
+
+// Un son à la fois, comme à l'accueil : le suivant coupe le précédent.
+void play(const char* name)
+{
+    const QByteArray samples = s_sounds.value(QLatin1String(name));
+    if (!s_soundsOn || samples.isEmpty()) {
+        return;
+    }
+    if (s_audio == 0) {
+        if (SDL_InitSubSystem(SDL_INIT_AUDIO) != 0) {
+            s_soundsOn = false;
+            return;
+        }
+        SDL_AudioSpec want;
+        SDL_zero(want);
+        want.freq = SOUND_RATE;
+        want.format = AUDIO_S16SYS;
+        want.channels = 1;
+        want.samples = 512;
+        s_audio = SDL_OpenAudioDevice(nullptr, 0, &want, nullptr, 0);
+        if (s_audio == 0) {
+            SDL_QuitSubSystem(SDL_INIT_AUDIO);
+            s_soundsOn = false;   // pas de sortie son : on n'insiste pas pendant ce flux
+            return;
+        }
+        SDL_PauseAudioDevice(s_audio, 0);
+    }
+    SDL_ClearQueuedAudio(s_audio);
+    SDL_QueueAudio(s_audio, samples.constData(), samples.size());
+}
+
+void closeAudio()
+{
+    if (s_audio != 0) {
+        SDL_CloseAudioDevice(s_audio);
+        SDL_QuitSubSystem(SDL_INIT_AUDIO);
+        s_audio = 0;
+    }
+}
+
+// --- Image ---
 
 // La taille de la fenêtre du flux, en pixels : l'overlay s'y pose sans mise à
 // l'échelle. Fil SDL seulement.
@@ -143,18 +352,12 @@ SDL_Surface* toSurface(const QImage& image)
     return surface;
 }
 
-// Le flux en cours ; un nouveau flux repart menu fermé. s_lock tenu.
-void attach()
-{
-    Session* session = Session::get();
-    if (session != s_session) {
-        s_session = session;
-        s_open = false;
-    }
-}
+Uint32 tick(Uint32 interval, void* param);
 
-// Pose (ou retire) le menu ou les statistiques sur l'image du flux. s_lock tenu.
-void render()
+// Pose sur l'image du flux le menu (ouvert ou en train de se fermer), sinon les
+// statistiques, sinon rien ; lance le minuteur si une animation est en cours.
+// s_lock tenu.
+void render(Uint32 now)
 {
     Session* session = Session::get();
     if (session == nullptr || session != s_session) {
@@ -166,37 +369,192 @@ void render()
             s_screen = QSize(mode.w, mode.h);
         }
     }
-    QImage image;
-    if (s_open) {
-        image = StreamPainter::paintMenu(view(), s_screen);
-    }
-    else if (s_stats) {
-        image = StreamPainter::paintStats(s_statsView, s_screen);
-    }
+    const bool menuShown = s_open || s_reveal.at(now) > 0 || s_veil.at(now) > 0;
+    const QImage image = menuShown ? StreamPainter::paintFrame(frame(now), s_screen)
+                                   : StreamPainter::paintStats(s_statsView, s_statsFade.at(now), s_screen);
     session->getOverlayManager().setOverlaySurface(Overlay::OverlayDebug, toSurface(image));
+    if (s_timer == 0 && animating(now)) {
+        s_timer = SDL_AddTimer(FRAME_MS, tick, nullptr);
+    }
+}
+
+// Minuteur SDL (son propre fil) : une image par tour tant qu'une animation court.
+Uint32 tick(Uint32, void*)
+{
+    QMutexLocker locker(&s_lock);
+    if (Session::get() == nullptr || Session::get() != s_session) {
+        s_timer = 0;
+        return 0;
+    }
+    const Uint32 now = SDL_GetTicks();
+    render(now);
+    if (animating(now)) {
+        return FRAME_MS;
+    }
+    s_timer = 0;
+    if (!s_open) {   // menu refermé : le fond et la sortie son ne servent plus
+        s_backdrop = QImage();
+        closeAudio();
+    }
+    return 0;
+}
+
+// Le flux en cours ; un nouveau flux repart menu fermé. s_lock tenu.
+void attach()
+{
+    Session* session = Session::get();
+    if (session != s_session) {
+        s_session = session;
+        s_open = false;
+        s_reveal.set(0);
+        s_veil.set(0);
+    }
+}
+
+void openMenu()
+{
+    const Uint32 now = SDL_GetTicks();
+    s_open = true;
+    s_focus = 0;
+    s_confirm.clear();
+    s_armed = false;
+    s_stick = 0;
+    s_screen = screenSize();
+    s_wantFrame = true;   // l'image floutée remplacera le voile (offerFrame)
+    if (s_backdrop.isNull()) {
+        s_blurMix.set(0);
+    }
+    s_reveal.go(1, SHEET_SLIDE, now, QEasingCurve::OutQuint);
+    s_veil.go(1, SHEET_DIM_FADE, now);
+    s_focusY.set(0);
+    s_pageMix.set(1);
+    s_swap.set(1);
+    s_swapRow = -1;
+    resetHighlights(0);
+    play("open");
+    render(now);
+}
+
+void closeMenu(bool sound = true)
+{
+    const Uint32 now = SDL_GetTicks();
+    s_open = false;
+    s_armed = false;
+    s_wantFrame = false;
+    s_reveal.go(0, SHEET_SLIDE, now, QEasingCurve::OutQuint);
+    s_veil.go(0, SHEET_DIM_FADE, now);
+    if (sound) {
+        play("close");
+    }
+    render(now);
+}
+
+// Liste ↔ confirmation : l'ancienne page s'efface pendant que la nouvelle apparaît.
+void switchPage(const QString& confirm, int focus)
+{
+    const Uint32 now = SDL_GetTicks();
+    s_previous = page();
+    s_confirm = confirm;
+    s_focus = focus;
+    s_pageMix.set(0);
+    s_pageMix.go(1, PAGE_FADE, now, QEasingCurve::OutCubic);
+    s_focusY.set(focus);
+    s_swap.set(1);
+    s_swapRow = -1;
+    resetHighlights(focus);
+    render(now);
+}
+
+// Quitte le flux ; l'accueil fera la suite (ConsoleHome.returnedHome). Le menu reste
+// à l'écran, immobile, jusqu'à la fermeture de la fenêtre du flux.
+void leave(const QString& action)
+{
+    s_exit = action;
+    s_open = false;
+    s_wantFrame = false;
+    freeze(SDL_GetTicks());
+    SDL_Event quit;
+    quit.type = SDL_QUIT;
+    quit.quit.timestamp = SDL_GetTicks();
+    SDL_PushEvent(&quit);
+}
+
+void step(int direction)
+{
+    const int next = s_focus + direction;
+    if (next < 0 || next >= s_highlight.size()) {
+        play("edge");
+        return;
+    }
+    const Uint32 now = SDL_GetTicks();
+    s_highlight[s_focus].go(0, SHEET_FOCUS_FADE, now);
+    s_highlight[next].go(1, SHEET_FOCUS_FADE, now);
+    s_focus = next;
+    s_focusY.go(next, SHEET_FOCUS_MOVE, now, QEasingCurve::OutCubic);
+    play("move");
+    render(now);
+}
+
+void back()
+{
+    if (s_confirm.isEmpty()) {
+        closeMenu();
+        return;
+    }
+    play("close");
+    switchPage(QString(), actionIndex(s_confirm));
 }
 
 void switchStats()
 {
+    const Uint32 now = SDL_GetTicks();
+    s_swapFrom = statsValue(s_stats);
     s_stats = !s_stats;
     QSettings().setValue(STATS_SETTING, s_stats.load());
-    s_statsView = StreamPainter::Stats();   // les chiffres arrivent dans la seconde
-    render();
+    if (s_open && s_confirm.isEmpty()) {
+        s_swapRow = actionIndex(QStringLiteral("stats"));
+        s_swap.set(0);
+        s_swap.go(1, SHEET_VALUE_SWAP, now);
+    }
+    if (s_stats) {
+        s_statsView = StreamPainter::Stats();   // elles apparaîtront avec les premiers chiffres
+        s_statsFade.set(0);
+    }
+    else {
+        s_statsFade.go(0, STATS_FADE, now);
+    }
+    render(now);
 }
 
-QString codecName(int videoFormat)
+void activate()
 {
-    QString codec = (videoFormat & VIDEO_FORMAT_MASK_H264) ? QStringLiteral("H.264")
-                  : (videoFormat & VIDEO_FORMAT_MASK_H265) ? QStringLiteral("HEVC")
-                  : (videoFormat & VIDEO_FORMAT_MASK_AV1) ? QStringLiteral("AV1")
-                  : QString();
-    if (videoFormat & VIDEO_FORMAT_MASK_10BIT) {
-        codec += LiGetCurrentHostDisplayHdrMode() ? QStringLiteral(" HDR") : tr(" 10 bits");
+    if (!s_confirm.isEmpty()) {
+        if (s_focus == 1) {
+            play("select");
+            leave(s_confirm);
+        }
+        else {
+            back();
+        }
+        return;
     }
-    if (videoFormat & VIDEO_FORMAT_MASK_YUV444) {
-        codec += QStringLiteral(" 4:4:4");
+    const QString key = actions().value(s_focus).key;
+    if (key == QLatin1String("resume")) {
+        play("select");
+        closeMenu(false);
     }
-    return codec;
+    else if (key == QLatin1String("stats")) {
+        play("tick");
+        switchStats();
+    }
+    else if (key == QLatin1String("quit") || key == QLatin1String("reboot") || key == QLatin1String("poweroff")) {
+        play("select");
+        switchPage(key, 0);   // Annuler : le choix sûr
+    }
+    else {
+        play("select");
+        leave(key);
+    }
 }
 
 // L'image décodée, copiée en mémoire si elle est sur le GPU et réduite au huitième
@@ -225,6 +583,21 @@ QImage snapshot(const AVFrame* frame)
     }
     av_frame_free(&copy);
     return context != nullptr ? image : QImage();
+}
+
+QString codecName(int videoFormat)
+{
+    QString codec = (videoFormat & VIDEO_FORMAT_MASK_H264) ? QStringLiteral("H.264")
+                  : (videoFormat & VIDEO_FORMAT_MASK_H265) ? QStringLiteral("HEVC")
+                  : (videoFormat & VIDEO_FORMAT_MASK_AV1) ? QStringLiteral("AV1")
+                  : QString();
+    if (videoFormat & VIDEO_FORMAT_MASK_10BIT) {
+        codec += LiGetCurrentHostDisplayHdrMode() ? QStringLiteral(" HDR") : tr(" 10 bits");
+    }
+    if (videoFormat & VIDEO_FORMAT_MASK_YUV444) {
+        codec += QStringLiteral(" 4:4:4");
+    }
+    return codec;
 }
 
 // Les chiffres de Moonlight (ffmpeg.cpp, stringifyVideoStats) en quatre lignes.
@@ -258,86 +631,12 @@ StreamPainter::Stats statsView(const VIDEO_STATS& stats, int videoFormat, int wi
     return view;
 }
 
-void close()
-{
-    s_open = false;
-    s_armed = false;
-    s_wantFrame = false;
-    s_backdrop = QImage();
-    render();
-}
-
-// Quitte le flux ; l'accueil fera la suite (ConsoleHome.returnedHome). Le menu reste
-// à l'écran jusqu'à la fermeture de la fenêtre du flux.
-void leave(const QString& action)
-{
-    s_exit = action;
-    s_open = false;
-    SDL_Event quit;
-    quit.type = SDL_QUIT;
-    quit.quit.timestamp = SDL_GetTicks();
-    SDL_PushEvent(&quit);
-}
-
-void step(int direction)
-{
-    const int next = s_focus + direction;
-    if (next < 0 || next >= view().labels.size()) {
-        return;
-    }
-    s_focus = next;
-    render();
-}
-
-void back()
-{
-    if (s_confirm.isEmpty()) {
-        close();
-        return;
-    }
-    const QList<Action> list = actions();
-    for (int i = 0; i < list.size(); i++) {
-        if (list[i].key == s_confirm) {
-            s_focus = i;
-        }
-    }
-    s_confirm.clear();
-    render();
-}
-
-void activate()
-{
-    if (!s_confirm.isEmpty()) {
-        if (s_focus == 1) {
-            leave(s_confirm);
-        }
-        else {
-            back();
-        }
-        return;
-    }
-    const QString key = actions().value(s_focus).key;
-    if (key == QLatin1String("resume")) {
-        close();
-    }
-    else if (key == QLatin1String("stats")) {
-        switchStats();
-    }
-    else if (key == QLatin1String("quit") || key == QLatin1String("reboot") || key == QLatin1String("poweroff")) {
-        s_confirm = key;
-        s_focus = 0;   // Annuler : le choix sûr
-        render();
-    }
-    else {
-        leave(key);
-    }
-}
-
 }
 
 void StreamMenu::prepare(const QString& game, const QStringList& powerActions, const QString& buttonLayout)
 {
     QMutexLocker locker(&s_lock);
+    closeAudio();
     s_session = nullptr;
     s_open = false;
     s_exit.clear();
@@ -345,13 +644,23 @@ void StreamMenu::prepare(const QString& game, const QStringList& powerActions, c
     s_power = powerActions;
     s_layout = buttonLayout;
     s_screen = QSize();
+    s_wantFrame = false;
+    s_backdrop = QImage();
+    s_reveal.set(0);
+    s_veil.set(0);
     s_stats = QSettings().value(STATS_SETTING, false).toBool();
     s_statsView = StreamPainter::Stats();
+    s_statsFade.set(0);   // les statistiques apparaissent avec les premiers chiffres
+    s_soundsOn = QSettings().value(SOUNDS_SETTING, true).toBool();
+    if (s_soundsOn) {
+        loadSounds();
+    }
 }
 
 QString StreamMenu::takeExit()
 {
     QMutexLocker locker(&s_lock);
+    closeAudio();
     const QString exit = s_exit;
     s_exit.clear();
     return exit;
@@ -368,18 +677,11 @@ void StreamMenu::toggle()
     QMutexLocker locker(&s_lock);
     attach();
     if (s_open) {
-        close();
-        return;
+        closeMenu();
     }
-    s_open = true;
-    s_focus = 0;
-    s_confirm.clear();
-    s_armed = false;
-    s_stick = 0;
-    s_screen = screenSize();
-    s_backdrop = QImage();
-    s_wantFrame = true;   // le voile en attendant l'image suivante (offerFrame)
-    render();
+    else {
+        openMenu();
+    }
 }
 
 void StreamMenu::onButton(uint8_t button, bool pressed)
@@ -436,6 +738,7 @@ void StreamMenu::toggleStats()
     QMutexLocker locker(&s_lock);
     attach();
     s_screen = screenSize();
+    play("tick");
     switchStats();
 }
 
@@ -449,10 +752,15 @@ void StreamMenu::updateStats(const VIDEO_STATS& stats, int videoFormat, int widt
     const StreamPainter::Stats view = statsView(stats, videoFormat, width, height, megabitsPerSec);
     QMutexLocker locker(&s_lock);
     attach();
-    if (s_stats) {
-        s_statsView = view;
-        render();
+    if (!s_stats) {
+        return;
     }
+    const Uint32 now = SDL_GetTicks();
+    if (s_statsView.lines.isEmpty()) {
+        s_statsFade.go(1, STATS_FADE, now);
+    }
+    s_statsView = view;
+    render(now);
 }
 
 void StreamMenu::offerFrame(const AVFrame* frame)
@@ -475,7 +783,11 @@ void StreamMenu::offerFrame(const AVFrame* frame)
     const QImage backdrop = StreamPainter::blurred(small, screen);
     QMutexLocker locker(&s_lock);
     if (s_open) {
+        const Uint32 now = SDL_GetTicks();
         s_backdrop = backdrop;
-        render();
+        if (s_blurMix.to < 1) {
+            s_blurMix.go(1, BLUR_FADE, now);
+        }
+        render(now);
     }
 }

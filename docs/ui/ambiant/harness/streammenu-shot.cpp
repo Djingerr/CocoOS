@@ -9,7 +9,9 @@
 // page : menu | confirm | stats | dialog (le dialog de PagesDemo, à comparer avec
 // ./shot.sh /tmp/q.png view=PagesDemo page=dialog size=1280x720). stats=1 ajoute
 // les statistiques au menu ; latency=N (ms) en change le point ; backdrop=art/x.jpg
-// pose cette image en fond flouté, comme une image du jeu.
+// pose cette image en fond flouté, comme une image du jeu. Une étape d'animation :
+// reveal=, veil=, blur=, focusY=, pageMix= (avec page=confirm : la liste s'efface),
+// swap= (avec stats=1 : « Masquées » sort, « Affichées » entre), de 0 à 1.
 
 #include "streampainter.h"
 
@@ -38,8 +40,9 @@ int main(int argc, char* argv[])
     const QStringList size = opt.value(QStringLiteral("size"), QStringLiteral("1280x720")).split('x');
     const QString page = opt.value(QStringLiteral("page"), QStringLiteral("menu"));
 
-    StreamPainter::Menu menu;
-    menu.layout = opt.value(QStringLiteral("layout"), QStringLiteral("xbox"));
+    StreamPainter::Frame frame;
+    StreamPainter::Page& menu = frame.page;
+    frame.layout = opt.value(QStringLiteral("layout"), QStringLiteral("xbox"));
     menu.focus = opt.value(QStringLiteral("focus"), QStringLiteral("0")).toInt();
     if (page == QLatin1String("dialog")) {
         menu.title = QStringLiteral("Un jeu est déjà en cours");
@@ -73,17 +76,36 @@ int main(int argc, char* argv[])
     stats.dotLine = 1;
     stats.dot = StreamPainter::networkColor(latency, 2);
     if (opt.value(QStringLiteral("stats")) == QLatin1String("1")) {
-        menu.stats = stats;
+        frame.stats = stats;
         menu.values = QStringList { QString(), QStringLiteral("Affichées") };
+        frame.swapRow = 1;
+        frame.swapFrom = QStringLiteral("Masquées");
+    }
+    auto number = [&](const char* key, qreal fallback) {
+        return opt.contains(QLatin1String(key)) ? opt.value(QLatin1String(key)).toDouble() : fallback;
+    };
+    frame.reveal = number("reveal", 1);
+    frame.veil = number("veil", 1);
+    frame.blurMix = number("blur", 1);
+    frame.focusY = number("focusY", -1);
+    frame.swapProgress = number("swap", 1);
+    frame.pageMix = number("pageMix", 1);
+    if (frame.pageMix < 1) {
+        frame.previous.title = QStringLiteral("Elden Ring");
+        frame.previous.labels = QStringList { QStringLiteral("Reprendre"), QStringLiteral("Statistiques du flux"),
+                                              QStringLiteral("Retour à l'accueil"), QStringLiteral("Quitter Elden Ring") };
+        frame.previous.values = QStringList { QString(), QStringLiteral("Masquées") };
+        frame.previous.focus = 3;
+        frame.previous.backLabel = QStringLiteral("Fermer");
     }
 
     const QSize screen(size.value(0).toInt(), size.value(1).toInt());
-    const QImage frame(opt.value(QStringLiteral("backdrop")));
-    if (!frame.isNull()) {   // réduite au huitième, comme StreamMenu::snapshot
-        menu.backdrop = StreamPainter::blurred(frame.scaled(frame.size() / 8, Qt::IgnoreAspectRatio,
+    const QImage game(opt.value(QStringLiteral("backdrop")));
+    if (!game.isNull()) {   // réduite au huitième, comme StreamMenu::snapshot
+        frame.backdrop = StreamPainter::blurred(game.scaled(game.size() / 8, Qt::IgnoreAspectRatio,
                                                             Qt::SmoothTransformation), screen);
     }
-    const QImage image = page == QLatin1String("stats") ? StreamPainter::paintStats(stats, screen)
-                                                         : StreamPainter::paintMenu(menu, screen);
+    const QImage image = page == QLatin1String("stats") ? StreamPainter::paintStats(stats, number("opacity", 1), screen)
+                                                         : StreamPainter::paintFrame(frame, screen);
     return image.save(args[1]) ? 0 : 1;
 }
