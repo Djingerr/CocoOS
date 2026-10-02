@@ -54,8 +54,10 @@ const int REPEAT_STEP = 10;
 const int REPEAT_MIN = 55;
 
 // Avant de fermer le flux, la fenêtre de l'accueil revient (finishLeave) : on attend
-// qu'elle ait affiché une image, au plus ce délai, puis que l'écran l'ait montrée.
+// qu'elle ait affiché une image, au plus ce délai, puis que le logo du rideau y soit
+// apparu (Theme.curtainReveal) et que l'écran l'ait montrée.
 const int SHOW_TIMEOUT_MS = 500;
+const int SHOW_REVEAL_MS = 320;
 const int SHOW_SETTLE_MS = 50;
 // Moonlight ne compose l'overlay qu'en affichant une image du flux ; sur un écran
 // immobile, le PC n'en envoie presque plus. Sans image reçue depuis ce délai (un peu
@@ -790,8 +792,9 @@ void showHomeWindow()
         QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 5);
     }
     QObject::disconnect(connection);
-    const qint64 shown = timer.elapsed();
-    while (timer.elapsed() < shown + SHOW_SETTLE_MS) {   // le compositeur l'affiche à son tour
+    // Ensuite, Qt est suspendu jusqu'à la fin du flux : le fondu du logo doit être fini.
+    const qint64 settled = qMax(timer.elapsed(), qint64(SHOW_REVEAL_MS)) + SHOW_SETTLE_MS;
+    while (timer.elapsed() < settled) {   // le compositeur l'affiche à son tour
         QCoreApplication::processEvents(QEventLoop::ExcludeUserInputEvents, 5);
     }
 }

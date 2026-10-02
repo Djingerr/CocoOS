@@ -206,6 +206,20 @@ Item {
             verify(screen.entryAllowed)
         }
 
+        // Fin du flux : la fenêtre de l'accueil réapparaît noire, avec le logo.
+        function test_5b_curtainLogoWhenTheWindowReturns() {
+            var win = home.Window.window
+            curtain.cover()
+            verify(!curtain.revealed)
+            win.visible = false                     // pendant le flux
+            win.visible = true                      // fin du flux
+            verify(curtain.revealed && !curtain.waiting)
+            compare(curtain.status, "")
+            curtain.dismiss()
+            tryCompare(curtain, "covering", false, 3000)   // après son temps minimal
+            win.requestActivate()
+        }
+
         function test_6_companionLaunchWithUpdate() {
             CompanionClient.paired = true
             CompanionClient.eventsConnected = true

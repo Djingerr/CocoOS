@@ -2,11 +2,12 @@ import QtQuick
 
 // Rideau CocoOS entre un jeu et l'accueil. Posé noir, sans rien, dès que le flux
 // démarre (cover) : pendant le flux, la fenêtre de l'accueil est cachée et Qt
-// suspendu ; quand on quitte par le menu en jeu, elle réapparaît noire avant que la
-// fenêtre du flux ne se ferme (StreamMenu::finishLeave) : ni trou, ni bureau. Au
-// retour, le logo apparaît (reveal), avec une ligne d'état si l'on attend quelque
-// chose, puis le rideau se lève (dismiss) et l'accueil rentre. Tant qu'il couvre,
-// il garde la manette. Aucune dépendance Moonlight.
+// suspendu ; quand on quitte par le menu en jeu, elle réapparaît avant que la
+// fenêtre du flux ne se ferme (StreamMenu::finishLeave) : ni trou, ni bureau. Dès
+// qu'elle réapparaît, le logo apparaît (reveal) ; au retour sur l'accueil, une ligne
+// d'état s'y ajoute si l'on attend quelque chose, puis le rideau se lève (dismiss)
+// et l'accueil rentre. Tant qu'il couvre, il garde la manette. Aucune dépendance
+// Moonlight.
 FocusScope {
     id: root
 
@@ -37,9 +38,18 @@ FocusScope {
         if (!covering) return
         status = text || ""
         waiting = !!wait
+        if (!revealed) revealedAt = Date.now()
         revealed = true
-        revealedAt = Date.now()
         forceActiveFocus()
+    }
+
+    // La fenêtre de l'accueil revient (fin du flux) : le logo paraît aussitôt, sur
+    // le noir, sans attendre que l'accueil reprenne la main (returnedHome).
+    Connections {
+        target: root.Window.window
+        function onVisibleChanged() {
+            if (root.Window.window.visible) root.reveal(root.status, root.waiting)
+        }
     }
 
     // Le logo reste au moins Theme.curtainMinShow, pour ne pas clignoter.

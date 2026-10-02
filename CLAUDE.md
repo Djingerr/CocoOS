@@ -187,9 +187,12 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     deux, on voyait le bureau (noir sur la console). Désormais le rideau (noir) couvre l'accueil
     dès le début du flux ; quand on quitte par le menu en jeu, l'overlay fond au noir, puis
     `StreamMenu::finishLeave` réaffiche la fenêtre Qt et fait tourner Qt le temps qu'elle montre
-    une image (≤ 500 ms) avant de fermer le flux : plus de trou. Au retour, le logo de l'animation
-    de démarrage apparaît (« Fermeture de … » et le O qui respire jusqu'à la réponse du PC), puis
-    le rideau se lève et l'accueil rentre (`entryAllowed`). Il garde la manette tant qu'il couvre.
+    une image et que le logo y ait paru (≥ 320 ms) avant de fermer le flux : plus de trou. Dès que
+    la fenêtre revient, le logo de l'animation de démarrage paraît sur le noir ; au retour sur
+    l'accueil s'y ajoute « Fermeture de … » (le O respire jusqu'à la réponse du PC), puis le rideau
+    se lève et l'accueil rentre (`entryAllowed`). Il garde la manette tant qu'il couvre. La
+    toolbar Material (bande bleue en haut du rideau, ré-affichée par `StreamSegue` en se dépilant)
+    est détachée de la fenêtre (`header = null`), plus seulement cachée.
     Les autres fins de flux (connexion perdue, combinaison Start + Select + L1 + R1) passent
     encore par le trou : la fenêtre du flux se ferme avant qu'on ait la main.
     ⚠️ Le menu a été vu dans un vrai flux par Marco, mais pas encore ses animations ni ses sons.

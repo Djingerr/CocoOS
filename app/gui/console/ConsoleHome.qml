@@ -159,10 +159,12 @@ FocusScope {
     function hideUpstreamChrome() {
         // Mode console : masquer la barre d'outils Material de main.qml
         // (élément "bureau" interdit par le principe zéro-friction).
-        // Fait d'ici pour ne pas modifier le fichier upstream.
+        // Fait d'ici pour ne pas modifier le fichier upstream. Détachée de la fenêtre,
+        // pas seulement cachée : StreamSegue la ré-affiche en se dépilant, et on la
+        // voyait en haut du rideau jusqu'à la fin de la transition.
         var win = home.Window.window
         if (win && win.header)
-            win.header.visible = false
+            win.header = null
     }
 
     // --- Boutons console au niveau de l'accueil ---
