@@ -21,7 +21,10 @@ QtObject {
 
     property bool started: false
 
+    property var environment: ({})        // variables d'environnement simulées
+
     function start() { started = true }
+    function env(name) { return environment[name] || "" }
     function power(action) { lastPower = action }
     function probeHost(manager, hostName) { probed = hostName }
     function stopProbing() { probed = "" }

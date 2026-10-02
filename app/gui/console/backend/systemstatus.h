@@ -60,6 +60,8 @@ public:
     int volume() const { return m_volume; }
 
     Q_INVOKABLE void setBrightness(int percent);
+    // Variable d'environnement (réglages de debug, ex. COCOOS_BOOT_SPEED) ; vide si absente.
+    Q_INVOKABLE QString env(const QString& name) const { return qEnvironmentVariable(name.toUtf8().constData()); }
     Q_INVOKABLE void setVolume(int percent);
 
     // Sonde le PC `hostName` connu de `computerManager` (le singleton QML), jusqu'à

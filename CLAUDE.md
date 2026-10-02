@@ -668,6 +668,28 @@ XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import
   l'étagère, `staged && !sheet.opened` sur `stage`) : il revient tout seul à la fermeture du
   panneau d'options ou d'un écran de message. Ne pas rappeler `shelf.forceActiveFocus()` en dur.
 
+### Animation de démarrage : debug et validation
+
+Variables d'environnement (lues par `SystemStatus.env`, cf. `docs/boot-animation/BOOT_ANIMATION.md` §10) :
+
+```bash
+COCOOS_BOOT_SPEED=0.25 ./app/moonlight          # ralentie (comparer au prototype à 0,25×)
+COCOOS_BOOT_FAKE_DELAY_MS=4000 ./app/moonlight  # système prêt au plus tôt à 4 s : le O fait le chargeur
+COCOOS_BOOT_MODE=wake ./app/moonlight           # variante sortie de veille
+COCOOS_BOOT_LOOP=1 ./app/moonlight              # séquence en boucle, sans entrer dans l'accueil
+```
+
+À la fin de chaque séquence, le journal donne : `[console-ui] Démarrage (cold) : 3135 ms[, avec
+chargeur (prêt à … ms)], image la plus longue 17.0 ms`. Sur le laptop (hors écran, hors réseau) :
+3135 ms sans chargeur, 5670 ms avec `FAKE_DELAY_MS=4000`, plus longue image ≈ 17 ms.
+
+**Validation sur l'Orange Pi (critère 7, 60 i/s)** : lancer en kiosk avec `QSG_RENDER_TIMING=1`
+(temps de rendu par image dans le journal) et lire « image la plus longue » ; aucune image ne doit
+dépasser 16,6 ms (une image ratée apparaît vers 33 ms). Si ça saccade : passer les propriétés de
+transformation (`x`, `scale`, `opacity`) du logo sur des `Animator` (spec §3), et vérifier que
+rien de synchrone ne tourne sur le fil GUI pendant la séquence (`SystemStatus` et `WifiSetup` ne
+démarrent qu'à la fin, `start()`).
+
 ### Ignorer les artefacts de build sans toucher au `.gitignore` upstream
 
 Le `.gitignore` upstream ne couvre pas les builds in-source de qmake (`Makefile*`,

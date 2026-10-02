@@ -19,6 +19,7 @@ FocusScope {
     property bool showStepText: false
     property Item statusBarLogo: null        // logo de la barre haute, cible de la sortie
     property bool autoStart: true            // démarre seul dès que les polices sont là
+    property bool loop: false                // debug : rejoue la séquence sans entrer dans l'accueil
 
     signal exitStarted()                     // E + 250 ms : l'accueil commence son entrée
     signal finished()                        // fin de la sortie
@@ -32,6 +33,7 @@ FocusScope {
     property real readyAt: -1                // t où le système est devenu prêt, -1 : pas encore
     property bool exitAnnounced: false
     property bool entryOpen: false           // l'accueil peut entrer (à partir de exitStarted)
+    property real longestFrame: 0            // ms : la plus longue image de la séquence (critère 60 i/s)
 
     readonly property real k: height / Theme.bootRefHeight
     readonly property var ready: readyAt < 0 ? null : readyAt
@@ -49,6 +51,7 @@ FocusScope {
         skipping = false
         exitAnnounced = false
         entryOpen = false
+        longestFrame = 0
         readyAt = systemReady ? 0 : -1
         running = true
     }
@@ -92,7 +95,11 @@ FocusScope {
             if (previous < cues[i].t && t >= cues[i].t) soundCue(cues[i].name)
         if (mode === "wake")
             driveStatusLogo()
-        if (!exitAnnounced && t >= entryAt) {
+        if (loop && t >= endAt) {
+            start()
+            return
+        }
+        if (!loop && !exitAnnounced && t >= entryAt) {
             exitAnnounced = true
             entryOpen = true
             exitStarted()
@@ -120,6 +127,8 @@ FocusScope {
             // (après la mise en place de la pile d'écrans, qui donne le focus à l'accueil ;
             // en sortie de veille, la manette reste à l'accueil)
             if (!focused && root.mode === "cold") { focused = true; root.forceActiveFocus() }
+            if (root.t > 0)
+                root.longestFrame = Math.max(root.longestFrame, frameTime * 1000)
             root.advance(frameTime * 1000)
         }
     }
@@ -135,8 +144,9 @@ FocusScope {
     Rectangle {
         anchors.fill: parent
         color: Theme.background
-        opacity: root.mode === "wake" ? (root.t < Boot.T.wakeStart ? 1 : 0)
-                                      : 1 - Boot.E_OUT(Boot.clamp01((root.t - root.entryAt) / Theme.entryTextFade))
+        opacity: root.loop ? 1
+               : root.mode === "wake" ? (root.t < Boot.T.wakeStart ? 1 : 0)
+               : 1 - Boot.E_OUT(Boot.clamp01((root.t - root.entryAt) / Theme.entryTextFade))
     }
 
     // --- Sortie : vers le logo de la barre haute (Bézier quadratique, E_EMPH) ---

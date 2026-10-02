@@ -15,6 +15,7 @@ import AmbientColor 1.0
 
 import "Format.js" as Format
 import "Library.js" as Library
+import "BootTimeline.js" as Boot
 
 // Écran d'accueil de la console : la logique. La présentation est ailleurs :
 // HomeScreen.qml (fond, barre haute, bloc héros, étagère, panneau d'options) et
@@ -1367,11 +1368,20 @@ FocusScope {
             id: bootSplash
             anchors.fill: parent
             z: 2
-            systemReady: home.bootReady
+            // Debug (BOOT_ANIMATION.md §10) : vitesse, variante, boucle, système en retard.
+            speed: Number(SystemStatus.env("COCOOS_BOOT_SPEED")) || 1
+            mode: SystemStatus.env("COCOOS_BOOT_MODE") === "wake" ? "wake" : "cold"
+            loop: SystemStatus.env("COCOOS_BOOT_LOOP") === "1"
+            readonly property real fakeDelay: Number(SystemStatus.env("COCOOS_BOOT_FAKE_DELAY_MS")) || 0
+            systemReady: home.bootReady && t >= fakeDelay
             stepText: home.bootStep
             statusBarLogo: homeScreen.statusLogo
             onSoundCue: function(name) { Sounds.play("boot-" + name) }
             onFinished: {
+                console.info("[console-ui] Démarrage (" + mode + ") : " + Math.round(t) + " ms"
+                             + (mode === "cold" && readyAt > Boot.loaderShowAt ? ", avec chargeur (prêt à "
+                                + Math.round(readyAt) + " ms)" : "")
+                             + ", image la plus longue " + longestFrame.toFixed(1) + " ms")
                 if (mode === "cold")
                     homeScreen.forceActiveFocus()
                 // Leurs premiers relevés (D-Bus, synchrones) attendaient la fin de la

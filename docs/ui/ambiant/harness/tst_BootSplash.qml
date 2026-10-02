@@ -39,6 +39,20 @@ Item {
             verify(splash.done && !splash.skipping && !splash.visible)
         }
 
+        // COCOOS_BOOT_LOOP : la séquence se rejoue sans jamais ouvrir l'accueil.
+        function test_loopNeverEntersTheHome() {
+            splash.systemReady = true
+            splash.loop = true
+            splash.start()
+            splash.running = false
+            splash.advance(3200)                    // fin de la sortie : on recommence
+            compare(exits.count, 0)
+            compare(ends.count, 0)
+            verify(splash.t < 100 && splash.running)
+            splash.running = false
+            splash.loop = false
+        }
+
         // Système en retard : le chargeur paraît à 2785 ms, reste au moins 600 ms, se
         // referme une fois le système prêt, pulse, puis la sortie commence.
         function test_loaderWaitsForTheSystem() {
