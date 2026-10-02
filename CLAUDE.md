@@ -180,7 +180,18 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     20 ms, le minuteur réveille donc le décodeur (`LiWakeWaitForVideoFrame`), qui réaffiche une
     copie de la dernière image (`StreamMenu::frameToRepeat`). Sons open / close /
     move / edge / select / tick joués par SDL (QtMultimedia ne tourne pas pendant un flux), au
-    volume de `Theme.soundVolume`, coupés avec le réglage « Sons ».
+    volume de `Theme.soundVolume`, coupés avec le réglage « Sons ». Croix ou stick tenus :
+    la liste défile avec la répétition de l'accueil (`Theme.repeat*`), arrêtée au bout.
+  - **Rideau CocoOS entre un jeu et l'accueil** (`StreamCurtain.qml`) : StreamSegue cache la
+    fenêtre Qt pendant le flux et ne la réaffiche qu'après avoir fermé celle du flux : entre les
+    deux, on voyait le bureau (noir sur la console). Désormais le rideau (noir) couvre l'accueil
+    dès le début du flux ; quand on quitte par le menu en jeu, l'overlay fond au noir, puis
+    `StreamMenu::finishLeave` réaffiche la fenêtre Qt et fait tourner Qt le temps qu'elle montre
+    une image (≤ 500 ms) avant de fermer le flux : plus de trou. Au retour, le logo de l'animation
+    de démarrage apparaît (« Fermeture de … » et le O qui respire jusqu'à la réponse du PC), puis
+    le rideau se lève et l'accueil rentre (`entryAllowed`). Il garde la manette tant qu'il couvre.
+    Les autres fins de flux (connexion perdue, combinaison Start + Select + L1 + R1) passent
+    encore par le trou : la fenêtre du flux se ferme avant qu'on ait la main.
     ⚠️ Le menu a été vu dans un vrai flux par Marco, mais pas encore ses animations ni ses sons.
     Le flou sur l'Orange Pi est incertain (images AFBC du décodeur Rockchip) : si la copie échoue,
     le voile reste. Cadence des animations sur la carte à mesurer (objectif 60 i/s).
@@ -347,6 +358,8 @@ Fichiers (dans `app/gui/console/`) :
 - `Library.js` — l'étagère : utilitaires écartés, ordre (favoris, récents, nom), synchronisation
   du `ListModel` sans recréer les vignettes
 - `Toast.qml` — message bref au-dessus de l'étagère (`homeScreen.toast(texte)`)
+- `StreamCurtain.qml` — rideau CocoOS (logo de démarrage, ligne d'état) entre un jeu et
+  l'accueil : posé au début du flux, levé au retour (cf §2)
 - `SleepScreen.qml` — veille de l'écran : noir, une phrase qui s'efface à son tour (OLED) ; la
   touche qui réveille n'atteint pas l'accueil
 - `OnScreenKeyboard.qml` — clavier à l'écran, à la manette (mot de passe Wi-Fi)
@@ -642,7 +655,7 @@ Tout est dans `docs/ui/ambiant/harness/` (hors de `app/`, rien n'entre dans le b
 cd docs/ui/ambiant/harness
 qml-qt6 -I stubs Harness.qml -- view=HomeDemo          # l'accueil, 10 jeux de démo, au clavier
 qml-qt6 -I stubs Harness.qml -- view=ConsoleHomeDemo   # le vrai ConsoleHome sur faux modules
-qml-qt6 Harness.qml -- view=PagesDemo page=code        # search|loading|pin|pin-error|code|code-busy|code-error|dialog
+qml-qt6 Harness.qml -- view=PagesDemo page=code        # search|loading|pin|pin-error|code|code-busy|code-error|dialog|curtain
 ./shot.sh /tmp/a.png view=HomeDemo focus=6 drift=0 delay=2500   # capture (rendu GPU, sans fenêtre)
 ./compare.py /tmp/a.png ../ref/home-6-rdr2.png -o /tmp/diff.png # écart avec le prototype
 ./shot.sh /tmp/b.png view=HomeDemo do=options,down at=2500 delay=3700   # idem, après des actions

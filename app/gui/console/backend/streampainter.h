@@ -50,6 +50,7 @@ struct Frame {
     Stats stats;
     qreal statsOpacity = 1;
     QString layout;                 // glyphes : "xbox", "playstation" ou "nintendo"
+    qreal curtain = 0;              // fondu au noir par-dessus tout (avant de quitter le flux)
 };
 
 // Le menu plein écran (le fond, les statistiques, le panneau à droite), dessiné dans

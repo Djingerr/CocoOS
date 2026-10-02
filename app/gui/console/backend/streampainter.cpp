@@ -409,6 +409,10 @@ bool StreamPainter::paintFrame(const Frame& frame, QImage& image)
     const QSize screen = image.size();
     image.setDotsPerMeterX(2835);   // 72 ppp, comme canvasImage
     image.setDotsPerMeterY(2835);
+    if (frame.curtain >= 1) {
+        image.fill(Qt::black);
+        return true;
+    }
 
     // --- Fond : l'image du jeu floutée, ou un voile en attendant ---
     // Posée entièrement (presque tout le temps), elle est simplement recopiée : c'est
@@ -443,11 +447,10 @@ bool StreamPainter::paintFrame(const Frame& frame, QImage& image)
     // --- Panneau ---
     const qreal canvasWidth = screen.width() * CANVAS_HEIGHT / screen.height();
     const qreal panelX = canvasWidth - SHEET_WIDTH * frame.reveal + SHEET_WIDTH * SHEET_HIDDEN_SHIFT * (1 - frame.reveal);
-    if (panelX >= canvasWidth) {
-        return solid;
+    if (panelX < canvasWidth) {
+        p.fillRect(QRectF(panelX, 0, SHEET_WIDTH, CANVAS_HEIGHT), SHEET_FILL);
+        p.fillRect(QRectF(panelX - 1, 0, 1, CANVAS_HEIGHT), SHEET_EDGE);
     }
-    p.fillRect(QRectF(panelX, 0, SHEET_WIDTH, CANVAS_HEIGHT), SHEET_FILL);
-    p.fillRect(QRectF(panelX - 1, 0, 1, CANVAS_HEIGHT), SHEET_EDGE);
 
     // Changement de page : l'ancienne s'efface sur la première moitié, la nouvelle
     // apparaît sur la seconde (un fondu croisé superposerait deux textes).
@@ -456,5 +459,9 @@ bool StreamPainter::paintFrame(const Frame& frame, QImage& image)
     }
     drawPage(p, frame.page, frame, frame.focusY < 0 ? frame.page.focus : frame.focusY, frame.highlight,
              panelX, frame.pageMix < 1 ? qMax<qreal>(0, 2 * frame.pageMix - 1) : 1, true);
+    if (frame.curtain > 0) {
+        p.resetTransform();
+        p.fillRect(image.rect(), QColor(0, 0, 0, qRound(255 * frame.curtain)));
+    }
     return solid;
 }

@@ -136,13 +136,24 @@ FocusScope {
         homeScreen.forceActiveFocus()
         homeScreen.wake()
         rearmSleep()
-        // Quitté par le menu en jeu (StreamMenu) : la suite de l'action choisie
-        // (« Retour à l'accueil » : rien de plus, le jeu tourne encore).
+        // Retour d'un jeu : le rideau CocoOS, posé au début du flux, couvre l'accueil.
+        // Il fait la suite de l'action choisie dans le menu en jeu (StreamMenu), puis
+        // se lève et l'accueil rentre (« Retour à l'accueil » : le jeu tourne encore).
         var exit = InputStatus.takeStreamExit()
-        if (fromGame && exit === "quit")
-            quitRunningGame()
-        else if (fromGame && SystemStatus.powerActions.indexOf(exit) >= 0)
+        if (!fromGame || !streamCurtain.covering) {
+            if (fromGame && exit === "quit") quitRunningGame()
+            else if (fromGame && SystemStatus.powerActions.indexOf(exit) >= 0) SystemStatus.power(exit)
+        } else if (exit === "quit" && appModel) {
+            streamCurtain.reveal(qsTr("Fermeture de %1…").arg(appModel.getRunningAppName()), true)
+            appModel.quitRunningApp()   // le rideau se lève à la réponse du PC (onQuitAppCompleted)
+        } else if (SystemStatus.powerActions.indexOf(exit) >= 0) {
+            streamCurtain.reveal("")
             SystemStatus.power(exit)
+            if (exit === "suspend") streamCurtain.dismiss()   // redémarrer, éteindre : il reste
+        } else {
+            if (exit !== "") streamCurtain.reveal("")
+            streamCurtain.dismiss()   // flux fini autrement (connexion perdue…) : il se lève aussitôt
+        }
     }
 
     function hideUpstreamChrome() {
@@ -521,7 +532,7 @@ FocusScope {
     }
 
     function homeButton() {
-        if (Date.now() < homeGuardUntil) return
+        if (Date.now() < homeGuardUntil || streamCurtain.covering) return
         if (sleepScreen.asleep) {
             sleepScreen.wake()
             return
@@ -581,6 +592,7 @@ FocusScope {
     Connections {
         target: ComputerManager
         function onQuitAppCompleted(error) {
+            if (streamCurtain.waiting) streamCurtain.dismiss()
             if (error !== undefined && error !== null)
                 homeScreen.toast(qsTr("Le jeu n'a pas pu être fermé."))
         }
@@ -829,6 +841,7 @@ FocusScope {
         })
         session.connectionStarted.connect(function() {
             home.streamStarted = true
+            streamCurtain.cover()
             Sounds.play("ready")
             launchScreen.close(false)
         })
@@ -869,12 +882,19 @@ FocusScope {
             applyGameProfile(item.name)     // (remis au retour sur l'accueil)
         }
         prepareStreamMenu(item ? item.name : "")
+        var session = item ? appModel.createSessionForApp(nextIndex) : null
+        if (session) {
+            session.connectionStarted.connect(function() {
+                home.streamStarted = true
+                streamCurtain.cover()
+            })
+        }
         var component = Qt.createComponent("qrc:/gui/QuitSegue.qml")
         stackView.push(component.createObject(stackView, {
             "appName": appModel.getRunningAppName(),
             "quitRunningAppFn": function() { appModel.quitRunningApp() },
             "nextAppName": item ? item.name : null,
-            "nextSession": item ? appModel.createSessionForApp(nextIndex) : null
+            "nextSession": session
         }))
     }
 
@@ -1140,7 +1160,7 @@ FocusScope {
 
         // L'accueil entre quand l'animation de démarrage en est à sa sortie ; le logo de
         // la barre haute n'apparaît qu'une fois celui du démarrage arrivé à sa place.
-        entryAllowed: bootSplash.entryOpen
+        entryAllowed: bootSplash.entryOpen && !streamCurtain.covering
         statusLogoShown: !bootSplash.visible || bootSplash.mode === "wake"
 
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
@@ -1406,6 +1426,15 @@ FocusScope {
                 SystemStatus.start()
                 WifiSetup.start()
             }
+        }
+
+        // Rideau CocoOS entre un jeu et l'accueil : par-dessus tout, animation de
+        // démarrage comprise (il ne sert jamais en même temps qu'elle).
+        StreamCurtain {
+            id: streamCurtain
+            anchors.fill: parent
+            z: 3
+            onLifted: homeScreen.forceActiveFocus()
         }
 
         // Veille de l'écran : par-dessus tout le reste.

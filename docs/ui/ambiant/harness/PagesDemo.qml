@@ -9,7 +9,7 @@ import "../../../../app/gui/console"
 //   qml-qt6 Harness.qml -- view=PagesDemo page=code
 //   ./shot.sh /tmp/a.png view=PagesDemo page=pin delay=1500
 //
-// page : search | loading | pin | pin-error | code | code-busy | code-error | dialog
+// page : search | loading | pin | pin-error | code | code-busy | code-error | dialog | curtain
 HomeScreen {
     id: demo
 
@@ -65,6 +65,13 @@ HomeScreen {
         busy: demo.page === "code-busy"
         errorText: demo.page === "code-error" ? "Code incorrect — réessayez." : ""
         onSubmitted: function(code) { console.info("[demo] code " + code) }
+    }
+
+    // Rideau entre un jeu et l'accueil, pendant la fermeture du jeu.
+    StreamCurtain {
+        anchors.fill: parent
+        z: 10
+        Component.onCompleted: if (demo.page === "curtain") { cover(); reveal("Fermeture de Desktop…", true) }
     }
 
     ConsoleDialog {

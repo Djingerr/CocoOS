@@ -2,6 +2,7 @@ import QtQuick
 import QtTest
 import StreamingPreferences 1.0
 import CompanionClient 1.0
+import ComputerManager 1.0
 import SystemStatus 1.0
 import InputStatus 1.0
 import WifiSetup 1.0
@@ -46,6 +47,7 @@ Item {
         readonly property var launchScreen: find(home.Window.window.contentItem, "progressShown")
         readonly property var updateDialog: find(home.Window.window.contentItem, "answered")
         readonly property var sleepScreen: find(home.Window.window.contentItem, "asleep")
+        readonly property var curtain: find(home.Window.window.contentItem, "covering")
         // Les panneaux latéraux de ConsoleHome (confirmation, menu Home), par leur titre.
         function dialog(title) {
             var found = null
@@ -63,7 +65,7 @@ Item {
         function initTestCase() {
             find(home.Window.window.contentItem, "systemReady").finishNow()   // pas d'animation de démarrage
             Sounds.enabled = false
-            verify(screen && launchScreen && updateDialog)
+            verify(screen && launchScreen && updateDialog && curtain)
         }
         function init() {
             CompanionClient.paired = false
@@ -193,9 +195,15 @@ Item {
             compare(InputStatus.streamMenu, ["Minecraft", SystemStatus.powerActions, "xbox"])   // le menu en jeu
             session.connectionStarted()             // le flux est à l'écran
             verify(!launchScreen.active)
+            verify(curtain.covering)                // le rideau CocoOS couvre l'accueil, caché
+            verify(!screen.entryAllowed)
             session.sessionFinished(0)              // fin du jeu : l'accueil revient
             verify(!screen.launching)
             verify(!screen.pressed)
+            home.returnedHome()                     // (StreamSegue dépilé)
+            verify(!curtain.covering)               // fin sans action du menu en jeu : il se lève
+            verify(!curtain.revealed)
+            verify(screen.entryAllowed)
         }
 
         function test_6_companionLaunchWithUpdate() {
@@ -450,6 +458,30 @@ Item {
             home.streamStarted = true
             home.returnedHome()
             compare(SystemStatus.lastPower, "suspend")
+            apps.runningName = ""
+            home.homeGuardUntil = 0
+        }
+
+        // Quitter le jeu depuis le menu en jeu : le rideau CocoOS couvre l'accueil, dit
+        // « Fermeture de … », garde la manette, et se lève à la réponse du PC.
+        function test_9n_curtainWhileQuittingTheGame() {
+            var apps = home.appModel
+            apps.runningName = "Hades II"
+            var quits = apps.quits
+            curtain.cover()                         // posé au début du flux
+            InputStatus.streamExit = "quit"
+            home.streamStarted = true
+            home.returnedHome()
+            compare(apps.quits, quits + 1)
+            verify(curtain.revealed && curtain.waiting)
+            compare(curtain.status, "Fermeture de Hades II…")
+            verify(!screen.entryAllowed)
+            InputStatus.homePressed()               // la manette reste au rideau
+            verify(!dialog("Menu"))
+            ComputerManager.quitAppCompleted(null)
+            tryCompare(curtain, "covering", false, 3000)   // après son temps minimal
+            verify(screen.entryAllowed)                    // l'accueil rentre
+            tryCompare(curtain, "visible", false, 3000)
             apps.runningName = ""
             home.homeGuardUntil = 0
         }

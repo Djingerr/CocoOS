@@ -72,6 +72,15 @@ QtObject {
     readonly property color bootStepInk: "#6E6E6E"
     readonly property int bootDiscoveryGrace: 3000
     readonly property real bootSoundVolume: 0.25
+    // Rideau entre un jeu et l'accueil (StreamCurtain) : le logo au repos de
+    // l'animation de démarrage, la même ligne d'état (bootStep*), le O qui respire
+    // pendant une attente (fermeture du jeu sur le PC).
+    readonly property int curtainReveal: 320         // logo et ligne d'état, en fondu
+    readonly property int curtainMinShow: 700        // le logo reste au moins ce temps
+    readonly property int curtainFade: 420           // levée du rideau, easeOut
+    readonly property int curtainMaxWait: 8000       // le PC ne répond pas : on lève quand même
+    readonly property int curtainBreath: 1400        // période de la respiration du O
+    readonly property real curtainBreathScale: 1.08
 
     // --- Fond (BackdropLayer) ---
     readonly property int backdropDebounce: 140      // attente après le dernier déplacement
