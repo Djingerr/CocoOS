@@ -33,8 +33,8 @@ class SystemStatus : public QObject
     Q_PROPERTY(bool charging READ charging NOTIFY changed)              // la batterie est en charge
     Q_PROPERTY(int signalStrength READ signalStrength NOTIFY changed)   // 0 à 4, -1 sans Wi-Fi
     // Actions d'alimentation que logind autorise sans mot de passe, parmi
-    // "suspend", "reboot", "poweroff" (lues une fois, au démarrage).
-    Q_PROPERTY(QStringList powerActions READ powerActions CONSTANT)
+    // "suspend", "reboot", "poweroff" (lues une fois, par start()).
+    Q_PROPERTY(QStringList powerActions READ powerActions NOTIFY changed)
     // Réseau vers le PC sondé (probeHost) : latence (médiane) et gigue, en ms ; -1 sans mesure.
     Q_PROPERTY(int latencyMs READ latencyMs NOTIFY networkChanged)
     Q_PROPERTY(int jitterMs READ jitterMs NOTIFY networkChanged)
@@ -44,6 +44,10 @@ class SystemStatus : public QObject
 
 public:
     explicit SystemStatus(QObject* parent = nullptr);
+
+    // Premiers relevés (D-Bus, synchrones) puis rafraîchissement régulier. Appelé à la
+    // fin de l'animation de démarrage : rien ne doit bloquer le fil GUI pendant celle-ci.
+    Q_INVOKABLE void start();
 
     int batteryPercent() const { return m_batteryPercent; }
     bool charging() const { return m_charging; }
@@ -95,6 +99,7 @@ private:
     bool m_charging = false;
     int m_signalStrength = -1;
     QStringList m_powerActions;
+    bool m_started = false;
     int m_brightness = -1;
     int m_volume = -1;
 

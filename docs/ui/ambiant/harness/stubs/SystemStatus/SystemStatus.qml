@@ -18,6 +18,9 @@ QtObject {
 
     signal changed()
 
+    property bool started: false
+
+    function start() { started = true }
     function power(action) { lastPower = action }
     function probeHost(manager, hostName) { probed = hostName }
     function stopProbing() { probed = "" }

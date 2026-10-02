@@ -21,6 +21,9 @@ QtObject {
     signal stateChanged()
     signal connectFinished(bool ok, string error, bool badPassword)
 
+    property bool started: false
+
+    function start() { started = true }
     function scan() { scans++ }
     function connectTo(ssid, password) { lastConnect = { ssid: ssid, password: password } }
 }

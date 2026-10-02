@@ -9,7 +9,8 @@ import QtMultimedia
 Item {
     id: bank
 
-    readonly property var names: ["move", "edge", "select", "back", "open", "close", "tick", "launch", "ready"]
+    readonly property var names: ["move", "edge", "select", "back", "open", "close", "tick", "launch", "ready",
+                                  "boot-close", "boot-open"]
     property var effects: ({})
 
     function play(name) {
@@ -22,7 +23,7 @@ Item {
         model: bank.names
         delegate: SoundEffect {
             source: "sounds/" + modelData + ".wav"
-            volume: Theme.soundVolume
+            volume: modelData.indexOf("boot-") === 0 ? Theme.bootSoundVolume : Theme.soundVolume
         }
         onObjectAdded: function(index, object) { bank.effects[bank.names[index]] = object }
     }

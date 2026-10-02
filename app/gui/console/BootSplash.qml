@@ -4,7 +4,8 @@ import "BootTimeline.js" as Boot
 // Animation de démarrage « le O » (docs/boot-animation/BOOT_ANIMATION.md, le
 // prototype fait foi) : le O de « OS » se trace, les lettres en sortent, puis le
 // logo laisse la place à l'accueil. Tout est fonction du temps `t` (ms), avancé
-// image par image ; BootTimeline.js en donne l'état. Le A de la manette accélère
+// image par image ; BootTimeline.js en donne l'état. Si le système tarde, le O devient
+// le chargeur (au moins 600 ms), puis se referme. Le A de la manette accélère
 // (×4) ; les autres touches sont avalées le temps de la séquence.
 // Remplit son parent (la fenêtre) ; repère du prototype : 1280 × 720, k = hauteur / 720.
 // Aucune dépendance Moonlight.
@@ -33,6 +34,12 @@ FocusScope {
     readonly property real k: height / Theme.bootRefHeight
     readonly property var ready: readyAt < 0 ? null : readyAt
     readonly property real exitAt: Boot.exitStart(ready)
+    // Système en retard : le O de OS devient le chargeur (§5), jusqu'à la sortie.
+    readonly property bool loading: t >= Boot.revealEnd && t > Boot.loaderShowAt && t < exitAt
+                                    && Boot.loaderShown(ready)
+    readonly property var loaderState: loading ? Boot.loader(t, ready) : null
+    property real stepChangedAt: 0
+    onStepTextChanged: stepChangedAt = t
 
     function start() {
         t = 0
@@ -133,16 +140,19 @@ FocusScope {
             readonly property real cx: root.width / 2 - screenX      // centre de l'écran, repère du logo
             readonly property var oState: Boot.oState(root.t, cx, geo.ocx)
 
-            // Jusqu'au repos, le O est celui de `drawnO`, dessiné à part (tracé, élan, ressort).
-            oVisible: root.t >= Boot.revealEnd
-            oColor: Theme.accent
+            // Jusqu'au repos, le O est celui de `drawnO`, dessiné à part (tracé, élan,
+            // ressort). Pendant le chargeur, il reste en filigrane sous l'arc.
+            oVisible: root.t >= Boot.revealEnd && (!root.loading || root.loaderState.len < 0.999)
+            oColor: root.loading ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, Boot.T.trackA)
+                                 : Theme.accent
 
             letters: {
                 var t = root.t
                 if (t >= Boot.revealEnd) {
-                    // Au repos : chaque lettre calée au pixel.
+                    // Au repos : chaque lettre calée au pixel ; un peu éteintes pendant le chargeur.
+                    var lum = root.loading ? Boot.lerp(1, 0.82, root.loaderState.vis) : 1
                     var rest = geo.xs.concat([geo.xS])
-                    return rest.map(function(x) { return { x: Math.round(x), lum: 1, shown: true } })
+                    return rest.map(function(x) { return { x: Math.round(x), lum: lum, shown: true } })
                 }
                 var out = []
                 for (var i = 0; i < 5; i++) {
@@ -155,9 +165,10 @@ FocusScope {
         }
     }
 
-    // --- Le O, de son tracé à sa place ---
+    // --- Le O, de son tracé à sa place, puis en chargeur ---
     // Rendu à sa taille maximale (celle du tracé, ×1,25) puis réduit : jamais agrandi,
-    // donc net. Le masque conique ne sert que pendant le tracé, à l'échelle 1.
+    // donc net. Le masque conique ne sert que pendant le tracé (à l'échelle 1) et
+    // tant que l'arc du chargeur n'est pas un tour complet.
     Text {
         id: drawnO
         readonly property real fullScale: Boot.T.oScale
@@ -165,27 +176,41 @@ FocusScope {
         readonly property var tight: { Theme.fontsReady; bigMetrics.font; return bigMetrics.tightBoundingRect("O") }
         readonly property real localCx: tight.x + tight.width / 2
         readonly property real localCy: baselineOffset + tight.y + tight.height / 2
-        readonly property var path: Boot.draw(root.t)
+        // Portion visible : celle du tracé, ou l'arc du chargeur (adouci aux deux bouts).
+        readonly property var arc: {
+            var l = root.loaderState
+            if (l) {
+                var f = Math.min(0.025, l.len / 3)
+                return { a0: l.a0, len: l.len, head: f, tail: f }
+            }
+            var d = Boot.draw(root.t)
+            return { a0: d.a0, len: d.len, head: 0.035, tail: 0 }
+        }
+        readonly property real bump: root.loaderState ? root.loaderState.bump : 0
 
-        visible: root.t >= Boot.T.drawStart && root.t < Boot.revealEnd
+        visible: (root.t >= Boot.T.drawStart && root.t < Boot.revealEnd) || root.loading
         text: "O"
         font: bigMetrics.font
-        color: { var c = Boot.oColor(root.t); return Qt.rgba(c[0], c[1], c[2], 1) }
+        color: {
+            var c = root.loading ? Boot.mix(Boot.ORANGE, Boot.BRIGHT, 0.8 * bump) : Boot.oColor(root.t)
+            return Qt.rgba(c[0], c[1], c[2], 1)
+        }
         x: logo.screenX + logo.oState.x - localCx
         y: logo.screenY + logo.geo.ocy - localCy
         transform: Scale {
             origin.x: drawnO.localCx; origin.y: drawnO.localCy
-            xScale: logo.oState.s / drawnO.fullScale; yScale: xScale
+            xScale: (root.loading ? 1 + 0.045 * drawnO.bump : logo.oState.s) / drawnO.fullScale
+            yScale: xScale
         }
 
-        layer.enabled: visible && root.t < Boot.drawEnd
+        layer.enabled: visible && drawnO.arc.len < 0.999
         layer.effect: ShaderEffect {
             readonly property point center: Qt.point(drawnO.localCx / drawnO.width, drawnO.localCy / drawnO.height)
             readonly property size itemSize: Qt.size(drawnO.width, drawnO.height)
-            readonly property real startAngle: drawnO.path.a0
-            readonly property real len: drawnO.path.len
-            readonly property real featherHead: 0.035
-            readonly property real featherTail: 0
+            readonly property real startAngle: drawnO.arc.a0
+            readonly property real len: drawnO.arc.len
+            readonly property real featherHead: drawnO.arc.head
+            readonly property real featherTail: drawnO.arc.tail
             fragmentShader: "shaders/ConicMask.frag.qsb"
         }
 
@@ -196,5 +221,17 @@ FocusScope {
             font.pixelSize: Theme.logoSize * root.k * Boot.T.oScale
             font.hintingPreference: Font.PreferNoHinting
         }
+    }
+
+    // --- Étape en cours, sous le logo, pendant le chargeur (si demandée) ---
+    Text {
+        readonly property var st: Boot.stepText(root.t, root.stepChangedAt, root.loaderState ? root.loaderState.vis : 0)
+        visible: root.showStepText && root.loading && st.opacity > 0
+        anchors.horizontalCenter: parent.horizontalCenter
+        y: logo.screenY + logo.height + (Theme.bootStepTop + st.rise) * root.k - height / 2
+        text: root.stepText
+        opacity: st.opacity
+        color: Theme.bootStepInk
+        font.family: Theme.fontUi; font.pixelSize: Theme.bootStepSize * root.k
     }
 }

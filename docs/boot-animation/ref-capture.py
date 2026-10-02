@@ -1,8 +1,10 @@
 #!/usr/bin/env python3
 """Captures de référence du prototype de l'animation de démarrage (prototype.html).
 
-    ./ref-capture.py [t ...]   -> ref/cold-<t>.png (1280×720), aux instants donnés en ms
-                                  (par défaut les points de contrôle de BOOT_ANIMATION.md §11)
+    ./ref-capture.py [t ...]          -> ref/cold-<t>.png (1280×720), aux instants donnés en ms
+                                         (par défaut les points de contrôle de BOOT_ANIMATION.md §11)
+    ./ref-capture.py --slow [t ...]   -> ref/slow-<t>.png : boot lent, système prêt 4000 ms après
+                                         normalE (6385 ms) ; le O devient le chargeur
 
 Le prototype n'est PAS modifié. Son temps avance par requestAnimationFrame : on le
 remplace avant le chargement par une horloge pilotée d'ici, ce qui fige l'animation
@@ -32,6 +34,7 @@ HERE = Path(__file__).resolve().parent
 PROTO = HERE / "prototype.html"
 REF = HERE / "ref"
 TIMES = [500, 600, 1000, 1200, 1400, 1985, 2385]
+SLOW_TIMES = [3000, 4000, 6645, 7085]
 
 # Avant le script du prototype : une horloge à nous à la place de requestAnimationFrame.
 PRE = """
@@ -57,7 +60,7 @@ new Promise(done => {
   const set = (id, prop, value) => {
     const el = document.getElementById(id); el[prop] = value; el.dispatchEvent(new Event('change'));
   };
-  set('boot', 'value', 'fast');
+  set('boot', 'value', '%s');
   set('blur', 'checked', false);
   set('loop', 'checked', false);
   document.fonts.ready.then(() => setTimeout(() => {
@@ -95,7 +98,7 @@ class Cdp:
             self.events.append(json.loads(await self.ws.recv()))
 
 
-async def shot(cdp, t, out):
+async def shot(cdp, t, out, boot):
     target = (await cdp.call("Target.createTarget", {"url": "about:blank"}))["targetId"]
     s = (await cdp.call("Target.attachToTarget", {"targetId": target, "flatten": True}))["sessionId"]
     await cdp.call("Emulation.setDeviceMetricsOverride",
@@ -104,7 +107,7 @@ async def shot(cdp, t, out):
     await cdp.call("Page.addScriptToEvaluateOnNewDocument", {"source": PRE}, s)
     await cdp.call("Page.navigate", {"url": PROTO.as_uri()}, s)
     await cdp.event("Page.loadEventFired", s)
-    r = await cdp.call("Runtime.evaluate", {"expression": SETUP, "awaitPromise": True}, s)
+    r = await cdp.call("Runtime.evaluate", {"expression": SETUP % boot, "awaitPromise": True}, s)
     assert r["result"].get("value") == 1280, f"scène mal dimensionnée : {r}"
     # (après SETUP, l'animation est à 0 : on l'avance jusqu'à t)
     await cdp.call("Runtime.evaluate", {"expression": f"window.__advance({t})"}, s)
@@ -116,7 +119,8 @@ async def shot(cdp, t, out):
 
 async def main():
     REF.mkdir(exist_ok=True)
-    times = [int(a) for a in sys.argv[1:]] or TIMES
+    slow = "--slow" in sys.argv
+    times = [int(a) for a in sys.argv[1:] if a != "--slow"] or (SLOW_TIMES if slow else TIMES)
     with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmp:
         proc = subprocess.Popen(
             [os.environ.get("BRAVE", "brave-browser"), "--headless=new", "--remote-debugging-port=0",
@@ -134,7 +138,8 @@ async def main():
             async with websockets.connect(f"ws://127.0.0.1:{port}{path}", max_size=None) as ws:
                 cdp = Cdp(ws)
                 for t in times:
-                    await shot(cdp, t, REF / f"cold-{t}.png")
+                    name = f"slow-{t}.png" if slow else f"cold-{t}.png"
+                    await shot(cdp, t, REF / name, "4000" if slow else "fast")
                     print(f"ok {t} ms", flush=True)
         finally:
             os.killpg(proc.pid, signal.SIGTERM)

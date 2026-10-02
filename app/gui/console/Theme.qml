@@ -64,6 +64,14 @@ QtObject {
     readonly property color logoBright: "#FFB076"    // le O, plus clair, pendant son tracé
     readonly property real statusLogoScale: 0.2      // dans la barre haute
     readonly property int statusLogoGap: 20          // entre le logo et la pastille de l'hôte
+    // Animation de démarrage : étape en cours sous le logo pendant le chargeur
+    // (repère 720), délai laissé à la découverte du PC avant de conclure « aucun PC »,
+    // volume de ses deux sons (enregistrés 4 fois plus fort, cf. make-sounds.py).
+    readonly property int bootStepTop: 62
+    readonly property int bootStepSize: 13           // Sora 400
+    readonly property color bootStepInk: "#6E6E6E"
+    readonly property int bootDiscoveryGrace: 3000
+    readonly property real bootSoundVolume: 0.25
 
     // --- Fond (BackdropLayer) ---
     readonly property int backdropDebounce: 140      // attente après le dernier déplacement

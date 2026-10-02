@@ -439,6 +439,21 @@ FocusScope {
              : InputStatus.layout !== "" ? InputStatus.layout : "xbox"
     }
 
+    // --- Animation de démarrage : l'accueil sait-il quoi montrer ? ---
+    // Prêt : des jeux sur l'étagère, ou un écran de message qui n'attend plus le
+    // réseau (bienvenue, choix du Wi-Fi, codes de liaison, PC hors ligne confirmé,
+    // aucun PC connu passé un délai de découverte). Sinon, le O fait le chargeur.
+    property bool discoveryGrace: false
+    Timer { interval: Theme.bootDiscoveryGrace; running: true; onTriggered: home.discoveryGrace = true }
+    readonly property bool bootReady: shelfModel.count > 0 || welcomeScreen.shown || networkScreen.shown
+        || companionPairing.shown || pinScreen.shown
+        || (searchScreen.shown && ((activeComputerIndex >= 0 && !activeHostOnline && !activeHostStatusUnknown)
+                                   || (hostScanner.count === 0 && discoveryGrace)))
+    readonly property string bootStep: hostScanner.count === 0 && !discoveryGrace ? qsTr("Démarrage des services")
+        : !activeHostOnline ? qsTr("Recherche de l’hôte")
+        : !activeHostPaired || (CompanionClient.paired && !CompanionClient.eventsConnected) ? qsTr("Connexion à l’hôte")
+        : qsTr("Chargement de la bibliothèque")
+
     // --- Veille de l'écran ---
     // Sans action à l'accueil pendant consoleConfig.sleepMinutes, l'écran passe au
     // noir. Jamais pendant un lancement (ni pendant un flux : Qt est alors suspendu).
@@ -1332,9 +1347,16 @@ FocusScope {
             id: bootSplash
             anchors.fill: parent
             z: 2
-            // ponytail: prêt d'office ; l'état réel (jeux, écrans de message) arrive à l'étape 4.
-            systemReady: true
-            onFinished: homeScreen.forceActiveFocus()
+            systemReady: home.bootReady
+            stepText: home.bootStep
+            onSoundCue: function(name) { Sounds.play("boot-" + name) }
+            onFinished: {
+                homeScreen.forceActiveFocus()
+                // Leurs premiers relevés (D-Bus, synchrones) attendaient la fin de la
+                // séquence : rien ne doit bloquer le fil GUI pendant l'animation.
+                SystemStatus.start()
+                WifiSetup.start()
+            }
         }
 
         // Veille de l'écran : par-dessus tout le reste.

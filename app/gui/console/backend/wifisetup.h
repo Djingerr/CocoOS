@@ -28,6 +28,10 @@ class WifiSetup : public QObject
 public:
     explicit WifiSetup(QObject* parent = nullptr);
 
+    // Premier relevé (D-Bus, synchrone) et suivi de NetworkManager. Appelé à la fin de
+    // l'animation de démarrage : rien ne doit bloquer le fil GUI pendant celle-ci.
+    Q_INVOKABLE void start();
+
     bool available() const { return !m_device.isEmpty(); }
     bool online() const { return m_online; }
     QString currentNetwork() const { return m_currentNetwork; }
@@ -68,4 +72,5 @@ private:
     bool m_connecting = false;
     QTimer m_stateTimer;
     QTimer m_connectTimeout;
+    bool m_started = false;
 };

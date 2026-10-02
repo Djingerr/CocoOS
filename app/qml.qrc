@@ -55,6 +55,8 @@
         <file>gui/console/sounds/tick.wav</file>
         <file>gui/console/sounds/launch.wav</file>
         <file>gui/console/sounds/ready.wav</file>
+        <file>gui/console/sounds/boot-close.wav</file>
+        <file>gui/console/sounds/boot-open.wav</file>
         <file>gui/console/fonts/Sora-Regular.ttf</file>
         <file>gui/console/fonts/Sora-Medium.ttf</file>
         <file>gui/console/fonts/Sora-SemiBold.ttf</file>

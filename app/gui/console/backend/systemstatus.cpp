@@ -52,9 +52,18 @@ SystemStatus::SystemStatus(QObject* parent)
 {
     connect(&m_probeTimer, &QTimer::timeout, this, &SystemStatus::probe);
     connect(&m_timer, &QTimer::timeout, this, &SystemStatus::refresh);
+}
+
+void SystemStatus::start()
+{
+    if (m_started) {
+        return;
+    }
+    m_started = true;
     m_timer.start(REFRESH_INTERVAL_MS);
-    refresh();
     m_powerActions = readPowerActions();
+    refresh();
+    emit changed();
 
     qInfo("SystemStatus: battery %d %%%s, Wi-Fi %d/4 (-1 = none), power: %s",
           m_batteryPercent, m_charging ? " (charging)" : "", m_signalStrength,

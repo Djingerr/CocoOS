@@ -55,8 +55,15 @@ WifiSetup::WifiSetup(QObject* parent)
         finishConnect(false, tr("Le réseau ne répond pas."));
     });
     connect(&m_stateTimer, &QTimer::timeout, this, &WifiSetup::refreshState);
-    m_stateTimer.start(STATE_POLL_MS);
+}
 
+void WifiSetup::start()
+{
+    if (m_started) {
+        return;
+    }
+    m_started = true;
+    m_stateTimer.start(STATE_POLL_MS);
     if (bus().isConnected()) {
         bus().connect(NM, NM_PATH, NM, QStringLiteral("StateChanged"), this, SLOT(refreshState()));
     }

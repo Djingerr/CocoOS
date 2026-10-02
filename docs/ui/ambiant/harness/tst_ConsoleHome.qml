@@ -494,6 +494,23 @@ Item {
             keyClick(Qt.Key_Escape)
         }
 
+        // L'animation de démarrage attend que l'accueil sache quoi montrer : des jeux,
+        // ou un écran qui n'attend plus le réseau (ici : PC hors ligne confirmé).
+        function test_9n_bootWaitsForSomethingToShow() {
+            verify(home.bootReady)                  // des jeux
+            compare(SystemStatus.started, true)     // relevés lancés à la fin de l'animation
+            var pc = home.computerModel
+            home.appModel.clear()
+            tryCompare(home, "bootReady", false)    // PC en ligne, bibliothèque vide : on attend
+            compare(home.bootStep, "Chargement de la bibliothèque")
+            pc.setProperty(0, "online", false)
+            verify(home.bootReady)                  // hors ligne, confirmé : l'écran du PC éteint
+            compare(home.bootStep, "Recherche de l’hôte")
+            pc.setProperty(0, "online", true)
+            home.rebuildAppModel()
+            tryCompare(screen, "count", 10)
+        }
+
         // Premier démarrage hors ligne : bienvenue, choix du réseau, mot de passe au
         // clavier à l'écran ; l'accueil arrive une fois la console en ligne.
         function test_9l_firstRunAsksForTheNetwork() {

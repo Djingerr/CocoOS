@@ -11,6 +11,11 @@ déplacement est une sinusoïde à 880 Hz.
 Les niveaux du prototype sont très bas (0,018 à 0,06 de la pleine échelle). Ils
 sont multipliés par BOOST dans les fichiers pour ne pas perdre en précision, et
 Theme.soundVolume (1 / BOOST par défaut) les ramène au niveau d'origine.
+
+S'y ajoutent les deux sons de l'animation de démarrage (boot-close, boot-open), ceux
+de la fonction tone() de docs/boot-animation/prototype.html : accords de sinusoïdes,
+montée linéaire de 12 ms, décroissance exponentielle, passe-bas à 2400 Hz. Plus
+forts, ils sont multipliés par BOOT_BOOST (Theme.bootSoundVolume = 1 / BOOT_BOOST).
 """
 import math
 import struct
@@ -63,17 +68,61 @@ def tone(buf, freq, dur, gain=0.04, type="sine", to=None, at=0.0):
         buf[start + n] += g * s
 
 
-for name, notes in SOUNDS.items():
-    length = max(round((o.get("at", 0) + d + TAIL) * RATE) for _, d, o in notes)
-    buf = [0.0] * length
-    for freq, dur, opts in notes:
-        tone(buf, freq, dur, **opts)
-    peak = max(abs(s) for s in buf) * BOOST
+# Démarrage : nom -> (fréquences de l'accord, gain, décroissance en s), cf. SOUNDS du
+# prototype de démarrage.
+BOOT_SOUNDS = {
+    "boot-close": ([261.63, 392.0], 0.14, 0.9),
+    "boot-open": ([523.25, 783.99, 1174.66], 0.09, 1.4),
+}
+BOOT_BOOST = 4
+BOOT_ATTACK = 0.012
+LOWPASS = 2400      # Hz, BiquadFilter « lowpass » de WebAudio, Q = 1 dB
+
+
+def chord(freqs, gain, decay):
+    """tone() du prototype de démarrage : enveloppe, puis passe-bas."""
+    buf = []
+    for n in range(round((decay + 0.05) * RATE)):
+        t = n / RATE
+        if t < BOOT_ATTACK:
+            g = gain * t / BOOT_ATTACK
+        elif t < decay:
+            g = exp_ramp(gain, FLOOR, (t - BOOT_ATTACK) / (decay - BOOT_ATTACK))
+        else:
+            g = FLOOR
+        buf.append(g * sum(math.sin(2 * math.pi * f * t) for f in freqs) / len(freqs))
+    # Biquad passe-bas (RBJ), le Q de WebAudio étant en dB.
+    w0 = 2 * math.pi * LOWPASS / RATE
+    alpha = math.sin(w0) / (2 * 10 ** (1 / 20))
+    b0 = b2 = (1 - math.cos(w0)) / 2
+    b1 = 1 - math.cos(w0)
+    a0, a1, a2 = 1 + alpha, -2 * math.cos(w0), 1 - alpha
+    out, x1, x2, y1, y2 = [], 0.0, 0.0, 0.0, 0.0
+    for x in buf:
+        y = (b0 * x + b1 * x1 + b2 * x2 - a1 * y1 - a2 * y2) / a0
+        out.append(y)
+        x2, x1, y2, y1 = x1, x, y1, y
+    return out
+
+
+def write(name, buf, boost):
+    peak = max(abs(s) for s in buf) * boost
     assert 0.05 < peak < 1, f"{name} : niveau {peak:.3f} hors plage"
     OUT.mkdir(parents=True, exist_ok=True)
     with wave.open(str(OUT / f"{name}.wav"), "wb") as w:
         w.setnchannels(1)
         w.setsampwidth(2)
         w.setframerate(RATE)
-        w.writeframes(b"".join(struct.pack("<h", round(s * BOOST * 32767)) for s in buf))
-    print(f"{name:7s} {length / RATE * 1000:5.0f} ms  crête {peak:.3f}")
+        w.writeframes(b"".join(struct.pack("<h", round(s * boost * 32767)) for s in buf))
+    print(f"{name:10s} {len(buf) / RATE * 1000:5.0f} ms  crête {peak:.3f}")
+
+
+for name, notes in SOUNDS.items():
+    length = max(round((o.get("at", 0) + d + TAIL) * RATE) for _, d, o in notes)
+    buf = [0.0] * length
+    for freq, dur, opts in notes:
+        tone(buf, freq, dur, **opts)
+    write(name, buf, BOOST)
+
+for name, (freqs, gain, decay) in BOOT_SOUNDS.items():
+    write(name, chord(freqs, gain, decay), BOOT_BOOST)
