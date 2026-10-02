@@ -2,10 +2,15 @@
 #include "streampainter.h"
 
 #include "streaming/session.h"
+#include "streaming/video/decoder.h"
 
 #include <QCoreApplication>
+#include <QLocale>
 #include <QMutex>
 #include <QMutexLocker>
+#include <QSettings>
+
+#include <atomic>
 
 namespace {
 
@@ -13,6 +18,8 @@ namespace {
 // sous le repos.
 const int STICK_PUSH = 20000;
 const int STICK_REST = 10000;
+
+const char* STATS_SETTING = "ConsoleUi/streamStats";
 
 struct Action {
     QString key;
@@ -31,6 +38,8 @@ QString s_game;
 QStringList s_power;
 QString s_layout;
 QString s_exit;
+std::atomic<bool> s_stats { false };    // statistiques affichées (réglage mémorisé)
+StreamPainter::Stats s_statsView;       // les dernières reçues
 
 QString tr(const char* text)
 {
@@ -41,6 +50,7 @@ QList<Action> actions()
 {
     QList<Action> list = {
         { "resume", tr("Reprendre") },
+        { "stats", tr("Statistiques du flux") },
         { "home", tr("Retour à l'accueil") },
         { "quit", s_game.isEmpty() ? tr("Quitter le jeu") : tr("Quitter %1").arg(s_game) },
     };
@@ -56,10 +66,13 @@ StreamPainter::Menu view()
     StreamPainter::Menu menu;
     menu.layout = s_layout;
     menu.focus = s_focus;
+    menu.stats = s_statsView;
     if (s_confirm.isEmpty()) {
         menu.title = s_game.isEmpty() ? tr("Menu") : s_game;
         for (const Action& action : actions()) {
             menu.labels.append(action.label);
+            menu.values.append(action.key == QLatin1String("stats") ? (s_stats ? tr("Affichées") : tr("Masquées"))
+                                                                    : QString());
         }
         menu.backLabel = tr("Fermer");
         return menu;
@@ -121,18 +134,91 @@ SDL_Surface* toSurface(const QImage& image)
     return surface;
 }
 
-// Pose (ou retire) le menu sur l'image du flux. s_lock tenu.
+// Le flux en cours ; un nouveau flux repart menu fermé. s_lock tenu.
+void attach()
+{
+    Session* session = Session::get();
+    if (session != s_session) {
+        s_session = session;
+        s_open = false;
+    }
+}
+
+// Pose (ou retire) le menu ou les statistiques sur l'image du flux. s_lock tenu.
 void render()
 {
     Session* session = Session::get();
     if (session == nullptr || session != s_session) {
         return;
     }
+    if (!s_screen.isValid()) {
+        SDL_DisplayMode mode;   // pas encore de fenêtre connue : l'écran
+        if (SDL_GetCurrentDisplayMode(0, &mode) == 0) {
+            s_screen = QSize(mode.w, mode.h);
+        }
+    }
     QImage image;
-    if (s_open && s_screen.isValid()) {
+    if (s_open) {
         image = StreamPainter::paintMenu(view(), s_screen);
     }
+    else if (s_stats) {
+        image = StreamPainter::paintStats(s_statsView, s_screen);
+    }
     session->getOverlayManager().setOverlaySurface(Overlay::OverlayDebug, toSurface(image));
+}
+
+void switchStats()
+{
+    s_stats = !s_stats;
+    QSettings().setValue(STATS_SETTING, s_stats.load());
+    s_statsView = StreamPainter::Stats();   // les chiffres arrivent dans la seconde
+    render();
+}
+
+QString codecName(int videoFormat)
+{
+    QString codec = (videoFormat & VIDEO_FORMAT_MASK_H264) ? QStringLiteral("H.264")
+                  : (videoFormat & VIDEO_FORMAT_MASK_H265) ? QStringLiteral("HEVC")
+                  : (videoFormat & VIDEO_FORMAT_MASK_AV1) ? QStringLiteral("AV1")
+                  : QString();
+    if (videoFormat & VIDEO_FORMAT_MASK_10BIT) {
+        codec += LiGetCurrentHostDisplayHdrMode() ? QStringLiteral(" HDR") : tr(" 10 bits");
+    }
+    if (videoFormat & VIDEO_FORMAT_MASK_YUV444) {
+        codec += QStringLiteral(" 4:4:4");
+    }
+    return codec;
+}
+
+// Les chiffres de Moonlight (ffmpeg.cpp, stringifyVideoStats) en quatre lignes.
+StreamPainter::Stats statsView(const VIDEO_STATS& stats, int videoFormat, int width, int height, double megabitsPerSec)
+{
+    const QLocale french(QLocale::French);
+    auto number = [&](double value) { return french.toString(value, 'f', 1); };
+
+    StreamPainter::Stats view;
+    view.lines.append(tr("%1 × %2 · %3 i/s · %4 · %5 Mb/s").arg(width).arg(height)
+                          .arg(number(stats.renderedFps), codecName(videoFormat), number(megabitsPerSec)));
+    view.dotLine = 1;
+    view.dot = StreamPainter::networkColor(stats.lastRtt, stats.lastRttVariance);
+    view.lines.append(stats.lastRtt != 0 ? tr("Latence réseau %1 ms (± %2 ms)").arg(stats.lastRtt).arg(stats.lastRttVariance)
+                                         : tr("Latence réseau : mesure en cours"));
+    if (stats.totalFrames != 0 && stats.decodedFrames != 0) {
+        view.lines.append(tr("Images perdues : %1 % réseau · %2 % gigue")
+                              .arg(number(100.0 * stats.networkDroppedFrames / stats.totalFrames),
+                                   number(100.0 * stats.pacerDroppedFrames / stats.decodedFrames)));
+    }
+    if (stats.decodedFrames != 0 && stats.renderedFrames != 0) {
+        QString times = tr("Décodage %1 ms · Affichage %2 ms")
+                            .arg(number(stats.totalDecodeTimeUs / 1000.0 / stats.decodedFrames),
+                                 number(stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames));
+        if (stats.framesWithHostProcessingLatency != 0) {
+            times += tr(" · PC %1 ms").arg(number(stats.totalHostProcessingLatency / 10.0
+                                                  / stats.framesWithHostProcessingLatency));
+        }
+        view.lines.append(times);
+    }
+    return view;
 }
 
 void close()
@@ -195,6 +281,9 @@ void activate()
     if (key == QLatin1String("resume")) {
         close();
     }
+    else if (key == QLatin1String("stats")) {
+        switchStats();
+    }
     else if (key == QLatin1String("quit") || key == QLatin1String("reboot") || key == QLatin1String("poweroff")) {
         s_confirm = key;
         s_focus = 0;   // Annuler : le choix sûr
@@ -216,6 +305,9 @@ void StreamMenu::prepare(const QString& game, const QStringList& powerActions, c
     s_game = game;
     s_power = powerActions;
     s_layout = buttonLayout;
+    s_screen = QSize();
+    s_stats = QSettings().value(STATS_SETTING, false).toBool();
+    s_statsView = StreamPainter::Stats();
 }
 
 QString StreamMenu::takeExit()
@@ -235,12 +327,11 @@ bool StreamMenu::isOpen()
 void StreamMenu::toggle()
 {
     QMutexLocker locker(&s_lock);
-    Session* session = Session::get();
-    if (s_open && s_session == session) {
+    attach();
+    if (s_open) {
         close();
         return;
     }
-    s_session = session;
     s_open = true;
     s_focus = 0;
     s_confirm.clear();
@@ -296,5 +387,29 @@ void StreamMenu::onAxis(uint8_t axis, int16_t value)
     }
     if (direction != 0 || qAbs(value) < STICK_REST) {
         s_stick = direction;
+    }
+}
+
+void StreamMenu::toggleStats()
+{
+    QMutexLocker locker(&s_lock);
+    attach();
+    s_screen = screenSize();
+    switchStats();
+}
+
+bool StreamMenu::wantsStats()
+{
+    return s_stats;
+}
+
+void StreamMenu::updateStats(const VIDEO_STATS& stats, int videoFormat, int width, int height, double megabitsPerSec)
+{
+    const StreamPainter::Stats view = statsView(stats, videoFormat, width, height, megabitsPerSec);
+    QMutexLocker locker(&s_lock);
+    attach();
+    if (s_stats) {
+        s_statsView = view;
+        render();
     }
 }

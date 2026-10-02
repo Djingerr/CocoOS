@@ -3,6 +3,10 @@
 #include "utils.h"
 #include "streaming/session.h"
 
+#ifdef CONSOLE_UI
+#include "gui/console/backend/streammenu.h"
+#endif
+
 #include <h264_stream.h>
 
 extern "C" {
@@ -2120,6 +2124,19 @@ int FFmpegVideoDecoder::submitDecodeUnit(PDECODE_UNIT du)
 
     // Flip stats windows roughly every second
     if (LiGetMicroseconds() > m_ActiveWndVideoStats.measurementStartUs + 1000000) {
+#ifdef CONSOLE_UI
+        // Console: the in-game stats panel (StreamMenu) replaces the stock text
+        if (StreamMenu::wantsStats()) {
+            VIDEO_STATS lastTwoWndStats = {};
+            addVideoStats(m_LastWndVideoStats, lastTwoWndStats);
+            addVideoStats(m_ActiveWndVideoStats, lastTwoWndStats);
+            StreamMenu::updateStats(lastTwoWndStats, m_VideoFormat,
+                                    m_VideoDecoderCtx != nullptr ? m_VideoDecoderCtx->width : 0,
+                                    m_VideoDecoderCtx != nullptr ? m_VideoDecoderCtx->height : 0,
+                                    m_BwTracker.GetAverageMbps());
+        }
+#endif
+
         // Update overlay stats if it's enabled
         if (Session::get()->getOverlayManager().isOverlayEnabled(Overlay::OverlayDebug)) {
             VIDEO_STATS lastTwoWndStats = {};

@@ -6,8 +6,9 @@
 //       $(pkg-config --cflags --libs Qt6Gui) -o /tmp/streammenu-shot
 //   QT_QPA_PLATFORM=offscreen /tmp/streammenu-shot /tmp/m.png page=menu size=1280x720 layout=xbox
 //
-// page : menu | confirm | dialog (le dialog de PagesDemo, à comparer avec
-// ./shot.sh /tmp/q.png view=PagesDemo page=dialog size=1280x720).
+// page : menu | confirm | stats | dialog (le dialog de PagesDemo, à comparer avec
+// ./shot.sh /tmp/q.png view=PagesDemo page=dialog size=1280x720). stats=1 ajoute
+// les statistiques au menu ; latency=N (ms) en change le point.
 
 #include "streampainter.h"
 
@@ -62,6 +63,21 @@ int main(int argc, char* argv[])
         menu.backLabel = QStringLiteral("Fermer");
     }
 
-    const QImage image = StreamPainter::paintMenu(menu, QSize(size.value(0).toInt(), size.value(1).toInt()));
+    const int latency = opt.value(QStringLiteral("latency"), QStringLiteral("12")).toInt();
+    StreamPainter::Stats stats;
+    stats.lines = QStringList { QStringLiteral("1920 × 1080 · 59,9 i/s · HEVC · 28,4 Mb/s"),
+                                QStringLiteral("Latence réseau %1 ms (± 2 ms)").arg(latency),
+                                QStringLiteral("Images perdues : 0,1 % réseau · 0,0 % gigue"),
+                                QStringLiteral("Décodage 1,8 ms · Affichage 4,2 ms · PC 3,1 ms") };
+    stats.dotLine = 1;
+    stats.dot = StreamPainter::networkColor(latency, 2);
+    if (opt.value(QStringLiteral("stats")) == QLatin1String("1")) {
+        menu.stats = stats;
+        menu.values = QStringList { QString(), QStringLiteral("Affichées") };
+    }
+
+    const QSize screen(size.value(0).toInt(), size.value(1).toInt());
+    const QImage image = page == QLatin1String("stats") ? StreamPainter::paintStats(stats, screen)
+                                                         : StreamPainter::paintMenu(menu, screen);
     return image.save(args[1]) ? 0 : 1;
 }

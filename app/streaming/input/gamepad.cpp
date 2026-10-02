@@ -436,6 +436,16 @@ void SdlInputHandler::handleControllerButtonEvent(SDL_ControllerButtonEvent* eve
         return;
     }
 
+#ifdef CONSOLE_UI
+    // Console: Select+L1+R1+X toggles the in-game stats panel (StreamMenu) instead
+    if (state->buttons == (BACK_FLAG | LB_FLAG | RB_FLAG | X_FLAG)) {
+        StreamMenu::toggleStats();
+        LiSendMultiControllerEvent(state->index, m_GamepadMask,
+                                   0, 0, 0, 0, 0, 0, 0);
+        return;
+    }
+#endif
+
     // Handle Select+L1+R1+X as a gamepad overlay combo
     if (state->buttons == (BACK_FLAG | LB_FLAG | RB_FLAG | X_FLAG)) {
         SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,

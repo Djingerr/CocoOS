@@ -14,6 +14,9 @@ const qreal CANVAS_HEIGHT = 800;
 const QColor INK("#F2F0EC");
 const QColor INK2("#A19D97");
 const QColor INK3("#7C7973");
+const QColor OK("#69D08E");
+const QColor FAIR("#E8C547");
+const QColor POOR("#E5574F");
 const QColor SHEET_FILL(18, 18, 20, qRound(0.95 * 255));
 const QColor SHEET_EDGE(255, 255, 255, qRound(0.08 * 255));
 const QColor FOCUS_FILL(255, 255, 255, qRound(0.10 * 255));
@@ -41,6 +44,18 @@ const qreal GLYPH_SIZE = 22;
 const qreal GLYPH_BORDER = 1.5;
 const qreal GLYPH_FONT_SIZE = 10.5;
 const qreal GLYPH_SYMBOL_SCALE = 0.42;
+const qreal HOST_DOT_SIZE = 7;
+const qreal HOST_DOT_GAP = 8;
+
+// Panneau des statistiques (absent du prototype, dans le langage des pastilles).
+const qreal STATS_MARGIN = 24;
+const qreal STATS_PAD_X = 16;
+const qreal STATS_PAD_Y = 12;
+const qreal STATS_RADIUS = 12;
+const QColor STATS_FILL(0, 0, 0, qRound(0.6 * 255));
+const qreal STATS_TITLE_SIZE = 14;       // Sora 500, la ligne du flux
+const qreal STATS_LINE_SIZE = 13;
+const qreal STATS_LINE_HEIGHT = 1.5;
 
 // Les tailles sont en points sur une image à 72 ppp (1 point = 1 pixel) : QFont
 // n'accepte que des tailles de pixel entières, le canevas a des demi-pixels.
@@ -126,21 +141,113 @@ void drawGlyph(QPainter& p, QPointF topLeft, const QString& button, const QStrin
     }
 }
 
+QFont statsFont(int line)
+{
+    return line == 0 ? sora(STATS_TITLE_SIZE, QFont::Medium) : sora(STATS_LINE_SIZE);
+}
+
+// Taille du panneau des statistiques, en pixels du canevas.
+QSizeF statsSize(const StreamPainter::Stats& stats, QPaintDevice* device)
+{
+    qreal width = 0, height = 0;
+    for (int i = 0; i < stats.lines.size(); i++) {
+        const QFontMetricsF metrics(statsFont(i), device);
+        const qreal dot = i == stats.dotLine ? HOST_DOT_SIZE + HOST_DOT_GAP : 0;
+        width = qMax(width, dot + metrics.horizontalAdvance(stats.lines[i]));
+        height += metrics.height() * STATS_LINE_HEIGHT;
+    }
+    return QSizeF(width + 2 * STATS_PAD_X, height + 2 * STATS_PAD_Y);
+}
+
+void drawStats(QPainter& p, const StreamPainter::Stats& stats)
+{
+    if (stats.lines.isEmpty()) {
+        return;
+    }
+    const QSizeF size = statsSize(stats, p.device());
+    p.setPen(Qt::NoPen);
+    p.setBrush(STATS_FILL);
+    p.drawRoundedRect(QRectF(QPointF(STATS_MARGIN, STATS_MARGIN), size), STATS_RADIUS, STATS_RADIUS);
+
+    qreal y = STATS_MARGIN + STATS_PAD_Y;
+    for (int i = 0; i < stats.lines.size(); i++) {
+        const QFont font = statsFont(i);
+        const qreal lineHeight = QFontMetricsF(font, p.device()).height() * STATS_LINE_HEIGHT;
+        const QRectF line(STATS_MARGIN + STATS_PAD_X, y, size.width() - 2 * STATS_PAD_X, lineHeight);
+        qreal x = line.x();
+        if (i == stats.dotLine) {
+            p.setPen(Qt::NoPen);
+            p.setBrush(stats.dot);
+            p.drawEllipse(QRectF(x, line.center().y() - HOST_DOT_SIZE / 2, HOST_DOT_SIZE, HOST_DOT_SIZE));
+            x += HOST_DOT_SIZE + HOST_DOT_GAP;
+        }
+        p.setFont(font);
+        p.setPen(i == 0 ? INK : INK2);
+        p.drawText(QRectF(x, line.y(), line.right() - x, lineHeight), Qt::AlignLeft | Qt::AlignVCenter, stats.lines[i]);
+        y += lineHeight;
+    }
+}
+
+// Une image à 72 ppp (1 point = 1 pixel) et un peintre à l'échelle du canevas.
+QImage canvasImage(QSize size)
+{
+    QImage image(size, QImage::Format_ARGB32_Premultiplied);
+    image.setDotsPerMeterX(2835);
+    image.setDotsPerMeterY(2835);
+    return image;
+}
+
+void beginCanvas(QPainter& p, QSize screen)
+{
+    p.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
+    const qreal scale = screen.height() / CANVAS_HEIGHT;
+    p.scale(scale, scale);
+}
+
+}
+
+QColor StreamPainter::networkColor(int latencyMs, int jitterMs)
+{
+    if (latencyMs <= 0) {
+        return INK3;
+    }
+    const int jitter = qMax(0, jitterMs);
+    if (latencyMs <= 20 && jitter <= 5) {
+        return OK;
+    }
+    if (latencyMs <= 50 && jitter <= 15) {
+        return FAIR;
+    }
+    return POOR;
+}
+
+QImage StreamPainter::paintStats(const Stats& stats, QSize screen)
+{
+    if (stats.lines.isEmpty() || screen.isEmpty()) {
+        return QImage();
+    }
+    const qreal scale = screen.height() / CANVAS_HEIGHT;
+    QImage image = canvasImage(QSize(1, 1));
+    const QSizeF size = statsSize(stats, &image);
+    image = canvasImage(QSize(qCeil((STATS_MARGIN + size.width()) * scale),
+                              qCeil((STATS_MARGIN + size.height()) * scale)));
+    image.fill(Qt::transparent);
+    QPainter p(&image);
+    beginCanvas(p, screen);
+    drawStats(p, stats);
+    return image;
 }
 
 QImage StreamPainter::paintMenu(const Menu& menu, QSize screen)
 {
-    QImage image(screen, QImage::Format_ARGB32_Premultiplied);
-    image.setDotsPerMeterX(2835);   // 72 ppp
-    image.setDotsPerMeterY(2835);
+    QImage image = canvasImage(screen);
     // Voile sur le flux, qui continue de bouger dessous.
     image.fill(QColor(0, 0, 0, qRound(SHEET_DIM * 255)));
 
     QPainter p(&image);
-    p.setRenderHints(QPainter::Antialiasing | QPainter::TextAntialiasing);
-    const qreal scale = screen.height() / CANVAS_HEIGHT;
-    p.scale(scale, scale);
-    const qreal canvasWidth = screen.width() / scale;
+    beginCanvas(p, screen);
+    const qreal canvasWidth = screen.width() * CANVAS_HEIGHT / screen.height();
+    drawStats(p, menu.stats);
 
     // --- Panneau ---
     const QRectF panel(canvasWidth - SHEET_WIDTH, 0, SHEET_WIDTH, CANVAS_HEIGHT);
