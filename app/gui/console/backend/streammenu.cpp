@@ -12,6 +12,12 @@
 
 #include <atomic>
 
+extern "C" {
+#include <libavutil/frame.h>
+#include <libavutil/hwcontext.h>
+#include <libswscale/swscale.h>
+}
+
 namespace {
 
 // Stick gauche : une marche quand il passe la poussée, la suivante une fois revenu
@@ -40,6 +46,8 @@ QString s_layout;
 QString s_exit;
 std::atomic<bool> s_stats { false };    // statistiques affichées (réglage mémorisé)
 StreamPainter::Stats s_statsView;       // les dernières reçues
+std::atomic<bool> s_wantFrame { false };    // le menu attend une image du jeu
+QImage s_backdrop;                      // l'image du jeu floutée, à la taille de l'écran
 
 QString tr(const char* text)
 {
@@ -67,6 +75,7 @@ StreamPainter::Menu view()
     menu.layout = s_layout;
     menu.focus = s_focus;
     menu.stats = s_statsView;
+    menu.backdrop = s_backdrop;
     if (s_confirm.isEmpty()) {
         menu.title = s_game.isEmpty() ? tr("Menu") : s_game;
         for (const Action& action : actions()) {
@@ -190,6 +199,34 @@ QString codecName(int videoFormat)
     return codec;
 }
 
+// L'image décodée, copiée en mémoire si elle est sur le GPU et réduite au huitième
+// (moyenne des pixels : un premier flou). Nulle si le format ne s'y prête pas.
+// ponytail: couleurs en BT.601 par défaut, sans HDR ; à régler si le fond tire.
+QImage snapshot(const AVFrame* frame)
+{
+    AVFrame* copy = nullptr;
+    if (frame->hw_frames_ctx != nullptr) {
+        copy = av_frame_alloc();
+        if (copy == nullptr || av_hwframe_transfer_data(copy, frame, 0) < 0) {
+            av_frame_free(&copy);
+            return QImage();
+        }
+        frame = copy;
+    }
+    QImage image(qMax(1, frame->width / 8), qMax(1, frame->height / 8), QImage::Format_RGB32);
+    SwsContext* context = sws_getContext(frame->width, frame->height, (AVPixelFormat)frame->format,
+                                         image.width(), image.height(), AV_PIX_FMT_BGRA,   // = Format_RGB32
+                                         SWS_AREA, nullptr, nullptr, nullptr);
+    if (context != nullptr) {
+        uint8_t* const data[] = { image.bits() };
+        const int linesize[] = { (int)image.bytesPerLine() };
+        sws_scale(context, frame->data, frame->linesize, 0, frame->height, data, linesize);
+        sws_freeContext(context);
+    }
+    av_frame_free(&copy);
+    return context != nullptr ? image : QImage();
+}
+
 // Les chiffres de Moonlight (ffmpeg.cpp, stringifyVideoStats) en quatre lignes.
 StreamPainter::Stats statsView(const VIDEO_STATS& stats, int videoFormat, int width, int height, double megabitsPerSec)
 {
@@ -225,6 +262,8 @@ void close()
 {
     s_open = false;
     s_armed = false;
+    s_wantFrame = false;
+    s_backdrop = QImage();
     render();
 }
 
@@ -338,6 +377,8 @@ void StreamMenu::toggle()
     s_armed = false;
     s_stick = 0;
     s_screen = screenSize();
+    s_backdrop = QImage();
+    s_wantFrame = true;   // le voile en attendant l'image suivante (offerFrame)
     render();
 }
 
@@ -410,6 +451,31 @@ void StreamMenu::updateStats(const VIDEO_STATS& stats, int videoFormat, int widt
     attach();
     if (s_stats) {
         s_statsView = view;
+        render();
+    }
+}
+
+void StreamMenu::offerFrame(const AVFrame* frame)
+{
+    if (!s_wantFrame || !s_wantFrame.exchange(false)) {
+        return;
+    }
+    QSize screen;
+    {
+        QMutexLocker locker(&s_lock);
+        if (!s_open) {
+            return;
+        }
+        screen = s_screen;
+    }
+    const QImage small = snapshot(frame);
+    if (small.isNull() || screen.isEmpty()) {
+        return;   // le voile reste
+    }
+    const QImage backdrop = StreamPainter::blurred(small, screen);
+    QMutexLocker locker(&s_lock);
+    if (s_open) {
+        s_backdrop = backdrop;
         render();
     }
 }

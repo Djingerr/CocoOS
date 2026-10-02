@@ -2042,6 +2042,11 @@ void FFmpegVideoDecoder::decoderThreadProc()
 
                     m_ActiveWndVideoStats.decodedFrames++;
 
+#ifdef CONSOLE_UI
+                    // Console: a decoded image for the in-game menu's frozen blur
+                    StreamMenu::offerFrame(frame);
+#endif
+
                     // Queue the frame for rendering (or render now if pacer is disabled)
                     m_Pacer->submitFrame(frame);
                 }

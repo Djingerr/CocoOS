@@ -31,10 +31,15 @@ struct Menu {
     QString backLabel;      // légende : B <backLabel>, A Valider
     QString layout;         // glyphes : "xbox", "playstation" ou "nintendo"
     Stats stats;            // affichées par-dessus le voile si elles ont des lignes
+    QImage backdrop;        // l'image du jeu floutée (blurred) ; nulle : un voile sur le flux
 };
 
-// Le menu plein écran : un voile sur le flux, le panneau à droite.
+// Le menu plein écran : le fond, le panneau à droite.
 QImage paintMenu(const Menu& menu, QSize screen);
+
+// Le fond du menu : une image du jeu, déjà réduite (au huitième), floutée, assombrie
+// et mise à la taille de l'écran.
+QImage blurred(QImage small, QSize screen);
 
 // Les statistiques seules, sur une image qui part du coin haut gauche de l'écran.
 QImage paintStats(const Stats& stats, QSize screen);

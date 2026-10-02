@@ -5,6 +5,7 @@
 #include <QHash>
 #include <QPainter>
 #include <QTextLayout>
+#include <QVector>
 #include <QtMath>
 
 namespace {
@@ -21,6 +22,8 @@ const QColor SHEET_FILL(18, 18, 20, qRound(0.95 * 255));
 const QColor SHEET_EDGE(255, 255, 255, qRound(0.08 * 255));
 const QColor FOCUS_FILL(255, 255, 255, qRound(0.10 * 255));
 const qreal SHEET_DIM = 0.62;
+const qreal BACKDROP_DIM = 0.45;         // moins que SHEET_DIM : le jeu flouté reste visible
+const int BACKDROP_BLUR = 3;             // rayon du flou en boîte, en pixels de l'image réduite
 const qreal SHEET_WIDTH = 472;
 const qreal SHEET_PAD_TOP = 44;
 const qreal SHEET_PAD_SIDE = 44;
@@ -204,6 +207,54 @@ void beginCanvas(QPainter& p, QSize screen)
     p.scale(scale, scale);
 }
 
+// Flou en boîte, ligne par ligne puis colonne par colonne, bords prolongés.
+void boxBlur(QImage& image, int radius)
+{
+    const int width = image.width(), height = image.height();
+    const int stride = image.bytesPerLine() / 4;
+    QRgb* bits = reinterpret_cast<QRgb*>(image.bits());
+    QVector<QRgb> line(qMax(width, height));
+    const int count = 2 * radius + 1;
+    for (int pass = 0; pass < 2; pass++) {
+        const bool rows = pass == 0;
+        const int lines = rows ? height : width, length = rows ? width : height;
+        const int step = rows ? 1 : stride;
+        for (int i = 0; i < lines; i++) {
+            QRgb* start = bits + (rows ? i * stride : i);
+            for (int j = 0; j < length; j++) {
+                line[j] = start[j * step];
+            }
+            int r = 0, g = 0, b = 0;
+            for (int k = -radius; k <= radius; k++) {
+                const QRgb c = line[qBound(0, k, length - 1)];
+                r += qRed(c); g += qGreen(c); b += qBlue(c);
+            }
+            for (int j = 0; j < length; j++) {
+                start[j * step] = qRgb(r / count, g / count, b / count);
+                const QRgb out = line[qMax(j - radius, 0)];
+                const QRgb in = line[qMin(j + radius + 1, length - 1)];
+                r += qRed(in) - qRed(out); g += qGreen(in) - qGreen(out); b += qBlue(in) - qBlue(out);
+            }
+        }
+    }
+}
+
+}
+
+QImage StreamPainter::blurred(QImage small, QSize screen)
+{
+    small = small.convertToFormat(QImage::Format_RGB32);
+    for (int pass = 0; pass < 3; pass++) {   // trois passes : presque un flou gaussien
+        boxBlur(small, BACKDROP_BLUR);
+    }
+    // Agrandie en deux temps : d'un coup, l'interpolation laisserait voir la grille.
+    QImage backdrop = small.scaled(small.size() * 2, Qt::IgnoreAspectRatio, Qt::SmoothTransformation);
+    boxBlur(backdrop, 1);
+    backdrop = backdrop.scaled(screen, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
+                       .convertToFormat(QImage::Format_ARGB32_Premultiplied);
+    QPainter p(&backdrop);
+    p.fillRect(backdrop.rect(), QColor(0, 0, 0, qRound(BACKDROP_DIM * 255)));
+    return backdrop;
 }
 
 QColor StreamPainter::networkColor(int latencyMs, int jitterMs)
@@ -241,10 +292,15 @@ QImage StreamPainter::paintStats(const Stats& stats, QSize screen)
 QImage StreamPainter::paintMenu(const Menu& menu, QSize screen)
 {
     QImage image = canvasImage(screen);
-    // Voile sur le flux, qui continue de bouger dessous.
-    image.fill(QColor(0, 0, 0, qRound(SHEET_DIM * 255)));
+    if (menu.backdrop.size() != screen) {
+        // Pas encore d'image du jeu : un voile sur le flux, qui bouge dessous.
+        image.fill(QColor(0, 0, 0, qRound(SHEET_DIM * 255)));
+    }
 
     QPainter p(&image);
+    if (menu.backdrop.size() == screen) {
+        p.drawImage(0, 0, menu.backdrop);
+    }
     beginCanvas(p, screen);
     const qreal canvasWidth = screen.width() * CANVAS_HEIGHT / screen.height();
     drawStats(p, menu.stats);

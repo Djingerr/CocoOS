@@ -8,7 +8,8 @@
 //
 // page : menu | confirm | stats | dialog (le dialog de PagesDemo, à comparer avec
 // ./shot.sh /tmp/q.png view=PagesDemo page=dialog size=1280x720). stats=1 ajoute
-// les statistiques au menu ; latency=N (ms) en change le point.
+// les statistiques au menu ; latency=N (ms) en change le point ; backdrop=art/x.jpg
+// pose cette image en fond flouté, comme une image du jeu.
 
 #include "streampainter.h"
 
@@ -77,6 +78,11 @@ int main(int argc, char* argv[])
     }
 
     const QSize screen(size.value(0).toInt(), size.value(1).toInt());
+    const QImage frame(opt.value(QStringLiteral("backdrop")));
+    if (!frame.isNull()) {   // réduite au huitième, comme StreamMenu::snapshot
+        menu.backdrop = StreamPainter::blurred(frame.scaled(frame.size() / 8, Qt::IgnoreAspectRatio,
+                                                            Qt::SmoothTransformation), screen);
+    }
     const QImage image = page == QLatin1String("stats") ? StreamPainter::paintStats(stats, screen)
                                                          : StreamPainter::paintMenu(menu, screen);
     return image.save(args[1]) ? 0 : 1;
