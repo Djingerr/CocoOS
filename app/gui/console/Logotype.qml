@@ -11,10 +11,10 @@ Item {
     id: root
 
     property real fontSize: Theme.logoSize
-    // Déploiement (BootSplash) : origine x de C, o, c, o puis S dans le repère du
-    // logo ; vide = au repos.
-    property var letterX: []
-    property real lum: 1                     // luminance des lettres, 0 à 1
+    // Déploiement (BootSplash) : pour C, o, c, o puis S, { x (origine dans le repère
+    // du logo), lum (luminance, 0 à 1), shown } ; vide = au repos, avec `lum`.
+    property var letters: []
+    property real lum: 1                     // luminance des lettres au repos, 0 à 1
     property color oColor: Theme.accent
     property real oScale: 1                  // échelle du O autour de son centre
     property real oShift: 0                  // décalage horizontal du O
@@ -55,9 +55,13 @@ Item {
     }
 
     component Letter: Text {
-        property real originX
-        x: originX
+        property int slot: -1                // 0 à 4 : C, o, c, o, S ; -1 : le O
+        property real restX
+        readonly property var letterState: slot >= 0 && root.letters.length === 5 ? root.letters[slot] : null
+        readonly property real l: letterState ? letterState.lum : root.lum
+        x: letterState ? letterState.x : restX
         y: root.geo.base - baselineOffset
+        visible: letterState ? letterState.shown : true
         font: metrics.font
     }
 
@@ -65,21 +69,23 @@ Item {
         model: 4
         Letter {
             required property int index
+            slot: index
             text: "Coco"[index]
-            originX: root.letterX.length === 5 ? root.letterX[index] : root.geo.xs[index]
-            color: Qt.rgba(root.lum, root.lum, root.lum, 1)
+            restX: root.geo.xs[index]
+            color: Qt.rgba(l, l, l, 1)
         }
     }
     Letter {
+        slot: 4
         text: "S"
-        originX: root.letterX.length === 5 ? root.letterX[4] : root.geo.xS
-        color: Qt.rgba(Theme.accent.r * root.lum, Theme.accent.g * root.lum, Theme.accent.b * root.lum, 1)
+        restX: root.geo.xS
+        color: Qt.rgba(Theme.accent.r * l, Theme.accent.g * l, Theme.accent.b * l, 1)
     }
     Letter {
         id: oLetter
         text: "O"
         visible: root.oVisible
-        originX: root.geo.xO + root.oShift
+        restX: root.geo.xO + root.oShift
         color: root.oColor
         transform: Scale {
             origin.x: root.geo.ocx - root.geo.xO

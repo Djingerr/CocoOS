@@ -316,7 +316,10 @@ Fichiers (dans `app/gui/console/`) :
 - `SleepScreen.qml` — veille de l'écran : noir, une phrase qui s'efface à son tour (OLED) ; la
   touche qui réveille n'atteint pas l'accueil
 - `OnScreenKeyboard.qml` — clavier à l'écran, à la manette (mot de passe Wi-Fi)
-- `BootSplash.qml` — écran de démarrage (mot-symbole), même dessin que `deploy/plymouth/`
+- `BootSplash.qml` — animation de démarrage « le O » (`docs/boot-animation/BOOT_ANIMATION.md`,
+  le prototype fait foi), pilotée par un temps `t` avancé par `FrameAnimation` ; A accélère ×4
+- `BootTimeline.js` — port pur du JavaScript du prototype de démarrage (easings, ressorts,
+  chargeur, sortie), testé contre des valeurs tirées du prototype lui-même
 - `Logotype.qml` — le logotype « CocoOS » lettre par lettre (Sora Bold), géométrie du prototype
   de `docs/boot-animation/` ; sert à la barre haute (réduit) et à l'animation de démarrage
 - `icons/` — icônes SVG (punaise des favoris)
@@ -598,8 +601,11 @@ qml-qt6 Harness.qml -- view=PagesDemo page=code        # search|loading|pin|pin-
 ./shot.sh /tmp/c.png view=ConsoleHomeDemo do=right,pin noart=Hades\ II at=2600 delay=6500   # vrai ConsoleHome
 ./ref-capture.py                                       # régénère ../ref/ et art/ depuis le prototype
 ./make-sounds.py                                       # régénère app/gui/console/sounds/*.wav
+./shot.sh /tmp/d.png view=BootDemo size=1280x720 t=1400   # animation de démarrage, instant figé
+../../../boot-animation/ref-capture.py                 # références du prototype de démarrage (ref/cold-<t>.png)
+node ../../../boot-animation/reference-values.js       # valeurs du prototype pour tst_BootTimeline
 XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import stubs -input tst_GameShelf.qml
-# idem tst_Format, tst_Library, tst_ConsoleHome. XDG_CONFIG_HOME vierge : sinon les réglages
+# idem tst_Format, tst_Library, tst_ConsoleHome, tst_BootTimeline, tst_BootSplash… XDG_CONFIG_HOME vierge : sinon les réglages
 # (favoris, jeux récents, dernier jeu) écrits par un passage précédent faussent les tests.
 ```
 

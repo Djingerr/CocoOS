@@ -1327,8 +1327,15 @@ FocusScope {
             }
         }
 
-        // Écran de démarrage, le temps que l'accueil se mette en place.
-        BootSplash { anchors.fill: parent; z: 2 }
+        // Animation de démarrage, le temps que l'accueil se mette en place.
+        BootSplash {
+            id: bootSplash
+            anchors.fill: parent
+            z: 2
+            // ponytail: prêt d'office ; l'état réel (jeux, écrans de message) arrive à l'étape 4.
+            systemReady: true
+            onFinished: homeScreen.forceActiveFocus()
+        }
 
         // Veille de l'écran : par-dessus tout le reste.
         SleepScreen {

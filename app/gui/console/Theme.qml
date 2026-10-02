@@ -273,12 +273,6 @@ QtObject {
     readonly property int toastShift: 10             // il monte de cette distance en apparaissant
     readonly property int toastDuration: 2600
 
-    // --- Écran de démarrage (BootSplash), comme le thème Plymouth ---
-    readonly property int splashSize: 72             // Sora 600, « Coco » en encre, « OS » en accent
-    readonly property real splashSpacing: -2
-    readonly property int splashHold: 1100           // puis il s'efface pendant que l'accueil entre
-    readonly property int splashFade: 600
-
     // --- Veille de l'écran (SleepScreen, « .sleep » du prototype) ---
     readonly property int sleepMinutes: 5            // inactivité avant la veille, par défaut
     readonly property int sleepFade: 520             // linéaire

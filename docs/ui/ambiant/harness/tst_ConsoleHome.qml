@@ -60,6 +60,7 @@ Item {
         }
 
         function initTestCase() {
+            find(home.Window.window.contentItem, "systemReady").finishNow()   // pas d'animation de démarrage
             Sounds.enabled = false
             verify(screen && launchScreen && updateDialog)
         }

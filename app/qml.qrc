@@ -60,5 +60,6 @@
         <file>gui/console/fonts/Sora-SemiBold.ttf</file>
         <file>gui/console/fonts/Sora-Bold.ttf</file>
         <file>gui/console/Logotype.qml</file>
+        <file>gui/console/BootTimeline.js</file>
     </qresource>
 </RCC>
