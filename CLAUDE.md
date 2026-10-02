@@ -302,7 +302,8 @@ Fichiers (dans `app/gui/console/`) :
 - `Sounds.qml`, `SoundBank.qml`, `sounds/` — sons de l'interface (singleton `Sounds.play("move")`)
 - `PadRepeat.qml` — répétition des flèches à l'appui prolongé (étagère, options)
 - `Theme.qml` (+ `qmldir`) — singleton des jetons de design : couleurs, tailles, durées, ressort
-- `fonts/` — Sora embarquée (OFL), chargée par `Theme.qml` ; seule famille de l'interface (pas de mono)
+- `fonts/` — Sora embarquée (OFL, instances statiques de Google Fonts, 400 à 700), chargée par
+  `Theme.qml` (`Theme.fontsReady`) ; seule famille de l'interface (pas de mono)
 - `BackdropLayer.qml` — fond en fondu croisé (deux calques) + voile + dérive lente
 - `HeroBlock.qml` — méta, titre, sous-titre, boutons Jouer / Options
 - `GameShelf.qml` — l'étagère de vignettes, son ressort, la répétition manette
@@ -316,8 +317,10 @@ Fichiers (dans `app/gui/console/`) :
   touche qui réveille n'atteint pas l'accueil
 - `OnScreenKeyboard.qml` — clavier à l'écran, à la manette (mot de passe Wi-Fi)
 - `BootSplash.qml` — écran de démarrage (mot-symbole), même dessin que `deploy/plymouth/`
+- `Logotype.qml` — le logotype « CocoOS » lettre par lettre (Sora Bold), géométrie du prototype
+  de `docs/boot-animation/` ; sert à la barre haute (réduit) et à l'animation de démarrage
 - `icons/` — icônes SVG (punaise des favoris)
-- `StatusBar.qml` — barre haute : pastille de l'hôte + horloge / Wi-Fi / batterie (éclair en
+- `StatusBar.qml` — barre haute : logotype, pastille de l'hôte + horloge / Wi-Fi / batterie (éclair en
   charge, orange sous `Theme.batteryLow`)
 - `ControllerLegend.qml` — légende des boutons (glyphe + libellé), panneaux et écrans de message
 - `MessageScreen.qml` — écran de message à la place du héros : titre, texte, code en grandes

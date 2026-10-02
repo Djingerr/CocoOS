@@ -41,12 +41,29 @@ QtObject {
     // par graisse fonctionne sur tout Qt 6, contrairement aux polices variables.
     // Une seule famille, comme sur une console : pas de police à chasse fixe, les
     // chiffres qui changent (latence) prennent les chiffres tabulaires de Sora (tnum).
-    readonly property string fontUi: "Sora"              // 400 / 500 / 600
+    readonly property string fontUi: "Sora"              // 400 / 500 / 600 / 700 (logotype)
     readonly property list<FontLoader> fontFiles: [
         FontLoader { source: "fonts/Sora-Regular.ttf" },
         FontLoader { source: "fonts/Sora-Medium.ttf" },
-        FontLoader { source: "fonts/Sora-SemiBold.ttf" }
+        FontLoader { source: "fonts/Sora-SemiBold.ttf" },
+        FontLoader { source: "fonts/Sora-Bold.ttf" }
     ]
+    // Toutes les polices sont chargées : avant, les métriques (logotype) seraient
+    // celles d'une police de repli.
+    readonly property bool fontsReady: {
+        for (var i = 0; i < fontFiles.length; i++)
+            if (fontFiles[i].status !== FontLoader.Ready) return false
+        return true
+    }
+
+    // --- Logotype « CocoOS » (Logotype) : animation de démarrage, barre haute ---
+    // Le prototype de démarrage (docs/boot-animation/) est dessiné sur un repère de
+    // 1280 × 720 : ses tailles sont en pixels de ce repère.
+    readonly property real bootRefHeight: 720
+    readonly property real logoSize: 104             // Sora 700, « Coco » blanc, « OS » accent
+    readonly property color logoBright: "#FFB076"    // le O, plus clair, pendant son tracé
+    readonly property real statusLogoScale: 0.2      // dans la barre haute
+    readonly property int statusLogoGap: 20          // entre le logo et la pastille de l'hôte
 
     // --- Fond (BackdropLayer) ---
     readonly property int backdropDebounce: 140      // attente après le dernier déplacement

@@ -1,8 +1,9 @@
 import QtQuick
 import "Format.js" as Format
 
-// Barre haute : pastille d'état du PC hôte (gauche), horloge / Wi-Fi / batterie
-// (droite). Occupe toute la largeur en haut de l'écran ; aucune dépendance Moonlight.
+// Barre haute : logotype et pastille d'état du PC hôte (gauche), horloge / Wi-Fi /
+// batterie (droite). Occupe toute la largeur en haut de l'écran ; aucune dépendance
+// Moonlight.
 Item {
     id: root
 
@@ -17,6 +18,10 @@ Item {
     property int batteryPercent: -1      // 0 à 100
     property bool charging: false        // éclair à côté de la batterie
     property int controllerBattery: -1   // manette sans fil : 0 (vide) à 3 (pleine)
+    // Le logotype, à gauche : cible de l'animation de démarrage, qui le masque le
+    // temps de voler jusqu'à lui (BootSplash).
+    readonly property alias logo: logo
+    property bool logoShown: true
     // Horloge, Wi-Fi et batterie : masqués sous un panneau latéral (il est translucide).
     property bool systemShown: true
     // Heure affichée : l'horloge système, sauf si on lui assigne un texte fixe.
@@ -36,8 +41,26 @@ Item {
         width: root.width - 2 * Theme.margin
         height: Theme.topBarHeight
 
+        // --- Logotype ---
+        // À la taille du logo de démarrage (repère 720 ramené au canevas), réduit par
+        // `scale` : même géométrie que celui de BootSplash.
+        Item {
+            id: logoBox
+            anchors.verticalCenter: parent.verticalCenter
+            width: logo.width * logo.scale; height: logo.height * logo.scale
+            Logotype {
+                id: logo
+                fontSize: Theme.logoSize * Theme.canvasHeight / Theme.bootRefHeight
+                scale: Theme.statusLogoScale
+                transformOrigin: Item.TopLeft
+                width: implicitWidth; height: implicitHeight
+                opacity: root.logoShown ? 1 : 0
+            }
+        }
+
         // --- Pastille de l'hôte ---
         Rectangle {
+            x: logoBox.width + Theme.statusLogoGap
             anchors.verticalCenter: parent.verticalCenter
             width: Theme.hostPillPadLeft + pillRow.width + Theme.hostPillPadRight
             height: hostLabel.height + 2 * Theme.hostPillPadV

@@ -58,5 +58,7 @@
         <file>gui/console/fonts/Sora-Regular.ttf</file>
         <file>gui/console/fonts/Sora-Medium.ttf</file>
         <file>gui/console/fonts/Sora-SemiBold.ttf</file>
+        <file>gui/console/fonts/Sora-Bold.ttf</file>
+        <file>gui/console/Logotype.qml</file>
     </qresource>
 </RCC>

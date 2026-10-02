@@ -1,0 +1,739 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>CocoOS boot, le O, prototype v3</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&family=Space+Grotesk:wght@500;700&family=Manrope:wght@700&family=Sora:wght@700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#ECECEA; --panel:#FFFFFF; --text:#111111; --muted:#6A6A6A; --line:#D6D6D3;
+  --chip:#E2E2DF; --chip-on:#111111; --chip-on-text:#FFFFFF; --accent:#F2802A;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#000000; --panel:#0E0E0E; --text:#EDEDED; --muted:#8C8C8C; --line:#222222;
+    --chip:#171717; --chip-on:#EDEDED; --chip-on-text:#000000;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#000000; --panel:#0E0E0E; --text:#EDEDED; --muted:#8C8C8C; --line:#222222;
+  --chip:#171717; --chip-on:#EDEDED; --chip-on-text:#000000;
+}
+html{scroll-padding-top:env(safe-area-inset-top,0px);}
+*,*::before,*::after{box-sizing:inherit;}
+body{
+  margin:0; background:var(--bg); color:var(--text);
+  font-family:"Outfit","Helvetica Neue",Arial,sans-serif; font-size:15px; line-height:1.45;
+}
+.wrap{max-width:1120px; margin:0 auto; padding:28px 18px 48px;}
+header{display:flex; align-items:baseline; justify-content:space-between; gap:12px; flex-wrap:wrap; margin-bottom:18px;}
+h1{font-size:22px; font-weight:500; margin:0; letter-spacing:-0.01em;}
+h1 b{font-weight:700;}
+h1 .os{color:var(--accent);}
+.ver{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12px; color:var(--muted);}
+
+.stage{position:relative; width:100%; aspect-ratio:16/9; background:#000; border-radius:12px; overflow:hidden; border:1px solid var(--line);}
+.stage canvas{display:block; width:100%; height:100%;}
+.readout{
+  position:absolute; right:12px; bottom:10px; font-family:"JetBrains Mono",ui-monospace,monospace;
+  font-size:11px; color:#5A5A5A; pointer-events:none; text-align:right;
+}
+
+.timeline{margin-top:14px; user-select:none; touch-action:none;}
+.bar{position:relative; display:flex; height:30px; border-radius:8px; overflow:hidden; background:var(--chip); cursor:pointer;}
+.seg{position:relative; height:100%; border-right:1px solid var(--bg); display:flex; align-items:center; padding:0 6px; min-width:0;
+  font-size:11px; color:var(--muted); white-space:nowrap; overflow:hidden; transition:background .15s, color .15s;}
+.seg:last-child{border-right:0;}
+.seg.on{background:var(--accent); color:#000;}
+.head{position:absolute; top:-3px; bottom:-3px; width:2px; background:var(--text); pointer-events:none;}
+.ticks{display:flex; justify-content:space-between; font-family:"JetBrains Mono",ui-monospace,monospace; font-size:11px; color:var(--muted); margin-top:6px;}
+
+.controls{display:flex; flex-wrap:wrap; gap:10px 18px; align-items:center; margin-top:18px; padding:14px; background:var(--panel); border:1px solid var(--line); border-radius:12px;}
+.group{display:flex; align-items:center; gap:8px;}
+.group > span{color:var(--muted); font-size:13px;}
+button, select{
+  font:inherit; font-size:13px; color:var(--text); background:var(--chip); border:1px solid transparent;
+  border-radius:8px; padding:7px 12px; cursor:pointer;
+}
+button:hover, select:hover{border-color:var(--line);}
+button:focus-visible, select:focus-visible, input:focus-visible{outline:2px solid var(--accent); outline-offset:2px;}
+button[aria-pressed="true"]{background:var(--chip-on); color:var(--chip-on-text);}
+button.primary{background:var(--accent); color:#000; font-weight:500;}
+button:disabled{opacity:.4; cursor:default;}
+.seg-ctl{display:flex; gap:2px; background:var(--chip); border-radius:8px; padding:2px;}
+.seg-ctl button{padding:5px 10px; background:transparent;}
+.seg-ctl button[aria-pressed="true"]{background:var(--chip-on); color:var(--chip-on-text);}
+label.chk{display:flex; align-items:center; gap:6px; font-size:13px; cursor:pointer;}
+input[type="checkbox"]{accent-color:var(--accent); width:16px; height:16px;}
+input[type="range"]{accent-color:var(--accent); width:110px;}
+.val{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12px; color:var(--muted); min-width:34px;}
+.spacer{flex:1 1 auto;}
+.note{margin-top:14px; color:var(--muted); font-size:13px; max-width:72ch;}
+.note kbd{font-family:"JetBrains Mono",ui-monospace,monospace; font-size:12px; background:var(--chip); padding:1px 5px; border-radius:4px;}
+@media (max-width:640px){ .spacer{display:none;} .controls{gap:10px 12px;} }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><b>Coco</b><b class="os">OS</b> séquence de démarrage</h1>
+    <span class="ver">le O, proto v3, réf. 1280×720</span>
+  </header>
+
+  <div class="stage" id="stage">
+    <canvas id="c" aria-label="Aperçu de l'animation de démarrage CocoOS"></canvas>
+    <div class="readout" id="readout"></div>
+  </div>
+
+  <div class="timeline">
+    <div class="bar" id="bar" role="slider" aria-label="Position dans l'animation" tabindex="0"></div>
+    <div class="ticks"><span>0 ms</span><span id="totalTick"></span></div>
+  </div>
+
+  <div class="controls">
+    <div class="group">
+      <button id="play" class="primary" aria-label="Lecture ou pause">Pause</button>
+      <button id="replay">Rejouer</button>
+      <button id="skip" title="Simule un appui sur A pendant l'animation">Passer</button>
+    </div>
+    <div class="group">
+      <span>Vitesse</span>
+      <div class="seg-ctl" id="speed">
+        <button data-v="0.25">0,25×</button>
+        <button data-v="0.5">0,5×</button>
+        <button data-v="1" aria-pressed="true">1×</button>
+      </div>
+    </div>
+    <div class="group">
+      <span>Variante</span>
+      <div class="seg-ctl" id="mode">
+        <button data-v="cold" aria-pressed="true">Démarrage à froid</button>
+        <button data-v="wake">Sortie de veille</button>
+      </div>
+    </div>
+    <label class="chk"><input type="checkbox" id="loop" checked> Boucle</label>
+    <div class="group">
+      <span>Boot lent</span>
+      <select id="boot">
+        <option value="fast">Non</option>
+        <option value="2000">Prêt après 2 s</option>
+        <option value="4000" selected>Prêt après 4 s</option>
+        <option value="manual">Manuel</option>
+      </select>
+      <button id="ready" disabled>Système prêt</button>
+    </div>
+    <div class="group">
+      <span>Attente</span>
+      <select id="wait">
+        <option value="o" selected>O chargeur</option>
+        <option value="bar">Barre</option>
+      </select>
+    </div>
+    <label class="chk"><input type="checkbox" id="steps"> Étape en texte</label>
+    <label class="chk"><input type="checkbox" id="blur" checked> Flou de mouvement</label>
+    <label class="chk"><input type="checkbox" id="sound"> Son (maquette)</label>
+    <div class="spacer"></div>
+    <div class="group">
+      <span>Taille du O au tracé</span>
+      <input type="range" id="oscale" min="100" max="160" step="5" value="125">
+      <span class="val" id="oscaleVal">125 %</span>
+    </div>
+    <div class="group">
+      <span>Police</span>
+      <select id="font">
+        <option selected>Sora</option>
+        <option>Outfit</option>
+        <option>Space Grotesk</option>
+        <option>Manrope</option>
+      </select>
+    </div>
+  </div>
+
+  <p class="note">
+    Si le système n'est pas prêt 400 ms après la fin de la séquence, le O de OS devient l'indicateur de chargement ;
+    il reste au moins 600 ms, puis se referme quand le système est prêt. Passer simule un appui sur A.
+    Le son n'est qu'une maquette de synchronisation, pas le design sonore final.
+    <kbd>Espace</kbd> lecture/pause, <kbd>R</kbd> rejouer, <kbd>A</kbd> passer.
+  </p>
+</div>
+
+<script>
+(() => {
+  const REF_W = 1280, REF_H = 720, CX = REF_W/2, CY = REF_H/2;
+  const P = { font:'Sora', weight:700, size:104, oScale:1.25, blur:true };
+  const ORANGE = [242,128,42], BRIGHT = [255,176,118];
+  const T = {
+    drawStart: 250, drawDur: 750,          // révélation conique du glyphe O
+    pause: 150,                            // le O seul, complet
+    anticip: 80,                           // élan : compression de 2 %
+    oResp: 620, oZeta: 0.9,                // ressort du O (réponse, amortissement)
+    lResp: 520, lZeta: 0.78,               // ressort des lettres
+    firstDelay: 20, stagger: 45, sDelay: 40,
+    settle: 600,
+    holdLogo: 400,
+    barDelay: 400, barMin: 600, barIn: 300, barFill: 300, barOut: 200,
+    closeDur: 520, breath: 380, trackA: 0.18,
+    spinCycle: 1333, spinRot: 1568,
+    exitDur: 750, uiTail: 900,
+    wakeStart: 80, wakeDur: 900, wakeTail: 500
+  };
+  const drawEnd = T.drawStart + T.drawDur;
+  const anticStart = drawEnd + T.pause;
+  const release = anticStart + T.anticip;
+  const revealEnd = release + T.firstDelay + 3*T.stagger + T.settle;
+  const normalE = revealEnd + T.holdLogo;
+  const barShowAt = normalE + T.barDelay;
+  const sT = 0.2;
+
+  // ---------- Easings / ressorts ----------
+  function cubicBezier(x1,y1,x2,y2){
+    const cx=3*x1, bx=3*(x2-x1)-cx, ax=1-cx-bx;
+    const cy=3*y1, by=3*(y2-y1)-cy, ay=1-cy-by;
+    const sx=t=>((ax*t+bx)*t+cx)*t, sy=t=>((ay*t+by)*t+cy)*t;
+    return x => {
+      if (x<=0) return 0; if (x>=1) return 1;
+      let lo=0, hi=1, t=x;
+      for (let i=0;i<22;i++){ t=(lo+hi)/2; if (sx(t)<x) lo=t; else hi=t; }
+      return sy(t);
+    };
+  }
+  const E_OUT   = cubicBezier(0.33,1,0.68,1);
+  const E_INOUT = cubicBezier(0.65,0,0.35,1);
+  const E_EMPH  = cubicBezier(0.2,0,0,1);
+  const E_DRAW  = cubicBezier(0.7,0,0.2,1);
+  const E_STD   = cubicBezier(0.4,0,0.2,1);
+  // Ressort amorti (départ au repos, vitesse initiale nulle), paramétré comme SwiftUI : réponse (ms) + amortissement
+  function spring(t, resp, zeta){
+    if (t <= 0) return 0;
+    const w = 2*Math.PI/resp, wd = w*Math.sqrt(1 - zeta*zeta);
+    return 1 - Math.exp(-zeta*w*t)*(Math.cos(wd*t) + (zeta*w/wd)*Math.sin(wd*t));
+  }
+  const clamp01 = v => v<0?0:v>1?1:v;
+  const lerp = (a,b,t) => a+(b-a)*t;
+  const mixRGB = (a,b,k,m=1) => `rgb(${(lerp(a[0],b[0],k)*m)|0},${(lerp(a[1],b[1],k)*m)|0},${(lerp(a[2],b[2],k)*m)|0})`;
+  const gray = l => { const v = Math.round(255*l); return `rgb(${v},${v},${v})`; };
+
+  // ---------- Canvas ----------
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+  const ocv = document.createElement('canvas'), octx = ocv.getContext('2d');
+  const hasConic = typeof ctx.createConicGradient === 'function';
+  let S = 1;
+  function resize(){
+    const r = canvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio||1, 2);
+    canvas.width = Math.max(1, Math.round(r.width*dpr));
+    canvas.height = Math.max(1, Math.round(r.height*dpr));
+    S = canvas.width / REF_W;
+  }
+  window.addEventListener('resize', resize);
+  const fontStr = () => `${P.weight} ${P.size}px "${P.font}", "Helvetica Neue", Arial, sans-serif`;
+
+  // ---------- Géométrie : lettre par lettre ----------
+  let L = null, LET = [];
+  function layout(){
+    const m = document.createElement('canvas').getContext('2d');
+    m.font = fontStr();
+    const mw = s => m.measureText(s).width;
+    const wC = mw('Coco'), wOS = mw('OS'), wS = mw('S');
+    const met = m.measureText('CocoOS');
+    const asc = met.actualBoundingBoxAscent, desc = met.actualBoundingBoxDescent;
+    const w = wC + wOS, x0 = (REF_W - w)/2, base = REF_H/2 + (asc - desc)/2;
+    const xO = x0 + wC, xS = x0 + wC + (wOS - wS);
+    const mo = m.measureText('O');
+    const oL = mo.actualBoundingBoxLeft, oR = mo.actualBoundingBoxRight;
+    const oA = mo.actualBoundingBoxAscent, oD = mo.actualBoundingBoxDescent;
+    const Ocx = xO + (oR - oL)/2, Ocy = base + (oD - oA)/2;
+    const rxo = (oL + oR)/2, ryo = (oA + oD)/2;
+    L = { w, x0, base, top: base-asc, bottom: base+desc, cx: CX, cy: CY,
+          xO, Ocx, Ocy, rxo, ryo, gOx: Ocx - xO, gOy: base - Ocy, relY: base - CY };
+    // lettres : origine finale (avec crénage), largeur, départ caché derrière le O
+    LET = [];
+    const word = 'Coco';
+    for (let i=0; i<4; i++){
+      const lw = mw(word[i]);
+      const fx = x0 + mw(word.slice(0,i+1)) - lw;
+      LET.push({ ch: word[i], kind:'w', fx, relX: fx - CX, lw, delay: T.firstDelay + i*T.stagger });
+    }
+    LET.push({ ch:'O', kind:'O', fx: xO, relX: xO - CX });
+    LET.push({ ch:'S', kind:'o', fx: xS, relX: xS - CX, lw: wS, delay: T.sDelay });
+  }
+
+  // ---------- Horloge / état ----------
+  let anim = 0, playing = true, speed = 1, last = null, loopWait = 0;
+  let bootMode = 4000, readyAt = null, loop = true, mode = 'cold', skipping = false;
+  let waitStyle = 'o', stepText = false;
+  const isSlow = () => bootMode !== 'fast';
+  const effReady = () => readyAt != null ? readyAt : (typeof bootMode === 'number' ? normalE + bootMode : null);
+  const loaderShown = () => isSlow() && (effReady() == null || effReady() > barShowAt);
+  function completeAt(){ const r = effReady(); return r == null ? Infinity : Math.max(r, barShowAt + T.barMin); }
+  function getE(){
+    if (!isSlow()) return normalE;
+    const r = effReady();
+    if (r == null) return Infinity;
+    if (r <= barShowAt) return Math.max(normalE, r);
+    return waitStyle === 'o' ? completeAt() + T.closeDur + T.breath : completeAt() + T.barFill + T.barOut - 50;
+  }
+  const dispE = () => { const E = getE(); return isFinite(E) ? E : Math.max(normalE, anim + 300); };
+  const totalCold = E => E + T.exitDur + T.uiTail;
+  const totalWake = T.wakeStart + T.wakeDur + T.wakeTail;
+  function total(){ return mode === 'wake' ? totalWake : totalCold(getE()); }
+
+  // ---------- Primitives ----------
+  const px1 = () => Math.max(1, S);
+  function rr(x,y,w,h,r){
+    ctx.beginPath();
+    ctx.moveTo((x+r)*S,y*S); ctx.arcTo((x+w)*S,y*S,(x+w)*S,(y+h)*S,r*S);
+    ctx.arcTo((x+w)*S,(y+h)*S,x*S,(y+h)*S,r*S); ctx.arcTo(x*S,(y+h)*S,x*S,y*S,r*S);
+    ctx.arcTo(x*S,y*S,(x+w)*S,y*S,r*S); ctx.closePath();
+  }
+
+  // Logotype au repos ou en vol, lettre par lettre (même géométrie qu'au déploiement)
+  function drawLetters(alpha, s, cx, cy, o = {}){
+    const lum = o.lum == null ? 1 : o.lum, oMul = o.oMul || 1;
+    ctx.save();
+    ctx.globalAlpha = alpha; ctx.font = fontStr(); ctx.textBaseline = 'alphabetic';
+    for (const l of LET){
+      if (o.skipO && l.kind === 'O') continue;
+      ctx.fillStyle = l.kind === 'w' ? gray(lum) : mixRGB(ORANGE, ORANGE, 0, lum);
+      if (o.snap && s === 1){
+        // calage sur la grille de pixels au repos
+        ctx.setTransform(S,0,0,S, Math.round((cx + l.relX)*S), Math.round((cy + L.relY)*S));
+        ctx.fillText(l.ch, 0, 0);
+      } else if (l.kind === 'O' && oMul !== 1){
+        ctx.setTransform(s*S,0,0,s*S, cx*S, cy*S);
+        ctx.translate(L.Ocx - CX, L.Ocy - CY); ctx.scale(oMul, oMul);
+        ctx.fillText('O', -L.gOx, L.gOy);
+      } else {
+        ctx.setTransform(s*S,0,0,s*S, cx*S, cy*S);
+        ctx.fillText(l.ch, l.relX, L.relY);
+      }
+    }
+    ctx.restore();
+  }
+
+  // Glyphe O révélé par un balayage conique (bord d'attaque adouci)
+  function drawO(x, y, s, col, f, a0){
+    const half = Math.ceil(Math.max(L.rxo, L.ryo)*1.25*s*S) + 4, size = half*2;
+    if (f >= 1){
+      ctx.save(); ctx.setTransform(s*S,0,0,s*S, x*S, y*S);
+      ctx.font = fontStr(); ctx.textBaseline = 'alphabetic'; ctx.fillStyle = col;
+      ctx.fillText('O', -L.gOx, L.gOy); ctx.restore(); return;
+    }
+    if (f <= 0) return;
+    if (ocv.width < size || ocv.height < size){ ocv.width = size; ocv.height = size; }
+    const o = octx;
+    o.setTransform(1,0,0,1,0,0); o.globalCompositeOperation = 'source-over';
+    o.clearRect(0,0,ocv.width,ocv.height);
+    o.setTransform(s*S,0,0,s*S, half, half);
+    o.font = fontStr(); o.textBaseline = 'alphabetic'; o.fillStyle = col;
+    o.fillText('O', -L.gOx, L.gOy);
+    o.setTransform(1,0,0,1,0,0);
+    o.globalCompositeOperation = 'destination-in';
+    if (hasConic){
+      const fe = 0.035, g = o.createConicGradient(a0, half, half);
+      g.addColorStop(0, 'rgba(0,0,0,1)');
+      g.addColorStop(Math.max(0, f - fe), 'rgba(0,0,0,1)');
+      g.addColorStop(Math.max(0.0001, f), 'rgba(0,0,0,0)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      o.fillStyle = g; o.fillRect(0,0,size,size);
+    } else {
+      o.beginPath(); o.moveTo(half,half); o.arc(half,half,half,a0,a0+f*2*Math.PI); o.closePath();
+      o.fillStyle = '#000'; o.fill();
+    }
+    o.globalCompositeOperation = 'source-over';
+    ctx.drawImage(ocv, 0, 0, size, size, Math.round(x*S - half), Math.round(y*S - half), size, size);
+  }
+
+  // Glyphe O masqué par une fenêtre angulaire [a0, a0 + len·2π], adoucie aux deux bouts
+  function drawOArc(x, y, s, col, a0, len, alpha){
+    if (alpha <= 0.002 || len <= 0) return;
+    if (len >= 0.999){
+      ctx.save(); ctx.globalAlpha = alpha; ctx.setTransform(s*S,0,0,s*S, x*S, y*S);
+      ctx.font = fontStr(); ctx.textBaseline = 'alphabetic'; ctx.fillStyle = col;
+      ctx.fillText('O', -L.gOx, L.gOy); ctx.restore(); return;
+    }
+    const half = Math.ceil(Math.max(L.rxo, L.ryo)*1.25*s*S) + 4, size = half*2;
+    if (ocv.width < size || ocv.height < size){ ocv.width = size; ocv.height = size; }
+    const o = octx;
+    o.setTransform(1,0,0,1,0,0); o.globalCompositeOperation = 'source-over';
+    o.clearRect(0,0,ocv.width,ocv.height);
+    o.setTransform(s*S,0,0,s*S, half, half);
+    o.font = fontStr(); o.textBaseline = 'alphabetic'; o.fillStyle = col;
+    o.fillText('O', -L.gOx, L.gOy);
+    o.setTransform(1,0,0,1,0,0);
+    o.globalCompositeOperation = 'destination-in';
+    if (hasConic){
+      const fe = Math.min(0.025, len/3), g = o.createConicGradient(a0, half, half);
+      g.addColorStop(0, 'rgba(0,0,0,0)'); g.addColorStop(fe, 'rgba(0,0,0,1)');
+      g.addColorStop(len - fe, 'rgba(0,0,0,1)'); g.addColorStop(len, 'rgba(0,0,0,0)');
+      g.addColorStop(1, 'rgba(0,0,0,0)');
+      o.fillStyle = g; o.fillRect(0,0,size,size);
+    } else {
+      o.beginPath(); o.moveTo(half,half); o.arc(half,half,half,a0,a0+len*2*Math.PI); o.closePath();
+      o.fillStyle = '#000'; o.fill();
+    }
+    o.globalCompositeOperation = 'source-over';
+    ctx.save(); ctx.globalAlpha = alpha;
+    ctx.drawImage(ocv, 0, 0, size, size, Math.round(x*S - half), Math.round(y*S - half), size, size);
+    ctx.restore();
+  }
+
+  // Indicateur indéterminé façon Material : la tête s'étire, la queue rattrape, le tout tourne (en tours)
+  function spinner(tau){
+    const D = T.spinCycle, tt = tau + D/2;
+    const c = Math.floor(tt/D), u = (tt - c*D)/D;
+    const head = E_STD(clamp01(u/0.5))*0.75, tail = E_STD(clamp01((u - 0.5)/0.5))*0.75;
+    const base = c*0.75 + tau/T.spinRot;
+    return { tail: base + tail, head: base + head + 0.03 };
+  }
+
+  // Le O de OS comme chargeur : il s'ouvre, tourne, puis se referme quand le système est prêt
+  function loaderState(t){
+    const ca = completeAt(), tau = t - barShowAt;
+    const vis = E_OUT(clamp01(tau/400)) * (isFinite(ca) ? 1 - E_OUT(clamp01((t - ca)/T.closeDur)) : 1);
+    const sp = spinner(tau);
+    let tail = lerp(sp.head - 1, sp.tail, E_OUT(clamp01(tau/450)));   // part de l'O complet
+    let head = sp.head;
+    if (isFinite(ca)) head = lerp(head, tail + 1, E_EMPH(clamp01((t - ca)/T.closeDur)));  // se referme
+    const bb = isFinite(ca) ? clamp01((t - ca - T.closeDur)/T.breath) : 0;
+    const bump = bb > 0 && bb < 1 ? Math.sin(Math.PI*E_OUT(bb)) : 0;
+    return { vis, tail, len: Math.min(1, head - tail), bump };
+  }
+  function drawLoader(t){
+    const st = loaderState(t);
+    const s = 1 + 0.045*st.bump;
+    const col = mixRGB(ORANGE, BRIGHT, st.bump*0.8);
+    if (st.len < 0.999) drawOArc(L.Ocx, L.Ocy, 1, mixRGB(ORANGE, ORANGE, 0), 0, 1, T.trackA);   // piste : le O en filigrane
+    drawOArc(L.Ocx, L.Ocy, s, col, -Math.PI/2 + 2*Math.PI*(st.tail - 0.78), st.len, 1);
+    return st;
+  }
+  const STEPS = ['Démarrage des services', 'Recherche de l’hôte', 'Connexion à l’hôte', 'Chargement de la bibliothèque'];
+  function drawSteps(t, vis){
+    const t0 = barShowAt + 1500;
+    if (!stepText || t < t0 || vis <= 0.002) return;
+    const u = t - t0, i = Math.min(STEPS.length - 1, Math.floor(u/1800)), local = u - i*1800;
+    const fin = i === STEPS.length - 1 ? 1 : 1 - E_OUT(clamp01((local - 1550)/250));
+    const a = E_OUT(clamp01(local/300))*fin*vis*E_OUT(clamp01(u/400));
+    ctx.save();
+    ctx.globalAlpha = a; ctx.fillStyle = '#6E6E6E';
+    ctx.font = `400 ${13*S}px "JetBrains Mono", ui-monospace, monospace`;
+    ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+    ctx.fillText(STEPS[i], CX*S, (L.bottom + 62 + (1 - E_OUT(clamp01(local/300)))*4)*S);
+    ctx.restore();
+  }
+
+  function oState(t){
+    let s = P.oScale, x = CX;
+    if (t >= anticStart && t < release) s = P.oScale*(1 - 0.02*E_INOUT(clamp01((t - anticStart)/T.anticip)));
+    else if (t >= release){ const sp = spring(t - release, T.oResp, T.oZeta); s = lerp(P.oScale*0.98, 1, sp); x = lerp(CX, L.Ocx, sp); }
+    return { x, s };
+  }
+  const letterX = (l, t) => lerp(oState(t).x - l.lw/2, l.fx, spring(t - (release + l.delay), T.lResp, T.lZeta));
+
+  function exitPos(e){
+    const p0 = [L.cx, L.cy], p2 = [40 + L.w*sT/2, 42];
+    const c = [lerp(p0[0], p2[0], 0.25), lerp(p0[1], p2[1], 0.8)];
+    const u = 1 - e;
+    return [u*u*p0[0] + 2*u*e*c[0] + e*e*p2[0], u*u*p0[1] + 2*u*e*c[1] + e*e*p2[1]];
+  }
+
+  function drawUI(uiT){
+    const a = E_OUT(clamp01(uiT/350));
+    ctx.save();
+    ctx.globalAlpha = a;
+    ctx.fillStyle = '#7A7A7A';
+    ctx.font = `400 ${15*S}px "JetBrains Mono", ui-monospace, monospace`;
+    ctx.textAlign = 'right'; ctx.textBaseline = 'middle';
+    ctx.fillText('14:32', 1240*S, 42*S);
+    ctx.fillText('86 %', 1160*S, 42*S);
+    ctx.fillText('Wi-Fi 5 GHz', 1080*S, 42*S);
+    ctx.fillStyle = '#161616'; ctx.fillRect(40*S, 74*S, 1200*S, px1());
+    ctx.textAlign = 'left'; ctx.fillStyle = '#7A7A7A';
+    ctx.fillText('Bibliothèque', 40*S, 168*S);
+    for (let i=0; i<5; i++){
+      const p = E_EMPH(clamp01((uiT - 60 - i*45)/500));
+      if (p<=0) continue;
+      ctx.globalAlpha = p;
+      const focus = i===0, sc = lerp(0.97, 1, p)*(focus ? 1.04 : 1);
+      const w = 204*sc, h = 272*sc, ccx = 40 + i*228 + 102, ccy = 336;
+      const x = ccx - w/2, y = ccy - h/2;
+      rr(x,y,w,h,14*sc); ctx.fillStyle = '#0D0D0D'; ctx.fill();
+      ctx.lineWidth = (focus ? 2 : 1)*S; ctx.strokeStyle = focus ? '#F2802A' : '#1C1C1C'; ctx.stroke();
+      ctx.fillStyle = '#1A1A1A';
+      ctx.fillRect((x+16*sc)*S, (y+h-44*sc)*S, (w*0.55)*S, 10*sc*S);
+      ctx.fillRect((x+16*sc)*S, (y+h-26*sc)*S, (w*0.3)*S, 8*sc*S);
+    }
+    ctx.globalAlpha = E_OUT(clamp01((uiT-300)/350));
+    ctx.fillStyle = '#5E5E5E';
+    ctx.fillText('A  Lancer     B  Retour     ☰  Menu', 40*S, 676*S);
+    ctx.restore();
+  }
+
+  // ---------- Rendu : démarrage à froid ----------
+  function renderCold(t){
+    if (t < T.drawStart) return;
+    const E = getE();
+    if (t >= revealEnd){
+      const ex = E_EMPH(clamp01((t - E)/T.exitDur));
+      if (ex <= 0){
+        if (waitStyle === 'o' && loaderShown() && t > barShowAt){
+          const vis = E_OUT(clamp01((t - barShowAt)/400)) * (isFinite(completeAt()) ? 1 - E_OUT(clamp01((t - completeAt())/T.closeDur)) : 1);
+          drawLetters(1, 1, L.cx, L.cy, { snap: true, skipO: true, lum: lerp(1, 0.82, vis) });
+          drawLoader(t);
+          drawSteps(t, vis);
+        } else drawLetters(1, 1, L.cx, L.cy, { snap: true });
+      }
+      else { const p = exitPos(ex); drawLetters(1, lerp(1, sT, ex), p[0], p[1]); }
+    } else {
+      const st = oState(t);
+      if (t >= release){
+        // masque elliptique : les lettres disparaissent exactement derrière la silhouette du O
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(0, 0, canvas.width, canvas.height);
+        ctx.ellipse(st.x*S, L.Ocy*S, L.rxo*st.s*0.97*S, L.ryo*st.s*0.97*S, 0, 0, Math.PI*2);
+        ctx.clip('evenodd');
+        ctx.font = fontStr(); ctx.textBaseline = 'alphabetic';
+        for (const l of LET){
+          if (l.kind === 'O' || t < release + l.delay) continue;
+          const sp = spring(t - (release + l.delay), T.lResp, T.lZeta);
+          const x = lerp(st.x - l.lw/2, l.fx, sp);
+          const lum = lerp(0.55, 1, clamp01(sp));   // profondeur par la luminance
+          const col = l.kind === 'w' ? gray(lum) : mixRGB(ORANGE, ORANGE, 0, lum);
+          ctx.setTransform(S,0,0,S,0,0);
+          if (P.blur){
+            const dx = x - letterX(l, t - 16);
+            const k = Math.abs(dx) > 1.5 ? Math.min(0.12, (Math.abs(dx)-1.5)*0.012) : 0;
+            if (k > 0.01){
+              ctx.fillStyle = col;
+              ctx.globalAlpha = k*0.5; ctx.fillText(l.ch, x - dx*1.0, L.base);
+              ctx.globalAlpha = k;     ctx.fillText(l.ch, x - dx*0.5, L.base);
+            }
+          }
+          ctx.globalAlpha = 1; ctx.fillStyle = col;
+          ctx.fillText(l.ch, x, L.base);
+        }
+        ctx.restore();
+      }
+      const pd = clamp01((t - T.drawStart)/T.drawDur);
+      const col = mixRGB(BRIGHT, ORANGE, E_OUT(clamp01((t - drawEnd)/400)));
+      drawO(st.x, L.Ocy, st.s, col, E_DRAW(pd), -Math.PI/2 - 0.6*(1 - E_OUT(pd)));
+    }
+
+    // barre d'attente (règles anti-clignotement)
+    if (waitStyle === 'bar' && loaderShown() && t > barShowAt){
+      const ca = completeAt();
+      const bw = 120, bh = 2, bx = CX - bw/2, by = L.bottom + 64;
+      const aIn = E_OUT(clamp01((t - barShowAt)/T.barIn));
+      const aOut = isFinite(ca) ? 1 - E_OUT(clamp01((t - ca - T.barFill + 50)/T.barOut)) : 1;
+      const a = aIn*aOut;
+      if (a > 0.002){
+        ctx.save(); ctx.globalAlpha = a;
+        rr(bx, by, bw, bh, 1); ctx.fillStyle = '#1E1E1E'; ctx.fill();
+        const seg = 36, ref = isFinite(ca) ? Math.min(t, ca) : t;
+        const u = ((ref - barShowAt) % 1400)/1400;
+        let s0 = lerp(-seg, bw, E_INOUT(u)), s1 = s0 + seg;
+        if (isFinite(ca)){ const f = E_OUT(clamp01((t - ca)/T.barFill)); s0 = lerp(s0, 0, f); s1 = lerp(s1, bw, f); }
+        s0 = Math.max(0, s0); s1 = Math.min(bw, s1);
+        if (s1 > s0){ rr(bx + s0, by, s1 - s0, bh, 1); ctx.fillStyle = '#FFFFFF'; ctx.fill(); }
+        ctx.restore();
+      }
+      drawSteps(t, aIn*aOut);
+    }
+
+    const uiT = t - (E + 250);
+    if (uiT > 0) drawUI(uiT);
+  }
+
+  // ---------- Rendu : sortie de veille ----------
+  function renderWake(t){
+    if (t < T.wakeStart) return;
+    const u = t - T.wakeStart;
+    const a = E_OUT(clamp01(u/250));
+    const br = Math.sin(Math.PI*E_INOUT(clamp01((u - 150)/500)));
+    drawLetters(a, sT, 40 + L.w*sT/2, 42, { lum: lerp(0.55, 1, a), oMul: 1 + 0.14*br });
+    drawUI(u);
+  }
+
+  function render(t){
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = '#000'; ctx.fillRect(0,0,canvas.width,canvas.height);
+    if (!L) return;
+    if (mode === 'wake') renderWake(t); else renderCold(t);
+  }
+
+  // ---------- Son (maquette de synchronisation) ----------
+  let actx = null, soundOn = false;
+  function tone(freqs, gain, decay){
+    if (!actx) return;
+    const now = actx.currentTime;
+    const out = actx.createGain();
+    out.gain.setValueAtTime(0, now);
+    out.gain.linearRampToValueAtTime(gain, now + 0.012);
+    out.gain.exponentialRampToValueAtTime(0.0001, now + decay);
+    const lp = actx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 2400;
+    out.connect(lp); lp.connect(actx.destination);
+    for (const f of freqs){
+      const o = actx.createOscillator(); o.type = 'sine'; o.frequency.value = f;
+      const g = actx.createGain(); g.gain.value = 1/freqs.length;
+      o.connect(g); g.connect(out); o.start(now); o.stop(now + decay + 0.05);
+    }
+  }
+  const SOUNDS = {
+    close: () => tone([261.63, 392.0], 0.14, 0.9),
+    open:  () => tone([523.25, 783.99, 1174.66], 0.09, 1.4)
+  };
+  function events(){
+    if (mode === 'wake') return [{ t: T.wakeStart + 150, s:'open' }];
+    const ev = [{ t: drawEnd, s:'close' }, { t: release, s:'open' }];
+    if (waitStyle === 'o' && loaderShown() && isFinite(completeAt())) ev.push({ t: completeAt() + T.closeDur*0.8, s:'close' });
+    return ev;
+  }
+
+  // ---------- Timeline UI ----------
+  const bar = document.getElementById('bar');
+  const readout = document.getElementById('readout');
+  const totalTick = document.getElementById('totalTick');
+  let PHASES = [], segEls = [], headEl = null;
+  function buildBar(){
+    bar.innerHTML = '';
+    PHASES = mode === 'wake' ? ['Noir','Réveil','Interface'] : ['Noir','Tracé','Pause','Élan','Déploiement','Logo / attente','Sortie','Interface'];
+    segEls = PHASES.map(n => { const el=document.createElement('div'); el.className='seg'; el.textContent=n; bar.appendChild(el); return el; });
+    headEl = document.createElement('div'); headEl.className='head'; bar.appendChild(headEl);
+  }
+  function bounds(){
+    if (mode === 'wake') return [0, T.wakeStart, T.wakeStart + T.wakeDur, totalWake];
+    const E = dispE();
+    return [0, T.drawStart, drawEnd, anticStart, release, revealEnd, E, E + T.exitDur, totalCold(E)];
+  }
+  function updateUI(){
+    const b = bounds(), n = PHASES.length, tot = b[n];
+    let cur = 0;
+    for (let i=0;i<n;i++){
+      segEls[i].style.width = ((b[i+1]-b[i])/tot*100) + '%';
+      if (anim >= b[i]) cur = i;
+    }
+    segEls.forEach((el,i)=>el.classList.toggle('on', i===cur));
+    headEl.style.left = `calc(${Math.min(1, anim/tot)*100}% - 1px)`;
+    const r = effReady();
+    const waiting = mode === 'cold' && isSlow() && anim > barShowAt && (r == null || anim < r);
+    readout.textContent = `${PHASES[cur].toLowerCase()}${waiting?' (en attente)':''}${skipping?' (accéléré)':''}  ${Math.round(anim)} ms`;
+    totalTick.textContent = `${Math.round(tot)} ms`;
+    bar.setAttribute('aria-valuenow', Math.round(anim));
+    document.getElementById('ready').disabled = !(mode === 'cold' && bootMode === 'manual' && readyAt == null);
+  }
+
+  // ---------- Boucle ----------
+  function tick(now){
+    if (last == null) last = now;
+    const dt = Math.min(64, now - last); last = now;
+    if (playing){
+      const prev = anim;
+      anim += dt*speed*(skipping ? 4 : 1);
+      if (soundOn) for (const ev of events()) if (prev < ev.t && anim >= ev.t) SOUNDS[ev.s]();
+      if (skipping && (mode === 'wake' || anim >= getE() + T.exitDur)) skipping = false;
+      const tot = total();
+      if (isFinite(tot) && anim >= tot){
+        anim = tot;
+        if (loop){ loopWait += dt; if (loopWait > 1400) restart(); }
+        else { playing = false; syncPlay(); }
+      }
+    }
+    render(anim); updateUI();
+    requestAnimationFrame(tick);
+  }
+  function restart(){ anim = 0; loopWait = 0; readyAt = null; skipping = false; playing = true; syncPlay(); }
+
+  // ---------- Contrôles ----------
+  const playBtn = document.getElementById('play');
+  function syncPlay(){ playBtn.textContent = playing ? 'Pause' : 'Lecture'; }
+  playBtn.onclick = () => {
+    if (!playing){
+      const tot = total();
+      if (isFinite(tot) && anim >= tot) restart(); else playing = true;
+    } else playing = false;
+    syncPlay();
+  };
+  document.getElementById('replay').onclick = restart;
+  const skipBtn = document.getElementById('skip');
+  skipBtn.onclick = () => { if (anim < total()){ skipping = true; playing = true; syncPlay(); } };
+  document.querySelectorAll('#speed button').forEach(btn => {
+    btn.onclick = () => {
+      speed = parseFloat(btn.dataset.v);
+      document.querySelectorAll('#speed button').forEach(b => b.setAttribute('aria-pressed', b===btn ? 'true':'false'));
+    };
+  });
+  document.querySelectorAll('#mode button').forEach(btn => {
+    btn.onclick = () => {
+      mode = btn.dataset.v;
+      document.querySelectorAll('#mode button').forEach(b => b.setAttribute('aria-pressed', b===btn ? 'true':'false'));
+      buildBar(); restart();
+    };
+  });
+  document.getElementById('loop').onchange = e => { loop = e.target.checked; };
+  document.getElementById('boot').onchange = e => { const v = e.target.value; bootMode = (v === 'fast' || v === 'manual') ? v : parseInt(v,10); restart(); };
+  document.getElementById('ready').onclick = () => { if (bootMode === 'manual' && readyAt == null) readyAt = Math.max(anim, normalE); };
+  document.getElementById('wait').onchange = e => { waitStyle = e.target.value; restart(); };
+  document.getElementById('steps').onchange = e => { stepText = e.target.checked; };
+  document.getElementById('blur').onchange = e => { P.blur = e.target.checked; };
+  document.getElementById('sound').onchange = e => {
+    soundOn = e.target.checked;
+    if (soundOn && !actx){ try { actx = new (window.AudioContext || window.webkitAudioContext)(); } catch(_) { soundOn = false; } }
+    if (actx && actx.state === 'suspended') actx.resume();
+  };
+  document.getElementById('font').onchange = async e => { P.font = e.target.value; await loadAndLayout(); };
+  const osIn = document.getElementById('oscale'), osVal = document.getElementById('oscaleVal');
+  osIn.oninput = () => { P.oScale = parseInt(osIn.value,10)/100; osVal.textContent = osIn.value + ' %'; };
+
+  let dragging = false;
+  function scrubTo(clientX){
+    const r = bar.getBoundingClientRect();
+    const f = clamp01((clientX - r.left)/r.width);
+    if (mode === 'cold' && bootMode === 'manual' && readyAt == null) readyAt = barShowAt + 2000;
+    anim = f * bounds()[PHASES.length];
+    playing = false; skipping = false; loopWait = 0; syncPlay();
+  }
+  bar.addEventListener('pointerdown', e => { dragging = true; bar.setPointerCapture(e.pointerId); scrubTo(e.clientX); });
+  bar.addEventListener('pointermove', e => { if (dragging) scrubTo(e.clientX); });
+  bar.addEventListener('pointerup', () => { dragging = false; });
+  bar.addEventListener('keydown', e => {
+    if (e.key==='ArrowRight'||e.key==='ArrowLeft'){
+      e.preventDefault(); playing=false; syncPlay();
+      anim = Math.max(0, anim + (e.key==='ArrowRight'?1:-1)*(e.shiftKey?250:50));
+    }
+  });
+  window.addEventListener('keydown', e => {
+    if (e.target.tagName==='INPUT' || e.target.tagName==='SELECT') return;
+    if (e.code==='Space'){ e.preventDefault(); playBtn.click(); }
+    if (e.key==='r' || e.key==='R') restart();
+    if (e.key==='a' || e.key==='A') skipBtn.click();
+  });
+
+  async function loadAndLayout(){
+    try { await document.fonts.load(fontStr()); } catch(_) {}
+    layout();
+  }
+
+  resize();
+  buildBar();
+  if (window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches){ playing = false; }
+  syncPlay();
+  (async () => {
+    try { await document.fonts.ready; } catch(_) {}
+    await loadAndLayout();
+    try { await document.fonts.load('400 15px "JetBrains Mono"'); } catch(_) {}
+    anim = 0;
+    requestAnimationFrame(tick);
+  })();
+})();
+</script>
+</body>
+</html>
