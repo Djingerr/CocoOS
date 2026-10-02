@@ -156,9 +156,21 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     action à l'accueil ; jamais pendant un lancement ni un flux.
   - **Bouton Home** (`InputStatus`) : à l'accueil, ouvre le menu Home (`ConsoleDialog` en mode
     `actions`) : reprendre / quitter le jeu en cours (quitter sans `QuitSegue`, pas de page
-    upstream), mettre en veille, redémarrer, éteindre (ces deux derniers confirmés). En jeu, la
-    couture de `gamepad.cpp` ramène à l'accueil (le jeu continue) et le menu s'ouvre au retour.
-    Au clavier : touche Origine.
+    upstream), mettre en veille, redémarrer, éteindre (ces deux derniers confirmés). En jeu,
+    voir « Menu en jeu » plus bas. Au clavier : touche Origine.
+  - **Menu en jeu** (`backend/streammenu`, 2026-10-02) : en jeu, Home ouvre par-dessus le flux
+    un panneau (même dessin que `ConsoleDialog`, refait en QPainter par `streampainter` : le flux
+    est affiché par SDL, Qt est suspendu) posé sur l'overlay de débogage de Moonlight. Fond :
+    l'image du jeu floutée et figée (le jeu continue sur le PC), un voile en attendant. Reprendre,
+    Statistiques du flux, Retour à l'accueil, Quitter le jeu, veille / redémarrer / éteindre
+    (confirmés dans le menu) ; l'accueil fait la suite au retour (`InputStatus.takeStreamExit`).
+    Menu ouvert, la manette (croix, stick gauche, A au relâché, B) le pilote, le PC la voit
+    relâchée. **Statistiques** en haut à gauche, en Sora et en français (définition, i/s, codec,
+    débit, latence réseau ± variance avec le point de qualité de l'accueil, pertes, temps de
+    décodage / affichage / PC), réglage `ConsoleUi/streamStats`, aussi par Select + L1 + R1 + X.
+    ⚠️ Jamais essayé dans un vrai flux : vérifié au harnais (`streammenu-shot`) et à la
+    compilation. Le flou sur l'Orange Pi est incertain (images AFBC du décodeur Rockchip) : si
+    la copie échoue, le voile reste. Dessin du menu ≈ 18 ms par appui en 1080p sur le laptop.
   - **Manettes** : les glyphes suivent la manette branchée (`Theme.buttonLayout`, réglage
     `ConsoleUi/buttonLayout` = auto par défaut) : lettres Xbox, lettres inversées Nintendo
     (Moonlight lit les boutons par position), ✕ ○ □ △ PlayStation. Batterie d'une manette sans
@@ -257,7 +269,11 @@ On veut pouvoir **suivre les commits du repo officiel de moonlight** sans douleu
 - **Ne JAMAIS modifier un fichier upstream**, sauf les rares « coutures » strictement
   nécessaires, qu'on garde minuscules (voir §9), toujours sous `#ifdef CONSOLE_UI` ou dans le
   scope `embedded`. Liste : `app.pro`, `qml.qrc`, `main.cpp` (enregistrement des singletons,
-  rôle PipeWire des sons), `streaming/input/gamepad.cpp` (bouton Home en jeu → accueil).
+  rôle PipeWire des sons), `streaming/input/gamepad.cpp` (Home ouvre le menu en jeu, boutons
+  et stick routés vers lui, combinaison des statistiques), `streaming/video/overlaymanager.{h,cpp}`
+  (`setOverlaySurface` : une image toute faite sur l'overlay de débogage, dont le texte
+  d'origine est ignoré), `streaming/video/ffmpeg.cpp` (chiffres du flux chaque seconde, image
+  décodée pour le flou). Ces coutures n'ajoutent que des lignes (sauf celle de Home, déjà là).
 - **Surtout, ne pas toucher `app/gui/main.qml`.**
 - Git :
   - remote `upstream` = `https://github.com/moonlight-stream/moonlight-qt.git`
@@ -358,9 +374,13 @@ Fichiers (dans `app/gui/console/`) :
   Build `embedded` uniquement.
 - `backend/inputstatus.{h,cpp}` — activité de l'utilisateur (filtre d'événements sur l'app,
   pour la veille), bouton Home de la manette (état SDL lu toutes les 50 ms, la navigation
-  upstream ne le traduit pas en touche), famille et batterie de la manette, et le « retour
-  d'un jeu par Home » signalé par la session (`noteHomeExit` / `takeHomeExit`). Build
+  upstream ne le traduit pas en touche), famille et batterie de la manette, et le pont QML du
+  menu en jeu (`prepareStreamMenu` avant chaque flux, `takeStreamExit` au retour). Build
   `embedded` uniquement.
+- `backend/streammenu.{h,cpp}` — menu en jeu et statistiques du flux (état, manette, chiffres,
+  capture et flou de l'image), sur l'overlay de Moonlight. Build `embedded` uniquement.
+- `backend/streampainter.{h,cpp}` — leur dessin en QPainter, jetons de `Theme.qml` recopiés ;
+  sans SDL ni Moonlight (le harnais le dessine seul : `streammenu-shot.cpp`).
 
 `ConsoleHome.qml` est **branché sur le vrai backend Moonlight** (imports
 `ComputerModel`/`AppModel`/`ComputerManager`/`StreamingPreferences`/`CompanionClient`). Tout
@@ -613,6 +633,8 @@ qml-qt6 Harness.qml -- view=PagesDemo page=code        # search|loading|pin|pin-
 ./shot.sh /tmp/c.png view=ConsoleHomeDemo do=right,pin noart=Hades\ II at=2600 delay=6500   # vrai ConsoleHome
 ./ref-capture.py                                       # régénère ../ref/ et art/ depuis le prototype
 ./make-sounds.py                                       # régénère app/gui/console/sounds/*.wav (dont boot-*)
+# menu en jeu (C++, hors appli) : compiler streammenu-shot.cpp (commande en tête du fichier), puis
+QT_QPA_PLATFORM=offscreen /tmp/streammenu-shot /tmp/m.png page=menu stats=1 backdrop=art/hades2.jpg
 ./shot.sh /tmp/d.png view=BootDemo size=1280x720 t=1400   # animation de démarrage, instant figé
 ../../../boot-animation/ref-capture.py [--slow]        # références du prototype de démarrage (ref/cold-<t>.png, slow-<t>.png)
 node ../../../boot-animation/reference-values.js       # valeurs du prototype pour tst_BootTimeline
