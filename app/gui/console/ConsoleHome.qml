@@ -701,6 +701,13 @@ FocusScope {
             return
         }
 
+        // PC injoignable et impossible à réveiller : pas de session vers une
+        // adresse vide (« Host not found (Error 3) »).
+        if (!activeHostOnline) {
+            homeScreen.toast(qsTr("%1 est hors ligne").arg(activeHostName))
+            return
+        }
+
         // Un AUTRE jeu tourne déjà sur le host : demander confirmation
         // (équivalent console du quitAppDialog de AppView.qml). Chemin direct.
         var runningId = appModel.getRunningAppId()
