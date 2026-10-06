@@ -216,7 +216,7 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   - **Options en onglets** (L1 / R1, lus dans SDL par `InputStatus` ; PageUp / PageDown au
     clavier) : **Flux** (résolution, fréquence, débit, codec, HDR, Oublier ce PC) et **Console**
     (luminosité par logind `SetBrightness`, volume par `wpctl`, veille de l'écran, boutons,
-    sons, Wi-Fi). Une ligne peut être une action (`action: true`, A la déclenche, chevron ›).
+    sons, langue, Wi-Fi). Une ligne peut être une action (`action: true`, A la déclenche, chevron ›).
   - **Wi-Fi et premier démarrage** : `WifiSetup` (NetworkManager par D-Bus) liste les réseaux
     et s'y connecte ; la liste est un `OptionsSheet` (titre « Wi-Fi », icône de signal), le mot
     de passe se tape sur `OnScreenKeyboard` (AZERTY, quatre couches, A / B / X / Y ; un vrai
@@ -243,6 +243,15 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     veille (écran ou suspension logind) : l'accueil rentre, le O du logo de la barre respire.
     Thème Plymouth en noir pur dans `deploy/plymouth/` (notice, ligne de commande du noyau).
     ⚠️ Plymouth jamais installé ni vu en vrai (à faire sur l'Orange Pi, pas sur le laptop).
+- ✅ **Langue FR / EN (2026-10-06)** : ligne « Langue » de l'onglet Console. Elle écrit le réglage
+  de Moonlight (`StreamingPreferences.language`) et appelle son `retranslate()` : rien d'upstream
+  modifié. Les textes console (sources en français, `qsTr` / `tr`) ont leur traduction anglaise dans
+  `languages/qml_en.ts`, compilée en `qml_en.qm` et embarquée en `:/languages/qml_en.qm`, là où
+  Moonlight la cherche (au démarrage, puis à chaque changement). Français : la traduction upstream
+  `qml_fr` (textes Moonlight). « Auto » (jamais choisie) suit le système : anglais si `en_*`.
+  En anglais : clavier à l'écran en QWERTY, nombres à la virgule → point (tailles, statistiques).
+  Les messages d'erreur envoyés par le HostCompanion restent dans la langue du host.
+  ⚠️ Vue dans le harnais et au démarrage (traduction chargée), pas encore à la manette.
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
@@ -382,6 +391,8 @@ Fichiers (dans `app/gui/console/`) :
 - `Logotype.qml` — le logotype « CocoOS » lettre par lettre (Sora Bold), géométrie du prototype
   de `docs/boot-animation/` ; sert à la barre haute (réduit) et à l'animation de démarrage
 - `icons/` — icônes SVG (punaise des favoris)
+- `languages/qml_en.ts` (+ `.qm` compilé, embarqué) — traduction anglaise de tous les textes
+  console, QML et C++ (cf §11 pour la mettre à jour)
 - `StatusBar.qml` — barre haute : logotype, pastille de l'hôte + horloge / Wi-Fi / batterie (éclair en
   charge, orange sous `Theme.batteryLow`)
 - `ControllerLegend.qml` — légende des boutons (glyphe + libellé), panneaux et écrans de message
@@ -722,6 +733,21 @@ XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import
 - Dans `HomeScreen`, le focus suit des **liaisons** (`focus: !staged && !sheet.opened` sur
   l'étagère, `staged && !sheet.opened` sur `stage`) : il revient tout seul à la fermeture du
   panneau d'options ou d'un écran de message. Ne pas rappeler `shelf.forceActiveFocus()` en dur.
+
+### Traduction anglaise : la tenir à jour
+
+Tout texte affiché passe par `qsTr("…")` (QML) ou `tr("…")` (C++ d'une classe `Q_OBJECT` ;
+hors classe, une petite struct `Q_DECLARE_TR_FUNCTIONS(Contexte)`, cf `Text::tr` de
+`streammenu.cpp` : un `tr()` libre est ignoré par lupdate). Source en français. Puis, depuis `app/` :
+
+```bash
+lupdate-qt6 gui/console -source-language fr -target-language en -no-obsolete -ts gui/console/languages/qml_en.ts
+# traduire les <translation type="unfinished"> du .ts (Qt Linguist : linguist-qt6, ou à la main)
+lrelease-qt6 gui/console/languages/qml_en.ts && touch qml.qrc   # .qm versionné, comme upstream
+```
+
+Voir l'interface en anglais dans le harnais : `qml-qt6 --translation ../../../../app/gui/console/languages/qml_en.qm -I stubs Harness.qml -- view=ConsoleHomeDemo do=options,tab`
+(`PagesDemo` pose ses textes de démo en dur : ils restent en français).
 
 ### Animation de démarrage : debug et validation
 

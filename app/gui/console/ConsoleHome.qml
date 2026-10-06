@@ -685,10 +685,10 @@ FocusScope {
 
     function humanSize(bytes) {
         if (!bytes || bytes <= 0) return ""
-        var u = ["o", "Ko", "Mo", "Go", "To"]
+        var u = [qsTr("o"), qsTr("Ko"), qsTr("Mo"), qsTr("Go"), qsTr("To")]
         var i = 0; var v = bytes
         while (v >= 1024 && i < u.length - 1) { v /= 1024; i++ }
-        return (i >= 2 ? v.toFixed(1).replace(".", ",") : Math.round(v)) + " " + u[i]
+        return (i >= 2 ? v.toLocaleString(Qt.locale(english ? "en_US" : "fr_FR"), "f", 1) : Math.round(v)) + " " + u[i]
     }
 
     function launchApp(index) {
@@ -908,6 +908,11 @@ FocusScope {
     property var optionTabs: []
     property bool optionAutoBitrate: false   // le débit suit résolution et fréquence
 
+    // Langue de l'interface : le réglage de Moonlight, dont la traduction est chargée au
+    // démarrage (languages/qml_en.ts). « Auto » (jamais choisie) suit la langue du système.
+    readonly property bool english: StreamingPreferences.language === StreamingPreferences.LANG_EN
+        || StreamingPreferences.language === StreamingPreferences.LANG_AUTO && Qt.locale().name.indexOf("en") === 0
+
     function refreshOptions() {
         var p = StreamingPreferences
         // Réglages de flux affichés : ceux du jeu sélectionné s'il en a, sinon les communs.
@@ -950,7 +955,7 @@ FocusScope {
         // Console : réglages du système et de la conf console (ConsoleUi).
         var percents = function(from) {
             var list = []
-            for (var v = from; v <= 100; v += 10) list.push({ label: v + " %", value: v })
+            for (var v = from; v <= 100; v += 10) list.push({ label: qsTr("%1 %").arg(v), value: v })
             return list
         }
         var nearest = function(list, value) {
@@ -966,10 +971,12 @@ FocusScope {
         var buttons = [ { label: qsTr("Auto"), value: "auto" }, { label: "Xbox", value: "xbox" },
                         { label: "PlayStation", value: "playstation" }, { label: "Nintendo", value: "nintendo" } ]
         var sounds = [ { label: qsTr("Activés"), value: true }, { label: qsTr("Coupés"), value: false } ]
+        // Chaque langue dans sa langue.
+        var language = [ { label: "Français", value: p.LANG_FR }, { label: "English", value: p.LANG_EN } ]
 
         optionChoices = { res: res, fps: fps.map(function(f) { return { label: "" + f, value: f } }),
                           rate: rate, codec: codec, hdr: hdr, brightness: brightness, volume: volume,
-                          sleep: sleep, buttons: buttons, sounds: sounds }
+                          sleep: sleep, buttons: buttons, sounds: sounds, language: language }
         var row = function(key, label, index) {
             return { key: key, label: label, index: index,
                      options: optionChoices[key].map(function(c) { return c.label }) }
@@ -984,6 +991,7 @@ FocusScope {
         consoleRows.push(row("buttons", qsTr("Boutons"),
                              Math.max(0, buttons.findIndex(function(c) { return c.value === consoleConfig.buttonLayout }))))
         consoleRows.push(row("sounds", qsTr("Sons"), consoleConfig.sounds ? 0 : 1))
+        consoleRows.push(row("language", qsTr("Langue"), english ? 1 : 0))
         if (WifiSetup.available)
             consoleRows.push({ key: "wifi", label: qsTr("Wi-Fi"), action: true,
                                value: WifiSetup.currentNetwork !== "" ? WifiSetup.currentNetwork : qsTr("Non connecté") })
@@ -1022,8 +1030,14 @@ FocusScope {
             rearmSleep()
         } else if (key === "buttons") {
             consoleConfig.buttonLayout = choice.value
+        } else if (key === "language") {
+            // Moonlight charge la traduction et rafraîchit les liaisons qsTr ; le reste
+            // (onglets ci-dessous, menus, toasts) est recalculé à son prochain affichage.
+            p.language = choice.value
+            p.save()
+            p.retranslate()
         }
-        if (["sounds", "brightness", "volume", "sleep", "buttons"].indexOf(key) >= 0) {
+        if (["sounds", "brightness", "volume", "sleep", "buttons", "language"].indexOf(key) >= 0) {
             refreshOptions()
             return
         }
@@ -1357,6 +1371,7 @@ FocusScope {
     OnScreenKeyboard {
         id: keyboard
         anchors.fill: parent
+        qwerty: home.english
         minLength: 8                    // WPA : 8 caractères au moins
         onAccepted: function(text) {
             home.connectWifi(text)

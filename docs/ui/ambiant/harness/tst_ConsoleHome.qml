@@ -329,13 +329,33 @@ Item {
             keyClick(Qt.Key_Escape)
         }
 
+        // Langue : écrite dans les préférences Moonlight, qui rechargent la traduction
+        // (pas de traduction chargée dans le harnais : les textes restent en français).
+        function test_9b_languageSetting() {
+            keyClick(Qt.Key_Hangup)
+            keyClick(Qt.Key_PageDown)                       // onglet Console (R1)
+            for (var i = 0; i < 5; i++) keyClick(Qt.Key_Down)
+            var retranslations = StreamingPreferences.retranslations
+            compare(screen.optionRows[5].label, "Langue")
+            compare(screen.optionRows[5].options[screen.optionRows[5].index], "Français")
+            keyClick(Qt.Key_Right)
+            compare(StreamingPreferences.language, StreamingPreferences.LANG_EN)
+            compare(StreamingPreferences.retranslations, retranslations + 1)
+            compare(screen.optionRows[5].options[screen.optionRows[5].index], "English")
+            compare(home.humanSize(1.5 * 1024 * 1024 * 1024), "1.5 Go")   // virgule → point
+            keyClick(Qt.Key_Left)
+            compare(StreamingPreferences.language, StreamingPreferences.LANG_FR)
+            compare(home.humanSize(1.5 * 1024 * 1024 * 1024), "1,5 Go")
+            keyClick(Qt.Key_Escape)
+        }
+
         // Onglet Console : luminosité, volume, veille de l'écran, boutons. L1 / R1
         // (InputStatus) changent d'onglet.
         function test_9c_consoleSettings() {
             keyClick(Qt.Key_Hangup)
             InputStatus.bumperPressed(1)
             compare(screen.optionRows.map(function(r) { return r.label }),
-                    ["Luminosité", "Volume", "Veille de l'écran", "Boutons", "Sons", "Wi-Fi"])
+                    ["Luminosité", "Volume", "Veille de l'écran", "Boutons", "Sons", "Langue", "Wi-Fi"])
             keyClick(Qt.Key_Right)                          // luminosité 60 → 70 %
             compare(SystemStatus.brightness, 70)
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Left)    // volume 80 → 70 % (le stub part de 75)

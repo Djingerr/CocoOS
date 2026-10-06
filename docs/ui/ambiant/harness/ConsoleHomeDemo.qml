@@ -98,6 +98,8 @@ Item {
             else if (action === "sleep") demo.find(home.Window.window.contentItem, "asleep").sleep()
             else if (action === "launch") screen.launchRequested(screen.currentIndex)
             else if (action === "wifi") home.openWifi()
+            else if (action === "options") screen.options.open()
+            else if (action === "tab") screen.options.switchTab(1)
             else if (action.indexOf("net:") === 0) home.chooseNetwork(action.slice(4))
             else if (action === "down" || action === "a") {
                 var target = home.Window.activeFocusItem

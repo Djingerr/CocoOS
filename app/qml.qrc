@@ -66,5 +66,6 @@
         <file>gui/console/BootTimeline.js</file>
         <file>gui/console/shaders/ConicMask.frag.qsb</file>
         <file>gui/console/shaders/EllipseMask.frag.qsb</file>
+        <file alias="languages/qml_en.qm">gui/console/languages/qml_en.qm</file>
     </qresource>
 </RCC>

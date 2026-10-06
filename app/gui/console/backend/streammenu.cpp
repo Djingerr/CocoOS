@@ -153,27 +153,25 @@ bool s_soundsOn = false;
 QHash<QString, QByteArray> s_sounds;    // échantillons, volume appliqué
 SDL_AudioDeviceID s_audio = 0;
 
-QString tr(const char* text)
-{
-    return QCoreApplication::translate("StreamMenu", text);
-}
+// Textes du menu, contexte de traduction « StreamMenu » (Text::tr, que lupdate sait lire).
+struct Text { Q_DECLARE_TR_FUNCTIONS(StreamMenu) };
 
 QString statsValue(bool shown)
 {
-    return shown ? tr("Affichées") : tr("Masquées");
+    return shown ? Text::tr("Affichées") : Text::tr("Masquées");
 }
 
 QList<Action> actions()
 {
     QList<Action> list = {
-        { "resume", tr("Reprendre") },
-        { "stats", tr("Statistiques du flux") },
-        { "home", tr("Retour à l'accueil") },
-        { "quit", s_game.isEmpty() ? tr("Quitter le jeu") : tr("Quitter %1").arg(s_game) },
+        { "resume", Text::tr("Reprendre") },
+        { "stats", Text::tr("Statistiques du flux") },
+        { "home", Text::tr("Retour à l'accueil") },
+        { "quit", s_game.isEmpty() ? Text::tr("Quitter le jeu") : Text::tr("Quitter %1").arg(s_game) },
     };
-    if (s_power.contains(QLatin1String("suspend"))) list.append({ "suspend", tr("Mettre en veille") });
-    if (s_power.contains(QLatin1String("reboot"))) list.append({ "reboot", tr("Redémarrer") });
-    if (s_power.contains(QLatin1String("poweroff"))) list.append({ "poweroff", tr("Éteindre") });
+    if (s_power.contains(QLatin1String("suspend"))) list.append({ "suspend", Text::tr("Mettre en veille") });
+    if (s_power.contains(QLatin1String("reboot"))) list.append({ "reboot", Text::tr("Redémarrer") });
+    if (s_power.contains(QLatin1String("poweroff"))) list.append({ "poweroff", Text::tr("Éteindre") });
     return list;
 }
 
@@ -194,28 +192,28 @@ StreamPainter::Page page()
     StreamPainter::Page page;
     page.focus = s_focus;
     if (s_confirm.isEmpty()) {
-        page.title = s_game.isEmpty() ? tr("Menu") : s_game;
+        page.title = s_game.isEmpty() ? Text::tr("Menu") : s_game;
         for (const Action& action : actions()) {
             page.labels.append(action.label);
             page.values.append(action.key == QLatin1String("stats") ? statsValue(s_stats) : QString());
         }
-        page.backLabel = tr("Fermer");
+        page.backLabel = Text::tr("Fermer");
         return page;
     }
     if (s_confirm == QLatin1String("quit")) {
-        page.title = s_game.isEmpty() ? tr("Quitter le jeu ?") : tr("Quitter %1 ?").arg(s_game);
-        page.message = tr("Toute progression non sauvegardée sera perdue.");
-        page.labels = QStringList { tr("Annuler"), tr("Quitter") };
+        page.title = s_game.isEmpty() ? Text::tr("Quitter le jeu ?") : Text::tr("Quitter %1 ?").arg(s_game);
+        page.message = Text::tr("Toute progression non sauvegardée sera perdue.");
+        page.labels = QStringList { Text::tr("Annuler"), Text::tr("Quitter") };
     }
     else if (s_confirm == QLatin1String("reboot")) {
-        page.title = tr("Redémarrer la console ?");
-        page.labels = QStringList { tr("Annuler"), tr("Redémarrer") };
+        page.title = Text::tr("Redémarrer la console ?");
+        page.labels = QStringList { Text::tr("Annuler"), Text::tr("Redémarrer") };
     }
     else {
-        page.title = tr("Éteindre la console ?");
-        page.labels = QStringList { tr("Annuler"), tr("Éteindre") };
+        page.title = Text::tr("Éteindre la console ?");
+        page.labels = QStringList { Text::tr("Annuler"), Text::tr("Éteindre") };
     }
-    page.backLabel = tr("Annuler");
+    page.backLabel = Text::tr("Annuler");
     return page;
 }
 
@@ -722,7 +720,7 @@ QString codecName(int videoFormat)
                   : (videoFormat & VIDEO_FORMAT_MASK_AV1) ? QStringLiteral("AV1")
                   : QString();
     if (videoFormat & VIDEO_FORMAT_MASK_10BIT) {
-        codec += LiGetCurrentHostDisplayHdrMode() ? QStringLiteral(" HDR") : tr(" 10 bits");
+        codec += LiGetCurrentHostDisplayHdrMode() ? QStringLiteral(" HDR") : Text::tr(" 10 bits");
     }
     if (videoFormat & VIDEO_FORMAT_MASK_YUV444) {
         codec += QStringLiteral(" 4:4:4");
@@ -733,27 +731,31 @@ QString codecName(int videoFormat)
 // Les chiffres de Moonlight (ffmpeg.cpp, stringifyVideoStats) en quatre lignes.
 StreamPainter::Stats statsView(const VIDEO_STATS& stats, int videoFormat, int width, int height, double megabitsPerSec)
 {
-    const QLocale french(QLocale::French);
-    auto number = [&](double value) { return french.toString(value, 'f', 1); };
+    // Nombres à la façon de la langue de l'interface (réglage Langue ; Auto : celle du système).
+    const StreamingPreferences::Language language = StreamingPreferences::get()->language;
+    const QLocale locale = language == StreamingPreferences::LANG_EN ? QLocale(QLocale::English)
+                         : language == StreamingPreferences::LANG_FR ? QLocale(QLocale::French)
+                         : QLocale::system();
+    auto number = [&](double value) { return locale.toString(value, 'f', 1); };
 
     StreamPainter::Stats view;
-    view.lines.append(tr("%1 × %2 · %3 i/s · %4 · %5 Mb/s").arg(width).arg(height)
+    view.lines.append(Text::tr("%1 × %2 · %3 i/s · %4 · %5 Mb/s").arg(width).arg(height)
                           .arg(number(stats.decodedFps), codecName(videoFormat), number(megabitsPerSec)));
     view.dotLine = 1;
     view.dot = StreamPainter::networkColor(stats.lastRtt, stats.lastRttVariance);
-    view.lines.append(stats.lastRtt != 0 ? tr("Latence réseau %1 ms (± %2 ms)").arg(stats.lastRtt).arg(stats.lastRttVariance)
-                                         : tr("Latence réseau : mesure en cours"));
+    view.lines.append(stats.lastRtt != 0 ? Text::tr("Latence réseau %1 ms (± %2 ms)").arg(stats.lastRtt).arg(stats.lastRttVariance)
+                                         : Text::tr("Latence réseau : mesure en cours"));
     if (stats.totalFrames != 0 && stats.decodedFrames != 0) {
-        view.lines.append(tr("Images perdues : %1 % réseau · %2 % gigue")
+        view.lines.append(Text::tr("Images perdues : %1 % réseau · %2 % gigue")
                               .arg(number(100.0 * stats.networkDroppedFrames / stats.totalFrames),
                                    number(100.0 * stats.pacerDroppedFrames / stats.decodedFrames)));
     }
     if (stats.decodedFrames != 0 && stats.renderedFrames != 0) {
-        QString times = tr("Décodage %1 ms · Affichage %2 ms")
+        QString times = Text::tr("Décodage %1 ms · Affichage %2 ms")
                             .arg(number(stats.totalDecodeTimeUs / 1000.0 / stats.decodedFrames),
                                  number(stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames));
         if (stats.framesWithHostProcessingLatency != 0) {
-            times += tr(" · PC %1 ms").arg(number(stats.totalHostProcessingLatency / 10.0
+            times += Text::tr(" · PC %1 ms").arg(number(stats.totalHostProcessingLatency / 10.0
                                                   / stats.framesWithHostProcessingLatency));
         }
         view.lines.append(times);

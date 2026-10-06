@@ -2,8 +2,8 @@ import QtQuick
 
 // Clavier à l'écran, à la manette : saisie d'un mot de passe Wi-Fi, sans bureau.
 // Un panneau en bas de l'écran (le reste s'assombrit) : la question, le texte saisi
-// (masqué sauf le dernier caractère), puis les touches en AZERTY, sur quatre couches
-// (abc, ABC, 123, #+=). Flèches : touche voisine ; A tape ; B efface (ou ferme si
+// (masqué sauf le dernier caractère), puis les touches en AZERTY (QWERTY en anglais),
+// sur quatre couches (abc, ABC, 123, #+=). Flèches : touche voisine ; A tape ; B efface (ou ferme si
 // rien n'est saisi) ; X : majuscules / autres symboles ; Y (Start) valide. Un vrai
 // clavier marche aussi. Remplit son parent et se dessine, comme ConsoleDialog, sur
 // le canevas mis à l'échelle. Aucune dépendance Moonlight.
@@ -14,6 +14,7 @@ FocusScope {
     property string text: ""
     property bool masked: true
     property int minLength: 0           // OK ne valide qu'à partir de cette longueur
+    property bool qwerty: false         // disposition anglaise
 
     signal accepted(string text)
     signal cancelled()
@@ -43,8 +44,8 @@ FocusScope {
 
     // Touches : `t` est tapé ; les autres sont des commandes. `w` : largeur en unités.
     readonly property var keyLayers: ({
-        abc: ["azertyuiop", "qsdfghjklm", "wxcvbn,.'-"],
-        ABC: ["AZERTYUIOP", "QSDFGHJKLM", "WXCVBN;:?!"],
+        abc: qwerty ? ["qwertyuiop", "asdfghjkl'", "zxcvbnm,.-"] : ["azertyuiop", "qsdfghjklm", "wxcvbn,.'-"],
+        ABC: qwerty ? ["QWERTYUIOP", "ASDFGHJKL;", "ZXCVBNM:?!"] : ["AZERTYUIOP", "QSDFGHJKLM", "WXCVBN;:?!"],
         "123": ["1234567890", "@#$%&*+=_/", "!?:;\"()[]\\"],
         sym: ["{}<>|~^`€£", "°§µ²«»¿¡¨¤", "àâçéèêëîôù"]
     })
