@@ -8,6 +8,34 @@ import "../../../../app/gui/console/Format.js" as Format
 TestCase {
     name: "Format"
 
+    // Description Playnite (HTML de Steam) → texte de la fiche.
+    function test_plainText() {
+        compare(Format.plainText("<p>Lève-toi, Sans-éclat.</p><p>Le Cercle d&apos;Elden &amp; toi.</p>"),
+                "Lève-toi, Sans-éclat.\nLe Cercle d'Elden & toi.")
+        compare(Format.plainText("<h2>Atouts</h2><ul><li>Un</li><li>Deux</li></ul><img src=\"x.gif\">Fin<br/>là"),
+                "Atouts\n\n• Un\n• Deux\nFin\nlà")
+        compare(Format.plainText("&amp;lt;b&amp;gt; &#233;t&#233;"), "&lt;b&gt; été")   // une seule passe
+        compare(Format.plainText("<p>A</p>\n\n\n<p>B</p>"), "A\n\nB")
+        compare(Format.plainText(null), "")
+    }
+
+    function test_ageRatingPrefersPegi() {
+        compare(Format.ageRating(["ESRB M", "PEGI 16"]), "PEGI 16")
+        compare(Format.ageRating(["ESRB M"]), "ESRB M")
+        compare(Format.ageRating([]), "")
+        compare(Format.ageRating(undefined), "")
+    }
+
+    function test_factsAndCredits() {
+        var info = { genres: ["Action", "RPG", "Monde ouvert"], releaseDate: "2022-02-25T00:00:00",
+                     ageRatings: ["PEGI 16"], developers: ["FromSoftware"],
+                     publishers: ["Bandai Namco", "FromSoftware"] }
+        compare(Format.facts(info), ["Action", "RPG", "2022", "PEGI 16"])
+        compare(Format.facts({}), [])
+        compare(Format.credits(info), "FromSoftware · Bandai Namco")
+        compare(Format.credits({}), "")
+    }
+
     function test_sourceName() {
         compare(Format.sourceName("steam"), "Steam")
         compare(Format.sourceName("epic"), "Epic Games")

@@ -396,6 +396,11 @@ Fichiers (dans `app/gui/console/`) :
 - `StatusBar.qml` — barre haute : logotype, pastille de l'hôte + horloge / Wi-Fi / batterie (éclair en
   charge, orange sous `Theme.batteryLow`)
 - `ControllerLegend.qml` — légende des boutons (glyphe + libellé), panneaux et écrans de message
+- `GamePage.qml` — fiche du jeu sélectionné (bas du pad sur l'étagère), posée dans `stage` comme
+  un écran de message, sur le fond du jeu : logo ou titre, faits (`Format.facts` : genres, année,
+  PEGI, + taille), studios (`Format.credits`), description (`Format.plainText` : HTML Playnite →
+  texte) qui défile par lignes entières, puis « Désinstaller » (jeux Steam, Companion :
+  `POST /v1/games/{id}/uninstall`, confirmé). Haut une fois en haut, ou B, la referme
 - `MessageScreen.qml` — écran de message à la place du héros : titre, texte, code en grandes
   cases, ligne d'état, piste d'attente. Sert à la recherche du PC, au chargement et à la
   liaison Moonlight (code à saisir sur le PC), instanciés dans `ConsoleHome`

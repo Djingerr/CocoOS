@@ -694,6 +694,109 @@ Item {
             }
         }
 
+        // Un jeu du PC pas encore installé : en fin d'étagère, A le télécharge sans autre
+        // question, puis A ouvre le menu de son téléchargement (pause, annulation).
+        function test_9q_downloadAGameNotYetInstalled() {
+            var lastCall = function() { return CompanionClient.downloadCalls[CompanionClient.downloadCalls.length - 1] }
+            CompanionClient.paired = true
+            CompanionClient.eventsConnected = true
+            CompanionClient.extraGames = [{ id: "dl-1", name: "Celeste", isInstalled: false, downloadable: true, cover: "" }]
+            CompanionClient.libraryChanged()
+            tryCompare(screen, "count", 11)
+            screen.currentIndex = 10                        // après les 10 jeux installés
+            compare(screen.title, "Celeste")
+            compare(screen.playLabel, "Télécharger")
+            compare(screen.updateNote, "Non installé")
+
+            keyClick(Qt.Key_Return)
+            compare(lastCall(), "download:dl-1")
+            verify(!screen.launching)                       // pas d'écran de lancement
+            compare(screen.playLabel, "Téléchargement")
+            CompanionClient.downloadStateChanged("dl-1", "DOWNLOADING", 1, 4)
+            tryCompare(screen, "updateNote", "Téléchargement en cours")
+            compare(home.downloadFraction("dl-1"), 0.25)
+
+            keyClick(Qt.Key_Return)                         // le menu du téléchargement
+            verify(dialog("Celeste"))
+            keyClick(Qt.Key_Return)                         // « Mettre en pause »
+            compare(lastCall(), "pause:dl-1")
+            CompanionClient.downloadStateChanged("dl-1", "PAUSED", 1, 4)
+            tryCompare(screen, "updateNote", "Téléchargement en pause")
+
+            keyClick(Qt.Key_Return)
+            verify(dialog("Celeste"))
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)  // « Annuler le téléchargement »
+            verify(dialog("Annuler le téléchargement ?"))   // les fichiers seront supprimés : on confirme
+            keyClick(Qt.Key_Right); keyClick(Qt.Key_Return)
+            compare(lastCall(), "cancel:dl-1")
+            CompanionClient.downloadStateChanged("dl-1", "CANCELLED", 0, 0)
+            tryCompare(screen, "playLabel", "Télécharger")
+
+            // Installé : la vignette reste le temps que l'app arrive dans la liste du PC.
+            CompanionClient.extraGames = [{ id: "dl-1", name: "Celeste", isInstalled: true, downloadable: false, cover: "" }]
+            CompanionClient.libraryChanged()
+            tryCompare(screen, "updateNote", "Installé — prêt dans un instant")
+            compare(screen.playLabel, "")
+            CompanionClient.extraGames = []
+            CompanionClient.libraryChanged()
+            tryCompare(screen, "count", 10)
+        }
+
+        // Bas sur un jeu : sa fiche sur le même fond (héros et étagère s'effacent) ; B, ou haut
+        // une fois en haut, la referme. Tout en bas, « Désinstaller » → confirmation → le PC.
+        function test_9r_gamePageAndUninstall() {
+            CompanionClient.paired = true
+            CompanionClient.eventsConnected = true
+            var page = find(home, "uninstalling")
+            // Elden Ring porte la fiche de démo ; sa place dépend des tests précédents (récents).
+            for (var j = 0; j < screen.count && screen.title !== "Elden Ring"; j++) screen.currentIndex = j
+            compare(screen.title, "Elden Ring")
+            keyClick(Qt.Key_Down)
+            tryCompare(page, "shown", true)
+            verify(screen.staged)
+            compare(page.facts, "Action · RPG · 2022 · PEGI 16 · 49,7 Go")
+            compare(page.credits, "FromSoftware · Bandai Namco")
+            compare(page.description.indexOf("Lève-toi, Sans-éclat"), 0)
+            verify(page.canUninstall)
+            keyClick(Qt.Key_Escape)                         // B
+            tryCompare(page, "shown", false)
+            verify(!screen.staged)
+            compare(screen.title, "Elden Ring")
+
+            keyClick(Qt.Key_Down)
+            tryCompare(page, "shown", true)
+            keyClick(Qt.Key_Up)                             // déjà en haut : on referme
+            tryCompare(page, "shown", false)
+
+            keyClick(Qt.Key_Down)
+            tryCompare(page, "shown", true)
+            for (var i = 0; i < 40 && !page.onButton; i++) keyClick(Qt.Key_Down)   // la description défile…
+            verify(page.onButton)                           // …puis le bouton
+            keyClick(Qt.Key_Return)
+            verify(dialog("Désinstaller Elden Ring ?"))
+            keyClick(Qt.Key_Right); keyClick(Qt.Key_Return) // confirmer
+            compare(CompanionClient.uninstallCalls[CompanionClient.uninstallCalls.length - 1], "game-1")
+            verify(page.uninstalling)
+            verify(page.shown)                              // la fiche reste ouverte pendant le travail du PC
+            CompanionClient.uninstallStateChanged("game-1", "DONE")
+            tryCompare(page, "shown", false)
+            verify(!page.uninstalling)
+        }
+
+        // Sans fiche Companion (console non appairée) : bas reste une butée.
+        function test_9s_noGamePageWithoutCompanion() {
+            CompanionClient.paired = false
+            var page = find(home, "uninstalling")
+            var saved = CompanionClient.details
+            CompanionClient.details = ({})
+            home.companionGames = ({})
+            keyClick(Qt.Key_Down)
+            wait(100)
+            verify(!page.shown)
+            CompanionClient.details = saved
+            CompanionClient.libraryChanged()
+        }
+
         // En dernier : l'hôte du faux modèle est supprimé.
         function test_9z_forgettingThePcForgetsTheCompanionToo() {
             var forgets = CompanionClient.forgets

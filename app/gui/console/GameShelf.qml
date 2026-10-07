@@ -5,8 +5,9 @@ import QtQuick.Effects
 // gauche, agrandi et souligné d'orange ; les suivants défilent vers la droite,
 // les précédents s'estompent en sortant.
 // Consomme un modèle exposant le rôle `boxart` (url ; vide = pas de jaquette) et,
-// s'il les a, `name` (écrit sur la vignette de repli) et `favorite` (pastille). Aucune
-// dépendance Moonlight.
+// s'il les a, `name` (écrit sur la vignette de repli), `favorite` (pastille), `pending`
+// (jeu pas encore installé : estompé) et `progress` (0..1, barre de téléchargement ; < 0 :
+// aucune). Aucune dépendance Moonlight.
 //
 // Tout le mouvement découle d'UNE valeur animée, `pos` (la position en index,
 // portée par un ressort) : aucune vignette n'a d'animation propre.
@@ -26,6 +27,7 @@ FocusScope {
     property color accentColor: Theme.accent
     Behavior on accentColor { ColorAnimation { duration: Theme.ambientFade } }
     signal launchRequested(int index)
+    signal detailsRequested()
 
     // Vignette de repli : une teinte stable par jeu, tirée de son nom.
     function hue(name) {
@@ -92,7 +94,7 @@ FocusScope {
     Keys.onReleased: function(event) { pad.release(event) }
     // Rien au-dessus ni en dessous de l'étagère : haut / bas butent.
     Keys.onUpPressed: Sounds.play("edge")
-    Keys.onDownPressed: Sounds.play("edge")
+    Keys.onDownPressed: root.detailsRequested()      // la fiche du jeu (ou une butée)
     Keys.onReturnPressed: root.launchRequested(currentIndex)
     Keys.onEnterPressed: root.launchRequested(currentIndex)
     onActiveFocusChanged: if (!activeFocus) pad.stop()
@@ -138,6 +140,8 @@ FocusScope {
             required property var model
             readonly property string name: model.name || ""
             readonly property bool favorite: model.favorite === true
+            readonly property bool pending: model.pending === true
+            readonly property real progress: typeof model.progress === "number" ? model.progress : -1
             readonly property real d: index - root.pos            // écart à la position courante
             readonly property real f: Math.max(0, 1 - Math.abs(d))    // 1 = vignette active
 
@@ -153,6 +157,7 @@ FocusScope {
                 scale: 1 + (Theme.shelfActiveScale - 1) * del.f
                 opacity: (del.d < 0 ? Math.min(Math.max(1 + Theme.shelfExitFade * del.d, 0), 1) : 1)
                          * (Theme.shelfRestOpacity + (1 - Theme.shelfRestOpacity) * del.f)
+                         * (del.pending ? Theme.shelfPendingOpacity : 1)
 
                 Appear {
                     anchors.fill: parent
@@ -225,6 +230,17 @@ FocusScope {
                         maskSource: thumbMask
                         maskThresholdMin: 0.5
                         maskSpreadAtMin: 1.0
+                    }
+                    Rectangle {
+                        visible: del.progress >= 0
+                        anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: Theme.pinBadgeInset }
+                        height: Theme.shelfProgressHeight; radius: height / 2
+                        color: Theme.shelfProgressTrack
+                        Rectangle {
+                            width: parent.width * Math.min(Math.max(del.progress, 0), 1)
+                            height: parent.height; radius: parent.radius
+                            color: Theme.accent
+                        }
                     }
                     Rectangle {
                         visible: del.favorite

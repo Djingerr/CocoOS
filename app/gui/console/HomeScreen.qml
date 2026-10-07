@@ -25,6 +25,7 @@ FocusScope {
     property alias playtime: hero.playtime
     property alias updateNote: hero.updateNote
     property alias running: hero.running
+    property alias playLabel: hero.playLabel        // « Télécharger »… ; vide = Jouer
     property alias favorite: hero.favorite          // épinglé : X le détache
     property alias backdrop: backdropLayer.source    // image de fond du jeu sélectionné
     // Teinte ambiante (couleur dominante du fond) : voile et soulignement. Par
@@ -89,6 +90,7 @@ FocusScope {
     signal optionAction(string key)
     signal forgetRequested()
     signal favoriteRequested()                       // X sur l'étagère
+    signal detailsRequested()                        // bas sur l'étagère : la fiche du jeu
 
     // Message bref au-dessus de l'étagère.
     function toast(message) { toastItem.show(message) }
@@ -206,6 +208,7 @@ FocusScope {
                 enterStep: root.settled ? 0 : Theme.entryCardStagger
                 accentColor: root.ambient
                 onLaunchRequested: function(index) { root.launchRequested(index) }
+                onDetailsRequested: root.detailsRequested()
                 Keys.onMenuPressed: root.favoriteRequested()      // bouton X
             }
         }

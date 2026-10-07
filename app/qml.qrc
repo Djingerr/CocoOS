@@ -25,6 +25,7 @@
         <file>gui/console/ConsoleDialog.qml</file>
         <file>gui/console/CompanionPairing.qml</file>
         <file>gui/console/MessageScreen.qml</file>
+        <file>gui/console/GamePage.qml</file>
         <file>gui/console/qmldir</file>
         <file>gui/console/Theme.qml</file>
         <file>gui/console/Format.js</file>

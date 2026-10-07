@@ -133,6 +133,14 @@ public:
     // Map nom d'app Apollo (carrousel) → gameId Companion (contrat : noms uniques, §4).
     Q_INVOKABLE QString gameIdForName(const QString& appName) const;
 
+    // --- Téléchargement à distance d'un jeu non installé (protocol.md /v1/downloads) ---
+    // La suite arrive en WS (downloadStateChanged) ; un refus émet downloadFailed.
+    Q_INVOKABLE void download(const QString& gameId);       // lance, ou reprend après une pause
+    Q_INVOKABLE void pauseDownload(const QString& gameId);
+    Q_INVOKABLE void cancelDownload(const QString& gameId); // supprime aussi les fichiers sur le PC
+    // POST /v1/games/{id}/uninstall — désinstalle le jeu du PC ; la suite en uninstallStateChanged.
+    Q_INVOKABLE void uninstall(const QString& gameId);
+
 signals:
     void stateChanged();
     void discovered(const QString& hostName, const QString& address);
@@ -153,6 +161,12 @@ signals:
     void launchFailed(const QString& sessionId, const QString& code, const QString& message);
     void gameStarted(const QString& gameId);
     void gameStopped(const QString& gameId, int playtimeSessionSec);
+    // DOWNLOAD_STATE : state ∈ DOWNLOADING | PAUSED | DONE | CANCELLED (bytesTotal 0 = taille inconnue).
+    void downloadStateChanged(const QString& gameId, const QString& state, double bytesDone, double bytesTotal);
+    void downloadFailed(const QString& gameId, const QString& code); // SESSION_ACTIVE, STEAM_UNAVAILABLE…
+    // UNINSTALL_STATE : state ∈ UNINSTALLING | DONE | FAILED ; un refus REST émet uninstallFailed.
+    void uninstallStateChanged(const QString& gameId, const QString& state);
+    void uninstallFailed(const QString& gameId, const QString& code);
 
 private slots:
     void onServiceAdded(const QMdnsEngine::Service& service);
@@ -172,6 +186,7 @@ private:
     void loadPersisted();
     void persist();
     void cacheMedia();                        // indexe le cache, télécharge ce qui manque
+    void downloadRequest(const QString& gameId, bool cancel, const QString& suffix); // /v1/downloads/…
 
     // Réseau (TLS auto-signé → pinning TOFU sur le SHA-256 du cert DER)
     QNetworkAccessManager* m_nam = nullptr;

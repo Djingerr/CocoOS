@@ -14,7 +14,8 @@ import "../../../../app/gui/console"
 // Arguments du harnais :
 //   do     actions jouées à `at` ms, séparées par des virgules et espacées de
 //          150 ms : left, right, down, a, pin (bouton X), home (bouton Home), sleep,
-//          wifi (liste des réseaux), net:<réseau> (le choisir), launch (bouton A)
+//          wifi (liste des réseaux), net:<réseau> (le choisir), launch (bouton A),
+//          details (bas sur l'étagère : la fiche du jeu ; Elden Ring en a une de démo)
 //   at     instant de `do`, en ms (300 par défaut)
 //   noart  noms de jeux (séparés par des virgules) privés de jaquette
 //   offline=1  le PC est hors ligne (la console tente de le réveiller)
@@ -23,6 +24,7 @@ import "../../../../app/gui/console"
 //   logos=1    un logo pour Elden Ring (art/logo-elden.png), comme le Companion en sert
 //   setup=1    premier démarrage (bienvenue)
 //   nonet=1    la console n'est pas en ligne (premier démarrage : le choix du réseau)
+//   download=1 deux jeux du PC pas encore installés en fin d'étagère, l'un en téléchargement (42 %)
 Item {
     id: demo
     property var args: ({})
@@ -43,6 +45,16 @@ Item {
             if (demo.args.logos === "1") {
                 CompanionClient.logos = { "game-1": Qt.resolvedUrl("art/logo-elden.png").toString() }
                 CompanionClient.libraryChanged()
+            }
+            if (demo.args.download === "1") {
+                CompanionClient.extraGames = [
+                    { id: "dl-1", name: "Celeste", isInstalled: false, downloadable: true,
+                      cover: Qt.resolvedUrl("art/hollow.jpg").toString() },
+                    { id: "dl-2", name: "Stardew Valley", isInstalled: false, downloadable: true,
+                      cover: Qt.resolvedUrl("art/sot.jpg").toString() }
+                ]
+                CompanionClient.libraryChanged()
+                CompanionClient.downloadStateChanged("dl-1", "DOWNLOADING", 3.1e9, 7.4e9)
             }
         }
     }
@@ -97,6 +109,7 @@ Item {
             else if (action === "home") InputStatus.homePressed()
             else if (action === "sleep") demo.find(home.Window.window.contentItem, "asleep").sleep()
             else if (action === "launch") screen.launchRequested(screen.currentIndex)
+            else if (action === "details") screen.detailsRequested()
             else if (action === "wifi") home.openWifi()
             else if (action === "options") screen.options.open()
             else if (action === "tab") screen.options.switchTab(1)

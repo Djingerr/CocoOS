@@ -208,9 +208,16 @@ FocusScope {
         return appViewer.objectAt(shelfModel.get(idx).appIndex) || null
     }
 
+    // La vignette sélectionnée (élément de shelfModel) : une app du PC, ou un jeu pas
+    // encore installé (appIndex < 0, gameId du Companion).
+    function currentTile() {
+        if (shelfModel.count === 0) return null
+        return shelfModel.get(Math.max(0, Math.min(homeScreen.currentIndex, shelfModel.count - 1)))
+    }
+
     // --- Étagère : les apps du PC sans les utilitaires, favoris puis jeux récents ---
     // Ses index ne sont PAS ceux d'AppModel : chaque élément porte son `appIndex`.
-    ListModel { id: shelfModel }        // name, appIndex, boxart, favorite
+    ListModel { id: shelfModel }        // name, appIndex, boxart, favorite, gameId, pending, progress
     property int shelfRevision: 0       // change à chaque réordonnancement (liaisons)
 
     function favoriteNames() { return Library.parse(consoleConfig.favorites, []) }
@@ -240,12 +247,21 @@ FocusScope {
         // chargement, avant l'entrée de l'accueil, c'est le dernier jeu lancé.
         var selected = homeScreen.ready && homeScreen.currentIndex < shelfModel.count
                        ? shelfModel.get(homeScreen.currentIndex).name : consoleConfig.lastGame
-        Library.sync(shelfModel, ordered.map(function(a) {
+        // Puis, en fin d'étagère, les jeux du PC pas encore installés (téléchargeables) — PC en
+        // ligne seulement : hors ligne, l'accueil doit rester sur l'écran de recherche / réveil.
+        var pending = activeHostOnline
+            ? Library.pendingTiles(companionList, apps.map(function(a) { return a.name }), downloads) : []
+        var items = ordered.map(function(a) {
             return { name: a.name, appIndex: a.appIndex, boxart: a.boxart,
-                     favorite: favorites.indexOf(a.name) >= 0 }
+                     favorite: favorites.indexOf(a.name) >= 0, gameId: "", pending: false, progress: -1 }
+        }).concat(pending.map(function(g) {
+            return { name: g.name, appIndex: -1, boxart: g.cover || "",
+                     favorite: favorites.indexOf(g.name) >= 0, gameId: g.id, pending: true,
+                     progress: home.downloadFraction(g.id) }
         }))
+        Library.sync(shelfModel, items)
         shelfRevision++
-        var index = ordered.findIndex(function(a) { return a.name === selected })
+        var index = items.findIndex(function(a) { return a.name === selected })
         if (index >= 0)
             homeScreen.currentIndex = index
         maybeDirectLaunch()
@@ -259,15 +275,16 @@ FocusScope {
 
     // X : épingle le jeu en tête de l'étagère, ou le détache.
     function toggleFavorite() {
-        var app = currentApp()
-        if (!app) return
-        var favorites = Library.toggled(favoriteNames(), app.name)
-        var pinned = favorites.indexOf(app.name) >= 0
+        var tile = currentTile()
+        if (!tile) return
+        var name = tile.name
+        var favorites = Library.toggled(favoriteNames(), name)
+        var pinned = favorites.indexOf(name) >= 0
         consoleConfig.favorites = JSON.stringify(favorites)
         rebuildShelf()
         Sounds.play(pinned ? "select" : "back")
-        homeScreen.toast(pinned ? qsTr("%1 est épinglé en tête de liste").arg(app.name)
-                                : qsTr("%1 n'est plus épinglé").arg(app.name))
+        homeScreen.toast(pinned ? qsTr("%1 est épinglé en tête de liste").arg(name)
+                                : qsTr("%1 n'est plus épinglé").arg(name))
     }
 
     // Un jeu vient d'être lancé : il passe en tête des jeux récents.
@@ -434,14 +451,121 @@ FocusScope {
     // Bibliothèque du Companion indexée par nom de jeu (en minuscules) : fournit au
     // bloc héros la source, la dernière session et le temps de jeu. Vide sans Companion.
     property var companionGames: ({})
+    property var companionList: []      // la même, en liste : ses jeux à installer finissent l'étagère
 
     function refreshCompanionGames() {
         var byName = {}
         var games = CompanionClient.games()
         for (var i = 0; i < games.length; i++)
             byName[(games[i].name || "").toLowerCase()] = games[i]
+        companionList = games
         companionGames = byName
         Qt.callLater(rebuildShelf)          // l'ordre suit aussi les parties jouées sur le PC
+    }
+
+    // --- Téléchargement à distance d'un jeu pas encore installé (Companion, /v1/downloads) ---
+    // Par gameId : { state, bytesDone, bytesTotal } (DOWNLOAD_STATE). DONE reste jusqu'à ce que
+    // le jeu soit installé : sa vignette disparaît alors, son app arrive (~30 s au plus).
+    property var downloads: ({})
+
+    function setDownload(gameId, state, bytesDone, bytesTotal) {
+        var all = Object.assign({}, downloads)
+        if (state === "") delete all[gameId]
+        else all[gameId] = { state: state, bytesDone: bytesDone, bytesTotal: bytesTotal }
+        downloads = all
+        Qt.callLater(rebuildShelf)
+    }
+
+    // Avancement 0..1 (barre de la vignette) ; -1 : pas de téléchargement en cours.
+    function downloadFraction(gameId) {
+        var d = downloads[gameId]
+        if (!d || d.state === "DONE") return -1
+        return d.bytesTotal > 0 ? d.bytesDone / d.bytesTotal : 0
+    }
+
+    function downloadPercent(d) {
+        return d.bytesTotal > 0 ? qsTr("%1 % de %2").arg(Math.floor(100 * d.bytesDone / d.bytesTotal))
+                                                    .arg(humanSize(d.bytesTotal)) : ""
+    }
+
+    // Note du héros pour un jeu pas encore installé. Elle ne change qu'avec l'état (elle
+    // s'anime à chaque changement) : le pourcentage vit dans la barre de la vignette.
+    function pendingNote(gameId, info) {
+        var d = downloads[gameId]
+        if (info && info.isInstalled || d && d.state === "DONE") return qsTr("Installé — prêt dans un instant")
+        if (!d) return qsTr("Non installé")
+        return d.state === "PAUSED" ? qsTr("Téléchargement en pause") : qsTr("Téléchargement en cours")
+    }
+
+    // A sur un jeu pas encore installé : le télécharger tout de suite (zéro friction), ou
+    // ouvrir le menu de son téléchargement.
+    function pendingAction(gameId, name) {
+        var d = downloads[gameId]
+        var info = companionGames[name.toLowerCase()]
+        if (info && info.isInstalled || d && d.state === "DONE") {
+            homeScreen.toast(qsTr("%1 arrive dans un instant").arg(name))
+            return
+        }
+        if (!d) {
+            CompanionClient.download(gameId)
+            setDownload(gameId, "DOWNLOADING", 0, 0)    // le PC prépare (Steam redémarre)
+            Sounds.play("select")
+            homeScreen.toast(qsTr("Téléchargement de %1 lancé sur %2").arg(name).arg(activeHostName))
+            return
+        }
+        var paused = d.state === "PAUSED"
+        var amount = downloadPercent(d)
+        downloadMenu.gameId = gameId
+        downloadMenu.title = name
+        downloadMenu.message = paused
+            ? (amount !== "" ? qsTr("En pause à %1.").arg(amount) : qsTr("En pause."))
+            : (amount !== "" ? qsTr("Téléchargement : %1.").arg(amount) : qsTr("Le PC prépare le téléchargement."))
+        downloadMenu.actions = [
+            paused ? { label: qsTr("Reprendre"), key: "resume" } : { label: qsTr("Mettre en pause"), key: "pause" },
+            { label: qsTr("Annuler le téléchargement"), key: "cancel" }
+        ]
+        downloadMenu.open()
+    }
+
+    function downloadMenuChosen(key) {
+        var gameId = downloadMenu.gameId
+        var name = downloadMenu.title
+        if (key === "resume") {
+            CompanionClient.download(gameId)
+        } else if (key === "pause") {
+            CompanionClient.pauseDownload(gameId)
+        } else if (key === "cancel") {
+            confirmDialog.ask(qsTr("Annuler le téléchargement ?"),
+                              qsTr("Les fichiers déjà téléchargés de %1 seront supprimés du PC.").arg(name),
+                              qsTr("Annuler le téléchargement"), function() { CompanionClient.cancelDownload(gameId) })
+        }
+    }
+
+    // --- Désinstallation à distance (fiche du jeu, Companion) ---
+    // Par gameId : "UNINSTALLING" tant que le PC y travaille (UNINSTALL_STATE).
+    property var uninstalls: ({})
+
+    function setUninstall(gameId, state) {
+        var all = Object.assign({}, uninstalls)
+        if (state === "") delete all[gameId]
+        else all[gameId] = state
+        uninstalls = all
+    }
+
+    function gameName(gameId) {
+        var game = companionList.find(function(g) { return g.id === gameId })
+        return game ? game.name : ""
+    }
+
+    function confirmUninstall(info) {
+        var size = info.installSizeBytes > 0 ? humanSize(info.installSizeBytes) : ""
+        confirmDialog.ask(qsTr("Désinstaller %1 ?").arg(info.name),
+                          size !== "" ? qsTr("Le jeu sera supprimé du PC (%1 libérés). Vous pourrez le retélécharger depuis la console.").arg(size)
+                                      : qsTr("Le jeu sera supprimé du PC. Vous pourrez le retélécharger depuis la console."),
+                          qsTr("Désinstaller"), function() {
+                              CompanionClient.uninstall(info.id)
+                              home.setUninstall(info.id, "UNINSTALLING")
+                          })
     }
 
     // Réseau vers le PC : sondé seulement quand l'accueil est à l'écran et le PC en ligne.
@@ -640,6 +764,7 @@ FocusScope {
     }
     onActiveHostOnlineChanged: {
         maybeStartPairing()
+        Qt.callLater(rebuildShelf)          // les jeux à télécharger suivent l'état du PC
         if (!activeHostOnline) return
         waking = false
         wakeFailed = false
@@ -1136,15 +1261,22 @@ FocusScope {
         focus: true
 
         readonly property var app: { home.shelfRevision; return home.currentApp() }
+        // La vignette sélectionnée : une app du PC, ou un jeu pas encore installé.
+        readonly property var tile: { home.shelfRevision; return home.currentTile() }
+        readonly property bool pending: tile !== null && tile.appIndex < 0
         // Fiche du jeu dans la bibliothèque du Companion (absente sans Companion).
-        readonly property var info: app ? (home.companionGames[app.name.toLowerCase()] || null) : null
+        readonly property var info: tile ? (home.companionGames[tile.name.toLowerCase()] || null) : null
 
         model: shelfModel
         ready: shelfModel.count > 0
-        title: app ? app.name : ""
+        title: tile ? tile.name : ""
         logo: info && info.logo ? info.logo : ""
         running: app ? app.running : false
-        favorite: app ? home.favoriteNames().indexOf(app.name) >= 0 : false
+        playLabel: !pending || info && info.isInstalled ? ""
+                 : home.downloads[tile.gameId] ? qsTr("Téléchargement") : qsTr("Télécharger")
+        updateNote: pending ? home.pendingNote(tile.gameId, info)
+                  : info && home.uninstalls[info.id] ? qsTr("Désinstallation en cours") : ""
+        favorite: tile ? home.favoriteNames().indexOf(tile.name) >= 0 : false
         source: info ? Format.sourceName(info.source) : ""
         lastPlayed: info ? Format.lastPlayed(info.lastPlayed, new Date()) : ""
         playtime: info ? Format.playtime(info.playtimeSeconds) : ""
@@ -1152,7 +1284,8 @@ FocusScope {
         // recadrée. Pas de fond pour un jeu sans jaquette (Moonlight donne alors une
         // icône générique).
         backdrop: info && info.background ? info.background
-                : app && app.boxart.toString() !== "qrc:/res/no_app_image.png" ? app.boxart : ""
+                : app && app.boxart.toString() !== "qrc:/res/no_app_image.png" ? app.boxart
+                : pending ? tile.boxart : ""
         // La couleur dominante du fond (calculée à part), sinon l'accent.
         readonly property color backdropColor: {
             AmbientColor.revision
@@ -1180,10 +1313,24 @@ FocusScope {
         statusLogoShown: !bootSplash.visible || bootSplash.mode === "wake"
 
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
-                || welcomeScreen.shown || networkScreen.shown
-        panelOpen: confirmDialog.opened || homeMenu.opened || wifiSheet.opened
+                || welcomeScreen.shown || networkScreen.shown || gamePage.shown
+        panelOpen: confirmDialog.opened || homeMenu.opened || wifiSheet.opened || downloadMenu.opened
 
-        onLaunchRequested: function(index) { home.launchApp(shelfModel.get(index).appIndex) }
+        onLaunchRequested: function(index) {
+            var tile = shelfModel.get(index)
+            var info = home.companionGames[tile.name.toLowerCase()]
+            if (tile.appIndex < 0)
+                home.pendingAction(tile.gameId, tile.name)
+            else if (info && info.isInstalled === false)    // désinstallé : l'app part au prochain relevé (~30 s)
+                homeScreen.toast(qsTr("%1 n'est plus installé").arg(tile.name))
+            else
+                home.launchApp(tile.appIndex)
+        }
+        // Bas sur l'étagère : la fiche, si le Companion connaît le jeu.
+        onDetailsRequested: {
+            if (info) gamePage.open()
+            else Sounds.play("edge")
+        }
         onFavoriteRequested: home.toggleFavorite()
         onOptionChanged: function(key, index) { home.applyOption(key, index) }
         onOptionAction: function(key) {
@@ -1389,6 +1536,15 @@ FocusScope {
         onClosed: if (!confirmDialog.opened) homeScreen.forceActiveFocus()
     }
 
+    // --- Téléchargement d'un jeu pas encore installé : pause / reprise, annulation ---
+    ConsoleDialog {
+        id: downloadMenu
+        anchors.fill: parent
+        property string gameId: ""
+        onChosen: function(key) { home.downloadMenuChosen(key) }
+        onClosed: if (!confirmDialog.opened) homeScreen.forceActiveFocus()
+    }
+
     // --- Au-dessus de la pile d'écrans de Moonlight ---
     // L'écran de lancement doit rester visible pendant que la page de connexion
     // d'origine (StreamSegue) travaille : lui et le dialog de mise à jour vivent
@@ -1503,6 +1659,23 @@ FocusScope {
         }
     }
 
+    // --- Fiche du jeu sélectionné (bas du pad) : à la place du héros, sur le fond du jeu ---
+    GamePage {
+        id: gamePage
+        parent: homeScreen.stage
+        readonly property var info: homeScreen.info
+        title: homeScreen.title
+        logo: homeScreen.logo
+        facts: info ? Format.facts(info)
+                          .concat(info.installSizeBytes > 0 ? [home.humanSize(info.installSizeBytes)] : [])
+                          .join(" · ") : ""
+        credits: info ? Format.credits(info) : ""
+        description: info ? Format.plainText(info.description) : ""
+        canUninstall: info ? info.uninstallable === true : false
+        uninstalling: info ? home.uninstalls[info.id] === "UNINSTALLING" : false
+        onUninstallRequested: home.confirmUninstall(info)
+    }
+
     // --- Saisie du code d'appairage Companion (6 chiffres, host → console) ---
     CompanionPairing {
         id: companionPairing
@@ -1531,6 +1704,36 @@ FocusScope {
                 : qsTr("Code incorrect — réessayez.")
         }
         function onLibraryChanged() { home.refreshCompanionGames() }
+
+        function onUninstallStateChanged(gameId, state) {
+            home.setUninstall(gameId, state === "UNINSTALLING" ? state : "")
+            if (state === "DONE") {
+                homeScreen.toast(qsTr("%1 a été désinstallé").arg(home.gameName(gameId)))
+                if (gamePage.info && gamePage.info.id === gameId) gamePage.close()
+            } else if (state === "FAILED") {
+                homeScreen.toast(qsTr("La désinstallation de %1 a échoué").arg(home.gameName(gameId)))
+            }
+        }
+        function onUninstallFailed(gameId, code) {
+            home.setUninstall(gameId, "")
+            homeScreen.toast(code === "SESSION_ACTIVE" ? qsTr("Impossible pendant le lancement d'un jeu")
+                           : code === "STEAM_UNAVAILABLE" ? qsTr("Steam est introuvable sur %1").arg(home.activeHostName)
+                           : qsTr("La désinstallation de %1 a échoué").arg(home.gameName(gameId)))
+        }
+
+        function onDownloadStateChanged(gameId, state, bytesDone, bytesTotal) {
+            home.setDownload(gameId, state === "CANCELLED" ? "" : state, bytesDone, bytesTotal)
+        }
+        function onDownloadFailed(gameId, code) {
+            var name = home.gameName(gameId)
+            // Rien côté PC : on oublie le téléchargement supposé (A le relancera).
+            if (code === "NO_DOWNLOAD") home.setDownload(gameId, "", 0, 0)
+            else if (!home.downloads[gameId] || home.downloads[gameId].bytesTotal === 0)
+                home.setDownload(gameId, "", 0, 0)
+            homeScreen.toast(code === "SESSION_ACTIVE" ? qsTr("Impossible pendant le lancement d'un jeu")
+                           : code === "STEAM_UNAVAILABLE" ? qsTr("Steam est introuvable sur %1").arg(home.activeHostName)
+                           : qsTr("Le téléchargement de %1 a échoué").arg(name))
+        }
 
         function onPairingSucceeded() {
             companionPairing.errorText = ""
@@ -1562,7 +1765,7 @@ FocusScope {
         }
         function onUpdateProgress(sessionId, pct, bytesDone, bytesTotal) {
             if (home.launchIndex >= 0)
-                launchScreen.stepProgress = pct / 100
+                launchScreen.stepProgress = bytesTotal > 0 ? bytesDone / bytesTotal : 0
         }
         // L'app Apollo du jeu est prête (virtual display armé) : on peut démarrer
         // la session Moonlight dessus (mapping par nom, §4).

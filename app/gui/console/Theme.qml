@@ -222,6 +222,11 @@ QtObject {
     readonly property int pinBadgeSize: 20
     readonly property int pinBadgeInset: 6
     readonly property int pinIconSize: 13
+    // Jeu pas encore installé (fin d'étagère) : vignette estompée ; en téléchargement, fine
+    // barre de progression en bas, dans les marges de la pastille.
+    readonly property real shelfPendingOpacity: 0.6
+    readonly property int shelfProgressHeight: 4
+    readonly property color shelfProgressTrack: Qt.rgba(0, 0, 0, 0.55)
     readonly property int underlineY: 750            // soulignement orange sous la vignette active
     readonly property int underlineHeight: 3
     readonly property int underlineRadius: 2
@@ -375,6 +380,21 @@ QtObject {
     readonly property int dialogMessageSize: 15
     readonly property real dialogMessageLineHeight: 1.45
     readonly property int dialogChoicesTop: 30
+
+    // --- Fiche du jeu (GamePage), bas du pad : à la place du héros, sur le fond du jeu ---
+    readonly property int gamePageTop: 108           // sous la barre haute
+    readonly property int gamePageLogoHeight: 96
+    readonly property int gamePageTitleSize: 48      // Sora 600
+    readonly property int gamePageLineGap: 6
+    readonly property int gamePageFactsTop: 8        // les faits, sous le titre
+    readonly property int gamePageTextTop: 24        // la description, sous les studios
+    readonly property int gamePageTextSize: 16
+    readonly property real gamePageTextLineHeight: 1.5
+    readonly property int gamePageScrollLines: 3     // lignes de description par appui
+    readonly property int gamePageScroll: 220        // easeOut
+    readonly property int gamePageButtonBottom: 24   // entre le bouton et la légende
+    readonly property color gamePageButtonFill: Qt.rgba(1, 1, 1, 0.06)
+    readonly property color gamePageButtonFocusFill: Qt.rgba(1, 1, 1, 0.16)
 
     // --- Écrans de message (MessageScreen) : recherche du PC, appairage ---
     // À la place du héros : même ancrage (heroBottom), même titre, puis le texte

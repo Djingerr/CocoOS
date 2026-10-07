@@ -423,13 +423,15 @@ QVariantList CompanionClient::games() const
         const QString id = game.value(QStringLiteral("id")).toString();
         game.insert(QStringLiteral("background"), m_media.value(QStringLiteral("bg:") + id));
         game.insert(QStringLiteral("logo"), m_media.value(QStringLiteral("logo:") + id));
+        game.insert(QStringLiteral("cover"), m_media.value(QStringLiteral("cover:") + id));
         list.append(game);
     }
     return list;
 }
 
-// Images de fond 16:9 (`bg`) et logos (`logo`) : recense ceux déjà en cache et
-// télécharge ceux des jeux installés (ceux qu'on peut lancer) qui manquent. Le chemin
+// Images de fond 16:9 (`bg`), logos (`logo`) et jaquettes (`cover`, la vignette d'un jeu
+// absent de la liste d'apps Moonlight) : recense ceux déjà en cache et télécharge ceux des
+// jeux installés ou téléchargeables (ceux de l'étagère) qui manquent. Le chemin
 // de l'image côté PC entre dans le nom du fichier : quand Playnite la change, elle est
 // retéléchargée.
 // ponytail: le cache ne fait que grandir (une image par jeu et par version) ;
@@ -440,6 +442,7 @@ void CompanionClient::cacheMedia()
     static const QList<QPair<QString, QString>> kinds = {
         { QStringLiteral("bg"), QStringLiteral("backgroundPath") },
         { QStringLiteral("logo"), QStringLiteral("logoPath") },
+        { QStringLiteral("cover"), QStringLiteral("coverPath") },
     };
     m_media.clear();
     for (const QJsonValue& v : m_libraryGames) {
@@ -458,7 +461,8 @@ void CompanionClient::cacheMedia()
                 m_media.insert(key, QUrl::fromLocalFile(file).toString());
                 continue;
             }
-            if (!game.value(QStringLiteral("isInstalled")).toBool() || m_mediaRequests.contains(file)
+            if (!(game.value(QStringLiteral("isInstalled")).toBool() || game.value(QStringLiteral("downloadable")).toBool())
+                    || m_mediaRequests.contains(file)
                     || m_hostAddress.isNull() || m_token.isEmpty()) {
                 continue;
             }
@@ -603,6 +607,11 @@ void CompanionClient::onWsTextMessage(const QString& message)
     } else if (type == QLatin1String("GAME_STOPPED")) {
         emit gameStopped(p.value("gameId").toString(),
                          p.value("playtimeSessionSec").toInt());
+    } else if (type == QLatin1String("DOWNLOAD_STATE")) {
+        emit downloadStateChanged(p.value("gameId").toString(), p.value("state").toString(),
+                                  p.value("bytesDone").toDouble(), p.value("bytesTotal").toDouble());
+    } else if (type == QLatin1String("UNINSTALL_STATE")) {
+        emit uninstallStateChanged(p.value("gameId").toString(), p.value("state").toString());
     } else if (type == QLatin1String("LIBRARY_UPDATED")) {
         // Le GET conditionnel (If-None-Match) déduplique : refetch systématique sûr.
         refreshLibrary();
@@ -694,6 +703,55 @@ void CompanionClient::submitMoonlightPin(const QString& pin)
         if (http != 204 && http != 200) {
             qWarning() << "CompanionClient: moonlight-pin refusé par le host:" << http;
         }
+    });
+}
+
+// ---------------------------------------------------------------------------
+// Téléchargement à distance (/v1/downloads) : la réponse dit seulement que l'ordre est
+// pris (202) ; progression et fin arrivent en DOWNLOAD_STATE.
+// ---------------------------------------------------------------------------
+
+void CompanionClient::download(const QString& gameId) { downloadRequest(gameId, false, QString()); }
+void CompanionClient::pauseDownload(const QString& gameId) { downloadRequest(gameId, false, QStringLiteral("/pause")); }
+void CompanionClient::cancelDownload(const QString& gameId) { downloadRequest(gameId, true, QString()); }
+
+void CompanionClient::downloadRequest(const QString& gameId, bool cancel, const QString& suffix)
+{
+    if (m_token.isEmpty()) {
+        emit downloadFailed(gameId, QStringLiteral("UNAUTHORIZED"));
+        return;
+    }
+    const QNetworkRequest req = authedRequest(QStringLiteral("/v1/downloads/") + gameId + suffix);
+    QNetworkReply* reply = cancel ? m_nam->deleteResource(req) : m_nam->post(req, QByteArray());
+    connect(reply, &QNetworkReply::finished, this, [this, reply, gameId]() {
+        reply->deleteLater();
+        if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 202) {
+            return;
+        }
+        const QString code = QJsonDocument::fromJson(reply->readAll()).object()
+                                 .value(QStringLiteral("error")).toObject()
+                                 .value(QStringLiteral("code")).toString(QStringLiteral("DOWNLOAD_REJECTED"));
+        emit downloadFailed(gameId, code);
+    });
+}
+
+void CompanionClient::uninstall(const QString& gameId)
+{
+    if (m_token.isEmpty()) {
+        emit uninstallFailed(gameId, QStringLiteral("UNAUTHORIZED"));
+        return;
+    }
+    QNetworkReply* reply = m_nam->post(
+        authedRequest(QStringLiteral("/v1/games/") + gameId + QStringLiteral("/uninstall")), QByteArray());
+    connect(reply, &QNetworkReply::finished, this, [this, reply, gameId]() {
+        reply->deleteLater();
+        if (reply->attribute(QNetworkRequest::HttpStatusCodeAttribute).toInt() == 202) {
+            return;
+        }
+        const QString code = QJsonDocument::fromJson(reply->readAll()).object()
+                                 .value(QStringLiteral("error")).toObject()
+                                 .value(QStringLiteral("code")).toString(QStringLiteral("UNINSTALL_REJECTED"));
+        emit uninstallFailed(gameId, code);
     });
 }
 

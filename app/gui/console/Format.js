@@ -1,8 +1,7 @@
 .pragma library
 
-// Mise en forme, pour l'accueil, des données de bibliothèque reçues du
-// HostCompanion (GameInfo : source, lastPlayed, playtimeSeconds), et de la
-// qualité du réseau vers le PC.
+// Mise en forme, pour l'accueil et la fiche du jeu, des données de bibliothèque reçues
+// du HostCompanion (GameInfo), et de la qualité du réseau vers le PC.
 
 var SOURCES = {
     steam: "Steam", epic: "Epic Games", gog: "GOG", ea: "EA", battlenet: "Battle.net",
@@ -47,6 +46,54 @@ function lastPlayed(iso, now) {
     if (days < 365) return qsTr("Il y a %1 mois").arg(Math.floor(days / 30))
     var years = Math.floor(days / 365)
     return years === 1 ? qsTr("Il y a 1 an") : qsTr("Il y a %1 ans").arg(years)
+}
+
+// --- Fiche du jeu (GamePage) ---
+
+// Description Playnite (HTML brut, souvent celle de Steam) → texte simple : les blocs et
+// les <br> deviennent des retours à la ligne, les <li> des puces, les autres balises
+// (images comprises) tombent, les entités sont décodées en une passe, et les lignes vides
+// d'affilée se réduisent à une seule.
+function plainText(html) {
+    if (!html) return ""
+    var named = { amp: "&", lt: "<", gt: ">", quot: "\"", apos: "'", nbsp: " " }
+    return html
+        .replace(/<\s*br\s*\/?>/gi, "\n")
+        .replace(/<\s*li[^>]*>/gi, "\n• ")
+        .replace(/<\s*\/\s*(p|div|h[1-6]|ul|ol)\s*>/gi, "\n")
+        .replace(/<[^>]*>/g, "")
+        .replace(/&(#\d+|amp|lt|gt|quot|apos|nbsp);/g, function(e, name) {
+            return name.charAt(0) === "#" ? String.fromCharCode(+name.slice(1)) : named[name]
+        })
+        .split("\n").map(function(line) { return line.trim() }).join("\n")
+        .replace(/\n{3,}/g, "\n\n")
+        .trim()
+}
+
+// La classification d'âge à afficher : le PEGI d'abord (console européenne), sinon la première.
+function ageRating(ratings) {
+    var list = ratings || []
+    var pegi = list.filter(function(r) { return /^PEGI/i.test(r) })
+    return pegi.length > 0 ? pegi[0] : (list[0] || "")
+}
+
+// Faits de la fiche : deux genres au plus, l'année de sortie, la classification d'âge.
+function facts(info) {
+    var list = (info.genres || []).slice(0, 2)
+    var year = /^(\d{4})/.exec(info.releaseDate || "")
+    if (year) list.push(year[1])
+    var rating = ageRating(info.ageRatings)
+    if (rating) list.push(rating)
+    return list
+}
+
+// Développeurs puis éditeurs, sans doublon : « FromSoftware · Bandai Namco ».
+function credits(info) {
+    var names = []
+    ;(info.developers || []).concat(info.publishers || []).forEach(function(n) {
+        if (n && names.indexOf(n) < 0) names.push(n)
+    })
+    return names.join(" · ")
 }
 
 // Qualité du réseau vers le PC pour du streaming : "good", "fair", "poor", ou ""

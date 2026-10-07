@@ -37,6 +37,29 @@ function order(apps, favorites, lastPlayed) {
     return index.map(function(i) { return list[i] })
 }
 
+// Les jeux du Companion qui ne sont pas (encore) des apps du PC, pour la fin de l'étagère :
+// téléchargeables, ou tout juste téléchargés (installés, présents dans `downloads`) dont
+// l'app n'est pas encore arrivée (Moonlight relit la liste d'apps toutes les ~30 s). Un jeu
+// installé SANS téléchargement récent n'y figure jamais : liste d'apps vide = PC injoignable,
+// pas des jeux à montrer. games : CompanionClient.games() ; appNames : noms des apps du PC ;
+// downloads : gameId → téléchargement connu. Une vignette par nom (l'étagère se synchronise
+// par nom), ceux en téléchargement d'abord, puis par nom.
+function pendingTiles(games, appNames, downloads) {
+    var taken = {}
+    appNames.forEach(function(n) { taken[(n || "").toLowerCase()] = true })
+    var tiles = games.filter(function(g) {
+        var key = (g.name || "").toLowerCase()
+        if (key === "" || taken[key] || isUtility(g.name) || !(g.downloadable || g.isInstalled && downloads[g.id]))
+            return false
+        taken[key] = true
+        return true
+    })
+    var active = function(g) { return downloads[g.id] ? 0 : 1 }
+    return tiles.sort(function(a, b) {
+        return active(a) - active(b) || a.name.localeCompare(b.name)
+    })
+}
+
 // Aligne `model` (un ListModel) sur `items` (objets portant au moins `name`) en
 // déplaçant, insérant et supprimant le moins possible : les vignettes déjà
 // présentes gardent leur délégué (pas de rechargement d'image ni de clignotement).

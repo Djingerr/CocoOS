@@ -15,6 +15,7 @@ Item {
     property string playtime         // « 412 h de jeu » ; vide = masqué
     property string updateNote       // mise à jour en attente côté PC ; vide = masqué
     property bool running: false     // le jeu tourne déjà : « Reprendre »
+    property string playLabel: ""    // autre libellé du bouton A (jeu à télécharger) ; vide = Jouer
     property bool favorite: false    // épinglé en tête de l'étagère : X le détache
     // Sens du dernier déplacement dans la liste (+1 vers la droite) : les textes
     // glissent dans ce sens. `animated` à false : ils changent sans transition.
@@ -236,7 +237,7 @@ Item {
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: root.running ? qsTr("Reprendre") : qsTr("Jouer")
+                    text: root.playLabel !== "" ? root.playLabel : root.running ? qsTr("Reprendre") : qsTr("Jouer")
                     color: Theme.inkOnAccent
                     font.family: Theme.fontUi; font.pixelSize: Theme.playLabelSize; font.weight: Font.DemiBold
                 }

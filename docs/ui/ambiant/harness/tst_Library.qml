@@ -28,6 +28,22 @@ TestCase {
         compare(names(order), ["Outer Wilds", "Celeste", "Doom", "Hades", "Abzû"])
     }
 
+    function test_pendingTilesAreCompanionGamesNotYetApps() {
+        var games = [
+            { id: "1", name: "Hades", isInstalled: true, downloadable: false },        // déjà une app
+            { id: "2", name: "Zelda-like", isInstalled: false, downloadable: true },
+            { id: "3", name: "Fortnite", isInstalled: false, downloadable: false },    // Epic : pas en v1
+            { id: "4", name: "Celeste", isInstalled: true, downloadable: false },      // tout juste téléchargé, app pas encore là
+            { id: "9", name: "Doom", isInstalled: true, downloadable: false },         // installé, sans téléchargement : jamais
+            { id: "5", name: "Abzû", isInstalled: false, downloadable: true },
+            { id: "6", name: "Outer Wilds", isInstalled: false, downloadable: true },  // en téléchargement
+            { id: "7", name: "abzû", isInstalled: false, downloadable: true },         // homonyme
+            { id: "8", name: "Desktop", isInstalled: true, downloadable: false }       // utilitaire
+        ]
+        var tiles = Library.pendingTiles(games, ["HADES", "Steam Big Picture"], { "6": { state: "PAUSED" }, "4": { state: "DONE" } })
+        compare(names(tiles), ["Celeste", "Outer Wilds", "Abzû", "Zelda-like"])
+    }
+
     function test_toggledPinsInFrontAndUnpins() {
         compare(Library.toggled(["A", "B"], "C"), ["C", "A", "B"])
         compare(Library.toggled(["A", "B", "C"], "B"), ["A", "C"])
