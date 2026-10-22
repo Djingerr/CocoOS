@@ -157,5 +157,29 @@ Item {
             keyRelease(Qt.Key_Return)
             compare(launches.count, 1)
         }
+
+        // Reflet : il balaie la vignette active une fois, Theme.sheenDelay après l'arrêt
+        // du ressort ; un déplacement le remet à zéro, et sans la manette il ne part pas.
+        function test_sheenSweepsOnceAfterTheSpringStops() {
+            keyClick(Qt.Key_Right)
+            verify(!shelf.sheenArmed)                   // le ressort tourne
+            compare(shelf.sheen, 0)
+            tryVerify(function() { return shelf.sheenArmed }, 3000)
+            wait(Theme.sheenDelay - 150)
+            compare(shelf.sheen, 0)
+            tryVerify(function() { return shelf.sheen > 0 && shelf.sheen < 1 }, 400)
+            keyClick(Qt.Key_Right)                      // on bouge : remis à zéro
+            compare(shelf.sheen, 0)
+            tryVerify(function() { return shelf.sheen > 0 }, 3000)
+            tryCompare(shelf, "sheen", 1, 2000)         // une fois, puis il reste hors de la vignette
+            wait(Theme.sheenDelay + 200)
+            compare(shelf.sheen, 1)
+
+            keyClick(Qt.Key_Left)
+            tryVerify(function() { return shelf.sheenArmed }, 3000)
+            other.forceActiveFocus()                    // la manette part (panneau, veille…)
+            wait(Theme.sheenDelay + 200)
+            compare(shelf.sheen, 0)
+        }
     }
 }

@@ -32,6 +32,25 @@ FocusScope {
     // seulement si l'appui a eu lieu ici : le relâché d'un A qui a fermé un panneau
     // ne lance rien.
     property bool pressing: false
+    // Reflet (0 → 1) qui balaie la vignette active : une fois, Theme.sheenDelay après
+    // l'arrêt du ressort, et seulement si l'étagère a la manette (ni en veille, ni
+    // pendant un lancement ou dans un panneau) et que son entrée est finie. Remis à
+    // zéro dès qu'on bouge.
+    property real sheen: 0
+    readonly property bool sheenArmed: activeFocus && shown && enterStep === 0 && !posSpring.running
+    onSheenArmedChanged: {
+        sheenSweep.stop()
+        sheen = 0
+        if (sheenArmed) sheenWait.restart()
+        else sheenWait.stop()
+    }
+    Timer { id: sheenWait; interval: Theme.sheenDelay; onTriggered: sheenSweep.start() }
+    NumberAnimation {
+        id: sheenSweep
+        target: root; property: "sheen"; from: 0; to: 1
+        duration: Theme.sheenDuration
+        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveInOut
+    }
 
     // Vignette de repli : une teinte stable par jeu, tirée de son nom.
     function hue(name) {
@@ -69,6 +88,7 @@ FocusScope {
     Behavior on pos {
         enabled: root.animated && root.shown
         SpringAnimation {
+            id: posSpring
             spring: Theme.springStrength; damping: Theme.springDamping
             mass: Theme.springMass; epsilon: Theme.springEpsilon
         }
@@ -186,6 +206,7 @@ FocusScope {
                     Item {
                         id: card
                         anchors.fill: parent
+                        clip: true                  // (le reflet déborde)
                         visible: !Theme.shelfRounded
                         layer.enabled: Theme.shelfRounded
                         layer.textureSize: list.thumbTextureSize
@@ -230,6 +251,27 @@ FocusScope {
                             sourceSize.height: list.thumbTextureSize.height
                             opacity: status === Image.Ready ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: Theme.thumbFadeIn } }
+                        }
+                        // Reflet : la bande claire du dégradé du prototype, sur toute la
+                        // hauteur de sa boîte (cf. Theme.sheen*). Au repos, elle attend hors
+                        // de la vignette (masquée par `clip`) : pas de `visible` à basculer,
+                        // Qt ne redessine pas un enfant qui réapparaît dans `card`, invisible.
+                        Rectangle {
+                            readonly property real angle: Theme.sheenAngle * Math.PI / 180
+                            readonly property real boxWidth: card.width * Theme.sheenOversize
+                            readonly property real boxHeight: card.height * Theme.sheenOversize
+                            readonly property real progress: del.index === root.currentIndex ? root.sheen : 0
+                            width: Theme.sheenSpan * (boxWidth * Math.cos(angle) + boxHeight * Math.sin(angle))
+                            height: boxWidth * Math.sin(angle) + boxHeight * Math.cos(angle)
+                            x: (card.width - width) / 2 + (2 * progress - 1) * Theme.sheenTravel * boxWidth
+                            y: (card.height - height) / 2
+                            rotation: Theme.sheenAngle
+                            gradient: Gradient {
+                                orientation: Gradient.Horizontal
+                                GradientStop { position: 0; color: Qt.rgba(Theme.sheenColor.r, Theme.sheenColor.g, Theme.sheenColor.b, 0) }
+                                GradientStop { position: 0.5; color: Theme.sheenColor }
+                                GradientStop { position: 1; color: Qt.rgba(Theme.sheenColor.r, Theme.sheenColor.g, Theme.sheenColor.b, 0) }
+                            }
                         }
                     }
                     MultiEffect {

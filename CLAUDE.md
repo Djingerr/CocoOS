@@ -266,7 +266,12 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     au même endroit : le relâché d'un A qui a fermé un panneau ne lance rien. Bouton Jouer (qui
     reste enfoncé pendant le lancement), lignes d'action des options, choix des dialogs, entrée
     « A » de la légende des écrans de message.
-  ⚠️ Vu dans le harnais (`HomeDemo` : `do=hold,release`), pas à la manette ni à 60 i/s sur l'Orange Pi.
+  - **Étape 2, reflet** (`GameShelf`) : une bande claire (16 % de blanc, inclinée de 15°) balaie
+    la vignette active une fois, 520 ms après l'arrêt du ressort (950 ms, `curveInOut`) ; remis à
+    zéro dès qu'on bouge, jamais sans la manette (veille, lancement, panneaux) ni pendant l'entrée.
+  ⚠️ Vu dans le harnais (`HomeDemo` : `do=hold,release` ; reflet : `goto=7 at=2500 delay=4400`),
+  pas à la manette ni à 60 i/s sur l'Orange Pi (le reflet redessine le calque de la vignette
+  active pendant 950 ms).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
@@ -742,6 +747,10 @@ XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import
 
 - `Easing.BezierSpline` : Qt (`QEasingCurve`) ne garde que **10 segments** ; au-delà il écrit hors
   de son tableau et l'interface se bloque (vu avec 12). `Spring.js` s'y tient.
+- Un enfant de `card` (`GameShelf` : calque invisible qui sert de source au masque) dont `visible`
+  repasse à vrai **n'est pas redessiné** : Qt ne le marque à redessiner que si sa visibilité
+  effective change, et elle reste fausse sous un parent invisible. Le garder visible et le sortir
+  du cadre (`clip`) au repos.
 - `AnimationController` déclaré dans un `TestCase` fait planter qmltestrunner : le créer dans le
   test (`Qt.createQmlObject`). Il tronque le temps en ms entières (`progress = (ms + 0,5) / durée`).
 - Une propriété ne peut pas s'appeler `on<Majuscule>…` (prise pour un gestionnaire de signal) :

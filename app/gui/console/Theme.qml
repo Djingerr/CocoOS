@@ -40,6 +40,7 @@ QtObject {
     // --- Micro-interactions (docs/ui/micro-interactions/ : pour les durées et les
     //     courbes, le prototype fait foi) ---
     readonly property var curveOut: [0.22, 1, 0.36, 1, 1, 1]      // fondus, remplissages (BezierSpline)
+    readonly property var curveInOut: [0.65, 0, 0.35, 1, 1, 1]    // reflet
     // Ressorts physiques du prototype (raideur, amortissement, masse 1), en courbe pour
     // Easing.BezierSpline et durée (cf. Spring.js) : { curve, duration }.
     readonly property var springSnappy: Spring.make(380, 28)      // ≈ 394 ms, dépasse de 4 % : focus, chiffres
@@ -242,6 +243,18 @@ QtObject {
     readonly property real shelfPendingOpacity: 0.6
     readonly property int shelfProgressHeight: 4
     readonly property color shelfProgressTrack: Qt.rgba(0, 0, 0, 0.55)
+    // Reflet de la vignette active : une bande claire la balaie une fois, sheenDelay
+    // après l'arrêt du ressort (sheenDuration, curveInOut). Géométrie du prototype
+    // (.tile::after) : une boîte qui déborde de 20 % de chaque côté (sheenOversize), un
+    // dégradé incliné de sheenAngle sur la verticale, clair sur sheenSpan de sa longueur,
+    // poussé de -sheenTravel à +sheenTravel de la largeur de la boîte.
+    readonly property int sheenDelay: 520
+    readonly property int sheenDuration: 950
+    readonly property color sheenColor: Qt.rgba(1, 1, 1, 0.16)
+    readonly property real sheenOversize: 1.4
+    readonly property real sheenAngle: 15
+    readonly property real sheenSpan: 0.16
+    readonly property real sheenTravel: 0.75
     readonly property int underlineY: 750            // soulignement orange sous la vignette active
     readonly property int underlineHeight: 3
     readonly property int underlineRadius: 2
