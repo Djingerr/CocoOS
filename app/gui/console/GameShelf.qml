@@ -253,24 +253,26 @@ FocusScope {
                             Behavior on opacity { NumberAnimation { duration: Theme.thumbFadeIn } }
                         }
                         // Reflet : la bande claire du dégradé du prototype, sur toute la
-                        // hauteur de sa boîte (cf. Theme.sheen*). Au repos, elle attend hors
-                        // de la vignette (masquée par `clip`) : pas de `visible` à basculer,
-                        // Qt ne redessine pas un enfant qui réapparaît dans `card`, invisible.
-                        Rectangle {
-                            readonly property real angle: Theme.sheenAngle * Math.PI / 180
-                            readonly property real boxWidth: card.width * Theme.sheenOversize
-                            readonly property real boxHeight: card.height * Theme.sheenOversize
-                            readonly property real progress: del.index === root.currentIndex ? root.sheen : 0
-                            width: Theme.sheenSpan * (boxWidth * Math.cos(angle) + boxHeight * Math.sin(angle))
-                            height: boxWidth * Math.sin(angle) + boxHeight * Math.cos(angle)
-                            x: (card.width - width) / 2 + (2 * progress - 1) * Theme.sheenTravel * boxWidth
-                            y: (card.height - height) / 2
-                            rotation: Theme.sheenAngle
-                            gradient: Gradient {
-                                orientation: Gradient.Horizontal
-                                GradientStop { position: 0; color: Qt.rgba(Theme.sheenColor.r, Theme.sheenColor.g, Theme.sheenColor.b, 0) }
-                                GradientStop { position: 0.5; color: Theme.sheenColor }
-                                GradientStop { position: 1; color: Qt.rgba(Theme.sheenColor.r, Theme.sheenColor.g, Theme.sheenColor.b, 0) }
+                        // hauteur de sa boîte (cf. Theme.sheen*). Créée le temps du balayage,
+                        // sur la vignette active seulement : rien de plus à créer pendant que
+                        // l'étagère glisse.
+                        Loader {
+                            active: del.index === root.currentIndex && root.sheen > 0 && root.sheen < 1
+                            sourceComponent: Rectangle {
+                                readonly property real angle: Theme.sheenAngle * Math.PI / 180
+                                readonly property real boxWidth: card.width * Theme.sheenOversize
+                                readonly property real boxHeight: card.height * Theme.sheenOversize
+                                width: Theme.sheenSpan * (boxWidth * Math.cos(angle) + boxHeight * Math.sin(angle))
+                                height: boxWidth * Math.sin(angle) + boxHeight * Math.cos(angle)
+                                x: (card.width - width) / 2 + (2 * root.sheen - 1) * Theme.sheenTravel * boxWidth
+                                y: (card.height - height) / 2
+                                rotation: Theme.sheenAngle
+                                gradient: Gradient {
+                                    orientation: Gradient.Horizontal
+                                    GradientStop { position: 0; color: Qt.rgba(Theme.sheenColor.r, Theme.sheenColor.g, Theme.sheenColor.b, 0) }
+                                    GradientStop { position: 0.5; color: Theme.sheenColor }
+                                    GradientStop { position: 1; color: Qt.rgba(Theme.sheenColor.r, Theme.sheenColor.g, Theme.sheenColor.b, 0) }
+                                }
                             }
                         }
                     }

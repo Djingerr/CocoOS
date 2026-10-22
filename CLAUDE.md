@@ -269,6 +269,7 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   - **Étape 2, reflet** (`GameShelf`) : une bande claire (16 % de blanc, inclinée de 15°) balaie
     la vignette active une fois, 520 ms après l'arrêt du ressort (950 ms, `curveInOut`) ; remis à
     zéro dès qu'on bouge, jamais sans la manette (veille, lancement, panneaux) ni pendant l'entrée.
+    La bande n'est créée (`Loader`) que sur la vignette active, le temps du balayage.
   ⚠️ Vu dans le harnais (`HomeDemo` : `do=hold,release` ; reflet : `goto=7 at=2500 delay=4400`),
   pas à la manette ni à 60 i/s sur l'Orange Pi (le reflet redessine le calque de la vignette
   active pendant 950 ms).
@@ -721,8 +722,9 @@ XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import
 - `ref-capture.py` pilote **Brave** par le protocole DevTools (module Python `websockets`) :
   son option `--screenshot` ne rend jamais la main. Le mode plein écran du prototype (touche
   `F`) donne un écran noir, la capture ne l'utilise pas.
-- `tst_GameShelf::test_springMatchesPrototype` mesure le temps réel : il peut échouer au premier
-  lancement « à froid » (écart 0,0828, vu 2 fois sur 23) ; relancer avant de chercher plus loin.
+- `tst_GameShelf::test_springMatchesPrototype` mesure le temps réel. Ses échecs « à froid » (écart
+  0,0828) venaient d'une mesure lancée juste après la reconstruction des vignettes par `init()`
+  (étagère déjà sur 0, quand le test précédent y finit) : il attend désormais 500 ms (20 sur 20).
 
 ### Dépendances d'exécution de l'UI console
 
@@ -749,8 +751,8 @@ XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import
   de son tableau et l'interface se bloque (vu avec 12). `Spring.js` s'y tient.
 - Un enfant de `card` (`GameShelf` : calque invisible qui sert de source au masque) dont `visible`
   repasse à vrai **n'est pas redessiné** : Qt ne le marque à redessiner que si sa visibilité
-  effective change, et elle reste fausse sous un parent invisible. Le garder visible et le sortir
-  du cadre (`clip`) au repos.
+  effective change, et elle reste fausse sous un parent invisible. Le créer à la demande (`Loader`,
+  cf. le reflet) ou jouer sur l'opacité.
 - `AnimationController` déclaré dans un `TestCase` fait planter qmltestrunner : le créer dans le
   test (`Qt.createQmlObject`). Il tronque le temps en ms entières (`progress = (ms + 0,5) / durée`).
 - Une propriété ne peut pas s'appeler `on<Majuscule>…` (prise pour un gestionnaire de signal) :

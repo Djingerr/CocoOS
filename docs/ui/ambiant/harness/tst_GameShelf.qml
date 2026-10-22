@@ -75,6 +75,10 @@ Item {
                 proto.push(x)
             }
             tryCompare(shelf, "pos", 0, 3000)   // au repos avant de partir
+            // init() vient de recréer les vignettes : mesurée tout de suite (étagère déjà
+            // sur 0), la vue ramasse encore ses premières images, plus lentes, et la mesure
+            // en temps réel décroche (« à froid », 0,0828).
+            wait(500)
             var samples = [], t0 = Date.now()
             var record = function() { samples.push([Date.now() - t0, shelf.pos]) }
             shelf.posChanged.connect(record)
