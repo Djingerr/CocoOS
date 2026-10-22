@@ -397,6 +397,21 @@ QtObject {
     readonly property int signalBarStep: 3           // hauteur ajoutée par barre
     readonly property int signalBarGap: 2
     readonly property int sheetHintRight: 24         // retrait du glyphe (A) de la ligne « Oublier ce PC »
+    // Interrupteur d'une ligne à deux états (HDR, Sons) : piste à contour fin, pouce qui
+    // glisse avec springBouncy et s'étire pendant l'appui, orange qui se répand depuis la
+    // place du pouce éteint (prototype « Interrupteurs »).
+    readonly property size switchSize: Qt.size(48, 28)
+    readonly property real switchStroke: 1.5
+    readonly property color switchStrokeColor: Qt.rgba(1, 1, 1, 0.18)
+    readonly property int switchInset: 3             // entre la piste et le pouce
+    readonly property int switchThumb: 22
+    readonly property int switchThumbStretch: 28     // pendant l'appui…
+    readonly property int switchStretch: 150         // …en tant de ms, curveOut
+    readonly property int switchFillRadius: 62       // disque orange centré sur le pouce éteint…
+    readonly property int switchFill: 320            // …qui grandit en tant de ms, curveOut
+    readonly property int switchInkFade: 220         // couleur du pouce, curveOut
+    readonly property int switchBump: 3              // butée : aller-retour de tant de px…
+    readonly property int switchBumpDuration: 260    // …en tant de ms, curveOut
 
     // --- Légende des boutons (ControllerLegend) : panneaux et écrans de message ---
     readonly property int legendSize: 14

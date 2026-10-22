@@ -1095,15 +1095,16 @@ FocusScope {
                       { label: qsTr("Jamais"), value: 0 } ]
         var buttons = [ { label: qsTr("Auto"), value: "auto" }, { label: "Xbox", value: "xbox" },
                         { label: "PlayStation", value: "playstation" }, { label: "Nintendo", value: "nintendo" } ]
-        var sounds = [ { label: qsTr("Activés"), value: true }, { label: qsTr("Coupés"), value: false } ]
+        var sounds = [ { label: qsTr("Coupés"), value: false }, { label: qsTr("Activés"), value: true } ]
         // Chaque langue dans sa langue.
         var language = [ { label: "Français", value: p.LANG_FR }, { label: "English", value: p.LANG_EN } ]
 
         optionChoices = { res: res, fps: fps.map(function(f) { return { label: "" + f, value: f } }),
                           rate: rate, codec: codec, hdr: hdr, brightness: brightness, volume: volume,
                           sleep: sleep, buttons: buttons, sounds: sounds, language: language }
-        var row = function(key, label, index) {
-            return { key: key, label: label, index: index,
+        // `toggle` : deux options [désactivé, activé], affichées en interrupteur.
+        var row = function(key, label, index, toggle) {
+            return { key: key, label: label, index: index, toggle: toggle === true,
                      options: optionChoices[key].map(function(c) { return c.label }) }
         }
         var consoleRows = []
@@ -1115,7 +1116,7 @@ FocusScope {
                              Math.max(0, sleep.findIndex(function(c) { return c.value === consoleConfig.sleepMinutes }))))
         consoleRows.push(row("buttons", qsTr("Boutons"),
                              Math.max(0, buttons.findIndex(function(c) { return c.value === consoleConfig.buttonLayout }))))
-        consoleRows.push(row("sounds", qsTr("Sons"), consoleConfig.sounds ? 0 : 1))
+        consoleRows.push(row("sounds", qsTr("Sons"), consoleConfig.sounds ? 1 : 0, true))
         consoleRows.push(row("language", qsTr("Langue"), english ? 1 : 0))
         if (WifiSetup.available)
             consoleRows.push({ key: "wifi", label: qsTr("Wi-Fi"), action: true,
@@ -1133,7 +1134,7 @@ FocusScope {
                 row("rate", qsTr("Débit"), optionAutoBitrate ? 0 : 1 + kbps.indexOf(s.bitrateKbps)),
                 // (un ancien réglage « HEVC HDR » est montré comme HEVC)
                 row("codec", qsTr("Codec"), codecIndex >= 0 ? codecIndex : 2),
-                row("hdr", qsTr("HDR"), s.enableHdr ? 1 : 0)
+                row("hdr", qsTr("HDR"), s.enableHdr ? 1 : 0, true)
             ]) },
             { label: qsTr("Console"), rows: consoleRows }
         ]

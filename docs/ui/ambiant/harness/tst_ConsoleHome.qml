@@ -317,16 +317,29 @@ Item {
             keyClick(Qt.Key_PageDown)                       // onglet Console (R1)
             for (var i = 0; i < 4; i++) keyClick(Qt.Key_Down)
             var row = screen.optionRows[4]
+            var sons = function() { return screen.optionRows[4].index }
             compare(row.label, "Sons")
+            verify(row.toggle)                              // un interrupteur
             compare(row.options[row.index], "Activés")
-            keyClick(Qt.Key_Right)
-            compare(screen.optionRows[4].index, 1)          // « Coupés »
+            keyClick(Qt.Key_Right)                          // → vers l'état déjà là : une butée
+            verify(screen.options.bump < 1)
+            compare(screen.options.bumpDir, 1)
+            wait(Theme.pressDuration + 50)
+            compare(sons(), 1)
+            keyClick(Qt.Key_Left)                           // ← coupe, après l'étirement du pouce
+            compare(sons(), 1)
+            tryVerify(function() { return sons() === 0 }, Theme.pressDuration + 200)
             verify(!Sounds.enabled)
-            keyClick(Qt.Key_Left)
-            compare(screen.optionRows[4].index, 0)
+            keyClick(Qt.Key_Right)                          // → active
+            tryVerify(function() { return sons() === 1 }, Theme.pressDuration + 200)
+            verify(Sounds.enabled)
+            keyClick(Qt.Key_Return)                         // A bascule, au relâché
+            compare(sons(), 0)
+            keyClick(Qt.Key_Right)
+            keyClick(Qt.Key_Escape)                         // refermé avant la fin de l'étirement :
+            compare(sons(), 1)                              // la valeur est appliquée quand même
             verify(Sounds.enabled)
             Sounds.enabled = false
-            keyClick(Qt.Key_Escape)
         }
 
         // Langue : écrite dans les préférences Moonlight, qui rechargent la traduction

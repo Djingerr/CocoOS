@@ -14,7 +14,8 @@ FocusScope {
     // Onglets : [{ label, rows }]. Une ligne est un réglage { key, label, options:
     // [libellés], index }, ou une action { key, label, value, action: true } (A la
     // déclenche ; `value` est affichée à droite). `bars` (0 à 4), facultatif, ajoute
-    // une icône de signal devant la valeur (réseaux Wi-Fi).
+    // une icône de signal devant la valeur (réseaux Wi-Fi). Un réglage `toggle: true` a
+    // deux options [désactivé, activé] et s'affiche en interrupteur : → active, ← désactive.
     property string title: qsTr("Options")
     property var tabs: []
     property int tab: 0
@@ -35,9 +36,16 @@ FocusScope {
     property int current: 0              // ligne en focus ; rows.length = « Oublier ce PC »
     property bool confirming: false      // « Oublier ce PC » attend sa confirmation
     property int direction: 1            // sens du dernier changement de valeur
-    // A enfoncé : la ligne d'action en focus s'écrase (Pressable) ; A agit au relâché.
+    // A enfoncé : la ligne d'action ou d'interrupteur en focus s'écrase (Pressable) ;
+    // A agit au relâché.
     property bool pressing: false
-    readonly property bool pressingAction: pressing && (current >= rows.length || rows[current].action === true)
+    readonly property bool pressingRow: pressing && (current >= rows.length || rows[current].action === true
+                                                     || rows[current].toggle === true)
+    // Interrupteur poussé par ← / → : le pouce s'étire Theme.pressDuration, puis la
+    // valeur change ({ row, key, index }). Poussé vers l'état déjà là : une butée.
+    property var flick: null
+    property real bump: 1                // 0 → 1 pendant la butée
+    property int bumpDir: 0
     readonly property bool forgettable: tab === 0 && hostName !== ""
     readonly property int lineCount: rows.length + (forgettable ? 1 : 0)
     // 0 = fermé, 1 = ouvert ; le panneau et le voile en découlent.
@@ -58,6 +66,7 @@ FocusScope {
     function close() {
         if (!opened) return
         pad.stop()
+        applyFlick()
         opened = false
         confirming = false
         pressing = false
@@ -73,6 +82,8 @@ FocusScope {
         }
         confirming = false
         pressing = false
+        applyFlick()
+        bumpAnim.complete()
         current = next
         Sounds.play("move")
     }
@@ -83,6 +94,8 @@ FocusScope {
             Sounds.play("edge")
             return
         }
+        applyFlick()
+        bumpAnim.complete()
         tab = next
         current = 0
         confirming = false
@@ -102,6 +115,20 @@ FocusScope {
             }
             return
         }
+        if (row.toggle && !wrap) {
+            var want = dir > 0 ? 1 : 0
+            if (want === row.index) {
+                bumpDir = dir
+                bumpAnim.restart()
+                Sounds.play("edge")
+                return
+            }
+            applyFlick()
+            Sounds.play("tick")
+            flick = { row: current, key: row.key, index: want }
+            flickWait.restart()
+            return
+        }
         var next = wrap ? (row.index + 1) % row.options.length : row.index + dir
         if (next < 0 || next >= row.options.length) {
             Sounds.play("edge")
@@ -110,6 +137,20 @@ FocusScope {
         direction = dir
         Sounds.play("tick")
         changed(row.key, next)
+    }
+    function applyFlick() {
+        if (!flick) return
+        var f = flick
+        flick = null
+        flickWait.stop()
+        changed(f.key, f.index)
+    }
+    Timer { id: flickWait; interval: Theme.pressDuration; onTriggered: root.applyFlick() }
+    NumberAnimation {
+        id: bumpAnim
+        target: root; property: "bump"; from: 0; to: 1
+        duration: Theme.switchBumpDuration
+        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
     }
     function activate() {
         if (current < rows.length) {
@@ -183,6 +224,72 @@ FocusScope {
                 transform: Rotation {
                     origin.x: chevron.stroke / 2; origin.y: chevron.stroke / 2
                     angle: chevron.dir < 0 ? 45 * modelData : 180 - 45 * modelData
+                }
+            }
+        }
+    }
+
+    // Interrupteur d'une ligne `toggle` : le pouce glisse avec le ressort « rebond » et
+    // s'étire pendant l'appui ; l'orange se répand depuis la place du pouce éteint (le
+    // disque du prototype, rogné à la piste).
+    component Switch: Item {
+        id: sw
+        property bool checked: false
+        property bool pressed: false
+        property real nudge: 0               // butée, en px
+        property string text                 // la valeur, pour les lecteurs d'écran
+        property real spread: checked ? Theme.switchFillRadius : 0
+        Behavior on spread {
+            NumberAnimation {
+                duration: Theme.switchFill
+                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+            }
+        }
+
+        width: Theme.switchSize.width; height: Theme.switchSize.height
+        Accessible.role: Accessible.CheckBox
+        Accessible.name: text
+        Accessible.checked: checked
+
+        Rectangle {
+            anchors.fill: parent
+            radius: height / 2
+            color: "transparent"
+            border.width: Theme.switchStroke; border.color: Theme.switchStrokeColor
+            border.pixelAligned: false
+        }
+        Rectangle {
+            readonly property real r: Math.min(sw.spread, sw.height / 2)
+            visible: sw.spread > 0
+            x: sw.height / 2 - r; y: sw.height / 2 - r
+            width: r + Math.min(sw.spread, sw.width - sw.height / 2); height: 2 * r
+            radius: r
+            color: Theme.accent
+        }
+        Rectangle {
+            y: Theme.switchInset
+            width: sw.pressed ? Theme.switchThumbStretch : Theme.switchThumb
+            height: Theme.switchThumb
+            radius: height / 2
+            x: sw.checked ? sw.width - Theme.switchInset - width : Theme.switchInset
+            color: sw.checked ? Theme.inkOnAccent : Theme.ink2
+            transform: Translate { x: sw.nudge }
+            Behavior on x {
+                NumberAnimation {
+                    duration: Theme.springBouncy.duration
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springBouncy.curve
+                }
+            }
+            Behavior on width {
+                NumberAnimation {
+                    duration: Theme.switchStretch
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                }
+            }
+            Behavior on color {
+                ColorAnimation {
+                    duration: Theme.switchInkFade
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
                 }
             }
         }
@@ -300,7 +407,7 @@ FocusScope {
                 y: root.current * Theme.sheetRowHeight
                 width: parent.width + 2 * Theme.sheetFocusOutset
                 height: Theme.sheetRowHeight
-                down: root.pressingAction
+                down: root.pressingRow
                 downScale: Theme.pressRowScale
                 Behavior on y {
                     enabled: root.opened
@@ -320,7 +427,7 @@ FocusScope {
                     readonly property bool focused: root.current === index
                     readonly property color ink: focused ? Theme.ink : Theme.ink2
 
-                    down: root.pressingAction && focused
+                    down: root.pressingRow && focused
                     downScale: Theme.pressRowScale
                     y: index * Theme.sheetRowHeight
                     width: list.width; height: Theme.sheetRowHeight
@@ -337,6 +444,8 @@ FocusScope {
                     Row {
                         id: value
                         anchors.right: parent.right
+                        // (un interrupteur s'aligne sur les valeurs et le glyphe A, pas sur le chevron)
+                        anchors.rightMargin: line.row.toggle === true ? Theme.sheetHintRight : 0
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: Theme.sheetValueGap
 
@@ -356,12 +465,22 @@ FocusScope {
                                 }
                             }
                         }
+                        Switch {
+                            anchors.verticalCenter: parent.verticalCenter
+                            visible: line.row.toggle === true
+                            checked: line.row.index === 1
+                            pressed: line.focused && (root.pressingRow || (root.flick !== null && root.flick.row === line.index))
+                            nudge: line.focused ? root.bumpDir * Theme.switchBump * (1 - Math.abs(2 * root.bump - 1)) : 0
+                            text: line.row.toggle === true ? line.row.options[line.row.index] : ""
+                        }
                         Chevron {
                             dir: -1
+                            visible: line.row.toggle !== true
                             opacity: line.focused && !line.row.action ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: Theme.sheetFocusFade } }
                         }
                         SwapBox {
+                            visible: line.row.toggle !== true
                             width: Theme.sheetValueBox.width; height: Theme.sheetValueBox.height
                             axis: "x"
                             distance: Theme.sheetValueTravel
@@ -376,6 +495,7 @@ FocusScope {
                         }
                         Chevron {
                             dir: 1
+                            visible: line.row.toggle !== true
                             opacity: line.focused ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: Theme.sheetFocusFade } }
                         }
@@ -398,7 +518,7 @@ FocusScope {
             // « Oublier ce PC » : une première pression demande confirmation.
             Pressable {
                 readonly property bool focused: root.current === root.rows.length
-                down: root.pressingAction && focused
+                down: root.pressingRow && focused
                 downScale: Theme.pressRowScale
                 visible: root.forgettable
                 y: root.rows.length * Theme.sheetRowHeight

@@ -270,7 +270,15 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     la vignette active une fois, 520 ms après l'arrêt du ressort (950 ms, `curveInOut`) ; remis à
     zéro dès qu'on bouge, jamais sans la manette (veille, lancement, panneaux) ni pendant l'entrée.
     La bande n'est créée (`Loader`) que sur la vignette active, le temps du balayage.
-  ⚠️ Vu dans le harnais (`HomeDemo` : `do=hold,release` ; reflet : `goto=7 at=2500 delay=4400`),
+  - **Étape 3, interrupteurs** (`OptionsSheet`, composant `Switch`) : une ligne `toggle: true`
+    (options [désactivé, activé] ; HDR et Sons, dont l'ordre est passé à [Coupés, Activés]) montre
+    un interrupteur à la place de la valeur. A bascule (au relâché) ; → active, ← désactive, après
+    90 ms d'étirement du pouce (la valeur est appliquée même si on referme avant) ; pousser vers
+    l'état déjà là : butée de 3 px aller-retour (260 ms) et son `edge`. Pouce qui glisse au ressort
+    « rebond » et s'étire pendant l'appui, orange qui se répand depuis le pouce éteint (320 ms),
+    ligne qui s'écrase comme les lignes d'action. `Accessible.name` garde le libellé de la valeur.
+  ⚠️ Vu dans le harnais (`HomeDemo` : `do=hold,release` ; reflet : `goto=7 at=2500 delay=4400` ;
+  interrupteurs : `do=options,down,down,down,down,right at=2000`),
   pas à la manette ni à 60 i/s sur l'Orange Pi (le reflet redessine le calque de la vignette
   active pendant 950 ms).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,

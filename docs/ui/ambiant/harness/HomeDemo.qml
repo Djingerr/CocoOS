@@ -25,7 +25,7 @@ HomeScreen {
     property var args: ({})
     readonly property var game: games.count > 0 ? games.get(currentIndex) : null
     // Réglages de la maquette (tableau SETTINGS du prototype)
-    property var settings: ({ res: 1, fps: 1, rate: 0, codec: 0, hdr: 0 })
+    property var settings: ({ res: 1, fps: 1, rate: 0, codec: 0, hdr: 0, sounds: 1 })
 
     focus: true
     model: DemoGames { id: games }
@@ -56,14 +56,14 @@ HomeScreen {
             { key: "fps", label: "Images par seconde", options: ["30", "60", "90", "120"], index: settings.fps },
             { key: "rate", label: "Débit", options: ["Auto", "10 Mb/s", "20 Mb/s", "40 Mb/s", "80 Mb/s"], index: settings.rate },
             { key: "codec", label: "Codec", options: ["Auto (AV1)", "H.264", "HEVC", "AV1"], index: settings.codec },
-            { key: "hdr", label: "HDR", options: ["Désactivé", "Activé"], index: settings.hdr }
+            { key: "hdr", label: "HDR", options: ["Désactivé", "Activé"], index: settings.hdr, toggle: true }
         ] },
         { label: "Console", rows: [
             { key: "brightness", label: "Luminosité", options: ["40 %", "50 %", "60 %", "70 %"], index: 2 },
             { key: "volume", label: "Volume", options: ["60 %", "70 %", "80 %"], index: 1 },
             { key: "sleep", label: "Veille de l'écran", options: ["2 min", "5 min", "10 min"], index: 1 },
             { key: "buttons", label: "Boutons", options: ["Auto", "Xbox", "PlayStation", "Nintendo"], index: 0 },
-            { key: "sounds", label: "Sons", options: ["Activés", "Coupés"], index: 0 },
+            { key: "sounds", label: "Sons", options: ["Coupés", "Activés"], index: settings.sounds, toggle: true },
             { key: "wifi", label: "Wi-Fi", value: "Maison-5G", action: true }
         ] }
     ]
