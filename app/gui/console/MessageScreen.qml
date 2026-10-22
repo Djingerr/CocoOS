@@ -19,7 +19,21 @@ FocusScope {
     property bool busy: false            // attente en cours : un segment parcourt la piste
     property var hints: []               // légende : [{ glyph, label }]
 
+    // A, au relâché (son entrée de la légende s'écrase pendant l'appui). Seul un appui
+    // fait ici compte : le relâché d'un A qui a amené cet écran ne fait rien.
+    signal activated()
+    property bool pressing: false
+
     anchors.fill: parent
+    Keys.onReturnPressed: function(event) { if (!event.isAutoRepeat) pressing = true }
+    Keys.onEnterPressed: function(event) { if (!event.isAutoRepeat) pressing = true }
+    Keys.onReleased: function(event) {
+        if (pressing && !event.isAutoRepeat && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) {
+            pressing = false
+            activated()
+        }
+    }
+    onActiveFocusChanged: if (!activeFocus) pressing = false
     visible: shown || appear.opacity > 0
 
     // L'écran qui sort s'efface vite ; celui qui entre attend qu'il soit parti.
@@ -126,6 +140,7 @@ FocusScope {
             anchors.bottom: parent.bottom
             anchors.bottomMargin: Theme.sheetPadBottom
             hints: root.hints
+            pressing: root.pressing
         }
     }
 }

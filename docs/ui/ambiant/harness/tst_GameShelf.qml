@@ -13,6 +13,7 @@ Item {
     ListModel { id: games }
     GameShelf { id: shelf; width: parent.width; model: games }
     SignalSpy { id: launches; target: shelf; signalName: "launchRequested" }
+    Item { id: other }
 
     TestCase {
         name: "GameShelf"
@@ -134,6 +135,27 @@ Item {
             keyClick(Qt.Key_Return)
             compare(launches.count, 1)
             compare(launches.signalArguments[0][0], 4)
+        }
+
+        // A agit au relâché, et seulement après un appui fait ici : le relâché d'un A
+        // qui a fermé un panneau, ou un appui interrompu (focus parti), ne lance rien.
+        function test_launchesOnReleaseOnly() {
+            keyPress(Qt.Key_Return)
+            verify(shelf.pressing)
+            compare(launches.count, 0)
+            keyRelease(Qt.Key_Return)
+            verify(!shelf.pressing)
+            compare(launches.count, 1)
+
+            keyRelease(Qt.Key_Return)                   // relâché sans appui
+            compare(launches.count, 1)
+
+            keyPress(Qt.Key_Return)
+            other.forceActiveFocus()
+            verify(!shelf.pressing)
+            shelf.forceActiveFocus()
+            keyRelease(Qt.Key_Return)
+            compare(launches.count, 1)
         }
     }
 }

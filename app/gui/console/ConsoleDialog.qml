@@ -24,6 +24,8 @@ FocusScope {
     property bool opened: false
     // Choix en focus ; sans `actions` : 0 = annuler, 1 = confirmer.
     property int focusedButton: 0
+    // A enfoncé : le choix en focus s'écrase (Pressable) ; A valide au relâché.
+    property bool pressing: false
     readonly property var labels: actions.length > 0 ? actions.map(function(a) { return a.label })
                                                      : [cancelLabel, confirmLabel]
     // 0 = fermé, 1 = ouvert ; le panneau et le voile en découlent.
@@ -34,6 +36,7 @@ FocusScope {
 
     function open() {
         focusedButton = 0
+        pressing = false
         opened = true
         forceActiveFocus()
         Sounds.play("open")
@@ -42,6 +45,7 @@ FocusScope {
     function close() {
         if (!opened) return
         opened = false
+        pressing = false
         Sounds.play("close")
         closed()
     }
@@ -69,6 +73,7 @@ FocusScope {
             return
         }
         focusedButton = next
+        pressing = false
         Sounds.play("move")
     }
 
@@ -87,13 +92,22 @@ FocusScope {
             break
         case Qt.Key_Return:
         case Qt.Key_Enter:
-            if (!event.isAutoRepeat) activate()
+            if (!event.isAutoRepeat) pressing = true
             break
         case Qt.Key_Escape:
             if (!event.isAutoRepeat) close()
             break
         }
     }
+    // Seul un appui fait ici valide : le relâché d'un A qui a ouvert ce panneau ne fait rien.
+    Keys.onReleased: function(event) {
+        event.accepted = true
+        if (pressing && !event.isAutoRepeat && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) {
+            pressing = false
+            activate()
+        }
+    }
+    onActiveFocusChanged: if (!activeFocus) pressing = false
 
     Item {
         width: root.width / Theme.scale
@@ -150,23 +164,26 @@ FocusScope {
                 y: message.y + message.height + Theme.dialogChoicesTop
                 width: title.width
 
-                Rectangle {
+                Pressable {
                     x: -Theme.sheetFocusOutset
                     y: root.focusedButton * Theme.sheetRowHeight
                     width: parent.width + 2 * Theme.sheetFocusOutset
                     height: Theme.sheetRowHeight
-                    radius: Theme.sheetFocusRadius
-                    color: Theme.sheetFocusFill
+                    down: root.pressing
+                    downScale: Theme.pressRowScale
                     Behavior on y {
                         enabled: root.opened
                         NumberAnimation { duration: Theme.sheetFocusMove; easing.type: Theme.easeOut }
                     }
+                    Rectangle { anchors.fill: parent; radius: Theme.sheetFocusRadius; color: Theme.sheetFocusFill }
                 }
 
                 Repeater {
                     model: root.labels
-                    Item {
+                    Pressable {
                         readonly property bool focused: root.focusedButton === index
+                        down: root.pressing && focused
+                        downScale: Theme.pressRowScale
                         y: index * Theme.sheetRowHeight
                         width: choices.width; height: Theme.sheetRowHeight
 

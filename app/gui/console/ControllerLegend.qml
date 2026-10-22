@@ -6,19 +6,25 @@ Row {
     id: root
 
     property var hints: []
+    property bool pressing: false        // A enfoncé : son entrée s'écrase (Pressable)
 
     spacing: Theme.legendGap
 
     Repeater {
         model: root.hints
-        Row {
-            spacing: Theme.legendGlyphGap
-            ButtonGlyph { label: modelData.glyph; ink: Theme.ink2 }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: modelData.label
-                color: Theme.ink2
-                font.family: Theme.fontUi; font.pixelSize: Theme.legendSize
+        Pressable {
+            width: hint.width; height: hint.height
+            down: root.pressing && modelData.glyph === "A"
+            Row {
+                id: hint
+                spacing: Theme.legendGlyphGap
+                ButtonGlyph { label: modelData.glyph; ink: Theme.ink2 }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: modelData.label
+                    color: Theme.ink2
+                    font.family: Theme.fontUi; font.pixelSize: Theme.legendSize
+                }
             }
         }
     }

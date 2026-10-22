@@ -181,6 +181,7 @@ FocusScope {
                     id: hero
                     anchors.bottom: parent.bottom
                     direction: shelf.direction
+                    held: shelf.pressing
                     animated: root.entered
                     actionsShown: root.entered
                     onPlayRequested: root.launchRequested(shelf.currentIndex)

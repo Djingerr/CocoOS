@@ -1,0 +1,1535 @@
+<title>CocoOS Motion Lab</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="color-scheme" content="dark">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700&display=swap">
+<style>
+/* Police : Sora seule (Theme.fontUi), chiffres tabulaires pour les valeurs. Couleurs : jetons de Theme.qml.
+   Établi : intro + bande de jetons de mouvement, puis grille 2 colonnes de bancs d'essai (scène OLED noire + spec QML). Le carrousel occupe toute la largeur. */
+:root{
+  --bg:#0A0A0B;
+  --surface:#111113;
+  --stage:#000000;
+  --raise:#1A1A1D;
+  --line:#222225;
+  --line-2:#323236;
+  --fg:#F2F0EC;            /* Theme.ink */
+  --muted:#A19D97;         /* Theme.ink2 */
+  --dim:#4E4C49;
+  --code:#CFCCC6;
+  --code-c:#6F6C67;
+  --accent:#F2802A;
+  --accent-ink:#160B03;    /* Theme.inkOnAccent */
+  --f-display:"Sora", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --f-mono:var(--f-display); /* CocoOS : une seule famille, chiffres tabulaires */
+  --ease-out:cubic-bezier(.22,1,.36,1);
+  --ease-io:cubic-bezier(.65,0,.35,1);
+  --spring-snappy:cubic-bezier(.3,1.2,.5,1);
+  --spring-bouncy:cubic-bezier(.3,1.45,.5,1);
+  --spring-gentle:cubic-bezier(.25,1.06,.45,1);
+  --d-snappy:390ms;
+  --d-bouncy:600ms;
+  --d-gentle:460ms;
+  --d-press:90ms;
+  --d-micro:180ms;
+  color-scheme:dark;
+  interpolate-size:allow-keywords;
+}
+*{box-sizing:border-box}
+html,body{background:var(--bg);color:var(--fg)}
+body{font-family:var(--f-display);font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent}
+.mono{font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.muted{color:var(--muted)}
+
+.wrap{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:44px 150px;display:flex;flex-direction:column;gap:36px}
+
+/* ---------- intro ---------- */
+.intro{display:flex;flex-direction:column;gap:12px;max-width:720px}
+.eyebrow{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+.eyebrow b{color:var(--accent);font-weight:500}
+h1{margin:0;font-size:clamp(34px,5vw,56px);font-weight:600;letter-spacing:-.035em;line-height:1.02;text-wrap:balance}
+.lede{margin:0;color:var(--muted);font-size:15px;max-width:62ch}
+kbd{display:inline-grid;place-items:center;min-width:22px;height:22px;padding:0 6px;border-radius:6px;background:var(--raise);box-shadow:inset 0 -1px 0 rgba(0,0,0,.6),inset 0 0 0 1px var(--line-2);font:500 11px/1 var(--f-mono);color:var(--fg);vertical-align:middle}
+kbd.k-ab{width:22px;padding:0;border-radius:50%}
+kbd.k-a{color:var(--accent)}
+
+/* ---------- jetons ---------- */
+.tokens{display:flex;flex-direction:column;gap:14px}
+.sec-head{display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap}
+h2{margin:0;font-size:18px;font-weight:600;letter-spacing:-.01em}
+.sec-head .mono{font-size:12px;color:var(--muted)}
+.tok-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.tok{background:var(--surface);padding:14px 16px 16px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.tok-name{font-size:13px;color:var(--fg)}
+.tok-name span{color:var(--muted)}
+.tok-val{font-size:11px;color:var(--muted);min-height:2.7em}
+.tok-use{font-size:11px;color:var(--dim)}
+.tok-track{margin-top:10px;height:22px;position:relative;border-radius:11px;background:var(--stage);border:1px solid var(--line)}
+.tok-rail{position:absolute;top:0;bottom:0;left:18px;right:18px}
+.tok-rail::after{content:"";position:absolute;right:0;top:5px;bottom:5px;width:1px;background:var(--dim)}
+.tok-run{position:absolute;inset:0;transition:transform var(--d) var(--e)}
+.tok.go .tok-run{transform:translateX(100%)}
+.tok-dot{position:absolute;left:0;top:50%;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--fg)}
+.tok.is-spring .tok-dot{background:var(--accent)}
+@media (max-width:980px){
+  .tok-grid{grid-template-columns:minmax(0,1fr)}
+  .tok{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr);column-gap:20px;align-items:center}
+  .tok-name,.tok-val,.tok-use{grid-column:1}
+  .tok-val{min-height:0}
+  .tok-track{grid-column:2;grid-row:1/4;margin:0}
+}
+@media (max-width:520px){
+  .tok{display:flex}
+  .tok-track{margin-top:10px}
+}
+.tok-note{margin:0;font-size:13px;color:var(--muted);max-width:76ch}
+
+/* ---------- spec repliable ---------- */
+.spec{border-top:1px solid var(--line);padding-top:10px}
+.spec summary{list-style:none;cursor:pointer;display:inline-flex;align-items:center;gap:9px;font-family:var(--f-mono);font-size:12px;color:var(--muted);padding:4px 2px;border-radius:6px;user-select:none}
+.spec summary::-webkit-details-marker{display:none}
+.spec summary::before{content:"";width:9px;height:9px;background:linear-gradient(currentColor,currentColor) center/9px 1.5px no-repeat,linear-gradient(currentColor,currentColor) center/1.5px 9px no-repeat;transition:transform 260ms var(--ease-out)}
+.spec[open] summary::before{transform:rotate(45deg)}
+.spec summary:hover,.spec summary:focus-visible{color:var(--fg)}
+.spec summary:focus-visible{outline:2px solid var(--fg);outline-offset:3px}
+.spec::details-content{block-size:0;overflow:clip;transition:block-size 340ms var(--ease-out),content-visibility 340ms allow-discrete}
+.spec[open]::details-content{block-size:auto}
+.spec-list{list-style:none;margin:10px 0 0;padding:0;display:grid;gap:5px;font-size:12px;color:var(--muted)}
+.spec-list b{color:var(--fg);font-weight:500}
+pre{margin:12px 0 2px;padding:14px 16px;background:var(--stage);border:1px solid var(--line);border-radius:12px;overflow-x:auto;font-family:var(--f-mono);font-size:12px;line-height:1.6;color:var(--code);tab-size:4}
+pre .c{color:var(--code-c)}
+
+/* ---------- cartes ---------- */
+.grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:20px}
+@media (max-width:880px){.grid{grid-template-columns:minmax(0,1fr)}}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:22px;padding:18px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.card--wide{grid-column:1/-1}
+.card-head{display:flex;flex-direction:column;gap:2px;padding:2px 4px 0}
+.tag{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted)}
+h3{margin:0;font-size:17px;font-weight:600;letter-spacing:-.01em}
+.note{margin:0;color:var(--muted);font-size:13.5px;max-width:66ch;padding:0 4px}
+.card .spec{margin:0 4px}
+.stage{position:relative;flex:1 0 auto;background:var(--stage);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+
+/* anneau de focus générique */
+.ring{position:relative;outline:none}
+.ring::after{content:"";position:absolute;inset:var(--ring-in,-5px);border-radius:var(--ring-r,16px);box-shadow:0 0 0 2px var(--fg);opacity:0;transform:scale(1.025);transition:opacity 140ms var(--ease-out),transform var(--d-snappy) var(--spring-snappy);pointer-events:none}
+.ring:focus::after{opacity:1;transform:scale(1)}
+
+.swap{display:grid}
+.swap>span{grid-area:1/1;min-width:0}
+
+/* ---------- carrousel ---------- */
+.stage--car{display:flex;flex-direction:column}
+.car{--tw:clamp(92px,10.5vw,132px);--th:calc(var(--tw) * 4 / 3);position:relative;height:calc(var(--th) * 1.1 + 48px);outline:none;overflow:hidden;
+  -webkit-mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(90deg,transparent,#000 22px,#000 calc(100% - 22px),transparent)}
+.car-track{position:absolute;left:0;top:0;height:100%;display:flex;align-items:center;gap:16px;padding:0 36px;transition:transform var(--d-gentle) var(--spring-gentle);will-change:transform}
+.tile{position:relative;flex:0 0 auto;width:var(--tw);height:var(--th);border-radius:12px;overflow:hidden;cursor:pointer;
+  background:radial-gradient(130% 90% at 20% 10%,var(--a) 0%,transparent 62%),linear-gradient(165deg,var(--b) 0%,#050506 88%);
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.06);
+  transition:transform var(--d-snappy) var(--spring-snappy),opacity 220ms var(--ease-out),box-shadow 220ms var(--ease-out)}
+.tile-mark{position:absolute;right:-6%;bottom:-16%;font-weight:700;font-size:calc(var(--tw) * .95);line-height:1;color:rgba(255,255,255,.07);letter-spacing:-.06em;pointer-events:none}
+.tile-name{position:absolute;left:10px;right:10px;bottom:9px;font-size:11px;font-weight:600;color:rgba(237,235,231,.92);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tile::after{content:"";position:absolute;inset:-20%;background:linear-gradient(105deg,transparent 42%,rgba(255,255,255,.16) 50%,transparent 58%);transform:translateX(-75%);pointer-events:none}
+.tile.sheen::after{transform:translateX(75%);transition:transform 950ms var(--ease-io)}
+.car.is-active .tile{opacity:.48}
+.car.is-active .tile.cur{opacity:1;transform:scale(1.08);box-shadow:inset 0 0 0 1px rgba(255,255,255,.1),0 18px 40px -12px rgba(0,0,0,.9)}
+.car.is-active .tile.cur.tap{transform:scale(1.02);transition-duration:var(--d-press);transition-timing-function:var(--ease-out)}
+.car-ring{position:absolute;left:0;top:0;border-radius:17px;box-shadow:0 0 0 2px var(--fg),0 0 0 7px rgba(237,235,231,.07);pointer-events:none;opacity:0;transform:translateX(var(--rx,0px)) scale(.94);transition:transform var(--d-snappy) var(--spring-snappy),opacity 160ms var(--ease-out)}
+.car.is-active .car-ring{opacity:1;transform:translateX(var(--rx,0px)) scale(1)}
+.car.no-anim,.car.no-anim *{transition:none!important}
+.car-meta{padding:0 36px 22px;display:flex;flex-direction:column;gap:2px;min-width:0}
+.car-title{font-size:21px;font-weight:600;letter-spacing:-.02em;line-height:1.35;overflow:hidden}
+.car-sub{font-size:12px;color:var(--muted);overflow:hidden}
+
+.launch{position:absolute;inset:0;z-index:5;display:grid;place-items:center;padding:20px;
+  background:linear-gradient(180deg,rgba(0,0,0,.3),rgba(0,0,0,.84)),radial-gradient(130% 90% at 20% 10%,var(--a) 0%,transparent 62%),linear-gradient(165deg,var(--b) 0%,#050506 88%)}
+.launch-in{display:flex;flex-direction:column;align-items:center;gap:12px;text-align:center;opacity:0}
+.launch-name{font-size:24px;font-weight:600;letter-spacing:-.02em}
+.launch-st{font-size:12px;color:rgba(237,235,231,.72)}
+
+.oload{width:46px;height:46px;animation:orot 1.4s linear infinite}
+.oload circle{fill:none;stroke-width:3}
+.oload .o-track{stroke:rgba(237,235,231,.14)}
+.oload .o-arc{stroke:var(--fg);stroke-linecap:round;stroke-dasharray:1 120;animation:odash 1.4s var(--ease-io) infinite}
+@keyframes orot{to{transform:rotate(360deg)}}
+@keyframes odash{0%{stroke-dasharray:1 120;stroke-dashoffset:0}50%{stroke-dasharray:72 120;stroke-dashoffset:-22}100%{stroke-dasharray:1 120;stroke-dashoffset:-119}}
+
+/* ---------- boutons ---------- */
+.stage--btn{display:flex;flex-direction:column;justify-content:center;gap:18px;padding:30px 24px}
+.btn-row{display:flex;flex-wrap:wrap;gap:14px}
+.btn{--ring-in:-5px;--ring-r:31px;position:relative;flex:1 1 190px;height:52px;padding:0 22px;border:0;border-radius:26px;font:600 15px/1 var(--f-display);letter-spacing:-.005em;cursor:pointer;outline:none;user-select:none;-webkit-user-select:none;-webkit-touch-callout:none;touch-action:manipulation;transition:transform var(--d-bouncy) var(--spring-bouncy)}
+.btn.pressed{transform:scale(.955);transition:transform var(--d-press) var(--ease-out)}
+.btn--primary{background:var(--fg);color:#0A0A0B}
+.btn-lbl{display:inline-grid;overflow:hidden;vertical-align:middle;line-height:1.3}
+.btn--hold{background:transparent;color:var(--fg);box-shadow:inset 0 0 0 1.5px var(--line-2)}
+.btn--hold.pressed{transform:scale(.97)}
+.btn-clip{position:absolute;inset:0;border-radius:inherit;overflow:hidden;display:grid;place-items:center}
+.hold-base{grid-area:1/1}
+.hold-fill{position:absolute;inset:0;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;clip-path:inset(0 100% 0 0)}
+.hl{grid-area:1/1;display:inline-flex;align-items:center;gap:8px;transition:transform 300ms var(--ease-out),opacity 200ms var(--ease-out)}
+.hl-b{transform:translateY(80%);opacity:0}
+.btn--hold.done .hl-a{transform:translateY(-80%);opacity:0}
+.btn--hold.done .hl-b{transform:none;opacity:1}
+.hl-b svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:2.4;stroke-linecap:round;stroke-linejoin:round}
+.hl-b path{stroke-dasharray:22;stroke-dashoffset:22;transition:stroke-dashoffset 280ms var(--ease-out) 140ms}
+.btn--hold.done .hl-b path{stroke-dashoffset:0}
+.btn-hint{display:flex;gap:8px 18px;flex-wrap:wrap;font-size:11.5px;color:var(--muted)}
+.btn-hint span{display:inline-flex;align-items:center;gap:7px}
+
+/* ---------- lignes (interrupteurs + radio) ---------- */
+.stage--list{padding:8px;display:flex;flex-direction:column;justify-content:center;gap:2px}
+.row,.opt{--ring-in:0px;--ring-r:13px;display:flex;align-items:center;gap:16px;padding:14px 16px;border-radius:13px;cursor:pointer;user-select:none;-webkit-user-select:none;transition:background-color 160ms var(--ease-out),transform var(--d-bouncy) var(--spring-bouncy)}
+.row:focus,.opt:focus{background:var(--raise)}
+.row.pressed,.opt.pressed{transform:scale(.985);transition:background-color 160ms var(--ease-out),transform var(--d-press) var(--ease-out)}
+.row-text{flex:1;min-width:0;display:flex;flex-direction:column;gap:1px}
+.row-title{font-size:15px;font-weight:500}
+.row-desc{font-size:12px;color:var(--muted)}
+
+.sw{position:relative;flex:0 0 auto;width:48px;height:28px;border-radius:14px;box-shadow:inset 0 0 0 1.5px var(--line-2)}
+.sw-fill{position:absolute;inset:0;border-radius:inherit;background:var(--accent);clip-path:circle(0px at 14px 50%);transition:clip-path 320ms var(--ease-out)}
+.row[aria-checked="true"] .sw-fill{clip-path:circle(62px at 14px 50%)}
+.sw-thumb{position:absolute;top:3px;left:3px;width:22px;height:22px;border-radius:11px;background:var(--muted);transition:transform var(--d-bouncy) var(--spring-bouncy),width 150ms var(--ease-out),background-color 220ms var(--ease-out)}
+.row:focus[aria-checked="false"] .sw-thumb{background:#B6B2AC}
+.row[aria-checked="true"] .sw-thumb{transform:translateX(20px);background:var(--accent-ink)}
+.row.pressed .sw-thumb{width:28px}
+.row.pressed[aria-checked="true"] .sw-thumb{transform:translateX(14px)}
+
+.list-title{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);padding:10px 16px 6px}
+.opt-ico{width:22px;height:22px;flex:0 0 auto;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.opt-check{stroke:var(--accent);stroke-width:2.4}
+.opt-check path{stroke-dasharray:22;stroke-dashoffset:22;transition:stroke-dashoffset 120ms var(--ease-out)}
+.opt[aria-checked="true"] .opt-check path{stroke-dashoffset:0;transition:stroke-dashoffset 300ms var(--ease-out) 60ms}
+.opt-lock{stroke:var(--muted);stroke-width:1.8}
+.opt[data-locked] .row-title{color:var(--muted)}
+.opt-hint{display:grid;grid-template-rows:0fr;transition:grid-template-rows 340ms var(--ease-out)}
+.opt-hint.open{grid-template-rows:1fr}
+.opt-hint>div{overflow:hidden}
+.opt-hint p{margin:4px 8px 6px;padding:10px 12px;border-radius:10px;background:var(--raise);font-size:12.5px;color:var(--muted);opacity:0;transform:translateY(-4px);transition:opacity 200ms var(--ease-out),transform 300ms var(--ease-out)}
+.opt-hint.open p{opacity:1;transform:none}
+.opt-hint b{color:var(--fg);font-weight:500}
+
+/* ---------- curseur ---------- */
+.stage--slider{padding:10px;display:flex;flex-direction:column;justify-content:center}
+.sl{--ring-in:0px;--ring-r:13px;--p:0;padding:18px 18px 12px;border-radius:13px;transition:background-color 160ms var(--ease-out)}
+.sl:focus{background:var(--raise)}
+.sl-head{display:flex;align-items:flex-end;justify-content:space-between;gap:12px;margin-bottom:14px}
+.sl-label{font-size:15px;font-weight:500}
+.sl-preset{font-size:12px;color:var(--muted);overflow:hidden}
+.odo{display:flex;align-items:baseline;font-family:var(--f-mono);font-weight:500;font-size:44px;line-height:1;letter-spacing:-.02em}
+.odo-col{display:block;height:1em;overflow:hidden;transition:color 220ms var(--ease-out);
+  -webkit-mask-image:linear-gradient(transparent,#000 14%,#000 86%,transparent);mask-image:linear-gradient(transparent,#000 14%,#000 86%,transparent)}
+.odo-col.lead{color:var(--dim)}
+.odo-reel{display:flex;flex-direction:column;transition:transform var(--d-snappy) var(--spring-snappy)}
+.odo-reel>span{display:block;height:1em;text-align:center}
+.odo.no-anim .odo-reel{transition:none}
+.odo-unit{font-size:13px;color:var(--muted);margin-left:8px;letter-spacing:0}
+.sl-track{--rb:0px;position:relative;height:34px;cursor:pointer;touch-action:none}
+.sl-rail{position:absolute;left:0;right:0;top:50%;height:6px;margin-top:-3px;border-radius:3px;background:var(--line-2)}
+.sl-fill{position:absolute;left:0;top:50%;height:6px;margin-top:-3px;border-radius:3px;background:var(--accent);width:calc(var(--p) * 100% + var(--rb));transition:width var(--d-snappy) var(--spring-snappy)}
+.sl-thumb{position:absolute;top:50%;left:calc(var(--p) * 100%);width:4px;height:24px;border-radius:2px;background:var(--fg);transform:translate(-50%,-50%) translateX(var(--rb));transition:left var(--d-snappy) var(--spring-snappy),transform var(--d-bouncy) var(--spring-bouncy),width 160ms var(--ease-out),height 220ms var(--ease-out),box-shadow 220ms var(--ease-out)}
+.sl:focus .sl-thumb{width:6px;height:32px;box-shadow:0 0 0 5px rgba(237,235,231,.1)}
+.sl.drag .sl-fill,.sl.drag .sl-thumb{transition-duration:50ms;transition-timing-function:linear}
+.sl-track.rb-live .sl-fill,.sl-track.rb-live .sl-thumb{transition-duration:80ms;transition-timing-function:var(--ease-out)}
+.sl.no-anim .sl-fill,.sl.no-anim .sl-thumb{transition:none}
+.sl-ticks{position:relative;height:12px;margin-top:2px}
+.tk{position:absolute;top:0;width:1px;height:5px;margin-left:-.5px;background:var(--dim);transform-origin:top;transition:background-color 180ms var(--ease-out)}
+.tk.major{height:10px}
+.tk.on{background:var(--muted)}
+.tk.major.on{background:var(--fg)}
+.tk.pulse{animation:tk 440ms var(--ease-out)}
+@keyframes tk{30%{transform:scaleY(1.9);background:var(--accent)}100%{transform:scaleY(1)}}
+.sl-scale{position:relative;height:14px;font-size:10.5px;color:var(--dim)}
+.sl-scale span{position:absolute;top:0;transform:translateX(-50%)}
+.sl-scale span:first-child{transform:none}
+.sl-scale span:last-child{transform:translateX(-100%)}
+
+/* ---------- segmenté ---------- */
+.stage--seg{padding:28px 22px;display:flex;flex-direction:column;justify-content:center;gap:22px}
+.seg-label{font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--muted);margin-bottom:-12px}
+.seg{--ring-in:-5px;--ring-r:23px;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));padding:4px;height:46px;border-radius:18px;background:var(--raise)}
+.seg-pill{position:absolute;top:4px;bottom:4px;left:4px;right:66%;border-radius:14px;background:var(--fg);box-shadow:0 4px 14px rgba(0,0,0,.45)}
+.seg-opt{position:relative;z-index:1;display:grid;place-items:center;font-size:14px;font-weight:500;color:var(--muted);cursor:pointer;border-radius:14px;padding:0 6px;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;user-select:none;-webkit-user-select:none;transition:color 160ms var(--ease-out)}
+.seg-opt[aria-checked="true"]{color:#0A0A0B;transition:color 220ms var(--ease-out) 90ms}
+.seg-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:1px;margin:0;background:var(--line);border:1px solid var(--line);border-radius:12px;overflow:hidden}
+@media (max-width:520px){.seg-stats{grid-template-columns:repeat(2,minmax(0,1fr))}}
+.stat{background:var(--stage);padding:10px 12px;display:flex;flex-direction:column;gap:3px;min-width:0}
+.stat dt{font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.stat dd{margin:0;font-size:14px;color:var(--fg);overflow:hidden;white-space:nowrap}
+
+/* ---------- île ---------- */
+.stage--isl{min-height:260px}
+.scr{position:absolute;inset:0;background:radial-gradient(90% 70% at 50% 0%,#1B1815 0%,transparent 70%),linear-gradient(180deg,#121214,#08080A)}
+.scr-bar{position:absolute;top:16px;left:20px;right:20px;display:flex;justify-content:space-between;align-items:center;font-size:12px;color:var(--fg)}
+.scr-icons{display:flex;gap:7px;align-items:center;color:var(--muted)}
+.scr-icons svg{width:15px;height:15px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.scr-actions{position:absolute;left:16px;right:16px;bottom:16px;display:flex;flex-wrap:wrap;justify-content:center;gap:8px}
+.scr-cap{flex-basis:100%;text-align:center;font-size:11px;color:var(--dim);margin-bottom:2px}
+.chip{--ring-in:-4px;--ring-r:22px;height:36px;padding:0 14px;border:0;border-radius:18px;background:rgba(237,235,231,.07);box-shadow:inset 0 0 0 1px rgba(237,235,231,.08);color:var(--fg);font:500 12.5px/1 var(--f-display);cursor:pointer;user-select:none;-webkit-user-select:none;touch-action:manipulation;transition:transform var(--d-bouncy) var(--spring-bouncy),background-color 160ms var(--ease-out)}
+.chip:focus{background:rgba(237,235,231,.13)}
+.chip.pressed{transform:scale(.94);transition:transform var(--d-press) var(--ease-out),background-color 160ms var(--ease-out)}
+
+.isl{--isl-w:320px;position:absolute;top:10px;left:50%;translate:-50% 0;z-index:3;width:156px;height:30px;border-radius:15px;background:#000;overflow:hidden;
+  box-shadow:0 0 0 1px rgba(255,255,255,.07),0 14px 34px -8px rgba(0,0,0,.8);
+  transition:width var(--d-gentle) var(--spring-gentle),height var(--d-gentle) var(--spring-gentle),border-radius 380ms var(--ease-out)}
+.isl.open{width:var(--isl-w);height:72px;border-radius:28px}
+.isl-idle{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;gap:7px;font-size:11px;color:var(--fg);transition:opacity 160ms var(--ease-out) 200ms,filter 160ms var(--ease-out) 200ms}
+.isl.open .isl-idle{opacity:0;filter:blur(3px);transition-delay:0ms;transition-duration:100ms}
+.isl-idle .dot{width:6px;height:6px;border-radius:50%;background:var(--accent);animation:breathe 2.4s var(--ease-io) infinite}
+.isl-idle .ping{color:var(--muted)}
+@keyframes breathe{50%{opacity:.3}}
+.isl-body{position:absolute;top:0;bottom:0;left:50%;translate:-50% 0;width:var(--isl-w);display:flex;align-items:center;gap:12px;padding:0 20px 0 16px;pointer-events:none}
+.isl-body>*{opacity:0}
+.isl-ico{flex:0 0 auto;width:40px;height:40px;border-radius:50%;background:#1D1D20;display:grid;place-items:center;color:var(--fg)}
+.isl-ico.acc{color:var(--accent);background:rgba(242,128,42,.13)}
+.isl-ico svg{width:20px;height:20px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.isl-txt{flex:1;min-width:0;display:flex;flex-direction:column;gap:2px}
+.isl-t{font-size:14px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.isl-s{font-size:11px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.isl-r{flex:0 0 auto;font-size:13px;color:var(--fg);white-space:nowrap}
+.isl-r .from{color:var(--dim)}
+.isl-thumb{flex:0 0 auto;width:40px;height:28px;border-radius:7px;background:radial-gradient(130% 90% at 20% 10%,#5E7391 0%,transparent 62%),linear-gradient(165deg,#18202C 0%,#050506 88%);box-shadow:inset 0 0 0 1px rgba(255,255,255,.12)}
+
+/* ---------- légende manette ---------- */
+.legend{position:fixed;left:0;right:0;bottom:0;z-index:20;background:rgba(10,10,11,.84);-webkit-backdrop-filter:blur(16px) saturate(1.2);backdrop-filter:blur(16px) saturate(1.2);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px)}
+.legend-in{max-width:1180px;margin:0 auto;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:11px;display:flex;align-items:center;gap:8px 20px;flex-wrap:wrap;font-size:12.5px;color:var(--muted)}
+.lg{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+.pad{margin-left:auto;display:inline-flex;align-items:center;gap:7px;font-size:11.5px;white-space:nowrap}
+.pad i{width:7px;height:7px;border-radius:50%;background:var(--dim);transition:background-color 200ms var(--ease-out)}
+.pad.on{color:var(--fg)}
+.pad.on i{background:var(--accent)}
+
+@media (prefers-reduced-motion: reduce){
+  .tile::after{display:none}
+  .oload,.oload .o-arc{animation-duration:3s}
+  .isl-idle .dot{animation:none}
+  .tk.pulse{animation:none}
+}
+</style>
+
+<main class="wrap">
+  <header class="intro">
+    <div class="eyebrow mono"><b>CocoOS</b> · console-ui · motion</div>
+    <h1>Micro-interactions</h1>
+    <p class="lede">Clique une fois dans la page puis pilote tout comme sur la console. Les flèches naviguent et règlent, <kbd>Entrée</kbd> fait office de A, <kbd>Échap</kbd> de B. Une manette branchée au PC fonctionne aussi. Chaque carte donne ses réglages de mouvement et un départ de code QML.</p>
+  </header>
+
+  <section class="tokens" aria-label="Jetons de mouvement">
+    <div class="sec-head"><h2>Jetons de mouvement</h2><span class="mono">5 courbes pour toute l'interface</span></div>
+    <div class="tok-grid">
+      <div class="tok">
+        <div class="tok-name mono">ease-out</div>
+        <div class="tok-val mono">320 ms · bezier(.22, 1, .36, 1)</div>
+        <div class="tok-use mono">Fondus, textes, remplissages</div>
+        <div class="tok-track"><div class="tok-rail"><div class="tok-run" style="--e:var(--ease-out);--d:320ms"><span class="tok-dot"></span></div></div></div>
+      </div>
+      <div class="tok">
+        <div class="tok-name mono">ease-in-out</div>
+        <div class="tok-val mono">420 ms · bezier(.65, 0, .35, 1)</div>
+        <div class="tok-use mono">Reflets, balayages</div>
+        <div class="tok-track"><div class="tok-rail"><div class="tok-run" style="--e:var(--ease-io);--d:420ms"><span class="tok-dot"></span></div></div></div>
+      </div>
+      <div class="tok is-spring">
+        <div class="tok-name mono">snappy <span>· ressort vif</span></div>
+        <div class="tok-val mono" data-spring="snappy">k 380 · c 28</div>
+        <div class="tok-use mono">Focus, chiffres, curseur</div>
+        <div class="tok-track"><div class="tok-rail"><div class="tok-run" style="--e:var(--spring-snappy);--d:var(--d-snappy)"><span class="tok-dot"></span></div></div></div>
+      </div>
+      <div class="tok is-spring">
+        <div class="tok-name mono">bouncy <span>· rebond</span></div>
+        <div class="tok-val mono" data-spring="bouncy">k 300 · c 18</div>
+        <div class="tok-use mono">Relâchement, interrupteurs</div>
+        <div class="tok-track"><div class="tok-rail"><div class="tok-run" style="--e:var(--spring-bouncy);--d:var(--d-bouncy)"><span class="tok-dot"></span></div></div></div>
+      </div>
+      <div class="tok is-spring">
+        <div class="tok-name mono">gentle <span>· souple</span></div>
+        <div class="tok-val mono" data-spring="gentle">k 220 · c 24</div>
+        <div class="tok-use mono">Défilement, île, ouverture</div>
+        <div class="tok-track"><div class="tok-rail"><div class="tok-run" style="--e:var(--spring-gentle);--d:var(--d-gentle)"><span class="tok-dot"></span></div></div></div>
+      </div>
+    </div>
+    <p class="tok-note">Les ressorts sont calculés physiquement sur cette page (raideur k, amortissement c). SpringAnimation de Qt ne prend pas ces valeurs directement, donc les réglages QML proposés sont un point de départ à caler à l'œil sur la dalle. Sur le RK3588S, anime surtout scale, opacity et x/y, et garde le flou loin de l'écran de stream.</p>
+    <details class="spec">
+      <summary>Ajout à Theme.qml</summary>
+<pre><code><span class="c">// À ajouter dans Theme.qml : aucune valeur en dur dans les composants</span>
+<span class="c">// --- Micro-interactions ---</span>
+readonly property int pressDuration: 90
+readonly property int microDuration: 180
+readonly property int moveDuration: 320
+
+<span class="c">// courbes → easing.type: Easing.BezierSpline (curveEmph existe déjà)</span>
+readonly property var curveOut:   [0.22, 1.0, 0.36, 1.0, 1.0, 1.0]
+readonly property var curveInOut: [0.65, 0.0, 0.35, 1.0, 1.0, 1.0]
+
+<span class="c">// ressorts → SpringAnimation (départ à ajuster sur l'écran)</span>
+<span class="c">// l'étagère garde springStrength 2.2 / springDamping 0.30</span>
+readonly property real snappySpring: 4.5
+readonly property real snappyDamping: 0.32
+readonly property real bouncySpring: 3.5
+readonly property real bouncyDamping: 0.18
+readonly property real gentleSpring: 2.8
+readonly property real gentleDamping: 0.34
+
+<span class="c">// Utilisation</span>
+Behavior on opacity {
+    NumberAnimation {
+        duration: Theme.microDuration
+        easing.type: Easing.BezierSpline
+        easing.bezierCurve: Theme.curveOut
+    }
+}
+Behavior on x {
+    SpringAnimation { spring: Theme.snappySpring; damping: Theme.snappyDamping }
+}</code></pre>
+    </details>
+  </section>
+
+  <div class="grid">
+
+    <!-- ===== Carrousel ===== -->
+    <section class="card card--wide">
+      <div class="card-head"><span class="tag mono">Focus · bibliothèque</span><h3>Carrousel et anneau de focus</h3></div>
+      <div class="stage stage--car" id="carStage">
+        <div class="car" id="car" tabindex="0" role="listbox" aria-label="Bibliothèque de jeux">
+          <div class="car-track" id="carTrack">
+            <div class="car-ring" id="carRing" aria-hidden="true"></div>
+          </div>
+        </div>
+        <div class="car-meta">
+          <div class="car-title swap" id="carTitle"><span>Low Orbit</span></div>
+          <div class="car-sub mono swap" id="carSub"><span>Dernière session · hier · 1 h 52</span></div>
+        </div>
+        <div class="launch" id="launch" hidden>
+          <div class="launch-in">
+            <svg class="oload" viewBox="0 0 48 48" aria-hidden="true"><circle class="o-track" cx="24" cy="24" r="19"/><circle class="o-arc" cx="24" cy="24" r="19"/></svg>
+            <div class="launch-name" id="lnName">Low Orbit</div>
+            <div class="launch-st mono swap" id="lnSt"><span>Connexion à PC-SALON…</span></div>
+          </div>
+        </div>
+      </div>
+      <p class="note">Un seul anneau glisse d'une jaquette à l'autre, et la piste défile avec le même ressort pour que tout reste solidaire. L'œil suit un objet au lieu de chercher un contour qui apparaît ailleurs. A sur la jaquette active l'ouvre en plein écran pendant la connexion à l'hôte, B annule.</p>
+      <details class="spec">
+        <summary>Spec et départ QML</summary>
+        <ul class="spec-list mono">
+          <li><b>anneau</b> · translateX · ressort vif</li>
+          <li><b>piste</b> · translateX · ressort souple · marge de 44 px aux bords</li>
+          <li><b>jaquette active</b> · échelle 1,08 · les autres à 48 % d'opacité</li>
+          <li><b>reflet</b> · balayage 950 ms ease-in-out, 520 ms après l'arrêt du focus</li>
+          <li><b>ouverture</b> · clip-path de la jaquette vers plein écran · ressort souple</li>
+        </ul>
+<pre><code><span class="c">// Étagère : un seul anneau qui suit l'élément courant</span>
+ListView {
+    id: shelf
+    orientation: ListView.Horizontal
+    spacing: 16
+    interactive: false                  <span class="c">// pilotée à la manette</span>
+    highlightFollowsCurrentItem: false  <span class="c">// on anime l'anneau nous-mêmes</span>
+
+    Behavior on contentX {
+        SpringAnimation { spring: Theme.gentleSpring; damping: Theme.gentleDamping }
+    }
+    onCurrentIndexChanged: {
+        const it = currentItem, m = 44
+        let x = contentX
+        if (it.x - x &lt; m) x = it.x - m
+        if (it.x + it.width - x &gt; width - m) x = it.x + it.width - width + m
+        contentX = Math.max(0, Math.min(x, contentWidth - width))
+    }
+
+    highlight: Rectangle {
+        width: 132 * 1.08 + 12; height: 176 * 1.08 + 12
+        radius: 17; color: "transparent"
+        border.width: 2; border.color: Theme.ink
+        x: shelf.currentItem ? shelf.currentItem.x + 66 - width / 2 : 0
+        y: (shelf.height - height) / 2
+        opacity: shelf.activeFocus ? 1 : 0
+        Behavior on x { SpringAnimation { spring: Theme.snappySpring; damping: Theme.snappyDamping } }
+        Behavior on opacity { NumberAnimation { duration: Theme.microDuration } }
+    }
+
+    delegate: GameTile {
+        width: 132; height: 176
+        y: (shelf.height - height) / 2
+        scale: ListView.isCurrentItem &amp;&amp; shelf.activeFocus ? 1.08 : 1.0
+        opacity: ListView.isCurrentItem || !shelf.activeFocus ? 1.0 : 0.48
+        Behavior on scale { SpringAnimation { spring: Theme.snappySpring; damping: Theme.snappyDamping } }
+        Behavior on opacity { NumberAnimation { duration: 220 } }
+    }
+}</code></pre>
+      </details>
+    </section>
+
+    <!-- ===== Boutons ===== -->
+    <section class="card">
+      <div class="card-head"><span class="tag mono">Action</span><h3>Appui et appui maintenu</h3></div>
+      <div class="stage stage--btn">
+        <div class="btn-row">
+          <button class="btn btn--primary ring" id="btnPrimary" type="button"><span class="btn-lbl swap" id="btnPrimaryLbl"><span>Reprendre la partie</span></span></button>
+          <button class="btn btn--hold ring" id="btnHold" type="button">
+            <span class="btn-clip">
+              <span class="hold-base">Quitter le stream</span>
+              <span class="hold-fill" id="holdFill" aria-hidden="true">
+                <span class="hl hl-a">Quitter le stream</span>
+                <span class="hl hl-b"><svg viewBox="0 0 24 24"><path d="M4.5 12.5l4.8 4.8L19.5 7"/></svg>Stream terminé</span>
+              </span>
+            </span>
+          </button>
+        </div>
+        <div class="btn-hint mono"><span><kbd class="k-ab k-a">A</kbd> appui court</span><span><kbd class="k-ab k-a">A</kbd> maintenu 0,9 s pour quitter</span></div>
+      </div>
+      <p class="note">L'appui s'écrase en 90 ms et revient avec un ressort qui dépasse légèrement. Les actions destructives demandent un appui maintenu. Le remplissage démarre lentement pour éviter les accidents et se vide si tu lâches avant la fin.</p>
+      <details class="spec">
+        <summary>Spec et départ QML</summary>
+        <ul class="spec-list mono">
+          <li><b>appui</b> · scale 0,955 · 90 ms ease-out</li>
+          <li><b>relâche</b> · retour à 1 · ressort rebond</li>
+          <li><b>maintien</b> · 900 ms · affichage = progression^1,4</li>
+          <li><b>vidange</b> · 280 ms · libellé inversé sous le remplissage</li>
+        </ul>
+<pre><code><span class="c">// Appui : écrasement rapide, retour avec rebond</span>
+Rectangle {
+    id: btn
+    signal activated()
+    property bool down: false
+    width: 220; height: 52; radius: 26
+    color: Theme.ink
+
+    states: State {
+        name: "down"; when: btn.down
+        PropertyChanges { target: btn; scale: 0.955 }
+    }
+    transitions: [
+        Transition {
+            to: "down"
+            NumberAnimation { property: "scale"; duration: Theme.pressDuration; easing.type: Easing.OutCubic }
+        },
+        Transition {
+            from: "down"
+            SpringAnimation { property: "scale"; spring: Theme.bouncySpring; damping: Theme.bouncyDamping }
+        }
+    ]
+    Keys.onPressed: (e) =&gt; {
+        if (e.key === Qt.Key_Return &amp;&amp; !e.isAutoRepeat) btn.down = true
+    }
+    Keys.onReleased: (e) =&gt; {
+        if (e.key === Qt.Key_Return &amp;&amp; !e.isAutoRepeat) { btn.down = false; btn.activated() }
+    }
+}
+
+<span class="c">// Maintien : la progression monte pendant l'appui, redescend au relâchement</span>
+Item {
+    id: hold
+    signal confirmed()
+    property real progress: 0
+    property bool holding: false
+
+    NumberAnimation on progress { running: hold.holding; to: 1; duration: 900 }
+    NumberAnimation on progress {
+        running: !hold.holding &amp;&amp; hold.progress &gt; 0
+        to: 0; duration: 280; easing.type: Easing.OutCubic
+    }
+    onProgressChanged: if (progress &gt;= 1) confirmed()
+
+    Rectangle {   <span class="c">// remplissage ; y placer une copie du libellé en Theme.inkOnAccent</span>
+        width: parent.width * Math.pow(hold.progress, 1.4)
+        height: parent.height; color: Theme.accent; clip: true
+    }
+}</code></pre>
+      </details>
+    </section>
+
+    <!-- ===== Interrupteurs ===== -->
+    <section class="card">
+      <div class="card-head"><span class="tag mono">Réglages</span><h3>Interrupteurs</h3></div>
+      <div class="stage stage--list">
+        <div class="row ring" role="switch" tabindex="0" aria-checked="true">
+          <div class="row-text"><div class="row-title">Upscaling FSR 1.0</div><div class="row-desc mono">Netteté accrue sur le flux 720p</div></div>
+          <div class="sw" aria-hidden="true"><div class="sw-fill"></div><div class="sw-thumb"></div></div>
+        </div>
+        <div class="row ring" role="switch" tabindex="0" aria-checked="false">
+          <div class="row-text"><div class="row-title">Débit adaptatif</div><div class="row-desc mono">Suit la qualité du réseau en direct</div></div>
+          <div class="sw" aria-hidden="true"><div class="sw-fill"></div><div class="sw-thumb"></div></div>
+        </div>
+        <div class="row ring" role="switch" tabindex="0" aria-checked="false">
+          <div class="row-text"><div class="row-title">Mode salon</div><div class="row-desc mono">Sortie TV par USB-C</div></div>
+          <div class="sw" aria-hidden="true"><div class="sw-fill"></div><div class="sw-thumb"></div></div>
+        </div>
+      </div>
+      <p class="note">Le pouce s'étire pendant l'appui puis glisse avec un rebond, et l'orange se répand depuis sa position de départ. ← et → forcent l'état comme dans les listes de réglages des consoles. Pousser vers l'état déjà actif donne une petite butée.</p>
+      <details class="spec">
+        <summary>Spec et départ QML</summary>
+        <ul class="spec-list mono">
+          <li><b>pouce</b> · translateX 20 px · ressort rebond</li>
+          <li><b>étirement</b> · largeur 22 → 28 px · 150 ms ease-out</li>
+          <li><b>remplissage</b> · cercle qui grandit depuis le pouce · 320 ms ease-out</li>
+          <li><b>butée</b> · ±3 px · 260 ms</li>
+        </ul>
+<pre><code>Item {
+    id: sw
+    property bool checked: false
+    property bool pressed: false
+    width: 48; height: 28
+
+    Rectangle {   <span class="c">// contour</span>
+        anchors.fill: parent; radius: 14
+        color: "transparent"; border.width: 1.5; border.color: Qt.rgba(1, 1, 1, 0.18)
+    }
+    Rectangle {   <span class="c">// remplissage qui balaie depuis la gauche</span>
+        height: parent.height; radius: 14; color: Theme.accent
+        width: sw.checked ? parent.width : parent.height
+        opacity: sw.checked ? 1 : 0
+        Behavior on width   { NumberAnimation { duration: 320; easing.type: Easing.OutCubic } }
+        Behavior on opacity { NumberAnimation { duration: 180 } }
+    }
+    Rectangle {   <span class="c">// pouce</span>
+        y: 3; height: 22; radius: 11
+        width: sw.pressed ? 28 : 22
+        x: sw.checked ? sw.width - width - 3 : 3
+        color: sw.checked ? Theme.inkOnAccent : Theme.ink2
+        Behavior on x     { SpringAnimation { spring: Theme.bouncySpring; damping: Theme.bouncyDamping } }
+        Behavior on width { NumberAnimation { duration: 150; easing.type: Easing.OutCubic } }
+        Behavior on color { ColorAnimation { duration: 220 } }
+    }
+}</code></pre>
+      </details>
+    </section>
+
+    <!-- ===== Curseur ===== -->
+    <section class="card">
+      <div class="card-head"><span class="tag mono">Valeur</span><h3>Curseur de débit</h3></div>
+      <div class="stage stage--slider">
+        <div class="sl ring" id="slider" role="slider" tabindex="0" aria-label="Débit vidéo" aria-valuemin="5" aria-valuemax="150" aria-valuenow="20" aria-valuetext="20 Mbps">
+          <div class="sl-head">
+            <div>
+              <div class="sl-label">Débit vidéo</div>
+              <div class="sl-preset mono swap" id="slPreset"><span>≈ 1080p · 60 i/s</span></div>
+            </div>
+            <div class="odo no-anim" id="odo" aria-hidden="true">
+              <span class="odo-col"></span><span class="odo-col"></span><span class="odo-col"></span><span class="odo-unit">Mbps</span>
+            </div>
+          </div>
+          <div class="sl-track" id="slTrack">
+            <div class="sl-rail"></div>
+            <div class="sl-fill"></div>
+            <div class="sl-thumb"></div>
+          </div>
+          <div class="sl-ticks" id="slTicks"></div>
+          <div class="sl-scale mono" id="slScale"></div>
+        </div>
+      </div>
+      <p class="note">Les chiffres défilent comme un compteur mécanique. En maintenant →, le pas accélère, marque un arrêt sur chaque préréglage (10, 20, 40, 80) puis repart. Au bout de la course, le curseur résiste comme un élastique et revient. Fonctionne aussi à la souris en glissant.</p>
+      <details class="spec">
+        <summary>Spec et départ QML</summary>
+        <ul class="spec-list mono">
+          <li><b>chiffres</b> · translateY d'une colonne 0–9 · ressort vif</li>
+          <li><b>pas</b> · 1, puis 2 après 5 répétitions, puis 5 après 14</li>
+          <li><b>cran</b> · arrêt de 260 ms sur un préréglage pendant le maintien</li>
+          <li><b>butée</b> · élastique 16 px max · retour ressort rebond</li>
+        </ul>
+<pre><code><span class="c">// Un chiffre du compteur : colonne 0–9 qui défile</span>
+Item {
+    property int digit: 0
+    width: 26; height: 44; clip: true
+    Column {
+        y: -parent.digit * 44
+        Behavior on y { SpringAnimation { spring: Theme.snappySpring; damping: Theme.snappyDamping } }
+        Repeater {
+            model: 10
+            Text {
+                height: 44; text: index; color: Theme.ink
+                font.family: Theme.fontUi; font.pixelSize: 44; font.weight: Font.Medium
+                font.features: { "tnum": 1 }   <span class="c">// chiffres tabulaires de Sora</span>
+            }
+        }
+    }
+}
+
+<span class="c">// Pas accéléré et crans sur les préréglages</span>
+property int repeatCount: 0
+property real detentUntil: 0
+readonly property var presets: [10, 20, 40, 80]
+
+Keys.onPressed: (e) =&gt; {
+    const dir = e.key === Qt.Key_Right ? 1 : e.key === Qt.Key_Left ? -1 : 0
+    if (!dir) return
+    repeatCount = e.isAutoRepeat ? repeatCount + 1 : 0
+    if (Date.now() &lt; detentUntil) return
+    const step = repeatCount &lt; 5 ? 1 : repeatCount &lt; 14 ? 2 : 5
+    let v = Math.max(5, Math.min(150, value + dir * step))
+    for (const p of presets) {
+        const crossed = (dir &gt; 0 &amp;&amp; value &lt; p &amp;&amp; v &gt;= p) || (dir &lt; 0 &amp;&amp; value &gt; p &amp;&amp; v &lt;= p)
+        if (e.isAutoRepeat &amp;&amp; crossed) { v = p; detentUntil = Date.now() + 260; repeatCount = 0; break }
+    }
+    value = v
+}</code></pre>
+      </details>
+    </section>
+
+    <!-- ===== Segmenté ===== -->
+    <section class="card">
+      <div class="card-head"><span class="tag mono">Choix</span><h3>Sélecteur de profil</h3></div>
+      <div class="stage stage--seg">
+        <div class="seg-label mono">Profil de stream</div>
+        <div class="seg ring" id="seg" role="radiogroup" tabindex="0" aria-label="Profil de stream">
+          <div class="seg-pill" id="segPill"></div>
+          <div class="seg-opt" role="radio" aria-checked="false">Compétitif</div>
+          <div class="seg-opt" role="radio" aria-checked="true">Équilibré</div>
+          <div class="seg-opt" role="radio" aria-checked="false">Chill</div>
+        </div>
+        <dl class="seg-stats" id="segStats">
+          <div class="stat"><dt class="mono">Upscaling</dt><dd class="mono swap"><span>auto</span></dd></div>
+          <div class="stat"><dt class="mono">Images/s</dt><dd class="mono swap"><span>90</span></dd></div>
+          <div class="stat"><dt class="mono">Débit</dt><dd class="mono swap"><span>40 Mbps</span></dd></div>
+          <div class="stat"><dt class="mono">Priorité</dt><dd class="mono swap"><span>équilibre</span></dd></div>
+        </dl>
+      </div>
+      <p class="note">Le bord qui mène part en premier avec un ressort vif, l'autre suit un peu plus tard. La pilule s'étire dans le sens du mouvement puis se resserre. Les valeurs du profil changent ensuite une par une, avec 45 ms d'écart. Les valeurs affichées sont des exemples.</p>
+      <details class="spec">
+        <summary>Spec et départ QML</summary>
+        <ul class="spec-list mono">
+          <li><b>bord avant</b> · ressort vif</li>
+          <li><b>bord arrière</b> · 420 ms ease-out, départ +40 ms</li>
+          <li><b>libellé</b> · couleur 220 ms, départ +90 ms</li>
+          <li><b>valeurs</b> · glissement vertical, 45 ms entre chaque</li>
+        </ul>
+<pre><code><span class="c">// Pilule élastique : deux bords animés séparément</span>
+Item {
+    id: seg
+    property int current: 1
+    property int dir: 1
+    property real leftEdge: 0
+    property real rightEdge: 0
+
+    function select(i) {
+        dir = i &gt; current ? 1 : -1      <span class="c">// avant les bords, pour que les durées soient à jour</span>
+        current = i
+        leftEdge = options.children[i].x
+        rightEdge = options.children[i].x + options.children[i].width
+    }
+    Behavior on leftEdge {
+        NumberAnimation {
+            duration: seg.dir &lt; 0 ? 260 : 420
+            easing.type: seg.dir &lt; 0 ? Easing.OutBack : Easing.OutCubic
+            easing.overshoot: 1.2
+        }
+    }
+    Behavior on rightEdge {
+        NumberAnimation {
+            duration: seg.dir &gt; 0 ? 260 : 420
+            easing.type: seg.dir &gt; 0 ? Easing.OutBack : Easing.OutCubic
+            easing.overshoot: 1.2
+        }
+    }
+    Rectangle {   <span class="c">// pilule</span>
+        x: seg.leftEdge; width: seg.rightEdge - seg.leftEdge
+        y: 4; height: parent.height - 8; radius: 14; color: Theme.ink
+    }
+    Row { id: options; <span class="c">/* trois libellés */</span> }
+}</code></pre>
+      </details>
+    </section>
+
+    <!-- ===== Liste radio ===== -->
+    <section class="card">
+      <div class="card-head"><span class="tag mono">Liste</span><h3>Sélection et refus</h3></div>
+      <div class="stage stage--list">
+        <div class="list-title mono">Résolution du stream</div>
+        <div role="radiogroup" aria-label="Résolution du stream">
+          <div class="opt row-like ring" role="radio" tabindex="0" aria-checked="false">
+            <div class="row-text"><div class="row-title">720p</div><div class="row-desc mono">≈ 10 Mbps · réseau mobile</div></div>
+            <svg class="opt-ico opt-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l4.8 4.8L19.5 7"/></svg>
+          </div>
+          <div class="opt row-like ring" role="radio" tabindex="0" aria-checked="true">
+            <div class="row-text"><div class="row-title">1080p</div><div class="row-desc mono">≈ 20 Mbps · définition de l'écran</div></div>
+            <svg class="opt-ico opt-check" viewBox="0 0 24 24" aria-hidden="true"><path d="M4.5 12.5l4.8 4.8L19.5 7"/></svg>
+          </div>
+          <div class="opt row-like ring" role="radio" tabindex="0" aria-checked="false" aria-disabled="true" data-locked>
+            <div class="row-text"><div class="row-title">1440p</div><div class="row-desc mono">Réservé à la sortie TV</div></div>
+            <svg class="opt-ico opt-lock" viewBox="0 0 24 24" aria-hidden="true"><rect x="5.5" y="10.5" width="13" height="9" rx="2"/><path d="M8.5 10.5V8a3.5 3.5 0 0 1 7 0v2.5"/></svg>
+          </div>
+        </div>
+        <div class="opt-hint" id="optHint" aria-live="polite"><div><p>L'écran interne s'arrête à 1080p. Active le <b>mode salon</b> et branche une TV en USB-C pour débloquer le 1440p.</p></div></div>
+      </div>
+      <p class="note">La coche se dessine trait par trait. Une option indisponible refuse avec une secousse courte et dit pourquoi, au lieu d'être simplement grisée sans explication.</p>
+      <details class="spec">
+        <summary>Spec et départ QML</summary>
+        <ul class="spec-list mono">
+          <li><b>coche</b> · tracé 300 ms ease-out, départ +60 ms</li>
+          <li><b>refus</b> · 440 ms · −9, 8, −5, 3, −1 px</li>
+          <li><b>explication</b> · hauteur 0 → auto · 340 ms · disparaît après 3 s</li>
+        </ul>
+<pre><code><span class="c">// Coche dessinée</span>
+Shape {
+    width: 22; height: 22
+    ShapePath {
+        strokeColor: Theme.accent; strokeWidth: 2.4; fillColor: "transparent"
+        capStyle: ShapePath.RoundCap; joinStyle: ShapePath.RoundJoin
+        strokeStyle: ShapePath.DashLine
+        dashPattern: [10, 10]      <span class="c">// en multiples de strokeWidth, ≈ longueur du tracé</span>
+        dashOffset: row.checked ? 0 : 10
+        Behavior on dashOffset { NumberAnimation { duration: 300; easing.type: Easing.OutCubic } }
+        PathSvg { path: "M4.5 12.5 L9.3 17.3 L19.5 7" }
+    }
+}
+
+<span class="c">// Refus : secousse amortie</span>
+transform: Translate { id: shift }
+SequentialAnimation {
+    id: deny
+    NumberAnimation { target: shift; property: "x"; to: -9; duration: 60 }
+    NumberAnimation { target: shift; property: "x"; to:  8; duration: 70 }
+    NumberAnimation { target: shift; property: "x"; to: -5; duration: 70 }
+    NumberAnimation { target: shift; property: "x"; to:  3; duration: 70 }
+    NumberAnimation { target: shift; property: "x"; to:  0; duration: 120; easing.type: Easing.OutCubic }
+}</code></pre>
+      </details>
+    </section>
+
+    <!-- ===== Île ===== -->
+    <section class="card">
+      <div class="card-head"><span class="tag mono">Système</span><h3>Île de notification</h3></div>
+      <div class="stage stage--isl" id="islStage">
+        <div class="scr">
+          <div class="scr-bar mono">
+            <span id="clock">--:--</span>
+            <span class="scr-icons">
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9.5a13 13 0 0 1 18 0M6 13a8.5 8.5 0 0 1 12 0M9.2 16.4a4 4 0 0 1 5.6 0"/><path d="M12 19.5h.01"/></svg>
+              <span>82 %</span>
+            </span>
+          </div>
+          <div class="isl" id="isl" role="status" aria-live="polite">
+            <div class="isl-idle mono"><i class="dot"></i><span>PC-SALON</span><span class="ping" id="islPing">12 ms</span></div>
+            <div class="isl-body" id="islBody"></div>
+          </div>
+          <div class="scr-actions">
+            <span class="scr-cap mono">Simuler un évènement</span>
+            <button class="chip ring" type="button" data-n="pad">Manette connectée</button>
+            <button class="chip ring" type="button" data-n="rate">Débit ajusté</button>
+            <button class="chip ring" type="button" data-n="cap">Capture</button>
+          </div>
+        </div>
+      </div>
+      <p class="note">La pastille d'état, qui affiche l'hôte et la latence pendant le stream, s'ouvre en notification puis se referme seule. Le contenu n'arrive qu'une fois la forme lancée, avec un léger flou qui se dissipe. Une nouvelle notification remplace la précédente sans refermer l'île. B la referme.</p>
+      <details class="spec">
+        <summary>Spec et départ QML</summary>
+        <ul class="spec-list mono">
+          <li><b>forme</b> · largeur, hauteur · ressort souple · rayon 380 ms ease-out</li>
+          <li><b>contenu</b> · +110 ms, 45 ms entre éléments, flou 4 → 0 px</li>
+          <li><b>remplacement</b> · sortie 120 ms, rebond d'échelle 1,025</li>
+          <li><b>fermeture</b> · automatique après 2,8 s</li>
+        </ul>
+<pre><code>Rectangle {
+    id: island
+    property bool open: false
+    color: "black"; clip: true
+    width: open ? 340 : 156
+    height: open ? 72 : 30
+    radius: open ? 28 : 15
+    Behavior on width  { SpringAnimation { spring: Theme.gentleSpring; damping: Theme.gentleDamping } }
+    Behavior on height { SpringAnimation { spring: Theme.gentleSpring; damping: Theme.gentleDamping } }
+    Behavior on radius { NumberAnimation { duration: 380; easing.type: Easing.OutCubic } }
+
+    Row {
+        id: content
+        anchors.centerIn: parent
+        opacity: 0
+        states: State { name: "shown"; when: island.open; PropertyChanges { target: content; opacity: 1 } }
+        transitions: [
+            Transition {
+                to: "shown"
+                SequentialAnimation {
+                    PauseAnimation { duration: 110 }
+                    NumberAnimation { property: "opacity"; duration: 240; easing.type: Easing.OutCubic }
+                }
+            },
+            Transition { from: "shown"; NumberAnimation { property: "opacity"; duration: 100 } }
+        ]
+    }
+    <span class="c">// relancer ce Timer (restart()) à chaque nouvelle notification</span>
+    Timer { id: autoClose; running: island.open; interval: 2800; onTriggered: island.open = false }
+    <span class="c">// Le flou de la page web n'est pas repris : pas de MultiEffect pendant le stream.</span>
+}</code></pre>
+      </details>
+    </section>
+
+  </div>
+</main>
+
+<footer class="legend" aria-label="Commandes">
+  <div class="legend-in">
+    <span class="lg"><kbd>↑</kbd><kbd>↓</kbd> Naviguer</span>
+    <span class="lg"><kbd>←</kbd><kbd>→</kbd> Ajuster</span>
+    <span class="lg"><kbd class="k-ab k-a">A</kbd> Entrée · valider</span>
+    <span class="lg"><kbd class="k-ab">B</kbd> Échap · retour</span>
+    <span class="pad mono" id="padState"><i></i><span id="padTxt">Aucune manette</span></span>
+  </div>
+</footer>
+
+<script>
+(() => {
+"use strict";
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+const root = document.documentElement;
+const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+const clamp = (v, a, b) => Math.min(b, Math.max(a, v));
+const EASE_OUT = "cubic-bezier(.22,1,.36,1)";
+
+/* ---------- Ressorts physiques → linear() ---------- */
+function spring(k, c, m = 1) {
+  const w0 = Math.sqrt(k / m), z = c / (2 * Math.sqrt(k * m));
+  const T = Math.log(250) / (z * w0);
+  const N = 50, pts = [];
+  let peak = 0;
+  for (let i = 0; i <= N; i++) {
+    const t = (T * i) / N;
+    let x;
+    if (z < 1) {
+      const wd = w0 * Math.sqrt(1 - z * z);
+      x = 1 - Math.exp(-z * w0 * t) * (Math.cos(wd * t) + (z * w0 / wd) * Math.sin(wd * t));
+    } else {
+      x = 1 - Math.exp(-w0 * t) * (1 + w0 * t);
+    }
+    peak = Math.max(peak, x);
+    pts.push(i === N ? 1 : +x.toFixed(4));
+  }
+  return { easing: "linear(" + pts.join(", ") + ")", ms: Math.round(T * 1000), over: Math.max(0, Math.round((peak - 1) * 100)) };
+}
+const SPRINGS = { snappy: [380, 28], bouncy: [300, 18], gentle: [220, 24] };
+const FALLBACK = { snappy: ["cubic-bezier(.3,1.2,.5,1)", 390], bouncy: ["cubic-bezier(.3,1.45,.5,1)", 600], gentle: ["cubic-bezier(.25,1.06,.45,1)", 460] };
+let hasLinear = false;
+try { hasLinear = CSS.supports("transition-timing-function", "linear(0, 0.5, 1)"); } catch (e) {}
+const EASE = {};
+for (const name in SPRINGS) {
+  const [k, c] = SPRINGS[name];
+  const s = spring(k, c);
+  let e, d;
+  if (reduce) { e = EASE_OUT; d = 160; }
+  else if (hasLinear) { e = s.easing; d = s.ms; }
+  else { e = FALLBACK[name][0]; d = FALLBACK[name][1]; }
+  EASE[name] = { e, d };
+  root.style.setProperty("--spring-" + name, e);
+  root.style.setProperty("--d-" + name, d + "ms");
+  const info = $('[data-spring="' + name + '"]');
+  if (info) info.textContent = "k " + k + " · c " + c + " · " + s.ms + " ms · dépasse de " + s.over + " %";
+}
+
+/* ---------- Jetons : aller-retour en boucle ---------- */
+const toks = $$(".tok");
+let tokOn = false;
+const tokTick = () => { tokOn = !tokOn; toks.forEach(t => t.classList.toggle("go", tokOn)); };
+setTimeout(tokTick, 500);
+setInterval(tokTick, 1800);
+
+/* ---------- Échange de texte ---------- */
+function swapText(box, text, opts) {
+  const o = Object.assign({ axis: "y", dir: 1, delay: 0 }, opts || {});
+  const live = Array.from(box.children).filter(s => !s.classList.contains("out"));
+  const old = live[live.length - 1];
+  if (old && old.textContent === text) return;
+  const nu = document.createElement("span");
+  nu.textContent = text;
+  box.appendChild(nu);
+  if (reduce) { Array.from(box.children).forEach(s => { if (s !== nu) s.remove(); }); return; }
+  const dist = o.axis === "y" ? 70 : 14;
+  const off = v => o.axis === "y" ? "translateY(" + v + "%)" : "translateX(" + v + "px)";
+  nu.animate([{ transform: off(dist * o.dir), opacity: 0, filter: "blur(3px)" }, { transform: "none", opacity: 1, filter: "blur(0px)" }],
+    { duration: 380, delay: o.delay, easing: EASE_OUT, fill: "backwards" });
+  if (old) {
+    old.classList.add("out");
+    const a = old.animate([{ transform: "none", opacity: 1, filter: "blur(0px)" }, { transform: off(-dist * o.dir), opacity: 0, filter: "blur(3px)" }],
+      { duration: 220, delay: o.delay, easing: "cubic-bezier(.4,0,1,1)", fill: "forwards" });
+    a.onfinish = () => old.remove();
+  }
+}
+
+/* ---------- Moteur de focus ---------- */
+const H = new Map();
+function reg(el, h) { H.set(el, h); el.setAttribute("data-f", ""); }
+const focusables = () => $$("[data-f]").filter(el => el.getClientRects().length);
+const legendEl = $(".legend");
+function ensureVisible(el) {
+  const r = el.getBoundingClientRect();
+  const top = 16, bottom = window.innerHeight - legendEl.offsetHeight - 16;
+  let dy = 0;
+  if (r.top < top) dy = r.top - top - 24;
+  else if (r.bottom > bottom) dy = r.bottom - bottom + 24;
+  if (dy) window.scrollBy({ top: dy, behavior: reduce ? "auto" : "smooth" });
+}
+function focusEl(el) { el.focus({ preventScroll: true }); ensureVisible(el); }
+function spatial(dir) {
+  const cur = document.activeElement;
+  const list = focusables();
+  if (!list.length) return;
+  if (!cur || cur === document.body || cur === root) { focusEl(list[0]); return; }
+  const a = cur.getBoundingClientRect();
+  const acx = a.left + a.width / 2, acy = a.top + a.height / 2;
+  let best = null, bs = Infinity;
+  for (const el of list) {
+    if (el === cur || el.contains(cur)) continue;
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    let primary, gap, off;
+    if (dir === "down" || dir === "up") {
+      if (dir === "down" ? cy <= acy + 2 : cy >= acy - 2) continue;
+      primary = dir === "down" ? r.top - a.bottom : a.top - r.bottom;
+      gap = Math.max(0, r.left - a.right, a.left - r.right);
+      off = Math.abs(cx - acx);
+    } else {
+      if (dir === "right" ? cx <= acx + 2 : cx >= acx - 2) continue;
+      primary = dir === "right" ? r.left - a.right : a.left - r.right;
+      gap = Math.max(0, r.top - a.bottom, a.top - r.bottom);
+      off = Math.abs(cy - acy);
+    }
+    const score = Math.max(primary, -40) + gap * 4 + off * 0.2;
+    if (score < bs) { bs = score; best = el; }
+  }
+  if (best) focusEl(best);
+}
+
+let modal = null;
+let aTarget = null;
+function nav(dir, repeat) {
+  if (modal) return;
+  const el = document.activeElement;
+  const h = H.get(el);
+  if (h && h[dir] && h[dir](repeat) !== false) return;
+  spatial(dir);
+}
+function press(phase) {
+  if (modal) return;
+  if (phase === "down") {
+    const el = document.activeElement;
+    const h = H.get(el);
+    if (!h) {
+      if (!el || el === document.body || el === root) { const l = focusables(); if (l[0]) focusEl(l[0]); }
+      return;
+    }
+    aTarget = el;
+    if (h.adown) h.adown();
+  } else {
+    const el = aTarget; aTarget = null;
+    if (!el) return;
+    const h = H.get(el);
+    if (h && h.aup) h.aup();
+  }
+}
+let back = () => {};
+
+window.addEventListener("keydown", (e) => {
+  if (e.altKey || e.ctrlKey || e.metaKey) return;
+  const dirs = { ArrowUp: "up", ArrowDown: "down", ArrowLeft: "left", ArrowRight: "right" };
+  const el = document.activeElement;
+  if (dirs[e.key]) { e.preventDefault(); nav(dirs[e.key], e.repeat); return; }
+  if (e.key === "Enter" || e.key === " ") {
+    if (modal) { e.preventDefault(); return; }
+    if (H.has(el)) { e.preventDefault(); if (!e.repeat) press("down"); }
+    else if (!el || el === document.body || el === root) { e.preventDefault(); press("down"); }
+    return;
+  }
+  if (e.key === "Escape" || e.key === "Backspace") { e.preventDefault(); back(); }
+});
+window.addEventListener("keyup", (e) => {
+  if ((e.key === "Enter" || e.key === " ") && aTarget) { e.preventDefault(); press("up"); }
+});
+
+/* ---------- Carrousel ---------- */
+const GAMES = [
+  { n: "Low Orbit",   a: "#5E7391", b: "#18202C", s: "Dernière session · hier · 1 h 52" },
+  { n: "Drift Line",  a: "#9A7352", b: "#28190E", s: "Dernière session · lundi · 48 min" },
+  { n: "Hollow Peak", a: "#73856C", b: "#151C14", s: "Jamais lancé" },
+  { n: "Signal 9",    a: "#86668A", b: "#1E1622", s: "Dernière session · 3 oct. · 2 h 10" },
+  { n: "Paper Kings", a: "#A69A84", b: "#27231D", s: "Coop locale · 2 joueurs" },
+  { n: "Salt Flats",  a: "#B4A27E", b: "#2B2619", s: "Dernière session · 28 sept." },
+  { n: "Iron Choir",  a: "#6E7380", b: "#16181D", s: "Mise à jour disponible sur l'hôte" },
+  { n: "Ember Run",   a: "#C07A45", b: "#2A1407", s: "Dernière session · aujourd'hui · 22 min" }
+];
+const car = $("#car"), track = $("#carTrack"), ring = $("#carRing");
+const carTitle = $("#carTitle"), carSub = $("#carSub"), carStage = $("#carStage"), launchEl = $("#launch");
+GAMES.forEach((g, i) => {
+  const t = document.createElement("div");
+  t.className = "tile";
+  t.id = "game-" + i;
+  t.setAttribute("role", "option");
+  t.style.setProperty("--a", g.a);
+  t.style.setProperty("--b", g.b);
+  t.innerHTML = '<span class="tile-mark">' + g.n[0] + '</span><span class="tile-name">' + g.n + "</span>";
+  track.insertBefore(t, ring);
+});
+const tiles = $$(".tile", track);
+let ci = 0, sx = 0;
+
+function carLayout() {
+  const t = tiles[ci];
+  const tw = t.offsetWidth, th = t.offsetHeight;
+  const rw = tw * 1.08 + 12, rh = th * 1.08 + 12;
+  ring.style.width = rw + "px";
+  ring.style.height = rh + "px";
+  ring.style.top = (t.offsetTop + th / 2 - rh / 2) + "px";
+  ring.style.setProperty("--rx", (t.offsetLeft + tw / 2 - rw / 2) + "px");
+  const vw = car.clientWidth, full = track.offsetWidth, m = 44;
+  if (t.offsetLeft - sx < m) sx = t.offsetLeft - m;
+  if (t.offsetLeft + tw - sx > vw - m) sx = t.offsetLeft + tw - vw + m;
+  sx = clamp(sx, 0, Math.max(0, full - vw));
+  track.style.transform = "translateX(" + (-sx) + "px)";
+}
+function carInstant() {
+  car.classList.add("no-anim");
+  carLayout();
+  void car.offsetWidth;
+  car.classList.remove("no-anim");
+}
+let sheenT;
+function scheduleSheen() {
+  clearTimeout(sheenT);
+  tiles.forEach(t => t.classList.remove("sheen"));
+  if (reduce) return;
+  sheenT = setTimeout(() => { if (car.classList.contains("is-active")) tiles[ci].classList.add("sheen"); }, 520);
+}
+function setTile(i) {
+  const prev = ci;
+  ci = clamp(i, 0, tiles.length - 1);
+  if (ci === prev) return;
+  tiles.forEach((t, k) => { t.classList.toggle("cur", k === ci); t.setAttribute("aria-selected", String(k === ci)); t.classList.remove("tap"); });
+  car.setAttribute("aria-activedescendant", tiles[ci].id);
+  carLayout();
+  const dir = ci > prev ? 1 : -1;
+  swapText(carTitle, GAMES[ci].n, { axis: "x", dir });
+  swapText(carSub, GAMES[ci].s, { axis: "x", dir, delay: 30 });
+  scheduleSheen();
+}
+tiles[0].classList.add("cur");
+tiles.forEach((t, k) => t.setAttribute("aria-selected", String(k === 0)));
+car.setAttribute("aria-activedescendant", tiles[0].id);
+
+car.addEventListener("focus", () => { car.classList.add("is-active"); scheduleSheen(); });
+car.addEventListener("blur", () => { car.classList.remove("is-active"); tiles.forEach(t => t.classList.remove("sheen", "tap")); });
+let tileWasActive = false;
+tiles.forEach((t, k) => {
+  t.addEventListener("pointerdown", (e) => {
+    if (e.button !== 0) return;
+    tileWasActive = car.classList.contains("is-active");
+    if (k === ci && tileWasActive) t.classList.add("tap");
+  });
+  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => t.addEventListener(ev, () => t.classList.remove("tap")));
+  t.addEventListener("click", () => {
+    if (modal) return;
+    if (k !== ci) setTile(k);
+    else if (tileWasActive) launch();
+  });
+});
+reg(car, {
+  left: () => { if (ci === 0) return false; setTile(ci - 1); },
+  right: () => { if (ci === tiles.length - 1) return false; setTile(ci + 1); },
+  adown: () => tiles[ci].classList.add("tap"),
+  aup: () => { tiles[ci].classList.remove("tap"); launch(); }
+});
+
+let lnTimers = [];
+function insetFor(t) {
+  const s = carStage.getBoundingClientRect(), r = t.getBoundingClientRect();
+  return "inset(" + (r.top - s.top) + "px " + (s.right - r.right) + "px " + (s.bottom - r.bottom) + "px " + (r.left - s.left) + "px round 12px)";
+}
+const FULL = "inset(0px 0px 0px 0px round 15px)";
+function launch() {
+  if (modal) return;
+  const g = GAMES[ci], t = tiles[ci];
+  launchEl.style.setProperty("--a", g.a);
+  launchEl.style.setProperty("--b", g.b);
+  $("#lnName").textContent = g.n;
+  const st = $("#lnSt");
+  st.innerHTML = "<span>Connexion à PC-SALON…</span>";
+  launchEl.hidden = false;
+  const inner = $(".launch-in", launchEl);
+  launchEl.animate([{ clipPath: insetFor(t) }, { clipPath: FULL }], { duration: reduce ? 1 : EASE.gentle.d + 80, easing: EASE.gentle.e, fill: "forwards" });
+  inner.animate([{ opacity: 0, transform: "scale(.96)" }, { opacity: 1, transform: "none" }], { duration: reduce ? 1 : 360, delay: reduce ? 0 : 180, easing: EASE_OUT, fill: "both" });
+  modal = { b: closeLaunch };
+  lnTimers.push(setTimeout(() => swapText(st, "Flux prêt · 1440p · 120 i/s"), 1500));
+  lnTimers.push(setTimeout(closeLaunch, 2600));
+}
+let closing = false;
+function closeLaunch() {
+  if (!modal || closing) return;
+  closing = true;
+  lnTimers.forEach(clearTimeout);
+  lnTimers = [];
+  const inner = $(".launch-in", launchEl);
+  inner.animate([{ opacity: 1 }, { opacity: 0 }], { duration: reduce ? 1 : 140, easing: EASE_OUT, fill: "forwards" });
+  const a = launchEl.animate([{ clipPath: FULL }, { clipPath: insetFor(tiles[ci]) }], { duration: reduce ? 1 : 420, delay: reduce ? 0 : 90, easing: "cubic-bezier(.32,.72,0,1)", fill: "forwards" });
+  a.onfinish = () => {
+    launchEl.hidden = true;
+    launchEl.getAnimations().forEach(x => x.cancel());
+    inner.getAnimations().forEach(x => x.cancel());
+    modal = null;
+    closing = false;
+    car.focus({ preventScroll: true });
+  };
+}
+
+/* ---------- Boutons ---------- */
+function pressable(el, onRelease) {
+  const up = () => el.classList.remove("pressed");
+  el.addEventListener("pointerdown", (e) => { if (e.button === 0) el.classList.add("pressed"); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => el.addEventListener(ev, up));
+  el.addEventListener("click", (e) => { if (e.detail === 0) return; if (onRelease) onRelease(); });
+  reg(el, { adown: () => el.classList.add("pressed"), aup: () => { up(); if (onRelease) onRelease(); } });
+}
+const primLbl = $("#btnPrimaryLbl");
+let primT;
+pressable($("#btnPrimary"), () => {
+  swapText(primLbl, "Reprise…", { dir: 1 });
+  clearTimeout(primT);
+  primT = setTimeout(() => swapText(primLbl, "Reprendre la partie", { dir: -1 }), 1300);
+});
+
+const hold = $("#btnHold"), holdFill = $("#holdFill");
+const HOLD_MS = 900;
+let hp = 0, hTarget = 0, hLast = 0, hRun = false, hDone = false;
+function hSet(p) { const d = Math.pow(p, 1.4); holdFill.style.clipPath = "inset(0 " + (100 - d * 100).toFixed(2) + "% 0 0)"; }
+function hLoop(t) {
+  const dt = hLast ? Math.min(48, t - hLast) : 16;
+  hLast = t;
+  hp = hTarget ? Math.min(1, hp + dt / HOLD_MS) : Math.max(0, hp - dt / 280);
+  hSet(hp);
+  if (hTarget && hp >= 1) { hRun = false; hLast = 0; holdComplete(); return; }
+  if (!hTarget && hp <= 0) { hRun = false; hLast = 0; return; }
+  requestAnimationFrame(hLoop);
+}
+function hKick() { if (!hRun) { hRun = true; hLast = 0; requestAnimationFrame(hLoop); } }
+function holdStart() { if (hDone) return; hTarget = 1; hold.classList.add("pressed"); hKick(); }
+function holdEnd() { hold.classList.remove("pressed"); if (hDone) return; if (hTarget) { hTarget = 0; hKick(); } }
+function holdComplete() {
+  hDone = true;
+  hTarget = 0;
+  hold.classList.remove("pressed");
+  hold.classList.add("done");
+  if (!reduce) hold.animate([{ transform: "scale(1)" }, { transform: "scale(1.035)" }, { transform: "scale(1)" }], { duration: EASE.bouncy.d, easing: EASE_OUT });
+  setTimeout(() => {
+    const a = holdFill.animate([{ opacity: 1 }, { opacity: 0 }], { duration: reduce ? 1 : 260, easing: EASE_OUT });
+    a.onfinish = () => { hold.classList.remove("done"); hp = 0; hSet(0); hDone = false; };
+  }, 1700);
+}
+hold.addEventListener("pointerdown", (e) => { if (e.button === 0) holdStart(); });
+["pointerup", "pointerleave", "pointercancel"].forEach(ev => hold.addEventListener(ev, holdEnd));
+hold.addEventListener("contextmenu", (e) => e.preventDefault());
+reg(hold, { adown: holdStart, aup: holdEnd });
+
+/* ---------- Interrupteurs ---------- */
+$$('.row[role="switch"]').forEach(row => {
+  const get = () => row.getAttribute("aria-checked") === "true";
+  const set = (v) => row.setAttribute("aria-checked", String(v));
+  const thumb = $(".sw-thumb", row);
+  const bump = (dir) => { if (!reduce) thumb.animate([{ translate: "0 0" }, { translate: (dir * 3) + "px 0" }, { translate: "0 0" }], { duration: 260, easing: EASE_OUT }); };
+  const flick = (v) => {
+    if (get() === v) { bump(v ? 1 : -1); return; }
+    row.classList.add("pressed");
+    setTimeout(() => { set(v); row.classList.remove("pressed"); }, reduce ? 0 : 90);
+  };
+  row.addEventListener("pointerdown", (e) => { if (e.button === 0) row.classList.add("pressed"); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => row.addEventListener(ev, () => row.classList.remove("pressed")));
+  row.addEventListener("click", (e) => { if (e.detail === 0) return; set(!get()); });
+  reg(row, {
+    adown: () => row.classList.add("pressed"),
+    aup: () => { row.classList.remove("pressed"); set(!get()); },
+    left: () => { flick(false); },
+    right: () => { flick(true); }
+  });
+});
+
+/* ---------- Curseur de débit ---------- */
+const sl = $("#slider"), slTrack = $("#slTrack"), slPreset = $("#slPreset"), odo = $("#odo");
+const S = { min: 5, max: 150, v: 20, rep: 0, holdUntil: 0 };
+const PRESETS = [10, 20, 40, 80];
+const pct = v => (v - S.min) / (S.max - S.min);
+const band = v => v < 10 ? "Réseau faible · 720p conseillé" : v < 20 ? "≈ 720p · 60 i/s" : v < 40 ? "≈ 1080p · 60 i/s" : v < 80 ? "≈ 1440p · 60 i/s" : "≈ 4K · 60 i/s";
+const ticks = [];
+for (let v = S.min; v <= S.max; v += 5) {
+  const t = document.createElement("i");
+  t.className = "tk" + (PRESETS.includes(v) ? " major" : "");
+  t.style.left = (pct(v) * 100) + "%";
+  t.dataset.v = v;
+  $("#slTicks").appendChild(t);
+  ticks.push(t);
+}
+[5, 20, 40, 80, 150].forEach(v => {
+  const s = document.createElement("span");
+  s.textContent = v;
+  s.style.left = (pct(v) * 100) + "%";
+  $("#slScale").appendChild(s);
+});
+const odoCols = $$(".odo-col", odo).map(col => {
+  const reel = document.createElement("span");
+  reel.className = "odo-reel";
+  for (let d = 0; d < 10; d++) { const s = document.createElement("span"); s.textContent = d; reel.appendChild(s); }
+  col.appendChild(reel);
+  return { col, reel };
+});
+function setOdo(v) {
+  const ds = String(v).padStart(3, "0").split("").map(Number);
+  odoCols.forEach((o, i) => { o.reel.style.transform = "translateY(" + (-ds[i]) + "em)"; });
+  odoCols[0].col.classList.toggle("lead", v < 100);
+  odoCols[1].col.classList.toggle("lead", v < 10);
+}
+function slRender(v) {
+  const prev = S.v;
+  S.v = v;
+  sl.style.setProperty("--p", pct(v).toFixed(4));
+  sl.setAttribute("aria-valuenow", v);
+  sl.setAttribute("aria-valuetext", v + " Mbps");
+  setOdo(v);
+  ticks.forEach(t => t.classList.toggle("on", +t.dataset.v <= v));
+  if (band(v) !== band(prev)) swapText(slPreset, band(v), { dir: v > prev ? 1 : -1 });
+  for (const P of PRESETS) {
+    if ((prev < P && v >= P) || (prev > P && v <= P)) {
+      const t = ticks.find(x => +x.dataset.v === P);
+      t.classList.remove("pulse"); void t.offsetWidth; t.classList.add("pulse");
+    }
+  }
+}
+let rbT;
+function rubber(dir) {
+  const cur = parseFloat(slTrack.style.getPropertyValue("--rb")) || 0;
+  const next = dir * Math.min(Math.abs(cur) + 5, 16);
+  slTrack.classList.add("rb-live");
+  slTrack.style.setProperty("--rb", next + "px");
+  clearTimeout(rbT);
+  rbT = setTimeout(() => { slTrack.classList.remove("rb-live"); slTrack.style.setProperty("--rb", "0px"); }, 130);
+}
+function slStep(dir, repeat) {
+  const now = performance.now();
+  S.rep = repeat ? S.rep + 1 : 0;
+  if (now < S.holdUntil) return;
+  if ((dir > 0 && S.v >= S.max) || (dir < 0 && S.v <= S.min)) { rubber(dir); return; }
+  const step = S.rep < 5 ? 1 : S.rep < 14 ? 2 : 5;
+  let nv = clamp(S.v + dir * step, S.min, S.max);
+  if (repeat) {
+    for (const P of PRESETS) {
+      if ((dir > 0 && S.v < P && nv >= P) || (dir < 0 && S.v > P && nv <= P)) { nv = P; S.holdUntil = now + 260; S.rep = 0; break; }
+    }
+  }
+  slRender(nv);
+}
+reg(sl, { left: (r) => { slStep(-1, r); }, right: (r) => { slStep(1, r); } });
+let dragging = false;
+function fromPointer(e) {
+  const r = slTrack.getBoundingClientRect();
+  const x = e.clientX - r.left;
+  const over = x < 0 ? x : x > r.width ? x - r.width : 0;
+  const rb = Math.sign(over) * 18 * (1 - 1 / (Math.abs(over) / 60 + 1));
+  slTrack.style.setProperty("--rb", rb.toFixed(2) + "px");
+  let v = S.min + clamp(x / r.width, 0, 1) * (S.max - S.min);
+  for (const P of PRESETS) if (Math.abs(v - P) < 1.6) v = P;
+  v = Math.round(v);
+  if (v !== S.v) slRender(v);
+}
+slTrack.addEventListener("pointerdown", (e) => {
+  if (e.button !== 0) return;
+  dragging = true;
+  try { slTrack.setPointerCapture(e.pointerId); } catch (err) {}
+  sl.focus({ preventScroll: true });
+  fromPointer(e);
+});
+slTrack.addEventListener("pointermove", (e) => { if (!dragging) return; sl.classList.add("drag"); fromPointer(e); });
+const endDrag = () => { if (!dragging) return; dragging = false; sl.classList.remove("drag"); slTrack.style.setProperty("--rb", "0px"); };
+slTrack.addEventListener("pointerup", endDrag);
+slTrack.addEventListener("pointercancel", endDrag);
+sl.classList.add("no-anim");
+S.v = 0;
+slRender(20);
+ticks.forEach(t => t.classList.remove("pulse"));
+requestAnimationFrame(() => requestAnimationFrame(() => { sl.classList.remove("no-anim"); odo.classList.remove("no-anim"); }));
+
+/* ---------- Sélecteur segmenté ---------- */
+const seg = $("#seg"), pill = $("#segPill"), segOpts = $$(".seg-opt", seg), segStats = $$("dd", $("#segStats"));
+const PROFILES = [
+  ["off", "120", "60 Mbps", "latence"],
+  ["auto", "90", "40 Mbps", "équilibre"],
+  ["FSR 1.0", "60", "25 Mbps", "image"]
+];
+let si = 1;
+function placePill(i, dir) {
+  const o = segOpts[i];
+  const L = o.offsetLeft, R = seg.clientWidth - o.offsetLeft - o.offsetWidth;
+  if (!dir) {
+    pill.style.transition = "none";
+    pill.style.left = L + "px";
+    pill.style.right = R + "px";
+    void pill.offsetWidth;
+    pill.style.transition = "";
+    return;
+  }
+  const lead = EASE.snappy.d + "ms " + EASE.snappy.e;
+  const trail = (reduce ? 160 : 420) + "ms " + EASE_OUT + " " + (reduce ? 0 : 40) + "ms";
+  pill.style.transition = dir > 0 ? "right " + lead + ", left " + trail : "left " + lead + ", right " + trail;
+  pill.style.left = L + "px";
+  pill.style.right = R + "px";
+}
+function segSelect(i) {
+  i = clamp(i, 0, segOpts.length - 1);
+  if (i === si) return;
+  const dir = i > si ? 1 : -1;
+  placePill(i, dir);
+  si = i;
+  segOpts.forEach((o, k) => o.setAttribute("aria-checked", String(k === i)));
+  segStats.forEach((dd, k) => swapText(dd, PROFILES[i][k], { dir, delay: k * 45 }));
+}
+segOpts.forEach((o, k) => o.addEventListener("click", () => segSelect(k)));
+reg(seg, {
+  left: () => { if (si === 0) return false; segSelect(si - 1); },
+  right: () => { if (si === segOpts.length - 1) return false; segSelect(si + 1); }
+});
+
+/* ---------- Liste radio et refus ---------- */
+const opts = $$(".opt"), hint = $("#optHint");
+let hintT;
+function choose(o) {
+  if (o.hasAttribute("data-locked")) {
+    if (!reduce) o.animate([{ translate: "0 0" }, { translate: "-9px 0" }, { translate: "8px 0" }, { translate: "-5px 0" }, { translate: "3px 0" }, { translate: "-1px 0" }, { translate: "0 0" }], { duration: 440, easing: "ease-out" });
+    hint.classList.add("open");
+    clearTimeout(hintT);
+    hintT = setTimeout(() => hint.classList.remove("open"), 3000);
+    return;
+  }
+  opts.forEach(x => { if (!x.hasAttribute("data-locked")) x.setAttribute("aria-checked", String(x === o)); });
+}
+opts.forEach(o => {
+  o.addEventListener("pointerdown", (e) => { if (e.button === 0) o.classList.add("pressed"); });
+  ["pointerup", "pointerleave", "pointercancel"].forEach(ev => o.addEventListener(ev, () => o.classList.remove("pressed")));
+  o.addEventListener("click", (e) => { if (e.detail === 0) return; choose(o); });
+  reg(o, { adown: () => o.classList.add("pressed"), aup: () => { o.classList.remove("pressed"); choose(o); } });
+});
+
+/* ---------- Île de notification ---------- */
+const islStage = $("#islStage"), isl = $("#isl"), islBody = $("#islBody");
+const ICON = {
+  pad: '<svg viewBox="0 0 24 24"><path d="M7.5 8.5h9a4.5 4.5 0 0 1 4.4 5.5l-.7 3.1a2 2 0 0 1-3.4 1l-2.3-2.6h-5l-2.3 2.6a2 2 0 0 1-3.4-1l-.7-3.1a4.5 4.5 0 0 1 4.4-5.5z"/><path d="M8 11.5v3M6.5 13h3"/><path d="M15.5 12h.01M17.5 14h.01"/></svg>',
+  rate: '<svg viewBox="0 0 24 24"><path d="M5 18v-3M10 18v-6M15 18v-9M20 18V6"/></svg>',
+  cap: '<svg viewBox="0 0 24 24"><rect x="3.5" y="7" width="17" height="12" rx="3"/><path d="M9 7l1.2-2h3.6L15 7"/><circle cx="12" cy="13" r="3"/></svg>'
+};
+const NOTIFS = {
+  pad:  { icon: "pad",  t: "Manette 2 connectée", s: "Bluetooth · joueur 2", r: "82 %" },
+  rate: { icon: "rate", t: "Débit ajusté", s: "Réseau instable · profil Auto", r: "rate", acc: true },
+  cap:  { icon: "cap",  t: "Capture enregistrée", s: "Low Orbit · 30 dernières s", r: "thumb" }
+};
+let islOpen = false, islT, islSeq = 0, rateT, rateDelay;
+function sizeIsland() { islStage.style.setProperty("--isl-w", Math.min(340, islStage.clientWidth - 28) + "px"); }
+const fadeOut = el => el.animate([{ opacity: 1, filter: "blur(0px)" }, { opacity: 0, filter: "blur(4px)" }], { duration: reduce ? 1 : 120, easing: EASE_OUT, fill: "forwards" });
+function countDown() {
+  clearInterval(rateT); clearTimeout(rateDelay);
+  rateDelay = setTimeout(() => {
+    const el = $("#rateTo");
+    if (!el) return;
+    let v = 45;
+    rateT = setInterval(() => { v -= 1; el.textContent = v; if (v <= 30) clearInterval(rateT); }, reduce ? 1 : 28);
+  }, reduce ? 0 : 320);
+}
+function notify(key) {
+  const n = NOTIFS[key];
+  const seq = ++islSeq;
+  const right = n.r === "rate" ? '<div class="isl-r mono"><span class="from">45 →</span> <span id="rateTo">45</span></div>'
+    : n.r === "thumb" ? '<div class="isl-thumb"></div>'
+    : '<div class="isl-r mono">' + n.r + "</div>";
+  const html = '<div class="isl-ico' + (n.acc ? " acc" : "") + '">' + ICON[n.icon] + '</div><div class="isl-txt"><div class="isl-t">' + n.t + '</div><div class="isl-s mono">' + n.s + "</div></div>" + right;
+  const fill = () => {
+    if (seq !== islSeq) return;
+    islBody.innerHTML = html;
+    Array.from(islBody.children).forEach((c, i) => c.animate(
+      [{ opacity: 0, transform: "translateY(6px) scale(.96)", filter: "blur(4px)" }, { opacity: 1, transform: "none", filter: "blur(0px)" }],
+      { duration: reduce ? 1 : 340, delay: reduce ? 0 : 110 + i * 45, easing: EASE_OUT, fill: "both" }));
+    if (n.r === "rate") countDown(); else { clearInterval(rateT); clearTimeout(rateDelay); }
+  };
+  if (islOpen && islBody.children.length) {
+    Array.from(islBody.children).forEach(fadeOut);
+    setTimeout(fill, reduce ? 0 : 100);
+    if (!reduce) isl.animate([{ scale: "1" }, { scale: "1.025" }, { scale: "1" }], { duration: 360, easing: EASE_OUT });
+  } else {
+    fill();
+  }
+  islOpen = true;
+  isl.classList.add("open");
+  clearTimeout(islT);
+  islT = setTimeout(closeIsland, 2800);
+}
+function closeIsland() {
+  if (!islOpen) return;
+  islOpen = false;
+  const seq = ++islSeq;
+  clearTimeout(islT); clearInterval(rateT); clearTimeout(rateDelay);
+  Array.from(islBody.children).forEach(fadeOut);
+  setTimeout(() => { if (seq !== islSeq) return; isl.classList.remove("open"); islBody.innerHTML = ""; }, reduce ? 0 : 110);
+}
+$$(".chip").forEach(ch => pressable(ch, () => notify(ch.dataset.n)));
+setInterval(() => { $("#islPing").textContent = (9 + Math.floor(Math.random() * 6)) + " ms"; }, 2200);
+const clk = $("#clock");
+const clockTick = () => { const d = new Date(); clk.textContent = String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0"); };
+clockTick();
+setInterval(clockTick, 20000);
+
+/* ---------- Retour (B) ---------- */
+back = () => {
+  if (modal && modal.b) { modal.b(); return; }
+  if (islOpen) closeIsland();
+};
+window.addEventListener("blur", () => {
+  aTarget = null;
+  $$(".pressed").forEach(x => x.classList.remove("pressed"));
+  holdEnd();
+});
+
+/* ---------- Manette (Gamepad API) ---------- */
+const padChip = $("#padState"), padTxt = $("#padTxt");
+const P = { held: {}, next: {}, A: false, B: false, last: null, ok: true };
+function setPadChip(on) {
+  if (P.last === on) return;
+  P.last = on;
+  padChip.classList.toggle("on", on);
+  padTxt.textContent = on ? "Manette détectée" : "Aucune manette";
+}
+function poll() {
+  if (!P.ok) return;
+  let gp = null;
+  try {
+    const list = navigator.getGamepads ? navigator.getGamepads() : [];
+    for (const g of list) if (g && g.connected) { gp = g; break; }
+  } catch (e) {
+    P.ok = false;
+    padTxt.textContent = "Manette indisponible ici";
+    return;
+  }
+  setPadChip(!!gp);
+  if (gp) {
+    const now = performance.now();
+    const b = i => !!(gp.buttons[i] && gp.buttons[i].pressed);
+    const ax = gp.axes[0] || 0, ay = gp.axes[1] || 0;
+    const want = { up: b(12) || ay < -0.6, down: b(13) || ay > 0.6, left: b(14) || ax < -0.6, right: b(15) || ax > 0.6 };
+    for (const d in want) {
+      if (want[d]) {
+        if (!P.held[d]) { P.held[d] = true; P.next[d] = now + 360; nav(d, false); }
+        else if (now >= P.next[d]) { P.next[d] = now + 70; nav(d, true); }
+      } else {
+        P.held[d] = false;
+      }
+    }
+    const A = b(0), B = b(1);
+    if (A && !P.A) press("down");
+    if (!A && P.A) press("up");
+    if (B && !P.B) back();
+    P.A = A; P.B = B;
+  }
+  requestAnimationFrame(poll);
+}
+requestAnimationFrame(poll);
+
+/* ---------- Mise en place et redimensionnement ---------- */
+function layoutAll() { carInstant(); placePill(si, 0); sizeIsland(); }
+layoutAll();
+if (window.ResizeObserver) {
+  const ro = new ResizeObserver(() => layoutAll());
+  ro.observe(car); ro.observe(seg); ro.observe(islStage);
+} else {
+  window.addEventListener("resize", layoutAll);
+}
+if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => placePill(si, 0));
+})();
+</script>

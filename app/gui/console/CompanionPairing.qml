@@ -62,8 +62,7 @@ MessageScreen {
     Keys.onRightPressed: moveTo(active + 1)
     Keys.onUpPressed: { setDigit(active, digits[active] + 1); Sounds.play("tick") }
     Keys.onDownPressed: { setDigit(active, digits[active] - 1); Sounds.play("tick") }
-    Keys.onReturnPressed: submit()
-    Keys.onEnterPressed: submit()
+    onActivated: submit()
     Keys.onPressed: function(event) {
         if (event.key >= Qt.Key_0 && event.key <= Qt.Key_9) {
             setDigit(active, event.key - Qt.Key_0)

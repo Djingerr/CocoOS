@@ -28,6 +28,10 @@ FocusScope {
     Behavior on accentColor { ColorAnimation { duration: Theme.ambientFade } }
     signal launchRequested(int index)
     signal detailsRequested()
+    // A enfoncé : le bouton Jouer s'écrase (cf. Pressable). Le jeu part au relâché, et
+    // seulement si l'appui a eu lieu ici : le relâché d'un A qui a fermé un panneau
+    // ne lance rien.
+    property bool pressing: false
 
     // Vignette de repli : une teinte stable par jeu, tirée de son nom.
     function hue(name) {
@@ -91,13 +95,19 @@ FocusScope {
         onTriggered: function(key) { root.move(key === Qt.Key_Left ? -1 : 1) }
     }
     Keys.onPressed: function(event) { pad.press(event) }
-    Keys.onReleased: function(event) { pad.release(event) }
+    Keys.onReleased: function(event) {
+        pad.release(event)
+        if (pressing && !event.isAutoRepeat && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) {
+            root.launchRequested(currentIndex)   // (d'abord : un lancement garde le bouton enfoncé)
+            pressing = false
+        }
+    }
     // Rien au-dessus ni en dessous de l'étagère : haut / bas butent.
     Keys.onUpPressed: Sounds.play("edge")
     Keys.onDownPressed: root.detailsRequested()      // la fiche du jeu (ou une butée)
-    Keys.onReturnPressed: root.launchRequested(currentIndex)
-    Keys.onEnterPressed: root.launchRequested(currentIndex)
-    onActiveFocusChanged: if (!activeFocus) pad.stop()
+    Keys.onReturnPressed: function(event) { if (!event.isAutoRepeat) pressing = true }
+    Keys.onEnterPressed: function(event) { if (!event.isAutoRepeat) pressing = true }
+    onActiveFocusChanged: if (!activeFocus) { pad.stop(); pressing = false }
 
     // Masque commun à toutes les vignettes (rectangle arrondi).
     Rectangle {

@@ -469,6 +469,26 @@ Item {
             compare(screen.currentIndex, 1)               // la manette est revenue à l'étagère
         }
 
+        // Les panneaux valident au relâché de A, et seulement après un appui fait chez
+        // eux : le relâché qui a ouvert la confirmation ne la valide pas.
+        function test_9i_panelsActOnRelease() {
+            SystemStatus.lastPower = ""
+            InputStatus.homePressed()
+            var menu = dialog("Menu")
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down)
+            keyPress(Qt.Key_Return)
+            verify(menu.opened && menu.pressing)          // rien à l'appui
+            keyRelease(Qt.Key_Return)
+            var confirm = dialog("Éteindre la console ?")
+            verify(confirm && !confirm.pressing)
+            keyClick(Qt.Key_Down)
+            keyRelease(Qt.Key_Return)                     // relâché sans appui : rien
+            verify(confirm.opened)
+            compare(SystemStatus.lastPower, "")
+            keyClick(Qt.Key_Escape)
+            verify(!dialog("Éteindre la console ?"))
+        }
+
         // Quitté par le menu en jeu : « Quitter » ferme le jeu sur le PC, « Retour à
         // l'accueil » ne fait rien de plus, une action d'alimentation part aussitôt
         // (déjà confirmée dans le menu).

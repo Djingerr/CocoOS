@@ -35,6 +35,9 @@ FocusScope {
     property int current: 0              // ligne en focus ; rows.length = « Oublier ce PC »
     property bool confirming: false      // « Oublier ce PC » attend sa confirmation
     property int direction: 1            // sens du dernier changement de valeur
+    // A enfoncé : la ligne d'action en focus s'écrase (Pressable) ; A agit au relâché.
+    property bool pressing: false
+    readonly property bool pressingAction: pressing && (current >= rows.length || rows[current].action === true)
     readonly property bool forgettable: tab === 0 && hostName !== ""
     readonly property int lineCount: rows.length + (forgettable ? 1 : 0)
     // 0 = fermé, 1 = ouvert ; le panneau et le voile en découlent.
@@ -47,6 +50,7 @@ FocusScope {
         tab = 0
         current = 0
         confirming = false
+        pressing = false
         opened = true
         forceActiveFocus()
         Sounds.play("open")
@@ -56,6 +60,7 @@ FocusScope {
         pad.stop()
         opened = false
         confirming = false
+        pressing = false
         Sounds.play("close")
         closed()
     }
@@ -67,6 +72,7 @@ FocusScope {
             return
         }
         confirming = false
+        pressing = false
         current = next
         Sounds.play("move")
     }
@@ -80,6 +86,7 @@ FocusScope {
         tab = next
         current = 0
         confirming = false
+        pressing = false
         Sounds.play("move")
     }
     // Gauche / droite : valeur voisine, bute aux extrémités. A : valeur suivante, en boucle.
@@ -138,7 +145,7 @@ FocusScope {
             break
         case Qt.Key_Return:
         case Qt.Key_Enter:
-            activate()
+            pressing = true
             break
         case Qt.Key_PageUp:          // L1 / R1 au clavier
         case Qt.Key_PageDown:
@@ -146,8 +153,14 @@ FocusScope {
             break
         }
     }
-    Keys.onReleased: function(event) { pad.release(event) }
-    onActiveFocusChanged: if (!activeFocus) pad.stop()
+    Keys.onReleased: function(event) {
+        pad.release(event)
+        if (pressing && !event.isAutoRepeat && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) {
+            pressing = false
+            activate()
+        }
+    }
+    onActiveFocusChanged: if (!activeFocus) { pad.stop(); pressing = false }
 
     // Pointe de chevron (‹ ou ›) : deux traits arrondis qui partent de la pointe.
     // Tracé de l'icône 16 × 16 du prototype, rendue à 14 px au centre de sa case.
@@ -282,30 +295,33 @@ FocusScope {
             y: (tabStrip.visible ? tabStrip.y + tabStrip.height : host.y + host.height) + Theme.sheetRowsTop
             width: panel.width - 2 * Theme.sheetPadSide
 
-            Rectangle {
+            Pressable {
                 x: -Theme.sheetFocusOutset
                 y: root.current * Theme.sheetRowHeight
                 width: parent.width + 2 * Theme.sheetFocusOutset
                 height: Theme.sheetRowHeight
-                radius: Theme.sheetFocusRadius
-                color: Theme.sheetFocusFill
+                down: root.pressingAction
+                downScale: Theme.pressRowScale
                 Behavior on y {
                     enabled: root.opened
                     NumberAnimation { duration: Theme.sheetFocusMove; easing.type: Theme.easeOut }
                 }
+                Rectangle { anchors.fill: parent; radius: Theme.sheetFocusRadius; color: Theme.sheetFocusFill }
             }
 
             // Un délégué par ligne, conservé quand `rows` est remplacé : c'est ce qui
             // permet à la valeur de glisser de l'ancienne à la nouvelle.
             Repeater {
                 model: root.rows.length
-                Item {
+                Pressable {
                     id: line
                     required property int index
                     readonly property var row: root.rows[index] || ({ label: "", options: [""], index: 0 })
                     readonly property bool focused: root.current === index
                     readonly property color ink: focused ? Theme.ink : Theme.ink2
 
+                    down: root.pressingAction && focused
+                    downScale: Theme.pressRowScale
                     y: index * Theme.sheetRowHeight
                     width: list.width; height: Theme.sheetRowHeight
 
@@ -380,8 +396,10 @@ FocusScope {
             }
 
             // « Oublier ce PC » : une première pression demande confirmation.
-            Item {
+            Pressable {
                 readonly property bool focused: root.current === root.rows.length
+                down: root.pressingAction && focused
+                downScale: Theme.pressRowScale
                 visible: root.forgettable
                 y: root.rows.length * Theme.sheetRowHeight
                 width: list.width; height: Theme.sheetRowHeight

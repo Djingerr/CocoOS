@@ -1375,8 +1375,7 @@ FocusScope {
         hints: canWake ? [ { glyph: "A", label: home.wakeFailed ? qsTr("Réessayer") : qsTr("Réveiller") } ]
                          .concat(home.legendOptions)
                        : home.legendOptions
-        Keys.onReturnPressed: { home.wakeHost(); Sounds.play("select") }
-        Keys.onEnterPressed: { home.wakeHost(); Sounds.play("select") }
+        onActivated: { home.wakeHost(); Sounds.play("select") }
     }
 
     // Liaison Moonlight : le code à saisir une fois sur le PC (repli quand le
@@ -1405,8 +1404,7 @@ FocusScope {
         title: qsTr("Bienvenue")
         text: qsTr("Quelques secondes de réglages, puis vos jeux.")
         hints: [ { glyph: "A", label: qsTr("Commencer") } ]
-        Keys.onReturnPressed: home.welcome()
-        Keys.onEnterPressed: home.welcome()
+        onActivated: home.welcome()
     }
     MessageScreen {
         id: networkScreen
@@ -1418,8 +1416,7 @@ FocusScope {
         status: WifiSetup.connecting ? qsTr("Connexion…") : ""
         busy: WifiSetup.connecting
         hints: [ { glyph: "A", label: qsTr("Choisir un réseau") } ]
-        Keys.onReturnPressed: home.openWifi()
-        Keys.onEnterPressed: home.openWifi()
+        onActivated: home.openWifi()
     }
     function welcome() {
         Sounds.play("select")

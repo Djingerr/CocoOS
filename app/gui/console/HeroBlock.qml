@@ -21,7 +21,8 @@ Item {
     // glissent dans ce sens. `animated` à false : ils changent sans transition.
     property int direction: 1
     property bool animated: true
-    property bool pressed: false     // le bouton Jouer s'enfonce (lancement)
+    property bool pressed: false     // le bouton Jouer reste enfoncé (lancement)
+    property bool held: false        // A enfoncé : le bouton Jouer s'écrase (le jeu part au relâché)
     // Glyphes (« légende manette ») : à l'entrée de l'accueil, ils apparaissent après le reste.
     property bool actionsShown: true
 
@@ -214,14 +215,12 @@ Item {
             }
         }
 
-        Rectangle {
+        Pressable {
             width: Theme.playPadLeft + playRow.width + Theme.playPadRight
             height: Theme.playHeight
-            radius: height / 2
-            color: Theme.accent
-            scale: root.pressed ? Theme.launchPressScale : 1
-            Behavior on scale { NumberAnimation { duration: Theme.launchPress; easing.type: Theme.easeOut } }
+            down: root.held || root.pressed
 
+            Rectangle { anchors.fill: parent; radius: height / 2; color: Theme.accent }
             Row {
                 id: playRow
                 x: Theme.playPadLeft

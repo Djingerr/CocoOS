@@ -252,6 +252,21 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   En anglais : clavier à l'écran en QWERTY, nombres à la virgule → point (tailles, statistiques).
   Les messages d'erreur envoyés par le HostCompanion restent dans la langue du host.
   ⚠️ Vue dans le harnais et au démarrage (traduction chargée), pas encore à la manette.
+- 🚧 **Micro-interactions (2026-10-22)** — cible : `docs/ui/micro-interactions/` (brief + prototype ;
+  pour les durées et les courbes, le prototype fait foi). Huit étapes, un commit chacune :
+  - **Ressorts physiques** (`Spring.js`) : `spring()` du prototype converti en courbe
+    `Easing.BezierSpline` de 10 segments (le maximum que Qt garde), jouée par une simple
+    `NumberAnimation` ; jetons `Theme.springSnappy` / `springBouncy` / `springGentle`
+    (`{ curve, duration }`). Testé par `tst_Spring` contre les valeurs tirées du prototype
+    (`reference-values.js`) et tel que Qt le joue : moins de 1 % d'écart.
+  - **Étape 1, appui** (`Pressable.qml`) : A enfoncé, l'élément s'écrase (0,955 en 90 ms ;
+    0,985 pour une ligne de panneau) ; relâché, il revient avec le ressort « rebond », et
+    l'action part. **A agit désormais au relâché** sur l'étagère, dans `OptionsSheet`,
+    `ConsoleDialog` et les `MessageScreen` (signal `activated`), et seulement après un appui fait
+    au même endroit : le relâché d'un A qui a fermé un panneau ne lance rien. Bouton Jouer (qui
+    reste enfoncé pendant le lancement), lignes d'action des options, choix des dialogs, entrée
+    « A » de la légende des écrans de message.
+  ⚠️ Vu dans le harnais (`HomeDemo` : `do=hold,release`), pas à la manette ni à 60 i/s sur l'Orange Pi.
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
@@ -358,6 +373,10 @@ Fichiers (dans `app/gui/console/`) :
 - `LaunchScreen.qml` — écran de lancement d'un jeu (remplace l'ancien `LaunchOverlay`)
 - `Sounds.qml`, `SoundBank.qml`, `sounds/` — sons de l'interface (singleton `Sounds.play("move")`)
 - `PadRepeat.qml` — répétition des flèches à l'appui prolongé (étagère, options)
+- `Pressable.qml` — élément qui s'écrase tant que `down` (A enfoncé) et revient avec le ressort
+  « rebond » ; l'action part au relâché, chez l'appelant
+- `Spring.js` — ressorts physiques du prototype des micro-interactions, en courbes
+  `Easing.BezierSpline` (jetons `Theme.spring*`)
 - `Theme.qml` (+ `qmldir`) — singleton des jetons de design : couleurs, tailles, durées, ressort
 - `fonts/` — Sora embarquée (OFL, instances statiques de Google Fonts, 400 à 700), chargée par
   `Theme.qml` (`Theme.fontsReady`) ; seule famille de l'interface (pas de mono)
@@ -721,6 +740,10 @@ XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import
 
 ### Pièges QML rencontrés pendant la refonte
 
+- `Easing.BezierSpline` : Qt (`QEasingCurve`) ne garde que **10 segments** ; au-delà il écrit hors
+  de son tableau et l'interface se bloque (vu avec 12). `Spring.js` s'y tient.
+- `AnimationController` déclaré dans un `TestCase` fait planter qmltestrunner : le créer dans le
+  test (`Qt.createQmlObject`). Il tronque le temps en ms entières (`progress = (ms + 0,5) / durée`).
 - Une propriété ne peut pas s'appeler `on<Majuscule>…` (prise pour un gestionnaire de signal) :
   le jeton `onAccent` du brief s'appelle `Theme.inkOnAccent`.
 - `Rectangle.border.width` est **arrondi à l'entier** (1,5 → 2) sauf `border.pixelAligned: false`.

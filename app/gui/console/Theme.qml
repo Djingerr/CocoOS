@@ -1,5 +1,6 @@
 pragma Singleton
 import QtQuick
+import "Spring.js" as Spring
 
 // Jetons de design de l'UI console (écran « Ambiant »).
 // Source de vérité : docs/ui/ambiant/AMBIANT-BRIEF.md + ambiant-prototype.html.
@@ -35,6 +36,20 @@ QtObject {
     readonly property int easeOut: Easing.OutCubic
     readonly property int easeQuint: Easing.OutQuint
     readonly property int easeExpo: Easing.OutExpo
+
+    // --- Micro-interactions (docs/ui/micro-interactions/ : pour les durées et les
+    //     courbes, le prototype fait foi) ---
+    readonly property var curveOut: [0.22, 1, 0.36, 1, 1, 1]      // fondus, remplissages (BezierSpline)
+    // Ressorts physiques du prototype (raideur, amortissement, masse 1), en courbe pour
+    // Easing.BezierSpline et durée (cf. Spring.js) : { curve, duration }.
+    readonly property var springSnappy: Spring.make(380, 28)      // ≈ 394 ms, dépasse de 4 % : focus, chiffres
+    readonly property var springBouncy: Spring.make(300, 18)      // ≈ 613 ms, 15 % : relâchement, interrupteurs
+    readonly property var springGentle: Spring.make(220, 24)      // ≈ 460 ms, 1 % : île, formes
+    // Appui (Pressable) : A enfoncé, l'élément s'écrase en pressDuration (curveOut) ;
+    // relâché, il revient avec springBouncy, et l'action part.
+    readonly property int pressDuration: 90
+    readonly property real pressScale: 0.955         // bouton (Jouer)
+    readonly property real pressRowScale: 0.985      // ligne d'un panneau (options, dialog)
 
     // --- Polices ---
     // Embarquées (la console est hors ligne), en graisses statiques : un fichier
@@ -415,8 +430,7 @@ QtObject {
 
     // --- Lancement d'un jeu : l'accueil s'efface, LaunchScreen prend l'écran ---
     // C'est la seule animation « signature » de l'interface.
-    readonly property real launchPressScale: 0.95    // le bouton Jouer s'enfonce…
-    readonly property int launchPress: 120           // …puis l'écran de lancement s'ouvre
+    readonly property int launchPress: 120           // le bouton Jouer reste enfoncé, puis l'écran de lancement s'ouvre
     readonly property int launchHide: 260            // barre haute, héros et étagère s'effacent
     readonly property int launchHeroShift: -28       // le héros part vers la gauche
     readonly property int launchShelfShift: 26       // l'étagère descend

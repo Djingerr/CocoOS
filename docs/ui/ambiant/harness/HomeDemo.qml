@@ -11,7 +11,8 @@ import "../../../../app/gui/console/Format.js" as Format
 //   focus  index du jeu sélectionné au départ (0 à 9)
 //   goto   index vers lequel se déplacer à `at` ms (pour capturer une transition)
 //   do     actions jouées à `at` ms, séparées par des virgules et espacées de
-//          150 ms : options, up, down, left, right, a, launch, tab (onglet suivant)
+//          150 ms : options, up, down, left, right, a, launch, tab (onglet suivant),
+//          hold / release (A enfoncé / relâché, sans agir : bouton Jouer ou panneau ouvert)
 //   at     instant de `goto` / `do`, en ms (300 par défaut)
 //   drift  0 pour figer la dérive du fond (captures comparables aux références)
 //   sound  0 pour couper les sons (coupés d'office pendant une capture)
@@ -158,6 +159,10 @@ HomeScreen {
             else if (action === "a") demo.options.activate()
             else if (action === "launch") demo.launch()
             else if (action === "tab") demo.options.switchTab(1)
+            else if (action === "hold" || action === "release") {
+                if (demo.options.opened) demo.options.pressing = action === "hold"
+                else demo.pressed = action === "hold"
+            }
         }
     }
 }
