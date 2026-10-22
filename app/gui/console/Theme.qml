@@ -412,6 +412,32 @@ QtObject {
     readonly property int switchInkFade: 220         // couleur du pouce, curveOut
     readonly property int switchBump: 3              // butée : aller-retour de tant de px…
     readonly property int switchBumpDuration: 260    // …en tant de ms, curveOut
+    // Valeur numérique (RollingNumber) : chaque chiffre roule avec springSnappy ; un
+    // chiffre de tête apparaît / s'efface en rollFade (curveOut).
+    readonly property int rollFade: 220
+    // Butée élastique d'une valeur ou du curseur, en bout de course : elle avance dans le
+    // sens poussé de rubberStep px par poussée (rubberMax au plus) en rubberOut ms
+    // (curveOut), puis revient avec springBouncy, rubberHold ms après la poussée.
+    readonly property int rubberStep: 5
+    readonly property int rubberMax: 16
+    readonly property int rubberOut: 80
+    readonly property int rubberHold: 130
+    // Curseur (ligne `slider` : le débit), plus haut qu'une ligne : sa piste sous le
+    // libellé. Remplissage et curseur suivent la valeur avec springSnappy.
+    readonly property int sheetSliderRowHeight: 100
+    readonly property int sliderTrackY: 72           // centre de la piste, depuis le haut de la ligne
+    readonly property int sliderRailHeight: 6
+    readonly property color sliderRail: Qt.rgba(1, 1, 1, 0.12)
+    readonly property size sliderThumb: Qt.size(4, 24)
+    readonly property size sliderThumbFocus: Qt.size(6, 32)
+    readonly property int sliderThumbGrow: 220       // curveOut
+    readonly property int sliderTickHeight: 10       // crans (stops), sous la piste
+    readonly property int sliderTickGap: 6
+    // Maintenu, le pas accélère : sliderSteps[i] à partir de sliderStepAfter[i - 1]
+    // répétitions ; il marque un arrêt de sliderStopHold ms sur chaque cran.
+    readonly property var sliderSteps: [1, 2, 5]
+    readonly property var sliderStepAfter: [5, 14]
+    readonly property int sliderStopHold: 260
 
     // --- Légende des boutons (ControllerLegend) : panneaux et écrans de message ---
     readonly property int legendSize: 14

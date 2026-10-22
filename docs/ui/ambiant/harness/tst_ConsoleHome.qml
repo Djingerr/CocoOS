@@ -116,7 +116,9 @@ Item {
             compare(rows()[0].label, "Minecraft")   // en tête : les réglages du jeu sélectionné
             compare(shown(0), "Réglages communs")
             compare(shown(1), "1080p")
-            compare(shown(3), "30 Mb/s")            // 30 Mb/s n'est pas la valeur automatique : affiché tel quel
+            compare(rows()[3].label, "Débit automatique")
+            compare(shown(3), "Désactivé")          // 30 Mb/s n'est pas la valeur automatique…
+            compare(rows()[4].value, 30)            // …le curseur la montre telle quelle
 
             keyClick(Qt.Key_Down)
             keyClick(Qt.Key_Left)                   // résolution précédente (celle de l'écran, ou 720p)
@@ -131,16 +133,27 @@ Item {
             keyClick(Qt.Key_Left)
             compare(p.fps, 60)
 
-            keyClick(Qt.Key_Down)                   // débit : gauche jusqu'à « Auto »
-            for (var i = 0; i < 4 && shown(3) !== "Auto"; i++) keyClick(Qt.Key_Left)
-            compare(shown(3), "Auto")
-            verify(p.autoAdjustBitrate)
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down)        // le curseur du débit : un cran, en débit fixe
+            var before = rows()[4].value            // (30 Mb/s est la valeur automatique à 90 i/s : le débit a pu le devenir)
+            keyClick(Qt.Key_Right)
+            compare(p.bitrateKbps, (before + 1) * 1000)
+            verify(!p.autoAdjustBitrate)
+            compare(shown(3), "Désactivé")
+            keyClick(Qt.Key_Up); keyClick(Qt.Key_Right)         // « Débit automatique » (après l'étirement du pouce)
+            tryVerify(function() { return p.autoAdjustBitrate }, 500)
             compare(p.bitrateKbps, p.getDefaultBitrate(1920, 1080, 60, false))
+            verify(rows()[4].auto)                  // le curseur montre la valeur automatique, grisée
             keyClick(Qt.Key_Up); keyClick(Qt.Key_Right)         // 90 images par seconde : le débit automatique suit
             compare(p.bitrateKbps, p.getDefaultBitrate(1920, 1080, 90, false))
             keyClick(Qt.Key_Left)
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down)        // pousser le curseur repasse en débit fixe, depuis l'automatique
+            var auto = rows()[4].value
+            keyClick(Qt.Key_Left)
+            verify(!p.autoAdjustBitrate)
+            compare(p.bitrateKbps, (auto - 1) * 1000)
+            compare(shown(3), "Désactivé")
 
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)   // codec : A passe au suivant
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)      // codec : A passe au suivant
             compare(p.videoCodecConfig, p.VCC_FORCE_H264)
             keyClick(Qt.Key_Left)
             compare(p.videoCodecConfig, p.VCC_AUTO)
@@ -158,7 +171,7 @@ Item {
 
         function test_4_forgettingThePcAsksTwice() {
             keyClick(Qt.Key_Hangup)
-            for (var i = 0; i < 6; i++) keyClick(Qt.Key_Down)
+            for (var i = 0; i < screen.optionRows.length; i++) keyClick(Qt.Key_Down)   // jusqu'à « Oublier ce PC »
             keyClick(Qt.Key_Return)
             verify(screen.options.confirming)
             compare(home.computerModel.count, 1)    // rien n'est supprimé à la première pression
@@ -830,11 +843,54 @@ Item {
             CompanionClient.libraryChanged()
         }
 
+        // Débit au curseur : maintenu, le pas accélère (1, 2, puis 5) avec un arrêt sur
+        // chaque cran marqué ; en bout de course, la butée élastique, comme une valeur au
+        // bout de sa liste. Les valeurs numériques roulent, les autres glissent.
+        function test_9t_bitrateSliderAndRubber() {
+            var p = StreamingPreferences, sheet = screen.options
+            p.width = 1920; p.height = 1080; p.fps = 30
+            p.autoAdjustBitrate = false; p.bitrateKbps = 30000
+            home.refreshOptions()
+            compare(sheet.numberParts("40 %").n, 40)
+            compare(sheet.numberParts("40 %").suffix, " %")
+            compare(sheet.numberParts("120").n, 120)
+            compare(sheet.numberParts("Natif 2560×1600"), null)
+
+            var values = []
+            var record = function(key, value) { if (key === "rate") values.push([Date.now(), value]) }
+            sheet.changed.connect(record)
+            keyClick(Qt.Key_Hangup)
+            for (var i = 0; i < 4; i++) keyClick(Qt.Key_Down)
+            compare(screen.optionRows[sheet.current].key, "rate")
+            keyPress(Qt.Key_Right)
+            tryVerify(function() { return p.bitrateKbps >= 75000 }, 8000)
+            keyRelease(Qt.Key_Right)
+            sheet.changed.disconnect(record)
+            var steps = values.map(function(v, i) { return v[1] - (i > 0 ? values[i - 1][1] : 30) })
+            compare(steps[0], 1)
+            verify(steps.indexOf(2) > 0 && steps.lastIndexOf(5) > steps.indexOf(2), "pas : " + steps)
+            var at40 = values.findIndex(function(v) { return v[1] === 40 })
+            verify(at40 > 0, "arrêt sur 40 : " + values.map(function(v) { return v[1] }))
+            verify(values[at40 + 1][0] - values[at40][0] >= Theme.sliderStopHold - 30, "arrêté sur 40")
+
+            p.bitrateKbps = 150000; home.refreshOptions()
+            keyClick(Qt.Key_Right)                          // au bout : la butée
+            compare(p.bitrateKbps, 150000)
+            tryVerify(function() { return sheet.rubberX > 0 }, 300)
+            tryCompare(sheet, "rubberX", 0, 1500)
+            keyClick(Qt.Key_Up); keyClick(Qt.Key_Up)        // images par seconde, déjà à 30
+            keyClick(Qt.Key_Left)
+            compare(p.fps, 30)
+            tryVerify(function() { return sheet.rubberX < 0 }, 300)
+            tryCompare(sheet, "rubberX", 0, 1500)
+            keyClick(Qt.Key_Escape)
+        }
+
         // En dernier : l'hôte du faux modèle est supprimé.
         function test_9z_forgettingThePcForgetsTheCompanionToo() {
             var forgets = CompanionClient.forgets
             keyClick(Qt.Key_Hangup)
-            for (var i = 0; i < 6; i++) keyClick(Qt.Key_Down)
+            for (var i = 0; i < screen.optionRows.length; i++) keyClick(Qt.Key_Down)   // jusqu'à « Oublier ce PC »
             keyClick(Qt.Key_Return); keyClick(Qt.Key_Return)
             compare(CompanionClient.forgets, forgets + 1)
             compare(home.computerModel.count, 0)

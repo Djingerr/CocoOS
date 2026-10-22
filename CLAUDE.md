@@ -277,8 +277,18 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     l'état déjà là : butée de 3 px aller-retour (260 ms) et son `edge`. Pouce qui glisse au ressort
     « rebond » et s'étire pendant l'appui, orange qui se répand depuis le pouce éteint (320 ms),
     ligne qui s'écrase comme les lignes d'action. `Accessible.name` garde le libellé de la valeur.
+  - **Étape 4, valeurs** (`OptionsSheet`, `RollingNumber.qml`) : une valeur numérique (toutes les
+    options sont des nombres : images/s, luminosité, volume, veille…) roule chiffre par chiffre
+    (ressort « vif », chiffres tabulaires, chiffres de tête effacés) ; les autres glissent toujours
+    (`SwapBox`). En bout de liste, en plus du son `edge`, la valeur bute (5 px par poussée, 16 au
+    plus, retour au ressort « rebond »). **Débit** : une ligne-interrupteur « Débit automatique »
+    puis un **curseur** de 5 à 150 Mb/s (ligne plus haute, piste, crans à 10 / 20 / 40 / 80) ; à
+    l'appui maintenu le pas accélère (1 → 2 → 5) et marque 260 ms d'arrêt sur chaque cran ;
+    en automatique il montre, grisée, la valeur calculée par Moonlight, et le pousser repasse en
+    débit fixe à partir d'elle. Le curseur signale sa valeur (Mb/s) à la place d'un index.
   ⚠️ Vu dans le harnais (`HomeDemo` : `do=hold,release` ; reflet : `goto=7 at=2500 delay=4400` ;
-  interrupteurs : `do=options,down,down,down,down,right at=2000`),
+  interrupteurs : `do=options,down,down,down,down,down,right at=2000` ; curseur :
+  `do=options,down,down,down,right`),
   pas à la manette ni à 60 i/s sur l'Orange Pi (le reflet redessine le calque de la vignette
   active pendant 950 ms).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
@@ -391,6 +401,7 @@ Fichiers (dans `app/gui/console/`) :
   « rebond » ; l'action part au relâché, chez l'appelant
 - `Spring.js` — ressorts physiques du prototype des micro-interactions, en courbes
   `Easing.BezierSpline` (jetons `Theme.spring*`)
+- `RollingNumber.qml` — nombre dont chaque chiffre roule dans sa colonne 0–9 (options)
 - `Theme.qml` (+ `qmldir`) — singleton des jetons de design : couleurs, tailles, durées, ressort
 - `fonts/` — Sora embarquée (OFL, instances statiques de Google Fonts, 400 à 700), chargée par
   `Theme.qml` (`Theme.fontsReady`) ; seule famille de l'interface (pas de mono)

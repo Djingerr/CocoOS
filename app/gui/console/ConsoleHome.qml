@@ -1032,6 +1032,9 @@ FocusScope {
     property var optionChoices: ({})
     property var optionTabs: []
     property bool optionAutoBitrate: false   // le débit suit résolution et fréquence
+    // Curseur du débit, en Mb/s : bornes et crans marqués.
+    readonly property var bitrateRange: [5, 150]
+    readonly property var bitrateStops: [10, 20, 40, 80]
 
     // Langue de l'interface : le réglage de Moonlight, dont la traduction est chargée au
     // démarrage (languages/qml_en.ts). « Auto » (jamais choisie) suit la langue du système.
@@ -1060,17 +1063,11 @@ FocusScope {
             fps.push(s.fps)
         fps.sort(function(a, b) { return a - b })
 
-        // Débit : « Auto » est la valeur que Moonlight calcule pour la résolution et
-        // la fréquence ; sinon une valeur fixe (l'actuelle est ajoutée si besoin).
+        // Débit : automatique (la valeur que Moonlight calcule pour la résolution et la
+        // fréquence, montrée grisée sur le curseur), ou réglé au curseur.
         optionAutoBitrate = s.autoAdjustBitrate
                 && s.bitrateKbps === p.getDefaultBitrate(s.width, s.height, s.fps, p.enableYUV444)
-        var kbps = [10000, 20000, 40000, 80000]
-        if (!optionAutoBitrate && kbps.indexOf(s.bitrateKbps) < 0)
-            kbps.push(s.bitrateKbps)
-        kbps.sort(function(a, b) { return a - b })
-        var rate = [ { label: qsTr("Auto"), auto: true } ].concat(kbps.map(function(k) {
-            return { label: qsTr("%1 Mb/s").arg(Math.round(k / 1000)), kbps: k }
-        }))
+        var mbps = Math.round(s.bitrateKbps / 1000)
 
         var codec = [ { label: qsTr("Auto"), value: p.VCC_AUTO }, { label: "H.264", value: p.VCC_FORCE_H264 },
                       { label: "HEVC", value: p.VCC_FORCE_HEVC }, { label: "AV1", value: p.VCC_FORCE_AV1 } ]
@@ -1100,7 +1097,7 @@ FocusScope {
         var language = [ { label: "Français", value: p.LANG_FR }, { label: "English", value: p.LANG_EN } ]
 
         optionChoices = { res: res, fps: fps.map(function(f) { return { label: "" + f, value: f } }),
-                          rate: rate, codec: codec, hdr: hdr, brightness: brightness, volume: volume,
+                          rateAuto: hdr, codec: codec, hdr: hdr, brightness: brightness, volume: volume,
                           sleep: sleep, buttons: buttons, sounds: sounds, language: language }
         // `toggle` : deux options [désactivé, activé], affichées en interrupteur.
         var row = function(key, label, index, toggle) {
@@ -1131,7 +1128,10 @@ FocusScope {
             { label: qsTr("Flux"), rows: profileRow.concat([
                 row("res", qsTr("Résolution"), res.findIndex(same(s.width, s.height))),
                 row("fps", qsTr("Images par seconde"), fps.indexOf(s.fps)),
-                row("rate", qsTr("Débit"), optionAutoBitrate ? 0 : 1 + kbps.indexOf(s.bitrateKbps)),
+                row("rateAuto", qsTr("Débit automatique"), optionAutoBitrate ? 1 : 0, true),
+                { key: "rate", label: qsTr("Débit"), slider: true, value: mbps, auto: optionAutoBitrate,
+                  min: bitrateRange[0], max: Math.max(bitrateRange[1], mbps), stops: bitrateStops,
+                  format: qsTr("%1 Mb/s") },
                 // (un ancien réglage « HEVC HDR » est montré comme HEVC)
                 row("codec", qsTr("Codec"), codecIndex >= 0 ? codecIndex : 2),
                 row("hdr", qsTr("HDR"), s.enableHdr ? 1 : 0, true)
@@ -1142,7 +1142,7 @@ FocusScope {
 
     function applyOption(key, index) {
         var p = StreamingPreferences
-        var choice = optionChoices[key][index]
+        var choice = optionChoices[key] ? optionChoices[key][index] : null    // (curseur : `index` est la valeur)
         // Console : rien à voir avec les préférences du flux.
         if (key === "sounds") {
             consoleConfig.sounds = choice.value
@@ -1181,11 +1181,13 @@ FocusScope {
             s.height = choice.h
         } else if (key === "fps") {
             s.fps = choice.value
-        } else if (key === "rate") {
-            s.autoAdjustBitrate = choice.auto === true
-            optionAutoBitrate = s.autoAdjustBitrate
-            if (!choice.auto)
-                s.bitrateKbps = choice.kbps
+        } else if (key === "rateAuto") {
+            s.autoAdjustBitrate = choice.value
+            optionAutoBitrate = choice.value
+        } else if (key === "rate") {             // le curseur : un débit fixe, en Mb/s
+            s.autoAdjustBitrate = false
+            optionAutoBitrate = false
+            s.bitrateKbps = index * 1000
         } else if (key === "codec") {
             s.videoCodecConfig = choice.value
         } else if (key === "hdr") {

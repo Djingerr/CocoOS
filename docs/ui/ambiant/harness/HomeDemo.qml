@@ -25,7 +25,7 @@ HomeScreen {
     property var args: ({})
     readonly property var game: games.count > 0 ? games.get(currentIndex) : null
     // Réglages de la maquette (tableau SETTINGS du prototype)
-    property var settings: ({ res: 1, fps: 1, rate: 0, codec: 0, hdr: 0, sounds: 1 })
+    property var settings: ({ res: 1, fps: 1, rateAuto: 1, rate: 20, codec: 0, hdr: 0, sounds: 1 })
 
     focus: true
     model: DemoGames { id: games }
@@ -54,7 +54,9 @@ HomeScreen {
         { label: "Flux", rows: [
             { key: "res", label: "Résolution", options: ["720p", "Natif 1280×800", "1080p"], index: settings.res },
             { key: "fps", label: "Images par seconde", options: ["30", "60", "90", "120"], index: settings.fps },
-            { key: "rate", label: "Débit", options: ["Auto", "10 Mb/s", "20 Mb/s", "40 Mb/s", "80 Mb/s"], index: settings.rate },
+            { key: "rateAuto", label: "Débit automatique", options: ["Désactivé", "Activé"], index: settings.rateAuto, toggle: true },
+            { key: "rate", label: "Débit", slider: true, value: settings.rate, auto: settings.rateAuto === 1,
+              min: 5, max: 150, stops: [10, 20, 40, 80], format: "%1 Mb/s" },
             { key: "codec", label: "Codec", options: ["Auto (AV1)", "H.264", "HEVC", "AV1"], index: settings.codec },
             { key: "hdr", label: "HDR", options: ["Désactivé", "Activé"], index: settings.hdr, toggle: true }
         ] },
@@ -70,6 +72,7 @@ HomeScreen {
     onOptionChanged: function(key, index) {
         var next = Object.assign({}, settings)
         next[key] = index
+        if (key === "rate") next.rateAuto = 0          // le curseur repasse en débit fixe
         settings = next
     }
     onForgetRequested: console.info("[demo] oublier Djinger")

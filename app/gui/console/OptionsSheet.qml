@@ -16,6 +16,9 @@ FocusScope {
     // déclenche ; `value` est affichée à droite). `bars` (0 à 4), facultatif, ajoute
     // une icône de signal devant la valeur (réseaux Wi-Fi). Un réglage `toggle: true` a
     // deux options [désactivé, activé] et s'affiche en interrupteur : → active, ← désactive.
+    // Une valeur numérique (« 60 », « 40 % ») roule chiffre par chiffre. Un curseur
+    // { key, label, slider: true, value, min, max, stops, format: "%1 Mb/s", auto } signale
+    // la nouvelle valeur à la place d'un index (`auto` : valeur grisée, calculée ailleurs).
     property string title: qsTr("Options")
     property var tabs: []
     property int tab: 0
@@ -46,6 +49,11 @@ FocusScope {
     property var flick: null
     property real bump: 1                // 0 → 1 pendant la butée
     property int bumpDir: 0
+    // Butée élastique d'une valeur ou du curseur en bout de course (px, signé).
+    property real rubberX: 0
+    // Curseur maintenu : répétitions comptées (le pas accélère), arrêt sur un cran.
+    property int sliderRepeats: 0
+    property double sliderHoldUntil: 0
     readonly property bool forgettable: tab === 0 && hostName !== ""
     readonly property int lineCount: rows.length + (forgettable ? 1 : 0)
     // 0 = fermé, 1 = ouvert ; le panneau et le voile en découlent.
@@ -67,6 +75,7 @@ FocusScope {
         if (!opened) return
         pad.stop()
         applyFlick()
+        rubberAnim.complete()
         opened = false
         confirming = false
         pressing = false
@@ -84,6 +93,7 @@ FocusScope {
         pressing = false
         applyFlick()
         bumpAnim.complete()
+        rubberAnim.complete()
         current = next
         Sounds.play("move")
     }
@@ -96,6 +106,7 @@ FocusScope {
         }
         applyFlick()
         bumpAnim.complete()
+        rubberAnim.complete()
         tab = next
         current = 0
         confirming = false
@@ -115,6 +126,11 @@ FocusScope {
             }
             return
         }
+        if (row.slider) {
+            if (wrap) Sounds.play("edge")       // A : rien à faire sur un curseur
+            else slide(row, dir, pad.repeats > 0)
+            return
+        }
         if (row.toggle && !wrap) {
             var want = dir > 0 ? 1 : 0
             if (want === row.index) {
@@ -131,6 +147,7 @@ FocusScope {
         }
         var next = wrap ? (row.index + 1) % row.options.length : row.index + dir
         if (next < 0 || next >= row.options.length) {
+            rubber(dir)
             Sounds.play("edge")
             return
         }
@@ -138,6 +155,64 @@ FocusScope {
         Sounds.play("tick")
         changed(row.key, next)
     }
+    // Curseur : un cran, puis plus vite à l'appui maintenu (Theme.slider*), avec un arrêt
+    // sur chaque cran marqué ; en bout de course, la butée élastique.
+    function slide(row, dir, repeat) {
+        var now = Date.now()
+        sliderRepeats = repeat ? sliderRepeats + 1 : 0
+        if (now < sliderHoldUntil) return
+        if (dir > 0 ? row.value >= row.max : row.value <= row.min) {
+            rubber(dir)
+            Sounds.play("edge")
+            return
+        }
+        var after = Theme.sliderStepAfter, steps = Theme.sliderSteps
+        var step = sliderRepeats < after[0] ? steps[0] : sliderRepeats < after[1] ? steps[1] : steps[2]
+        var next = Math.min(row.max, Math.max(row.min, row.value + dir * step))
+        for (var i = 0; repeat && i < row.stops.length; i++) {
+            var stop = row.stops[i]
+            if (dir > 0 ? row.value < stop && next >= stop : row.value > stop && next <= stop) {
+                next = stop
+                sliderHoldUntil = now + Theme.sliderStopHold
+                sliderRepeats = 0
+                break
+            }
+        }
+        Sounds.play("tick")
+        changed(row.key, next)
+    }
+    function rubber(dir) {
+        rubberPush.to = dir * Math.min(Math.abs(rubberX) + Theme.rubberStep, Theme.rubberMax)
+        rubberAnim.restart()
+    }
+    SequentialAnimation {
+        id: rubberAnim
+        NumberAnimation {
+            id: rubberPush
+            target: root; property: "rubberX"; duration: Theme.rubberOut
+            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+        }
+        PauseAnimation { duration: Theme.rubberHold - Theme.rubberOut }
+        NumberAnimation {
+            target: root; property: "rubberX"; to: 0; duration: Theme.springBouncy.duration
+            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springBouncy.curve
+        }
+    }
+    // « 40 % » → { n: 40, suffix: " %" } ; null si ce n'est pas un nombre.
+    function numberParts(label) {
+        var m = /^(\d+)(\D.*)?$/.exec(label)
+        return m ? { n: parseInt(m[1]), suffix: m[2] || "" } : null
+    }
+    // Lignes de hauteurs variables : un curseur est plus haut.
+    function rowHeight(i) {
+        return i < rows.length && rows[i].slider ? Theme.sheetSliderRowHeight : Theme.sheetRowHeight
+    }
+    function rowY(i) {
+        var y = 0
+        for (var k = 0; k < i; k++) y += rowHeight(k)
+        return y
+    }
+
     function applyFlick() {
         if (!flick) return
         var f = flick
@@ -404,12 +479,16 @@ FocusScope {
 
             Pressable {
                 x: -Theme.sheetFocusOutset
-                y: root.current * Theme.sheetRowHeight
+                y: root.rowY(root.current)
                 width: parent.width + 2 * Theme.sheetFocusOutset
-                height: Theme.sheetRowHeight
+                height: root.rowHeight(root.current)
                 down: root.pressingRow
                 downScale: Theme.pressRowScale
                 Behavior on y {
+                    enabled: root.opened
+                    NumberAnimation { duration: Theme.sheetFocusMove; easing.type: Theme.easeOut }
+                }
+                Behavior on height {
                     enabled: root.opened
                     NumberAnimation { duration: Theme.sheetFocusMove; easing.type: Theme.easeOut }
                 }
@@ -426,14 +505,22 @@ FocusScope {
                     readonly property var row: root.rows[index] || ({ label: "", options: [""], index: 0 })
                     readonly property bool focused: root.current === index
                     readonly property color ink: focused ? Theme.ink : Theme.ink2
+                    readonly property string valueLabel: row.slider ? row.format.arg(row.value)
+                                                       : row.action ? (row.value || "") : (row.options[row.index] || "")
+                    // Valeur numérique (toutes les options sont des nombres) : elle roule.
+                    readonly property bool numeric: row.slider === true
+                        || !row.action && !row.toggle && row.options.every(function(o) { return root.numberParts(o) !== null })
+                    readonly property var parts: numeric ? root.numberParts(valueLabel) : null
+                    readonly property int digits: !numeric ? 1 : row.slider ? String(row.max).length
+                        : Math.max.apply(null, row.options.map(function(o) { return String(root.numberParts(o).n).length }))
 
                     down: root.pressingRow && focused
                     downScale: Theme.pressRowScale
-                    y: index * Theme.sheetRowHeight
-                    width: list.width; height: Theme.sheetRowHeight
+                    y: root.rowY(index)
+                    width: list.width; height: root.rowHeight(index)
 
                     Text {
-                        anchors.verticalCenter: parent.verticalCenter
+                        y: (Theme.sheetRowHeight - height) / 2
                         width: parent.width - value.width - Theme.sheetRowGap
                         text: line.row.label
                         color: line.ink
@@ -446,8 +533,9 @@ FocusScope {
                         anchors.right: parent.right
                         // (un interrupteur s'aligne sur les valeurs et le glyphe A, pas sur le chevron)
                         anchors.rightMargin: line.row.toggle === true ? Theme.sheetHintRight : 0
-                        anchors.verticalCenter: parent.verticalCenter
+                        y: (Theme.sheetRowHeight - height) / 2
                         spacing: Theme.sheetValueGap
+                        transform: Translate { x: line.focused && !line.row.slider ? root.rubberX : 0 }
 
                         // Signal d'un réseau : quatre barres, allumées selon `bars`.
                         Row {
@@ -480,18 +568,30 @@ FocusScope {
                             Behavior on opacity { NumberAnimation { duration: Theme.sheetFocusFade } }
                         }
                         SwapBox {
-                            visible: line.row.toggle !== true
+                            visible: line.row.toggle !== true && !line.numeric
                             width: Theme.sheetValueBox.width; height: Theme.sheetValueBox.height
                             axis: "x"
                             distance: Theme.sheetValueTravel
                             duration: Theme.sheetValueSwap
                             direction: root.direction
                             animated: root.opened
-                            key: line.row.action ? (line.row.value || "") : (line.row.options[line.row.index] || "")
+                            key: line.valueLabel
                             value: key
 
                             ValueText { color: line.ink }
                             ValueText { color: line.ink }
+                        }
+                        Item {
+                            visible: line.numeric
+                            width: Theme.sheetValueBox.width; height: Theme.sheetValueBox.height
+                            RollingNumber {
+                                anchors.right: parent.right
+                                anchors.verticalCenter: parent.verticalCenter
+                                value: line.parts ? line.parts.n : 0
+                                suffix: line.parts ? line.parts.suffix : ""
+                                digits: line.digits
+                                color: line.row.auto === true ? Theme.ink3 : line.ink
+                            }
                         }
                         Chevron {
                             dir: 1
@@ -499,6 +599,73 @@ FocusScope {
                             opacity: line.focused ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: Theme.sheetFocusFade } }
                         }
+                    }
+                    // Curseur : la piste, ses crans, le remplissage jusqu'à la valeur.
+                    Item {
+                        id: slider
+                        readonly property real at: line.row.slider
+                            ? (line.row.value - line.row.min) / (line.row.max - line.row.min) * width : 0
+                        readonly property real rubber: line.focused ? root.rubberX : 0
+                        visible: line.row.slider === true
+                        y: Theme.sliderTrackY
+                        width: parent.width
+
+                        Rectangle {
+                            y: -height / 2
+                            width: parent.width; height: Theme.sliderRailHeight
+                            radius: height / 2
+                            color: Theme.sliderRail
+                        }
+                        Rectangle {
+                            y: -height / 2
+                            width: Math.max(0, slider.at + slider.rubber); height: Theme.sliderRailHeight
+                            radius: height / 2
+                            color: line.row.auto === true ? Theme.ink3 : Theme.accent
+                            Behavior on width {
+                                NumberAnimation {
+                                    duration: Theme.springSnappy.duration
+                                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
+                                }
+                            }
+                        }
+                        Repeater {
+                            model: line.row.slider ? line.row.stops : []
+                            Rectangle {
+                                x: (modelData - line.row.min) / (line.row.max - line.row.min) * slider.width
+                                y: Theme.sliderRailHeight / 2 + Theme.sliderTickGap
+                                width: 1; height: Theme.sliderTickHeight
+                                color: modelData <= line.row.value ? line.ink : Theme.inkOff
+                            }
+                        }
+                        Rectangle {
+                            x: slider.at + slider.rubber - width / 2
+                            y: -height / 2
+                            width: line.focused ? Theme.sliderThumbFocus.width : Theme.sliderThumb.width
+                            height: line.focused ? Theme.sliderThumbFocus.height : Theme.sliderThumb.height
+                            radius: width / 2
+                            color: line.row.auto === true ? Theme.ink2 : Theme.ink
+                            Behavior on x {
+                                NumberAnimation {
+                                    duration: Theme.springSnappy.duration
+                                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
+                                }
+                            }
+                            Behavior on width {
+                                NumberAnimation {
+                                    duration: Theme.sliderThumbGrow
+                                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                                }
+                            }
+                            Behavior on height {
+                                NumberAnimation {
+                                    duration: Theme.sliderThumbGrow
+                                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                                }
+                            }
+                        }
+                        Accessible.role: Accessible.Slider
+                        Accessible.name: line.row.label
+                        Accessible.description: line.valueLabel
                     }
                     MouseArea {
                         anchors.fill: parent
@@ -521,7 +688,7 @@ FocusScope {
                 down: root.pressingRow && focused
                 downScale: Theme.pressRowScale
                 visible: root.forgettable
-                y: root.rows.length * Theme.sheetRowHeight
+                y: root.rowY(root.rows.length)
                 width: list.width; height: Theme.sheetRowHeight
 
                 Text {
