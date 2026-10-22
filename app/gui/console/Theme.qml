@@ -378,6 +378,12 @@ QtObject {
     readonly property int sheetTabGap: 18
     readonly property int sheetTabHeight: 28         // libellé + soulignement orange
     readonly property int sheetTabSize: 16           // Sora 600 (actif) / 500
+    // Un seul soulignement passe d'onglet en onglet (ElasticIndicator) : le bord avant au
+    // ressort springSnappy, le bord arrière elasticTrail ms (curveOut) après elasticTrailDelay.
+    readonly property int elasticTrail: 420
+    readonly property int elasticTrailDelay: 40
+    readonly property int tabInkIn: 220              // libellé qui devient actif (curveOut)…
+    readonly property int tabInkDelay: 90            // …après ce délai ; il s'éteint en sheetFocusFade
     readonly property int sheetRowsTop: 34
     readonly property int sheetRowHeight: 60
     readonly property int sheetRowGap: 16            // entre le libellé et la valeur

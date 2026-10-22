@@ -444,8 +444,10 @@ FocusScope {
 
             ButtonGlyph { anchors.verticalCenter: parent.verticalCenter; label: "LB"; ink: Theme.ink3 }
             Repeater {
+                id: tabRepeater
                 model: root.tabs
                 Item {
+                    id: tabItem
                     readonly property bool active: index === root.tab
                     anchors.verticalCenter: parent.verticalCenter
                     width: tabLabel.width; height: Theme.sheetTabHeight
@@ -453,22 +455,49 @@ FocusScope {
                         id: tabLabel
                         anchors.verticalCenter: parent.verticalCenter
                         text: modelData.label
-                        color: parent.active ? Theme.ink : Theme.ink3
+                        color: Theme.ink3
                         font.family: Theme.fontUi; font.pixelSize: Theme.sheetTabSize
-                        font.weight: parent.active ? Font.DemiBold : Font.Medium
-                        Behavior on color { ColorAnimation { duration: Theme.sheetFocusFade } }
-                    }
-                    Rectangle {
-                        anchors.bottom: parent.bottom
-                        width: parent.width; height: Theme.underlineHeight; radius: Theme.underlineRadius
-                        color: Theme.accent
-                        opacity: parent.active ? 1 : 0
-                        Behavior on opacity { NumberAnimation { duration: Theme.sheetFocusFade } }
+                        font.weight: tabItem.active ? Font.DemiBold : Font.Medium
+                        states: State {
+                            name: "active"; when: tabItem.active
+                            PropertyChanges { target: tabLabel; color: Theme.ink }
+                        }
+                        transitions: [
+                            Transition {
+                                to: "active"
+                                SequentialAnimation {
+                                    PauseAnimation { duration: Theme.tabInkDelay }
+                                    ColorAnimation {
+                                        duration: Theme.tabInkIn
+                                        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                                    }
+                                }
+                            },
+                            Transition {
+                                from: "active"
+                                ColorAnimation {
+                                    duration: Theme.sheetFocusFade
+                                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                                }
+                            }
+                        ]
                     }
                     MouseArea { anchors.fill: parent; onClicked: root.switchTab(index - root.tab) }
                 }
             }
             ButtonGlyph { anchors.verticalCenter: parent.verticalCenter; label: "RB"; ink: Theme.ink3 }
+        }
+        // Un seul soulignement, qui passe d'un onglet à l'autre en s'étirant.
+        ElasticIndicator {
+            id: tabUnderline
+            readonly property Item activeTab: tabRepeater.count > root.tab ? tabRepeater.itemAt(root.tab) : null
+            visible: tabStrip.visible
+            y: tabStrip.y + tabStrip.height - Theme.underlineHeight
+            height: Theme.underlineHeight
+            targetLeft: activeTab ? tabStrip.x + activeTab.x : 0
+            targetRight: activeTab ? tabStrip.x + activeTab.x + activeTab.width : 0
+            animated: root.opened
+            Rectangle { anchors.fill: parent; radius: Theme.underlineRadius; color: Theme.accent }
         }
 
         Item {

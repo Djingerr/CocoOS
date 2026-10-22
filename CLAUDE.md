@@ -286,9 +286,13 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     l'appui maintenu le pas accélère (1 → 2 → 5) et marque 260 ms d'arrêt sur chaque cran ;
     en automatique il montre, grisée, la valeur calculée par Moonlight, et le pousser repasse en
     débit fixe à partir d'elle. Le curseur signale sa valeur (Mb/s) à la place d'un index.
+  - **Étape 5, onglets** (`ElasticIndicator.qml`) : un seul soulignement passe de Flux à Console ;
+    son bord avant part au ressort « vif », l'arrière suit 40 ms plus tard (420 ms, `curveOut`),
+    d'où l'étirement. Le libellé qui devient actif s'allume en 220 ms après 90 ms. Composant
+    réutilisable (profils de flux du §12).
   ⚠️ Vu dans le harnais (`HomeDemo` : `do=hold,release` ; reflet : `goto=7 at=2500 delay=4400` ;
   interrupteurs : `do=options,down,down,down,down,down,right at=2000` ; curseur :
-  `do=options,down,down,down,right`),
+  `do=options,down,down,down,right` ; onglets : `do=options,down,up,tab at=2000 delay=2550`),
   pas à la manette ni à 60 i/s sur l'Orange Pi (le reflet redessine le calque de la vignette
   active pendant 950 ms).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
@@ -402,6 +406,8 @@ Fichiers (dans `app/gui/console/`) :
 - `Spring.js` — ressorts physiques du prototype des micro-interactions, en courbes
   `Easing.BezierSpline` (jetons `Theme.spring*`)
 - `RollingNumber.qml` — nombre dont chaque chiffre roule dans sa colonne 0–9 (options)
+- `ElasticIndicator.qml` — indicateur dont les deux bords rejoignent la cible séparément (le
+  soulignement des onglets s'étire en changeant d'onglet)
 - `Theme.qml` (+ `qmldir`) — singleton des jetons de design : couleurs, tailles, durées, ressort
 - `fonts/` — Sora embarquée (OFL, instances statiques de Google Fonts, 400 à 700), chargée par
   `Theme.qml` (`Theme.fontsReady`) ; seule famille de l'interface (pas de mono)

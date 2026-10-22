@@ -44,6 +44,7 @@
         <file>gui/console/GameShelf.qml</file>
         <file>gui/console/HomeScreen.qml</file>
         <file>gui/console/PadRepeat.qml</file>
+        <file>gui/console/ElasticIndicator.qml</file>
         <file>gui/console/Pressable.qml</file>
         <file>gui/console/RollingNumber.qml</file>
         <file>gui/console/Spring.js</file>
