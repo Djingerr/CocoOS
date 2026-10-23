@@ -60,6 +60,40 @@ FocusScope {
     // Curseur maintenu : répétitions comptées (le pas accélère), arrêt sur un cran.
     property int sliderRepeats: 0
     property double sliderHoldUntil: 0
+    // Curseur à la souris : tiré (les ressorts suivent sans délai), la butée au-delà des bouts.
+    property bool dragging: false
+    function dragTo(row, x, width) {
+        rubberAnim.stop()
+        rubberRelease.stop()
+        var over = x < 0 ? x : x > width ? x - width : 0
+        rubberX = (over < 0 ? -1 : 1) * Theme.sliderDragRubber * (1 - 1 / (Math.abs(over) / Theme.sliderDragSpan + 1))
+        var value = row.min + Math.min(Math.max(x / width, 0), 1) * (row.max - row.min)
+        for (var i = 0; i < row.stops.length; i++)
+            if (Math.abs(value - row.stops[i]) < Theme.sliderSnap) value = row.stops[i]
+        value = Math.round(value)
+        if (value === row.value) return
+        for (i = 0; i < row.stops.length; i++) {
+            var stop = row.stops[i]
+            if (Math.min(row.value, value) < stop && stop <= Math.max(row.value, value)
+                    || value === stop) {
+                pulseStop = stop                // un cran franchi (ou atteint) pulse
+                pulseAnim.restart()
+                Sounds.play("tick")
+                break
+            }
+        }
+        changed(row.key, value)
+    }
+    function dragEnd() {
+        dragging = false
+        rubberRelease.restart()
+    }
+    NumberAnimation {
+        id: rubberRelease
+        target: root; property: "rubberX"; to: 0
+        duration: Theme.springBouncy.duration
+        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springBouncy.curve
+    }
     // Cran du curseur qui vient d'être franchi (il pulse), et l'avancée de sa pulsation.
     property int pulseStop: -1
     property real pulse: 1
@@ -99,6 +133,7 @@ FocusScope {
         pad.stop()
         applyFlick()
         rubberAnim.complete()
+        rubberRelease.complete()
         opened = false
         pressing = false
         Sounds.play("close")
@@ -115,6 +150,7 @@ FocusScope {
         applyFlick()
         bumpAnim.complete()
         rubberAnim.complete()
+        rubberRelease.complete()
         hintShown = false
         current = next
         Sounds.play("move")
@@ -129,6 +165,7 @@ FocusScope {
         applyFlick()
         bumpAnim.complete()
         rubberAnim.complete()
+        rubberRelease.complete()
         hintShown = false
         settling = true
         tab = next
@@ -688,7 +725,29 @@ FocusScope {
                         readonly property real rubber: line.focused ? root.rubberX : 0
                         visible: line.row.slider === true
                         y: Theme.sliderTrackY
+                        z: 1                    // (au-dessus du clic de la ligne)
                         width: parent.width
+
+                        // À la souris : cliquer place la poignée, tirer la déplace.
+                        MouseArea {
+                            x: -Theme.sliderHalo; y: -Theme.sliderTouch / 2
+                            width: parent.width + 2 * Theme.sliderHalo; height: Theme.sliderTouch
+                            enabled: line.row.slider === true
+                            preventStealing: true
+                            onPressed: function(mouse) {
+                                if (!line.focused) {
+                                    root.current = line.index
+                                    Sounds.play("move")
+                                }
+                                root.dragging = true
+                                root.dragTo(line.row, mouse.x - Theme.sliderHalo, slider.width)
+                            }
+                            onPositionChanged: function(mouse) {
+                                if (pressed) root.dragTo(line.row, mouse.x - Theme.sliderHalo, slider.width)
+                            }
+                            onReleased: root.dragEnd()
+                            onCanceled: root.dragEnd()
+                        }
 
                         Rectangle {
                             y: -height / 2
@@ -702,7 +761,7 @@ FocusScope {
                             radius: height / 2
                             color: line.row.auto === true ? Theme.ink3 : Theme.accent
                             Behavior on width {
-                                enabled: !root.settling
+                                enabled: !root.settling && !root.dragging
                                 NumberAnimation {
                                     duration: Theme.springSnappy.duration
                                     easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
@@ -745,7 +804,7 @@ FocusScope {
                             radius: width / 2
                             color: line.row.auto === true ? Theme.ink2 : Theme.ink
                             Behavior on x {
-                                enabled: !root.settling
+                                enabled: !root.settling && !root.dragging
                                 NumberAnimation {
                                     duration: Theme.springSnappy.duration
                                     easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve

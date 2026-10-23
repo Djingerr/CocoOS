@@ -552,6 +552,13 @@ QtObject {
     readonly property var sliderSteps: [1, 2, 5]
     readonly property var sliderStepAfter: [5, 14]
     readonly property int sliderStopHold: 260
+    // À la souris : la poignée suit le pointeur dans une bande de sliderTouch px de haut,
+    // accrochée à un cran à moins de sliderSnap Mb/s ; au-delà des bouts, la butée s'étire
+    // avec résistance (sliderDragRubber px au plus, à moitié à sliderDragSpan px du bout).
+    readonly property int sliderTouch: 34
+    readonly property real sliderSnap: 1.6
+    readonly property int sliderDragRubber: 18
+    readonly property int sliderDragSpan: 60
 
     // --- Légende des boutons (ControllerLegend) : panneaux et écrans de message ---
     readonly property int legendSize: 14

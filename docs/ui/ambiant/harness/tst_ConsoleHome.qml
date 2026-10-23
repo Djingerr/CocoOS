@@ -898,6 +898,32 @@ Item {
             verify(values[at40 + 1][0] - values[at40][0] >= Theme.sliderStopHold - 30, "arrêté sur 40")
             verify(sheet.pulseStop === 40 || sheet.pulseStop === 80, "un cran franchi pulse")
 
+            // À la souris : la poignée suit le pointeur, accrochée à un cran proche ; au-delà
+            // du bout, la butée s'étire, et revient au relâché.
+            var slider = function() { return screen.optionRows[sheet.current] }
+            var track = 384, at = function(mbps) { return track * (mbps - 5) / 145 }
+            sheet.dragTo(slider(), at(39), track)
+            compare(p.bitrateKbps, 40000)                   // 39 : accroché au cran 40
+            sheet.dragTo(slider(), at(66), track)
+            compare(p.bitrateKbps, 66000)
+            sheet.dragTo(slider(), track + Theme.sliderDragSpan, track)
+            compare(p.bitrateKbps, 150000)
+            compare(sheet.rubberX, Theme.sliderDragRubber / 2)
+            sheet.dragEnd()
+            tryCompare(sheet, "rubberX", 0, 1500)
+            var area = null                                 // et un vrai clic, au milieu de la piste
+            var walk = function(from) {
+                for (var i = 0; i < from.children.length && !area; i++) {
+                    var c = from.children[i]
+                    if (c.preventStealing === true && c.enabled && c.visible) area = c
+                    else walk(c)
+                }
+            }
+            walk(sheet)
+            verify(area)
+            mouseClick(area, area.width / 2, area.height / 2)
+            compare(p.bitrateKbps, 78000)                   // (5 + 150) / 2, arrondi
+
             p.bitrateKbps = 150000; home.refreshOptions()
             keyClick(Qt.Key_Right)                          // au bout : la butée
             compare(p.bitrateKbps, 150000)
