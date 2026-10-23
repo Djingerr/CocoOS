@@ -34,6 +34,7 @@ const int STICK_REST = 10000;
 
 const char* STATS_SETTING = "ConsoleUi/streamStats";
 const char* RUMBLE_SETTING = "ConsoleUi/rumble";
+const char* MOTION_SETTING = "ConsoleUi/reduceMotion";
 // Départ sans action pour l'accueil : le flux s'est fermé autrement que par le menu.
 const char* ENDED = "ended";
 const char* SOUNDS_SETTING = "ConsoleUi/sounds";
@@ -47,6 +48,7 @@ const int SHEET_VALUE_SWAP = 260;   // « Affichées » / « Masquées »
 const int BLUR_FADE = 200;          // l'image floutée remplace le voile
 const int STATS_FADE = 220;         // Theme.toastFade
 const int CURTAIN_FADE = 250;       // fondu au noir avant de quitter le flux
+const int STREAM_FADE_IN = 400;     // au début du flux, le noir s'efface sur ses premières images
 // Appui maintenu des confirmations (Theme.hold*, HoldFill.qml) : plein en HOLD_DURATION,
 // affiché progression^HOLD_CURVE, vidé en HOLD_DRAIN si on lâche ; plein, la coche arrive en
 // HOLD_SWAP, puis l'action part après HOLD_FINISH.
@@ -164,6 +166,8 @@ std::atomic<Uint32> s_lastFrameTicks { 0 };
 
 bool s_soundsOn = false;
 bool s_rumbleOn = true;
+bool s_reducedMotion = false;           // « Réduire les animations » : pas de fondu d'entrée
+std::atomic<bool> s_fadedIn { false };  // le flux a eu son fondu d'entrée
 QHash<QString, QByteArray> s_sounds;    // échantillons, volume appliqué
 SDL_AudioDeviceID s_audio = 0;
 
@@ -901,6 +905,8 @@ void StreamMenu::prepare(const QString& game, const QStringList& powerActions, c
     s_statsFade.set(0);   // les statistiques apparaissent avec les premiers chiffres
     s_soundsOn = QSettings().value(SOUNDS_SETTING, true).toBool();
     s_rumbleOn = QSettings().value(RUMBLE_SETTING, true).toBool();
+    s_reducedMotion = QSettings().value(MOTION_SETTING, false).toBool();
+    s_fadedIn = false;
     if (s_soundsOn) {
         loadSounds();
     }
@@ -1143,6 +1149,17 @@ void StreamMenu::offerFrame(const AVFrame* frame)
     av_frame_free(&s_lastFrame);
     if (s_keepFrames) {
         s_lastFrame = av_frame_clone(frame);
+    }
+    // Première image du flux : elle sort du noir, comme le flux y rentre en partant.
+    if (!s_fadedIn.exchange(true)) {
+        QMutexLocker locker(&s_lock);
+        if (!s_reducedMotion) {
+            attach();
+            const Uint32 now = SDL_GetTicks();
+            s_curtain.set(1);
+            s_curtain.go(0, STREAM_FADE_IN, now, QEasingCurve::OutCubic);
+            requestRender();
+        }
     }
 
     if (!s_wantFrame || !s_wantFrame.exchange(false)) {
