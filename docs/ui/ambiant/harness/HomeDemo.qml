@@ -15,6 +15,8 @@ import "../../../../app/gui/console/StreamProfiles.js" as Profiles
 //          150 ms : options, up, down, left, right, a, launch, cancel (B pendant le lancement),
 //          tab (onglet suivant),
 //          hold / release (A enfoncé / relâché, sans agir : étagère et bouton Jouer, ou panneau ouvert),
+//          partie en cours (running=…) : hero (haut : les boutons du héros), heroright (Quitter),
+//          holdquit / releasequit (A tenu / lâché sur Quitter),
 //          île de notification : pad (une manette arrive), lost / back (PC perdu / retrouvé),
 //          lowbattery (batterie sous le seuil), b (B la referme)
 //   at     instant de `goto` / `do`, en ms (300 par défaut)
@@ -23,6 +25,7 @@ import "../../../../app/gui/console/StreamProfiles.js" as Profiles
 //   connected=0, signal=0..4, battery=0..100, charging=1   états de la barre haute
 //   network=good|fair|poor   réseau vu par les profils de flux (Options > Flux > Profil)
 //   advanced=1               réglages avancés allumés au départ
+//   running=N                le jeu N tourne sur le PC : Reprendre la partie, Quitter la partie
 //   pad=xbox|playstation|nintendo, padbattery=0..3          manette (glyphes, batterie)
 // Pour comparer à une référence, capturer après l'entrée de l'écran : delay=2500.
 HomeScreen {
@@ -65,6 +68,10 @@ HomeScreen {
     playtime: game ? Format.playtime(game.playtimeSeconds) : ""
     updateNote: game ? game.updateNote : ""
     backdrop: game ? game.boxart : ""
+    property int runningIndex: args.running !== undefined ? Number(args.running) : -1
+    running: currentIndex === runningIndex
+    onQuitRequested: quitDone.start()               // le PC met un moment à fermer le jeu
+    Timer { id: quitDone; interval: 1200; onTriggered: demo.runningIndex = -1 }
 
     hostName: "Djinger"
     connected: args.connected !== "0"
@@ -204,6 +211,10 @@ HomeScreen {
             else if (action === "back") demo.connected = true
             else if (action === "lowbattery") demo.batteryPercent = 14
             else if (action === "b") demo.dismissNotification()
+            else if (action === "hero") demo.shelf.upRequested()
+            else if (action === "heroright") demo.hero.choose(1)
+            else if (action === "holdquit") demo.hero.quitHeld = true
+            else if (action === "releasequit") demo.hero.releaseQuit()
             else if (action === "hold" || action === "release") {
                 if (demo.options.opened) demo.options.pressing = action === "hold"
                 else demo.shelf.pressing = action === "hold"

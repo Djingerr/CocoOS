@@ -1451,6 +1451,7 @@ FocusScope {
             else Sounds.play("edge")
         }
         onFavoriteRequested: home.toggleFavorite()
+        onQuitRequested: home.quitRunningGame()
         onOptionChanged: function(key, index) { home.applyOption(key, index) }
         onOptionAction: function(key) {
             if (key === "wifi") {

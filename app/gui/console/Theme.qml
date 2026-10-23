@@ -277,6 +277,23 @@ QtObject {
     readonly property int playHeight: 52
     readonly property int playPadLeft: 10
     readonly property int playPadRight: 26
+    // Partie en cours : à côté de « Reprendre la partie », « Quitter la partie » (prototype des
+    // micro-interactions, bouton « Quitter le stream ») : contour de quitBorderWidth, s'écrase à
+    // quitPressScale tant que A est tenu (appui maintenu, cf. HoldFill). Plein, il montre sa coche
+    // quitResetDelay ms puis se vide en quitResetFade (si le jeu tourne encore).
+    readonly property int quitPad: 22
+    readonly property real quitBorderWidth: 1.5
+    readonly property color quitBorder: "#323236"
+    readonly property real quitPressScale: 0.97
+    readonly property int quitResetDelay: 1700
+    readonly property int quitResetFade: 260
+    // Anneau de focus d'un bouton (prototype : .ring::after) : un trait de focusRingWidth à
+    // focusRingInset du bouton ; il paraît en focusRingFade (curveOut) en se resserrant depuis
+    // focusRingFrom (ressort « vif »).
+    readonly property int focusRingInset: 5
+    readonly property int focusRingWidth: 2
+    readonly property int focusRingFade: 140
+    readonly property real focusRingFrom: 1.025
     readonly property int playGap: 12
     readonly property int playLabelSize: 17          // Sora 600
     readonly property int playGlyphSize: 32

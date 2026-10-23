@@ -1091,6 +1091,36 @@ Item {
             keyClick(Qt.Key_Escape)
         }
 
+        // Une partie en cours : haut amène la manette aux boutons du héros (Reprendre, Quitter) ;
+        // Quitter se tient jusqu'au bout ; bas la rend à l'étagère, la fin de la partie aussi.
+        function test_9y_resumeAndQuitButtons() {
+            var apps = home.appModel, tile = home.currentTile(), hero = screen.hero
+            keyClick(Qt.Key_Up)                             // pas de partie : rien au-dessus
+            verify(!screen.heroFocused)
+            apps.setProperty(tile.appIndex, "running", true)
+            apps.runningName = tile.name
+            verify(screen.running)
+            keyClick(Qt.Key_Up)
+            verify(screen.heroFocused && hero.activeFocus)
+            compare(hero.selected, 0)                       // Reprendre d'abord
+            keyClick(Qt.Key_Right)
+            compare(hero.selected, 1)
+            var quits = apps.quits
+            keyClick(Qt.Key_Return)                         // appui bref : rien
+            compare(apps.quits, quits)
+            holdA()
+            compare(apps.quits, quits + 1)
+            keyClick(Qt.Key_Down)                           // la manette revient à l'étagère
+            verify(!screen.heroFocused)
+            keyClick(Qt.Key_Up)
+            verify(screen.heroFocused)
+            apps.setProperty(tile.appIndex, "running", false)   // la partie s'arrête
+            verify(!screen.heroFocused)
+            keyClick(Qt.Key_Right)                          // l'étagère a bien la manette
+            compare(screen.currentIndex, 1)
+            apps.runningName = ""
+        }
+
         // En dernier : l'hôte du faux modèle est supprimé.
         function test_9z_forgettingThePcForgetsTheCompanionToo() {
             var forgets = CompanionClient.forgets

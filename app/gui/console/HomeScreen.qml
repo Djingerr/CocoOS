@@ -86,6 +86,10 @@ FocusScope {
     // --- Options (bouton Y) : cf. OptionsSheet ---
     readonly property alias options: sheet           // options.open(), options.opened…
     readonly property alias shelf: shelf             // l'étagère (shelf.pressing : A tenu)
+    readonly property alias hero: hero               // le héros (ses boutons, partie en cours)
+    // Partie en cours : haut depuis l'étagère donne la manette aux boutons du héros
+    // (Reprendre, Quitter) ; bas ou B la rendent. Elle revient d'elle-même à l'étagère quand
+    // la partie s'arrête ou qu'un lancement commence.
     property alias optionTabs: sheet.tabs            // [{ label, rows }]
     readonly property alias optionRows: sheet.rows   // lignes de l'onglet affiché
     property alias optionsHost: sheet.hostName       // PC que le panneau propose d'oublier
@@ -93,6 +97,7 @@ FocusScope {
     property bool panelOpen: false
 
     signal launchRequested(int index)
+    signal quitRequested()                           // Quitter la partie, tenu jusqu'au bout
     signal optionChanged(string key, int index)
     signal optionAction(string key)
     signal forgetRequested()
@@ -107,6 +112,10 @@ FocusScope {
     // À appeler quand l'utilisateur agit sans changer de jeu : relance la dérive.
     function wake() { idle.restart() }
 
+    property bool heroFocused: false
+    onRunningChanged: if (!running) heroFocused = false
+    onLaunchingChanged: if (launching) heroFocused = false
+
     readonly property bool entered: ready && entryAllowed   // héros et étagère sont entrés
     property bool settled: false     // …et c'est fini : plus aucun délai par rang
 
@@ -114,7 +123,10 @@ FocusScope {
         if (!entered) settled = false
         idle.restart()
     }
-    onCurrentIndexChanged: idle.restart()
+    onCurrentIndexChanged: {
+        idle.restart()
+        heroFocused = false
+    }
 
     Binding {
         target: Theme; property: "scale"
@@ -191,11 +203,18 @@ FocusScope {
                 HeroBlock {
                     id: hero
                     anchors.bottom: parent.bottom
+                    focus: root.heroFocused && !root.staged && !sheet.opened
                     direction: shelf.direction
                     held: shelf.pressing
                     animated: root.entered
                     actionsShown: root.entered
                     onPlayRequested: root.launchRequested(shelf.currentIndex)
+                    onQuitRequested: root.quitRequested()
+                    onLeaveRequested: {
+                        root.heroFocused = false
+                        Sounds.play("move")
+                    }
+                    onHoldHintRequested: root.toast(qsTr("Maintenez A pour quitter la partie"))
                     onOptionsRequested: sheet.open()
                     onFavoriteRequested: root.favoriteRequested()
                 }
@@ -215,11 +234,19 @@ FocusScope {
                 anchors.fill: parent
                 // La manette va à l'étagère, à l'écran de message ou au panneau
                 // ouvert : le focus suit ces liaisons, il revient seul à la fermeture.
-                focus: !root.staged && !sheet.opened
+                focus: !root.staged && !sheet.opened && !root.heroFocused
                 shown: root.entered
                 enterStep: root.settled ? 0 : Theme.entryCardStagger
                 onLaunchRequested: function(index) { root.launchRequested(index) }
                 onDetailsRequested: root.detailsRequested()
+                onUpRequested: {
+                    if (hero.running) {
+                        root.heroFocused = true
+                        Sounds.play("move")
+                    } else {
+                        Sounds.play("edge")
+                    }
+                }
                 Keys.onMenuPressed: root.favoriteRequested()      // bouton X
             }
         }

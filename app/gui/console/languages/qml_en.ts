@@ -300,7 +300,7 @@
     </message>
     <message>
         <location filename="../ConsoleHome.qml" line="842"/>
-        <location filename="../ConsoleHome.qml" line="1471"/>
+        <location filename="../ConsoleHome.qml" line="1485"/>
         <source>Réveil de %1</source>
         <translation>Waking %1</translation>
     </message>
@@ -312,7 +312,7 @@
     </message>
     <message>
         <location filename="../ConsoleHome.qml" line="859"/>
-        <location filename="../ConsoleHome.qml" line="1473"/>
+        <location filename="../ConsoleHome.qml" line="1487"/>
         <source>%1 est hors ligne</source>
         <translation>%1 is offline</translation>
     </message>
@@ -413,28 +413,28 @@
         <translation>Profile</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1167"/>
+        <location filename="../ConsoleHome.qml" line="1171"/>
         <source>Réseau moyen : un cran plus bas</source>
         <translation>Average network: one step lower</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1168"/>
+        <location filename="../ConsoleHome.qml" line="1172"/>
         <source>Réseau faible : deux crans plus bas</source>
         <translation>Weak network: two steps lower</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1170"/>
+        <location filename="../ConsoleHome.qml" line="1174"/>
         <source>Définition</source>
         <translation>Resolution</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1171"/>
+        <location filename="../ConsoleHome.qml" line="1175"/>
         <source>Images/s</source>
         <translation>FPS</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1172"/>
-        <location filename="../ConsoleHome.qml" line="1192"/>
+        <location filename="../ConsoleHome.qml" line="1176"/>
+        <location filename="../ConsoleHome.qml" line="1196"/>
         <source>%1 Mb/s</source>
         <translation>%1 Mbps</translation>
     </message>
@@ -550,14 +550,14 @@
     </message>
     <message>
         <location filename="../ConsoleHome.qml" line="1140"/>
-        <location filename="../ConsoleHome.qml" line="1615"/>
-        <location filename="../ConsoleHome.qml" line="1619"/>
+        <location filename="../ConsoleHome.qml" line="1629"/>
+        <location filename="../ConsoleHome.qml" line="1633"/>
         <source>Wi-Fi</source>
         <translation>Wi-Fi</translation>
     </message>
     <message>
         <location filename="../ConsoleHome.qml" line="1141"/>
-        <location filename="../ConsoleHome.qml" line="1617"/>
+        <location filename="../ConsoleHome.qml" line="1631"/>
         <source>Non connecté</source>
         <translation>Not connected</translation>
     </message>
@@ -572,22 +572,22 @@
         <translation>Custom settings</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1182"/>
+        <location filename="../ConsoleHome.qml" line="1186"/>
         <source>Flux</source>
         <translation>Stream</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1187"/>
+        <location filename="../ConsoleHome.qml" line="1191"/>
         <source>Résolution</source>
         <translation>Resolution</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1188"/>
+        <location filename="../ConsoleHome.qml" line="1192"/>
         <source>Images par seconde</source>
         <translation>Frame rate</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1179"/>
+        <location filename="../ConsoleHome.qml" line="1183"/>
         <source>Débit automatique</source>
         <translation>Automatic bitrate</translation>
     </message>
@@ -622,289 +622,289 @@
         <translation>Your own settings, in the advanced settings.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1172"/>
-        <location filename="../ConsoleHome.qml" line="1190"/>
+        <location filename="../ConsoleHome.qml" line="1176"/>
+        <location filename="../ConsoleHome.qml" line="1194"/>
         <source>Débit</source>
         <translation>Bitrate</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1173"/>
+        <location filename="../ConsoleHome.qml" line="1177"/>
         <source>Priorité</source>
         <translation>Priority</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1184"/>
+        <location filename="../ConsoleHome.qml" line="1188"/>
         <source>Réglages avancés</source>
         <translation>Advanced settings</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1194"/>
+        <location filename="../ConsoleHome.qml" line="1198"/>
         <source>Codec</source>
         <translation>Codec</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1195"/>
+        <location filename="../ConsoleHome.qml" line="1199"/>
         <source>HDR</source>
         <translation>HDR</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1197"/>
-        <location filename="../ConsoleHome.qml" line="1800"/>
+        <location filename="../ConsoleHome.qml" line="1201"/>
+        <location filename="../ConsoleHome.qml" line="1814"/>
         <source>Console</source>
         <translation>Console</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1379"/>
+        <location filename="../ConsoleHome.qml" line="1392"/>
         <source>Téléchargement</source>
         <translation>Downloading</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1379"/>
+        <location filename="../ConsoleHome.qml" line="1392"/>
         <source>Télécharger</source>
         <translation>Download</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1381"/>
+        <location filename="../ConsoleHome.qml" line="1394"/>
         <source>Désinstallation en cours</source>
         <translation>Uninstalling</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1399"/>
+        <location filename="../ConsoleHome.qml" line="1412"/>
         <source>Recherche…</source>
         <translation>Searching…</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1431"/>
+        <location filename="../ConsoleHome.qml" line="1444"/>
         <source>%1 n&apos;est plus installé</source>
         <translation>%1 is no longer installed</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1460"/>
+        <location filename="../ConsoleHome.qml" line="1474"/>
         <source>Options</source>
         <translation>Options</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1470"/>
+        <location filename="../ConsoleHome.qml" line="1484"/>
         <source>Chargement de vos jeux</source>
         <translation>Loading your games</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1472"/>
+        <location filename="../ConsoleHome.qml" line="1486"/>
         <source>%1 ne répond pas</source>
         <translation>%1 isn&apos;t responding</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1474"/>
+        <location filename="../ConsoleHome.qml" line="1488"/>
         <source>Recherche de votre PC</source>
         <translation>Looking for your PC</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1476"/>
+        <location filename="../ConsoleHome.qml" line="1490"/>
         <source>Votre PC démarre, cela peut prendre une minute.</source>
         <translation>Your PC is starting up. This can take a minute.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1477"/>
+        <location filename="../ConsoleHome.qml" line="1491"/>
         <source>Vérifiez qu&apos;il est branché et que le réveil à distance (Wake-on-LAN) est activé.</source>
         <translation>Check that it&apos;s plugged in and that Wake-on-LAN is enabled.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1478"/>
+        <location filename="../ConsoleHome.qml" line="1492"/>
         <source>Il est peut-être éteint ou en veille.</source>
         <translation>It may be turned off or asleep.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1479"/>
+        <location filename="../ConsoleHome.qml" line="1493"/>
         <source>Vérifiez qu&apos;il est allumé et sur le même réseau que la console.</source>
         <translation>Check that it&apos;s turned on and on the same network as the console.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1481"/>
+        <location filename="../ConsoleHome.qml" line="1495"/>
         <source>Réessayer</source>
         <translation>Try again</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1481"/>
+        <location filename="../ConsoleHome.qml" line="1495"/>
         <source>Réveiller</source>
         <translation>Wake up</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1494"/>
+        <location filename="../ConsoleHome.qml" line="1508"/>
         <source>Liaison avec %1</source>
         <translation>Pairing with %1</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1494"/>
+        <location filename="../ConsoleHome.qml" line="1508"/>
         <source>votre PC</source>
         <translation>your PC</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1495"/>
+        <location filename="../ConsoleHome.qml" line="1509"/>
         <source>Saisissez ce code sur votre PC. La console se connectera ensuite toute seule.</source>
         <translation>Enter this code on your PC. The console will then connect on its own.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1497"/>
+        <location filename="../ConsoleHome.qml" line="1511"/>
         <source>La liaison a échoué. Nouvelle tentative dans un instant…</source>
         <translation>Pairing failed. Trying again in a moment…</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1498"/>
+        <location filename="../ConsoleHome.qml" line="1512"/>
         <source>En attente de votre PC…</source>
         <translation>Waiting for your PC…</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1510"/>
+        <location filename="../ConsoleHome.qml" line="1524"/>
         <source>Bienvenue</source>
         <translation>Welcome</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1511"/>
+        <location filename="../ConsoleHome.qml" line="1525"/>
         <source>Quelques secondes de réglages, puis vos jeux.</source>
         <translation>A few seconds of setup, then your games.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1512"/>
+        <location filename="../ConsoleHome.qml" line="1526"/>
         <source>Commencer</source>
         <translation>Get started</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1520"/>
+        <location filename="../ConsoleHome.qml" line="1534"/>
         <source>Connexion à Internet</source>
         <translation>Connect to the Internet</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1521"/>
+        <location filename="../ConsoleHome.qml" line="1535"/>
         <source>Choisissez le réseau Wi-Fi de la maison : la console y retrouvera votre PC.</source>
         <translation>Choose your home Wi-Fi network: that&apos;s where the console will find your PC.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1522"/>
+        <location filename="../ConsoleHome.qml" line="1536"/>
         <source>Connexion…</source>
         <translation>Connecting…</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1524"/>
+        <location filename="../ConsoleHome.qml" line="1538"/>
         <source>Choisir un réseau</source>
         <translation>Choose a network</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1540"/>
+        <location filename="../ConsoleHome.qml" line="1554"/>
         <source>La console est déjà connectée à ce réseau.</source>
         <translation>The console is already connected to this network.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1541"/>
+        <location filename="../ConsoleHome.qml" line="1555"/>
         <source>Connecté</source>
         <translation>Connected</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1541"/>
+        <location filename="../ConsoleHome.qml" line="1555"/>
         <source>Enregistré</source>
         <translation>Saved</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1541"/>
+        <location filename="../ConsoleHome.qml" line="1555"/>
         <source>Ouvert</source>
         <translation>Open</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1554"/>
-        <location filename="../ConsoleHome.qml" line="1578"/>
+        <location filename="../ConsoleHome.qml" line="1568"/>
+        <location filename="../ConsoleHome.qml" line="1592"/>
         <source>Mot de passe de %1</source>
         <translation>Password for %1</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1564"/>
+        <location filename="../ConsoleHome.qml" line="1578"/>
         <source>Connexion à %1…</source>
         <translation>Connecting to %1…</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1572"/>
-        <location filename="../ConsoleHome.qml" line="1616"/>
+        <location filename="../ConsoleHome.qml" line="1586"/>
+        <location filename="../ConsoleHome.qml" line="1630"/>
         <source>Connecté à %1</source>
         <translation>Connected to %1</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1617"/>
+        <location filename="../ConsoleHome.qml" line="1631"/>
         <source>Recherche des réseaux…</source>
         <translation>Searching for networks…</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1643"/>
+        <location filename="../ConsoleHome.qml" line="1657"/>
         <source>Menu</source>
         <translation>Menu</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1741"/>
+        <location filename="../ConsoleHome.qml" line="1755"/>
         <source>Mettre à jour</source>
         <translation>Update</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1742"/>
+        <location filename="../ConsoleHome.qml" line="1756"/>
         <source>Annuler</source>
         <translation>Cancel</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1753"/>
+        <location filename="../ConsoleHome.qml" line="1767"/>
         <source>Mise à jour de %1 sur le PC</source>
         <translation>Installing a %1 update on the PC</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1754"/>
+        <location filename="../ConsoleHome.qml" line="1768"/>
         <source>Mise à jour sur le PC</source>
         <translation>Updating on the PC</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1812"/>
+        <location filename="../ConsoleHome.qml" line="1826"/>
         <source>Code expiré — relancez la liaison depuis le PC.</source>
         <translation>Code expired — restart pairing from the PC.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1813"/>
+        <location filename="../ConsoleHome.qml" line="1827"/>
         <source>Code incorrect — réessayez.</source>
         <translation>Wrong code — try again.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1820"/>
+        <location filename="../ConsoleHome.qml" line="1834"/>
         <source>%1 a été désinstallé</source>
         <translation>%1 was uninstalled</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1823"/>
-        <location filename="../ConsoleHome.qml" line="1830"/>
+        <location filename="../ConsoleHome.qml" line="1837"/>
+        <location filename="../ConsoleHome.qml" line="1844"/>
         <source>La désinstallation de %1 a échoué</source>
         <translation>Uninstalling %1 failed</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1828"/>
         <location filename="../ConsoleHome.qml" line="1842"/>
+        <location filename="../ConsoleHome.qml" line="1856"/>
         <source>Impossible pendant le lancement d&apos;un jeu</source>
         <translation>Not possible while a game is launching</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1829"/>
         <location filename="../ConsoleHome.qml" line="1843"/>
+        <location filename="../ConsoleHome.qml" line="1857"/>
         <source>Steam est introuvable sur %1</source>
         <translation>Steam can&apos;t be found on %1</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1844"/>
+        <location filename="../ConsoleHome.qml" line="1858"/>
         <source>Le téléchargement de %1 a échoué</source>
         <translation>Downloading %1 failed</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1868"/>
+        <location filename="../ConsoleHome.qml" line="1882"/>
         <source>Mise à jour requise</source>
         <translation>Update required</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1870"/>
+        <location filename="../ConsoleHome.qml" line="1884"/>
         <source>Ce jeu doit être mis à jour (%1) avant d&apos;y jouer.</source>
         <translation>This game needs an update (%1) before you can play it.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1871"/>
+        <location filename="../ConsoleHome.qml" line="1885"/>
         <source>Ce jeu doit être mis à jour avant d&apos;y jouer.</source>
         <translation>This game needs an update before you can play it.</translation>
     </message>
@@ -984,55 +984,73 @@
 <context>
     <name>HeroBlock</name>
     <message>
-        <location filename="../HeroBlock.qml" line="261"/>
+        <location filename="../HeroBlock.qml" line="342"/>
         <source>Reprise…</source>
         <translation>Resuming…</translation>
     </message>
     <message>
-        <location filename="../HeroBlock.qml" line="261"/>
+        <location filename="../HeroBlock.qml" line="342"/>
         <source>Lancement…</source>
         <translation>Launching…</translation>
     </message>
     <message>
-        <location filename="../HeroBlock.qml" line="262"/>
-        <source>Reprendre</source>
-        <translation>Resume</translation>
-    </message>
-    <message>
-        <location filename="../HeroBlock.qml" line="262"/>
+        <location filename="../HeroBlock.qml" line="343"/>
         <source>Jouer</source>
         <translation>Play</translation>
     </message>
     <message>
-        <location filename="../HeroBlock.qml" line="302"/>
+        <location filename="../HeroBlock.qml" line="343"/>
+        <source>Reprendre la partie</source>
+        <translation>Resume game</translation>
+    </message>
+    <message>
+        <location filename="../HeroBlock.qml" line="393"/>
+        <source>Quitter la partie</source>
+        <translation>Quit game</translation>
+    </message>
+    <message>
+        <location filename="../HeroBlock.qml" line="401"/>
+        <source>Partie terminée</source>
+        <translation>Game closed</translation>
+    </message>
+    <message>
+        <location filename="../HeroBlock.qml" line="442"/>
         <source>Options</source>
         <translation>Options</translation>
     </message>
     <message>
-        <location filename="../HeroBlock.qml" line="324"/>
+        <location filename="../HeroBlock.qml" line="464"/>
         <source>Désépingler</source>
         <translation>Unpin</translation>
     </message>
     <message>
-        <location filename="../HeroBlock.qml" line="324"/>
+        <location filename="../HeroBlock.qml" line="464"/>
         <source>Épingler</source>
         <translation>Pin</translation>
     </message>
 </context>
 <context>
+    <name>HomeScreen</name>
+    <message>
+        <location filename="../HomeScreen.qml" line="217"/>
+        <source>Maintenez A pour quitter la partie</source>
+        <translation>Hold A to quit the game</translation>
+    </message>
+</context>
+<context>
     <name>LaunchScreen</name>
     <message>
-        <location filename="../LaunchScreen.qml" line="203"/>
+        <location filename="../LaunchScreen.qml" line="223"/>
         <source>Le lancement a échoué</source>
         <translation>Launch failed</translation>
     </message>
     <message>
-        <location filename="../LaunchScreen.qml" line="254"/>
+        <location filename="../LaunchScreen.qml" line="274"/>
         <source>Fermer</source>
         <translation>Close</translation>
     </message>
     <message>
-        <location filename="../LaunchScreen.qml" line="254"/>
+        <location filename="../LaunchScreen.qml" line="274"/>
         <source>Annuler</source>
         <translation>Cancel</translation>
     </message>
@@ -1073,33 +1091,33 @@
 <context>
     <name>OptionsSheet</name>
     <message>
-        <location filename="../OptionsSheet.qml" line="31"/>
+        <location filename="../OptionsSheet.qml" line="32"/>
         <source>Options</source>
         <translation>Options</translation>
     </message>
     <message>
-        <location filename="../OptionsSheet.qml" line="1216"/>
-        <location filename="../OptionsSheet.qml" line="1297"/>
+        <location filename="../OptionsSheet.qml" line="1248"/>
+        <location filename="../OptionsSheet.qml" line="1329"/>
         <source>Oublier ce PC</source>
         <translation>Forget this PC</translation>
     </message>
     <message>
-        <location filename="../OptionsSheet.qml" line="1298"/>
+        <location filename="../OptionsSheet.qml" line="1330"/>
         <source>PC oublié</source>
         <translation>PC forgotten</translation>
     </message>
     <message>
-        <location filename="../OptionsSheet.qml" line="1311"/>
+        <location filename="../OptionsSheet.qml" line="1343"/>
         <source>Fermer</source>
         <translation>Close</translation>
     </message>
     <message>
-        <location filename="../OptionsSheet.qml" line="1312"/>
+        <location filename="../OptionsSheet.qml" line="1344"/>
         <source>Changer</source>
         <translation>Change</translation>
     </message>
     <message>
-        <location filename="../OptionsSheet.qml" line="1312"/>
+        <location filename="../OptionsSheet.qml" line="1344"/>
         <source>Maintenir</source>
         <translation>Hold</translation>
     </message>

@@ -2,6 +2,9 @@ import QtQuick
 
 // Bloc héros de l'accueil : méta (source | dernière session), titre du jeu,
 // sous-titre (temps de jeu, mise à jour) et actions (Jouer, Options, Épingler).
+// Partie en cours : « Reprendre la partie » et « Quitter la partie » (appui maintenu),
+// les boutons du prototype des micro-interactions ; avec la manette (`focus`, haut depuis
+// l'étagère), ← / → choisissent, A agit, bas ou B la rendent (leaveRequested).
 // Tout est posé à partir du BAS du bloc : un titre sur deux lignes le fait
 // grandir vers le haut, sans déplacer les actions. Quand le jeu change, chaque
 // champ se remplace en glissant et en se floutant (SwapBox, swapText du prototype).
@@ -28,6 +31,57 @@ Item {
     property bool actionsShown: true
 
     signal playRequested()
+    signal quitRequested()           // Quitter tenu jusqu'au bout
+    signal leaveRequested()          // bas ou B : la manette retourne à l'étagère
+    signal holdHintRequested()       // Quitter lâché avant la fin
+
+    // Boutons à la manette : 0 Reprendre, 1 Quitter ; A tenu sur l'un ou l'autre.
+    property int selected: 0
+    property bool playHeld: false
+    property bool quitHeld: false
+    onActiveFocusChanged: {
+        playHeld = quitHeld = false
+        selected = 0
+    }
+    onRunningChanged: if (!running) {
+        quitReset.stop()
+        quitFill.reset()
+        quitFill.opacity = 1
+    }
+    function choose(index) {
+        if (index === selected) {
+            Sounds.play("edge")
+            return
+        }
+        playHeld = quitHeld = false
+        selected = index
+        Sounds.play("move")
+    }
+    function releaseQuit() {
+        quitHeld = false
+        if (!quitFill.done) holdHintRequested()
+    }
+    Keys.onLeftPressed: choose(0)
+    Keys.onRightPressed: choose(running ? 1 : 0)
+    Keys.onUpPressed: Sounds.play("edge")
+    Keys.onDownPressed: leaveRequested()
+    Keys.onEscapePressed: leaveRequested()
+    function pressA(event) {
+        if (event.isAutoRepeat) return
+        if (selected === 0) playHeld = true
+        else quitHeld = true
+    }
+    Keys.onReturnPressed: function(event) { pressA(event) }
+    Keys.onEnterPressed: function(event) { pressA(event) }
+    Keys.onReleased: function(event) {
+        if (event.isAutoRepeat || (event.key !== Qt.Key_Return && event.key !== Qt.Key_Enter)) return
+        if (playHeld) {
+            playRequested()             // (d'abord : un lancement garde le bouton enfoncé)
+            playHeld = false
+        } else if (quitHeld) {
+            releaseQuit()
+        }
+    }
 
     // Jouer est impossible (PC hors ligne) : le bouton se secoue.
     function refusePlay() { playButton.refuse() }
@@ -216,6 +270,29 @@ Item {
     }
 
     // --- Actions ---
+    // Anneau de focus du bouton qui a la manette (il s'écrase avec lui).
+    component FocusRing: Rectangle {
+        property bool shown: false
+        anchors.fill: parent
+        anchors.margins: -(Theme.focusRingInset + Theme.focusRingWidth)
+        radius: height / 2
+        color: "transparent"
+        border.width: Theme.focusRingWidth; border.color: Theme.ink
+        opacity: shown ? 1 : 0
+        scale: shown ? 1 : Theme.focusRingFrom
+        Behavior on opacity {
+            NumberAnimation {
+                duration: Theme.focusRingFade
+                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+            }
+        }
+        Behavior on scale {
+            NumberAnimation {
+                duration: Theme.springSnappy.duration
+                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
+            }
+        }
+    }
     component PlayText: Text {
         property var value
         height: Theme.playHeight
@@ -241,7 +318,7 @@ Item {
             id: playButton
             width: Theme.playPadLeft + playRow.width + Theme.playPadRight
             height: Theme.playHeight
-            down: root.held || root.pressed
+            down: root.held || root.pressed || root.playHeld
 
             Rectangle { anchors.fill: parent; radius: height / 2; color: Theme.accent }
             Row {
@@ -263,7 +340,7 @@ Item {
                     id: playText
                     readonly property string text: root.playLabel !== "" ? root.playLabel
                         : root.pressed ? (root.running ? qsTr("Reprise…") : qsTr("Lancement…"))
-                        : root.running ? qsTr("Reprendre") : qsTr("Jouer")
+                        : root.running ? qsTr("Reprendre la partie") : qsTr("Jouer")
                     anchors.verticalCenter: parent.verticalCenter
                     width: playMetrics.advanceWidth; height: Theme.playHeight
                     Behavior on width {
@@ -287,7 +364,65 @@ Item {
                 TextMetrics { id: playMetrics; font: playFont.font; text: playText.text }
                 PlayText { id: playFont; visible: false }
             }
+            FocusRing { shown: root.activeFocus && root.selected === 0 }
             MouseArea { anchors.fill: parent; onClicked: root.playRequested() }
+        }
+
+        // Quitter la partie : A (ou le clic) tenu jusqu'au bout.
+        Pressable {
+            id: quitButton
+            visible: root.running
+            width: quitLabel.implicitWidth + 2 * Theme.quitPad
+            height: Theme.playHeight
+            down: (root.quitHeld || quitMouse.pressed) && !quitFill.done
+            downScale: Theme.quitPressScale
+
+            Item {
+                anchors.fill: parent
+                scale: quitFill.bounce          // plein : tout le bouton rebondit, anneau compris
+                Rectangle {
+                    anchors.fill: parent
+                    radius: height / 2
+                    color: "transparent"
+                    border.width: Theme.quitBorderWidth; border.color: Theme.quitBorder
+                    border.pixelAligned: false
+                }
+                PlayText {
+                    id: quitLabel
+                    anchors.centerIn: parent
+                    value: qsTr("Quitter la partie")
+                    color: Theme.ink
+                }
+                HoldFill {
+                    id: quitFill
+                    anchors.fill: parent
+                    radius: height / 2
+                    label: quitLabel.text
+                    doneLabel: qsTr("Partie terminée")
+                    centered: true
+                    labelSize: Theme.playLabelSize; labelWeight: Font.DemiBold
+                    bounces: false
+                    holding: root.quitHeld || quitMouse.pressed
+                    onCompleted: root.quitRequested()
+                    onDoneChanged: if (done) quitReset.restart()
+                }
+                FocusRing { shown: root.activeFocus && root.selected === 1 }
+            }
+            MouseArea {
+                id: quitMouse
+                anchors.fill: parent
+                onReleased: if (!quitFill.done) root.holdHintRequested()
+            }
+            // Le jeu tourne encore un moment après : la coche reste, puis le bouton se vide.
+            SequentialAnimation {
+                id: quitReset
+                PauseAnimation { duration: Theme.quitResetDelay }
+                NumberAnimation {
+                    target: quitFill; property: "opacity"; to: 0; duration: Theme.quitResetFade
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                }
+                ScriptAction { script: { quitFill.reset(); quitFill.opacity = 1 } }
+            }
         }
 
         Item {

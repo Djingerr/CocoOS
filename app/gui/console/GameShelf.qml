@@ -24,6 +24,7 @@ FocusScope {
     property int enterStep: 0
     signal launchRequested(int index)
     signal detailsRequested()
+    signal upRequested()             // haut : au-dessus, le héros (une partie en cours), ou rien
     // A enfoncé : la vignette active s'écrase (Theme.shelfTapScale) et le bouton Jouer avec
     // elle (cf. Pressable). Le jeu part au relâché, et seulement si l'appui a eu lieu ici :
     // le relâché d'un A qui a fermé un panneau ne lance rien.
@@ -155,8 +156,7 @@ FocusScope {
             pressing = false
         }
     }
-    // Rien au-dessus ni en dessous de l'étagère : haut / bas butent.
-    Keys.onUpPressed: Sounds.play("edge")
+    Keys.onUpPressed: root.upRequested()
     Keys.onDownPressed: root.detailsRequested()      // la fiche du jeu (ou une butée)
     Keys.onReturnPressed: function(event) { if (!event.isAutoRepeat) pressing = true }
     Keys.onEnterPressed: function(event) { if (!event.isAutoRepeat) pressing = true }

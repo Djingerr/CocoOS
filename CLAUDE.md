@@ -364,6 +364,18 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   MultiEffect par texte, posé une fois : pendant le glissement seul le mélange final change.
   Rendu GPU seulement (le rendu logiciel des tests n'a pas de calques). ⚠️ Pas vu à la manette ;
   `Theme.swapBlur` à 0 si la carte ne tient pas ses 60 i/s.
+- ✅ **Reprendre / Quitter la partie (2026-10-23, demande de Marco)** : les deux boutons du prototype
+  des micro-interactions (« Reprendre la partie », « Quitter le stream »), dans le héros, quand le
+  jeu sélectionné tourne sur le PC. Libellés « Reprendre la partie » / « Quitter la partie » (à
+  l'accueil, le flux est déjà fermé : c'est le jeu qu'on quitte). Haut depuis l'étagère leur donne
+  la manette (l'anneau de l'étagère s'efface) ; ← / → choisissent, bas ou B la rendent. Anneau de
+  focus du prototype (2 px à 5 px du bouton, 140 ms, se resserre de 1,025). Reprendre : l'appui
+  du bouton Jouer (« Reprise… »). Quitter : contour fin, s'écrase à 0,97, appui maintenu
+  (`HoldFill` : remplissage orange, coche et « Partie terminée », tout le bouton rebondit) puis
+  `quitRunningGame` ; lâché trop tôt, un toast « Maintenez A pour quitter la partie ». La coche
+  reste 1,7 s puis le bouton se vide, si le jeu tourne encore. A sur l'étagère reprend toujours
+  directement. Harnais : `view=HomeDemo running=0 do=hero,heroright,holdquit at=2500`.
+  ⚠️ Pas vu à la manette ; le menu en jeu (QPainter) garde ses lignes.
 - ✅ **Suite des effets du prototype (2026-10-23, demande de Marco)** : au changement de jeu, méta,
   titre et sous-titre du héros font le swapText du prototype (14 px, 380 ms à l'entrée, 220 ms à la
   sortie ; flou de 3 px ajouté ensuite, cf. « Carrousel du prototype ») ; au lancement, « Jouer » cède la place à « Lancement… » (« Reprise… ») et le
@@ -529,7 +541,8 @@ Fichiers (dans `app/gui/console/`) :
 - `fonts/` — Sora embarquée (OFL, instances statiques de Google Fonts, 400 à 700), chargée par
   `Theme.qml` (`Theme.fontsReady`) ; seule famille de l'interface (pas de mono)
 - `BackdropLayer.qml` — fond en fondu croisé (deux calques) + voile + dérive lente
-- `HeroBlock.qml` — méta, titre, sous-titre, boutons Jouer / Options
+- `HeroBlock.qml` — méta, titre, sous-titre, boutons Jouer / Options ; partie en cours, Reprendre /
+  Quitter la partie à la manette (haut depuis l'étagère)
 - `GameShelf.qml` — l'étagère de vignettes en carrousel : anneau, défilement aux bords, focus,
   répétition manette
 - `SwapBox.qml`, `Appear.qml`, `ButtonGlyph.qml` — remplacement de texte en glissant,

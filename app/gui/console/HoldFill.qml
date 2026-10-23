@@ -14,6 +14,9 @@ Item {
     property string label
     property string doneLabel                // une fois plein ; vide : le libellé reste
     property real labelX: 0                  // place du libellé de la ligne, dessous
+    property bool centered: false            // libellés centrés (un bouton) plutôt qu'en labelX
+    property int labelSize: Theme.sheetLabelSize
+    property int labelWeight: Font.Normal
     property real radius: 0
     property real progress: 0
     property bool done: false
@@ -57,7 +60,11 @@ Item {
         ScriptAction { script: root.completed() }
     }
 
-    scale: 1 + (Theme.holdBounce - 1) * (1 - Math.abs(2 * bump - 1))
+    // Le rebond de la fin : sur HoldFill lui-même, ou (bounces à faux) laissé à l'appelant,
+    // qui l'applique à tout le bouton.
+    readonly property real bounce: 1 + (Theme.holdBounce - 1) * (1 - Math.abs(2 * bump - 1))
+    property bool bounces: true
+    scale: bounces ? bounce : 1
 
     Item {
         width: root.width * Math.pow(root.progress, Theme.holdCurve)
@@ -67,17 +74,17 @@ Item {
         Rectangle { width: root.width; height: root.height; radius: root.radius; color: Theme.accent }
         Text {
             readonly property bool gone: root.done && root.doneLabel !== ""
-            x: root.labelX
+            x: root.centered ? (root.width - width) / 2 : root.labelX
             y: (root.height - height) / 2 - (gone ? height * Theme.holdSwapShift : 0)
             opacity: gone ? 0 : 1
             text: root.label
             color: Theme.inkOnAccent
-            font.family: Theme.fontUi; font.pixelSize: Theme.sheetLabelSize
+            font.family: Theme.fontUi; font.pixelSize: root.labelSize; font.weight: root.labelWeight
             Behavior on y { NumberAnimation { duration: Theme.holdSwapMove; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut } }
             Behavior on opacity { NumberAnimation { duration: Theme.holdSwapFade; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut } }
         }
         Row {
-            x: root.labelX
+            x: root.centered ? (root.width - width) / 2 : root.labelX
             y: (root.height - height) / 2 + (root.done ? 0 : height * Theme.holdSwapShift)
             opacity: root.done ? 1 : 0
             visible: root.doneLabel !== ""
@@ -95,7 +102,7 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.doneLabel
                 color: Theme.inkOnAccent
-                font.family: Theme.fontUi; font.pixelSize: Theme.sheetLabelSize
+                font.family: Theme.fontUi; font.pixelSize: root.labelSize; font.weight: root.labelWeight
             }
         }
     }
