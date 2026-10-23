@@ -5,6 +5,7 @@
 #include <QFontMetricsF>
 #include <QHash>
 #include <QPainter>
+#include <QPainterPath>
 #include <QTextLayout>
 #include <QVector>
 
@@ -18,6 +19,12 @@ const qreal CANVAS_HEIGHT = 800;
 const QColor INK("#F2F0EC");
 const QColor INK2("#A19D97");
 const QColor INK3("#7C7973");
+const QColor ACCENT("#F2802A");
+const QColor INK_ON_ACCENT("#160B03");
+const qreal HOLD_SWAP_SHIFT = 16;        // Theme.holdSwapShift × la hauteur du libellé
+const qreal HOLD_CHECK_SIZE = 18;
+const qreal HOLD_CHECK_GAP = 8;
+const qreal CHECK_STROKE = 2.4;          // sur la grille 24 × 24 de CheckMark.qml
 const QColor OK("#69D08E");
 const QColor FAIR("#E8C547");
 const QColor POOR("#E5574F");
@@ -86,7 +93,7 @@ QFont sora(qreal size, QFont::Weight weight = QFont::Normal, qreal spacing = 0)
 
 // Un texte à la manière d'un Text QML en WordWrap ; renvoie le bas du bloc.
 qreal drawWrapped(QPainter& p, const QString& text, const QFont& font, const QColor& color,
-                  qreal x, qreal y, qreal width, qreal lineHeight = 1)
+                  qreal x, qreal y, qreal width, qreal lineHeight = 1, bool paint = true)
 {
     if (text.isEmpty()) {
         return y;
@@ -103,9 +110,21 @@ qreal drawWrapped(QPainter& p, const QString& text, const QFont& font, const QCo
         bottom += line.height() * lineHeight;
     }
     layout.endLayout();
-    p.setPen(color);
-    layout.draw(&p, QPointF(x, y));
+    if (paint) {
+        p.setPen(color);
+        layout.draw(&p, QPointF(x, y));
+    }
     return y + bottom;
+}
+
+// Haut de la première ligne de choix, sous le titre et le message (dessinés si `paint`).
+qreal choicesTop(QPainter& p, const StreamPainter::Page& page, qreal x, qreal width, bool paint)
+{
+    qreal y = drawWrapped(p, page.title, sora(SHEET_TITLE_SIZE, QFont::DemiBold, SHEET_TITLE_SPACING),
+                          INK, x, SHEET_PAD_TOP, width, 1, paint);
+    y = drawWrapped(p, page.message, sora(DIALOG_MESSAGE_SIZE), INK2,
+                    x, y + DIALOG_MESSAGE_TOP, width, DIALOG_MESSAGE_LINE_HEIGHT, paint);
+    return y + DIALOG_CHOICES_TOP;
 }
 
 // Glyphe d'un bouton désigné par sa position (A en bas, B à droite…), comme
@@ -284,6 +303,28 @@ QColor StreamPainter::networkColor(int latencyMs, int jitterMs)
     return POOR;
 }
 
+int StreamPainter::rowAt(const Page& page, QSize screen, QPointF pos)
+{
+    if (screen.isEmpty()) {
+        return -2;
+    }
+    const QPointF c = pos * (CANVAS_HEIGHT / screen.height());
+    const qreal panelX = screen.width() * CANVAS_HEIGHT / screen.height() - SHEET_WIDTH;
+    if (c.x() < panelX) {
+        return -2;
+    }
+    QImage image = canvasImage(QSize(1, 1));
+    QPainter p(&image);
+    const qreal x = panelX + SHEET_PAD_SIDE;
+    const qreal width = SHEET_WIDTH - 2 * SHEET_PAD_SIDE;
+    const qreal row = (c.y() - choicesTop(p, page, x, width, false)) / SHEET_ROW_HEIGHT;
+    if (row < 0 || row >= page.labels.size()
+            || c.x() < x - SHEET_FOCUS_OUTSET || c.x() > x + width + SHEET_FOCUS_OUTSET) {
+        return -1;
+    }
+    return int(row);
+}
+
 QImage StreamPainter::paintStats(const Stats& stats, qreal opacity, QSize screen)
 {
     if (stats.lines.isEmpty() || opacity <= 0 || screen.isEmpty()) {
@@ -327,6 +368,52 @@ void drawValue(QPainter& p, const QRectF& row, const QString& value, qreal dx, q
     p.setOpacity(base);
 }
 
+// La coche de CheckMark.qml (polyligne sur une grille 24 × 24), tracée jusqu'à `drawn`.
+void drawCheck(QPainter& p, const QRectF& box, const QColor& color, qreal drawn)
+{
+    const qreal unit = box.width() / 24;
+    const QPointF points[] = { { 4.5, 12.5 }, { 9.3, 17.3 }, { 19.5, 7 } };
+    const qreal legs[] = { QLineF(points[0], points[1]).length(), QLineF(points[1], points[2]).length() };
+    qreal left = drawn * (legs[0] + legs[1]);
+    QPainterPath path(box.topLeft() + points[0] * unit);
+    for (int i = 0; i < 2 && left > 0; i++) {
+        const qreal t = qMin<qreal>(1, left / legs[i]);
+        path.lineTo(box.topLeft() + (points[i] + (points[i + 1] - points[i]) * t) * unit);
+        left -= legs[i];
+    }
+    p.save();
+    p.setBrush(Qt::NoBrush);
+    p.setPen(QPen(color, CHECK_STROKE * unit, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+    p.drawPath(path);
+    p.restore();
+}
+
+// Le remplissage d'un appui maintenu sur la ligne `row` (HoldFill.qml).
+void drawHold(QPainter& p, const QRectF& row, const QString& label, const StreamPainter::Frame& frame, qreal opacity)
+{
+    const QRectF box = row.adjusted(-SHEET_FOCUS_OUTSET, 0, SHEET_FOCUS_OUTSET, 0);
+    p.save();
+    p.setClipRect(QRectF(box.x(), box.y(), box.width() * frame.hold, box.height()));
+    p.setPen(Qt::NoPen);
+    p.setBrush(ACCENT);
+    p.drawRoundedRect(box, SHEET_FOCUS_RADIUS, SHEET_FOCUS_RADIUS);
+    p.setFont(sora(SHEET_LABEL_SIZE));
+    p.setPen(INK_ON_ACCENT);
+    const qreal done = frame.holdDone;
+    p.setOpacity(opacity * (1 - done));     // le libellé monte en s'effaçant…
+    p.drawText(row.translated(0, -HOLD_SWAP_SHIFT * done), Qt::AlignLeft | Qt::AlignVCenter, label);
+    if (done > 0) {                         // …la coche et le libellé de fin arrivent d'en dessous
+        const QRectF lower = row.translated(0, HOLD_SWAP_SHIFT * (1 - done));
+        p.setOpacity(opacity * done);
+        drawCheck(p, QRectF(lower.x(), lower.center().y() - HOLD_CHECK_SIZE / 2, HOLD_CHECK_SIZE, HOLD_CHECK_SIZE),
+                  INK_ON_ACCENT, done);
+        p.setPen(INK_ON_ACCENT);
+        p.drawText(lower.adjusted(HOLD_CHECK_SIZE + HOLD_CHECK_GAP, 0, 0, 0), Qt::AlignLeft | Qt::AlignVCenter,
+                   frame.doneLabel);
+    }
+    p.restore();
+}
+
 // Le contenu du panneau (titre, message, choix, légende), à l'opacité donnée.
 void drawPage(QPainter& p, const StreamPainter::Page& page, const StreamPainter::Frame& frame,
               qreal focusY, const QVector<qreal>& highlight, qreal panelX, qreal opacity, bool current)
@@ -337,11 +424,7 @@ void drawPage(QPainter& p, const StreamPainter::Page& page, const StreamPainter:
     p.setOpacity(opacity);
     const qreal x = panelX + SHEET_PAD_SIDE;
     const qreal width = SHEET_WIDTH - 2 * SHEET_PAD_SIDE;
-    qreal y = drawWrapped(p, page.title, sora(SHEET_TITLE_SIZE, QFont::DemiBold, SHEET_TITLE_SPACING),
-                          INK, x, SHEET_PAD_TOP, width);
-    y = drawWrapped(p, page.message, sora(DIALOG_MESSAGE_SIZE), INK2,
-                    x, y + DIALOG_MESSAGE_TOP, width, DIALOG_MESSAGE_LINE_HEIGHT);
-    y += DIALOG_CHOICES_TOP;
+    const qreal y = choicesTop(p, page, x, width, true);
 
     // --- Choix ---
     p.setPen(Qt::NoPen);
@@ -381,6 +464,10 @@ void drawPage(QPainter& p, const StreamPainter::Page& page, const StreamPainter:
             p.setOpacity(opacity);
         }
     }
+    if (current && frame.hold > 0 && page.focus < page.labels.size()) {
+        drawHold(p, QRectF(x, y + page.focus * SHEET_ROW_HEIGHT, width, SHEET_ROW_HEIGHT),
+                 page.labels[page.focus], frame, opacity);
+    }
 
     // --- Légende ---
     const QFont legendFont = sora(LEGEND_SIZE);
@@ -388,7 +475,8 @@ void drawPage(QPainter& p, const StreamPainter::Page& page, const StreamPainter:
     qreal legendX = x;
     const qreal legendY = CANVAS_HEIGHT - SHEET_PAD_BOTTOM - GLYPH_SIZE;
     const QList<QPair<QString, QString>> hints = {
-        { "B", page.backLabel }, { "A", QCoreApplication::translate("StreamMenu", "Valider") }
+        { "B", page.backLabel },
+        { "A", page.confirmLabel.isEmpty() ? QCoreApplication::translate("StreamMenu", "Valider") : page.confirmLabel }
     };
     for (const auto& hint : hints) {
         drawGlyph(p, QPointF(legendX, legendY), hint.first, frame.layout, INK2);

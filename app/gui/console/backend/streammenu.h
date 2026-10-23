@@ -6,8 +6,9 @@
 // Pendant un flux, Qt est suspendu et l'image est affichée par Moonlight (SDL) : le
 // menu est dessiné en QPainter (StreamPainter) et confié à l'overlay de débogage de
 // Moonlight (OverlayManager::setOverlaySurface), que tous ses moteurs de rendu savent
-// composer. gamepad.cpp (sous CONSOLE_UI) l'ouvre au bouton Home et, tant qu'il est
-// ouvert, lui donne les boutons : le PC voit une manette relâchée. ffmpeg.cpp lui
+// composer. gamepad.cpp (sous CONSOLE_UI) l'ouvre au bouton Home (keyboard.cpp à
+// Ctrl+Alt+Maj+Tab) et, tant qu'il est ouvert, lui donne les boutons, les touches
+// (keyboard.cpp) et la souris, libérée (mouse.cpp) : le PC voit une manette relâchée. ffmpeg.cpp lui
 // passe chaque seconde les chiffres du flux quand les statistiques sont affichées
 // (réglage ConsoleUi/streamStats, ligne du menu ou Select + L1 + R1 + X), et, à
 // l'ouverture du menu, une image décodée : le fond flouté, figé. Quand l'écran du PC
@@ -32,12 +33,21 @@ void prepare(const QString& game, const QStringList& powerActions, const QString
 // autrement. Ne le dit qu'une fois.
 QString takeExit();
 
-// Fil des événements SDL du flux (gamepad.cpp).
+// Fil des événements SDL du flux (gamepad.cpp, keyboard.cpp, mouse.cpp).
 bool isOpen();
 void toggle();
 void onButton(uint8_t button, bool pressed);
 void onAxis(uint8_t axis, int16_t value);
+// Souris (mouse.cpp), en points de la fenêtre : survoler une ligne la sélectionne, le
+// clic gauche la valide au relâché, à côté du panneau ou clic droit : comme B.
+// `button` à 0 : un simple déplacement.
+void onPointer(int x, int y, int button, bool pressed);
 void toggleStats();
+// SDL_QUIT reçu par la boucle du flux (session.cpp). Un flux qui se ferme autrement que par
+// le menu (connexion perdue, combinaison de la manette, Ctrl+Alt+Maj+Q, fenêtre fermée)
+// passe lui aussi par le fondu au noir et le rideau : vrai, ce SDL_QUIT est mangé et un
+// autre le suit, une fois la fenêtre de l'accueil revenue ; faux, il ferme le flux.
+bool interceptQuit();
 
 // Fil du décodeur (ffmpeg.cpp).
 bool wantsStats();

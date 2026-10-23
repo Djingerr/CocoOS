@@ -250,13 +250,13 @@ Item {
             session.connectionStarted()             // le flux est à l'écran
             verify(!launchScreen.active)
             verify(curtain.covering)                // le rideau CocoOS couvre l'accueil, caché
+            verify(curtain.revealed)                // logo à l'écran, sous la fenêtre du flux
             verify(!screen.entryAllowed)
             session.sessionFinished(0)              // fin du jeu : l'accueil revient
             verify(!screen.launching)
             verify(!screen.pressed)
             home.returnedHome()                     // (StreamSegue dépilé)
-            verify(!curtain.covering)               // fin sans action du menu en jeu : il se lève
-            verify(!curtain.revealed)
+            tryCompare(curtain, "covering", false, 3000)   // fin sans action du menu en jeu : il se lève
             verify(screen.entryAllowed)
         }
 
@@ -540,6 +540,15 @@ Item {
             InputStatus.homePressed(); verify(!dialog("Menu"))   // Home referme le menu
             keyClick(Qt.Key_Right)
             compare(screen.currentIndex, 1)               // la manette est revenue à l'étagère
+        }
+
+        // Ctrl + Maj + Alt + Tab : le bouton Home au clavier (Qt dit Backtab avec Maj).
+        function test_9i_keyboardHomeShortcut() {
+            var all = Qt.ControlModifier | Qt.AltModifier | Qt.ShiftModifier
+            keyClick(Qt.Key_Tab, all); verify(dialog("Menu"))
+            keyClick(Qt.Key_Backtab, all); verify(!dialog("Menu"))
+            keyClick(Qt.Key_Backtab, all); verify(dialog("Menu"))
+            keyClick(Qt.Key_Tab, all); verify(!dialog("Menu"))
         }
 
         // Les panneaux valident au relâché de A, et seulement après un appui fait chez

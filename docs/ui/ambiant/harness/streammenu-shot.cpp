@@ -12,6 +12,7 @@
 // pose cette image en fond flouté, comme une image du jeu. Une étape d'animation :
 // reveal=, veil=, blur=, focusY=, pageMix= (avec page=confirm : la liste s'efface),
 // swap= (avec stats=1 : « Masquées » sort, « Affichées » entre), de 0 à 1.
+// hold= (page=confirm focus=1 : le remplissage de l'appui maintenu), holdDone= (la coche).
 
 #include "streampainter.h"
 
@@ -90,6 +91,12 @@ int main(int argc, char* argv[])
     frame.focusY = number("focusY", -1);
     frame.swapProgress = number("swap", 1);
     frame.pageMix = number("pageMix", 1);
+    frame.hold = number("hold", 0);          // appui maintenu (page=confirm focus=1), déjà courbé
+    frame.holdDone = number("holdDone", 0);  // puis la coche et le libellé de fin
+    frame.doneLabel = QStringLiteral("Fermeture du jeu");
+    if (frame.hold > 0) {
+        menu.confirmLabel = QStringLiteral("Maintenir");
+    }
     if (frame.pageMix < 1) {
         frame.previous.title = QStringLiteral("Elden Ring");
         frame.previous.labels = QStringList { QStringLiteral("Reprendre"), QStringLiteral("Statistiques du flux"),

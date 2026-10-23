@@ -135,6 +135,16 @@ SdlInputHandler::SdlInputHandler(StreamingPreferences& prefs, int streamWidth, i
     m_SpecialKeyCombos[KeyComboToggleKeyboardGrab].scanCode = SDL_SCANCODE_K;
     m_SpecialKeyCombos[KeyComboToggleKeyboardGrab].enabled = WMUtils::isRunningDesktopEnvironment();
 
+    // Console: Ctrl+Alt+Shift+Tab is the gamepad's Home button (in-game menu)
+    m_SpecialKeyCombos[KeyComboStreamMenu].keyCombo = KeyComboStreamMenu;
+    m_SpecialKeyCombos[KeyComboStreamMenu].keyCode = SDLK_TAB;
+    m_SpecialKeyCombos[KeyComboStreamMenu].scanCode = SDL_SCANCODE_TAB;
+#ifdef CONSOLE_UI
+    m_SpecialKeyCombos[KeyComboStreamMenu].enabled = true;
+#else
+    m_SpecialKeyCombos[KeyComboStreamMenu].enabled = false;
+#endif
+
     m_OldIgnoreDevices = SDL_GetHint(SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES);
     m_OldIgnoreDevicesExcept = SDL_GetHint(SDL_HINT_GAMECONTROLLER_IGNORE_DEVICES_EXCEPT);
 

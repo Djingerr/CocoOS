@@ -4,6 +4,23 @@
 #include "SDL_compat.h"
 #include "streaming/streamutils.h"
 
+#ifdef CONSOLE_UI
+#include "gui/console/backend/streammenu.h"
+
+void SdlInputHandler::syncStreamMenuMouse()
+{
+    const bool open = StreamMenu::isOpen();
+    if (open && !m_StreamMenuFreedMouse && isCaptureActive()) {
+        setCaptureActive(false);
+        m_StreamMenuFreedMouse = true;
+    }
+    else if (!open && m_StreamMenuFreedMouse) {
+        m_StreamMenuFreedMouse = false;
+        setCaptureActive(true);
+    }
+}
+#endif
+
 void SdlInputHandler::notifyMouseLeave()
 {
     if (m_NeedsManualCaptureOnLeave) {
@@ -34,6 +51,16 @@ void SdlInputHandler::handleMouseButtonEvent(SDL_MouseButtonEvent* event)
         // Ignore synthetic mouse events
         return;
     }
+#ifdef CONSOLE_UI
+    else if (StreamMenu::isOpen()) {
+        // The menu has the mouse: nothing reaches the PC
+        if (!isCaptureActive()) {
+            StreamMenu::onPointer(event->x, event->y, event->button, event->state == SDL_PRESSED);
+        }
+        syncStreamMenuMouse();
+        return;
+    }
+#endif
     else if (!isCaptureActive()) {
         if (event->button == SDL_BUTTON_LEFT && event->state == SDL_RELEASED &&
                 isMouseInVideoRegion(event->x, event->y)) {
@@ -92,6 +119,14 @@ void SdlInputHandler::handleMouseButtonEvent(SDL_MouseButtonEvent* event)
 
 void SdlInputHandler::handleMouseMotionEvent(SDL_MouseMotionEvent* event)
 {
+#ifdef CONSOLE_UI
+    if (StreamMenu::isOpen()) {
+        if (!isCaptureActive() && event->which != SDL_TOUCH_MOUSEID) {
+            StreamMenu::onPointer(event->x, event->y, 0, false);
+        }
+        return;
+    }
+#endif
     if (!isCaptureActive()) {
         // Not capturing
         return;
@@ -180,6 +215,17 @@ void SdlInputHandler::handleMouseMotionEvent(SDL_MouseMotionEvent* event)
 
 void SdlInputHandler::handleMouseWheelEvent(SDL_MouseWheelEvent* event)
 {
+#ifdef CONSOLE_UI
+    if (StreamMenu::isOpen()) {
+        // The wheel moves the menu's focus, one row per notch
+        if (event->y != 0) {
+            const uint8_t button = event->y > 0 ? SDL_CONTROLLER_BUTTON_DPAD_UP : SDL_CONTROLLER_BUTTON_DPAD_DOWN;
+            StreamMenu::onButton(button, true);
+            StreamMenu::onButton(button, false);
+        }
+        return;
+    }
+#endif
     if (!isCaptureActive()) {
         // Not capturing
         return;

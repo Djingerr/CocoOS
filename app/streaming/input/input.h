@@ -168,6 +168,7 @@ private:
         KeyComboTogglePointerRegionLock,
         KeyComboQuitAndExit,
         KeyComboToggleKeyboardGrab,
+        KeyComboStreamMenu,
         KeyComboMax
     };
 
@@ -187,6 +188,13 @@ private:
     void handleRelativeFingerEvent(SDL_TouchFingerEvent* event);
 
     void performSpecialKeyCombo(KeyCombo combo);
+
+#ifdef CONSOLE_UI
+    // Console: the in-game menu (StreamMenu) frees the mouse while it is open and
+    // gives it back to the game once closed. Call after any input the menu received.
+    void syncStreamMenuMouse();
+    bool m_StreamMenuFreedMouse = false;
+#endif
 
     static
     Uint32 longPressTimerCallback(Uint32 interval, void* param);

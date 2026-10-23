@@ -15,6 +15,10 @@
 #include "video/slvid.h"
 #endif
 
+#ifdef CONSOLE_UI
+#include "gui/console/backend/streammenu.h"
+#endif
+
 #ifdef Q_OS_WIN32
 // Scaling the icon down on Win32 looks dreadful, so render at lower res
 #define ICON_SIZE 32
@@ -1997,6 +2001,13 @@ void Session::exec()
 #endif
         switch (event.type) {
         case SDL_QUIT:
+#ifdef CONSOLE_UI
+            // Console: every end of stream goes through the CocoOS curtain (fade to
+            // black, home window shown first); StreamMenu then pushes the real quit.
+            if (StreamMenu::interceptQuit()) {
+                break;
+            }
+#endif
             SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
                         "Quit event received");
             goto DispatchDeferredCleanup;

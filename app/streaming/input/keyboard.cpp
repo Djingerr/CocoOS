@@ -3,6 +3,10 @@
 #include <Limelight.h>
 #include "SDL_compat.h"
 
+#ifdef CONSOLE_UI
+#include "gui/console/backend/streammenu.h"
+#endif
+
 #define VK_0 0x30
 #define VK_A 0x41
 
@@ -177,6 +181,30 @@ void SdlInputHandler::performSpecialKeyCombo(KeyCombo combo)
         updateKeyboardGrabState();
         break;
 
+#ifdef CONSOLE_UI
+    case KeyComboStreamMenu:
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION,
+                    "Detected in-game menu combo");
+
+        // Same as the Home button (gamepad.cpp): the PC sees released gamepads
+        // and keys while the menu is open.
+        if (!StreamMenu::isOpen()) {
+            for (int i = 0; i < MAX_GAMEPADS; i++) {
+                GamepadState* state = &m_GamepadState[i];
+                if (state->controller != nullptr) {
+                    state->buttons = 0;
+                    state->lt = state->rt = 0;
+                    state->lsX = state->lsY = state->rsX = state->rsY = 0;
+                    sendGamepadState(state);
+                }
+            }
+        }
+        raiseAllKeys();
+        StreamMenu::toggle();
+        syncStreamMenuMouse();
+        break;
+#endif
+
     default:
         Q_UNREACHABLE();
     }
@@ -225,6 +253,31 @@ void SdlInputHandler::handleKeyEvent(SDL_KeyboardEvent* event)
             }
         }
     }
+
+#ifdef CONSOLE_UI
+    // The in-game menu has the keyboard: arrows move, Enter / Space confirm,
+    // Escape / Backspace go back. Nothing reaches the PC while it is open.
+    if (StreamMenu::isOpen()) {
+        int button = -1;
+        switch (event->keysym.scancode) {
+        case SDL_SCANCODE_UP: button = SDL_CONTROLLER_BUTTON_DPAD_UP; break;
+        case SDL_SCANCODE_DOWN: button = SDL_CONTROLLER_BUTTON_DPAD_DOWN; break;
+        case SDL_SCANCODE_LEFT: button = SDL_CONTROLLER_BUTTON_DPAD_LEFT; break;
+        case SDL_SCANCODE_RIGHT: button = SDL_CONTROLLER_BUTTON_DPAD_RIGHT; break;
+        case SDL_SCANCODE_RETURN:
+        case SDL_SCANCODE_KP_ENTER:
+        case SDL_SCANCODE_SPACE: button = SDL_CONTROLLER_BUTTON_A; break;
+        case SDL_SCANCODE_ESCAPE:
+        case SDL_SCANCODE_BACKSPACE: button = SDL_CONTROLLER_BUTTON_B; break;
+        default: break;
+        }
+        if (button >= 0) {
+            StreamMenu::onButton(button, event->state == SDL_PRESSED);
+            syncStreamMenuMouse();
+        }
+        return;
+    }
+#endif
 
     // Set modifier flags
     modifiers = 0;

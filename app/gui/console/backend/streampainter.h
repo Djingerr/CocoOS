@@ -9,6 +9,7 @@
 
 #include <QColor>
 #include <QImage>
+#include <QPointF>
 #include <QSize>
 #include <QStringList>
 #include <QVector>
@@ -31,6 +32,7 @@ struct Page {
     QStringList values;     // valeur à droite de la ligne ("" : une action, glyphe A en focus)
     int focus = 0;
     QString backLabel;      // légende : B <backLabel>, A Valider
+    QString confirmLabel;   // légende de A ; vide : « Valider »
 };
 
 // Une image du menu, animations comprises (de 0 à 1 sauf mention).
@@ -51,6 +53,12 @@ struct Frame {
     qreal statsOpacity = 1;
     QString layout;                 // glyphes : "xbox", "playstation" ou "nintendo"
     qreal curtain = 0;              // fondu au noir par-dessus tout (avant de quitter le flux)
+    // Appui maintenu sur la ligne en focus (comme HoldFill.qml) : le remplissage orange, de
+    // gauche à droite (déjà courbé), puis, plein, le libellé cède la place à une coche et à
+    // `doneLabel` (holdDone de 0 à 1).
+    qreal hold = 0;
+    qreal holdDone = 0;
+    QString doneLabel;
 };
 
 // Le menu plein écran (le fond, les statistiques, le panneau à droite), dessiné dans
@@ -58,6 +66,10 @@ struct Frame {
 // mémoire d'une surface SDL). Renvoie vrai si l'image est entièrement opaque : elle
 // n'a alors pas besoin d'être « dé-prémultipliée ».
 bool paintFrame(const Frame& frame, QImage& image);
+
+// La ligne de `page` sous `pos` (en pixels de l'écran, panneau en place) : -1 dans le
+// panneau, hors des lignes ; -2 hors du panneau.
+int rowAt(const Page& page, QSize screen, QPointF pos);
 
 // Les statistiques seules, sur une image qui part du coin haut gauche de l'écran.
 QImage paintStats(const Stats& stats, qreal opacity, QSize screen);

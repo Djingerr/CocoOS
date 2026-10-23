@@ -313,11 +313,13 @@ void SdlInputHandler::handleControllerButtonEvent(SDL_ControllerButtonEvent* eve
                 sendGamepadState(state);
             }
             StreamMenu::toggle();
+            syncStreamMenuMouse();
         }
         return;
     }
     if (StreamMenu::isOpen()) {
         StreamMenu::onButton(event->button, event->state == SDL_PRESSED);
+        syncStreamMenuMouse();
         return;
     }
 #endif

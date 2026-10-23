@@ -15,6 +15,7 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QSettings>
+#include <QtMath>
 
 #include <atomic>
 
@@ -32,6 +33,8 @@ const int STICK_PUSH = 20000;
 const int STICK_REST = 10000;
 
 const char* STATS_SETTING = "ConsoleUi/streamStats";
+// Départ sans action pour l'accueil : le flux s'est fermé autrement que par le menu.
+const char* ENDED = "ended";
 const char* SOUNDS_SETTING = "ConsoleUi/sounds";
 
 // Durées et courbes de Theme.qml (ConsoleDialog, OptionsSheet, Toast), en ms.
@@ -40,10 +43,17 @@ const int SHEET_DIM_FADE = 320;     // fond, linéaire
 const int SHEET_FOCUS_MOVE = 220;   // surlignage, easeOut
 const int SHEET_FOCUS_FADE = 160;   // couleur des libellés, glyphe A
 const int SHEET_VALUE_SWAP = 260;   // « Affichées » / « Masquées »
-const int PAGE_FADE = 260;          // liste ↔ confirmation, easeOut (à l'accueil, deux dialogs se croisent)
 const int BLUR_FADE = 200;          // l'image floutée remplace le voile
 const int STATS_FADE = 220;         // Theme.toastFade
 const int CURTAIN_FADE = 250;       // fondu au noir avant de quitter le flux
+// Appui maintenu des confirmations (Theme.hold*, HoldFill.qml) : plein en HOLD_DURATION,
+// affiché progression^HOLD_CURVE, vidé en HOLD_DRAIN si on lâche ; plein, la coche arrive en
+// HOLD_SWAP, puis l'action part après HOLD_FINISH.
+const int HOLD_DURATION = 900;
+const int HOLD_DRAIN = 280;
+const qreal HOLD_CURVE = 1.4;
+const int HOLD_SWAP = 300;
+const int HOLD_FINISH = 613;        // Theme.springBouncy.duration (le rebond de HoldFill)
 const int FRAME_MS = 16;            // une image toutes les 16 ms pendant une animation
 
 // Croix ou stick tenus : une marche, puis la répétition de l'accueil (PadRepeat,
@@ -68,7 +78,7 @@ const Uint32 REPEAT_AFTER_MS = 20;
 // QtMultimedia ne tourne pas pendant un flux.
 const int SOUND_RATE = 44100;
 const double SOUND_VOLUME = 0.125;  // Theme.soundVolume
-const char* const SOUND_NAMES[] = { "move", "edge", "select", "open", "close", "tick" };
+const char* const SOUND_NAMES[] = { "move", "edge", "select", "open", "close", "tick", "hold", "confirm" };
 
 // Une valeur qui va de `from` à `to` en `duration` ms à partir de `start`.
 struct Anim {
@@ -113,7 +123,6 @@ QMutex s_lock;
 Session* s_session = nullptr;   // le flux où le menu a été ouvert
 bool s_open = false;
 int s_focus = 0;
-QString s_confirm;              // action qui attend sa confirmation ; vide : la liste
 bool s_armed = false;           // A enfoncé dans le menu : l'action part au relâché
 int s_stick = 0;
 QSize s_screen;
@@ -127,9 +136,8 @@ std::atomic<bool> s_wantFrame { false };    // le menu attend une image du jeu
 QImage s_backdrop;                      // l'image du jeu floutée, à la taille de l'écran
 
 // Animations (StreamPainter::Frame) et le minuteur qui les fait avancer.
-Anim s_reveal, s_veil, s_blurMix, s_focusY, s_pageMix, s_swap, s_statsFade;
+Anim s_reveal, s_veil, s_blurMix, s_focusY, s_swap, s_statsFade;
 QVector<Anim> s_highlight;              // par ligne de la page
-StreamPainter::Page s_previous;         // la page qui s'efface
 int s_swapRow = -1;
 QString s_swapFrom;
 Anim s_curtain;                         // fondu au noir avant de quitter le flux
@@ -138,6 +146,10 @@ Uint32 s_repeatAt = 0;
 int s_repeats = 0;
 QString s_leaving;                      // action choisie, le temps du fondu au noir
 bool s_finishPending = false;           // finishLeave à lancer, hors du verrou
+bool s_quitPassing = false;             // le SDL_QUIT de finishLeave : il ferme le flux
+Anim s_hold, s_holdDone;                // appui maintenu sur une confirmation, puis sa coche
+bool s_holding = false;                 // A (ou le clic) tenu sur la ligne à maintenir
+Uint32 s_holdDoneAt = 0;                // plein à cet instant ; 0 : pas encore
 bool s_wasAnimating = false;            // la dernière image dessinée était en mouvement
 SDL_TimerID s_timer = 0;
 bool s_dirty = false;                   // une image est demandée (requestRender)
@@ -186,34 +198,35 @@ int actionIndex(const QString& key)
     return 0;
 }
 
-// Les mêmes confirmations que l'accueil (ConsoleHome.homeMenuChosen).
+// Quitter le jeu, redémarrer, éteindre : pas de page de confirmation, la ligne elle-même
+// se maintient (A, Entrée ou le clic tenus), comme « Quitter la partie » à l'accueil.
+bool holdRow()
+{
+    const QString key = actions().value(s_focus).key;
+    return key == QLatin1String("quit") || key == QLatin1String("reboot") || key == QLatin1String("poweroff");
+}
+
+// Les libellés de fin de l'accueil (ConsoleHome.homeMenuChosen).
+QString doneLabel()
+{
+    const QString key = actions().value(s_focus).key;
+    return key == QLatin1String("quit") ? Text::tr("Fermeture du jeu")
+         : key == QLatin1String("reboot") ? Text::tr("Redémarrage") : Text::tr("Extinction");
+}
+
 StreamPainter::Page page()
 {
     StreamPainter::Page page;
     page.focus = s_focus;
-    if (s_confirm.isEmpty()) {
-        page.title = s_game.isEmpty() ? Text::tr("Menu") : s_game;
-        for (const Action& action : actions()) {
-            page.labels.append(action.label);
-            page.values.append(action.key == QLatin1String("stats") ? statsValue(s_stats) : QString());
-        }
-        page.backLabel = Text::tr("Fermer");
-        return page;
+    page.title = s_game.isEmpty() ? Text::tr("Menu") : s_game;
+    for (const Action& action : actions()) {
+        page.labels.append(action.label);
+        page.values.append(action.key == QLatin1String("stats") ? statsValue(s_stats) : QString());
     }
-    if (s_confirm == QLatin1String("quit")) {
-        page.title = s_game.isEmpty() ? Text::tr("Quitter le jeu ?") : Text::tr("Quitter %1 ?").arg(s_game);
-        page.message = Text::tr("Toute progression non sauvegardée sera perdue.");
-        page.labels = QStringList { Text::tr("Annuler"), Text::tr("Quitter") };
+    page.backLabel = Text::tr("Fermer");
+    if (holdRow()) {
+        page.confirmLabel = Text::tr("Maintenir");
     }
-    else if (s_confirm == QLatin1String("reboot")) {
-        page.title = Text::tr("Redémarrer la console ?");
-        page.labels = QStringList { Text::tr("Annuler"), Text::tr("Redémarrer") };
-    }
-    else {
-        page.title = Text::tr("Éteindre la console ?");
-        page.labels = QStringList { Text::tr("Annuler"), Text::tr("Éteindre") };
-    }
-    page.backLabel = Text::tr("Annuler");
     return page;
 }
 
@@ -233,8 +246,6 @@ StreamPainter::Frame frame(Uint32 now)
     for (const Anim& highlight : s_highlight) {
         frame.highlight.append(highlight.at(now));
     }
-    frame.previous = s_previous;
-    frame.pageMix = s_pageMix.at(now);
     frame.swapRow = s_swapRow;
     frame.swapFrom = s_swapFrom;
     frame.swapProgress = s_swap.at(now);
@@ -246,12 +257,16 @@ StreamPainter::Frame frame(Uint32 now)
     frame.statsOpacity = s_statsFade.at(now);
     frame.layout = s_layout;
     frame.curtain = s_curtain.at(now);
+    frame.hold = qPow(s_hold.at(now), HOLD_CURVE);
+    frame.holdDone = s_holdDone.at(now);
+    frame.doneLabel = doneLabel();
     return frame;
 }
 
 bool animating(Uint32 now)
 {
-    for (const Anim* anim : { &s_reveal, &s_veil, &s_blurMix, &s_focusY, &s_pageMix, &s_swap, &s_statsFade, &s_curtain }) {
+    for (const Anim* anim : { &s_reveal, &s_veil, &s_blurMix, &s_focusY, &s_swap, &s_statsFade, &s_curtain,
+                              &s_hold, &s_holdDone }) {
         if (anim->running(now)) {
             return true;
         }
@@ -267,7 +282,8 @@ bool animating(Uint32 now)
 // Arrête toutes les animations là où elles en sont.
 void freeze(Uint32 now)
 {
-    for (Anim* anim : { &s_reveal, &s_veil, &s_blurMix, &s_focusY, &s_pageMix, &s_swap, &s_statsFade, &s_curtain }) {
+    for (Anim* anim : { &s_reveal, &s_veil, &s_blurMix, &s_focusY, &s_swap, &s_statsFade, &s_curtain,
+                        &s_hold, &s_holdDone }) {
         anim->set(anim->at(now));
     }
     for (Anim& highlight : s_highlight) {
@@ -413,6 +429,8 @@ SDL_Surface* menuSurface(const StreamPainter::Frame& frame, QSize screen)
 }
 
 void repeatStep(Uint32 now);
+void holdStep(Uint32 now);
+void resetHold();
 
 // Minuteur SDL (son propre fil) : tout le dessin se fait ici, ni dans le fil de la
 // manette ni dans celui du décodeur, et hors du verrou (seules la photo de l'état et
@@ -435,10 +453,12 @@ Uint32 tick(Uint32, void*)
         if (s_repeatDir != 0 && (Sint32)(now - s_repeatAt) >= 0) {
             repeatStep(now);
         }
-        // Rien n'a changé (une direction est tenue, entre deux pas) : pas d'image.
+        holdStep(now);
+        // Rien n'a changé (une direction est tenue, entre deux pas ; une confirmation
+        // maintenue attend son départ) : pas d'image, mais le minuteur continue.
         const bool moving = animating(now);
         if (!s_dirty && !moving && !s_wasAnimating) {
-            if (s_repeatDir != 0) {
+            if (s_repeatDir != 0 || s_holding || (s_holdDoneAt != 0 && s_leaving.isEmpty())) {
                 return FRAME_MS;
             }
             s_timer = 0;
@@ -453,7 +473,7 @@ Uint32 tick(Uint32, void*)
             }
         }
         screen = s_screen;
-        menuShown = s_open || s_reveal.at(now) > 0 || s_veil.at(now) > 0;
+        menuShown = s_open || s_reveal.at(now) > 0 || s_veil.at(now) > 0 || s_curtain.at(now) > 0;
         if (menuShown) {
             view = frame(now);
         }
@@ -482,7 +502,7 @@ Uint32 tick(Uint32, void*)
         LiWakeWaitForVideoFrame();
     }
 
-    if (animating(now) || s_dirty || s_repeatDir != 0) {
+    if (animating(now) || s_dirty || s_repeatDir != 0 || s_holding || (s_holdDoneAt != 0 && s_leaving.isEmpty())) {
         return FRAME_MS;
     }
     s_timer = 0;
@@ -519,7 +539,7 @@ void openMenu()
     const Uint32 now = SDL_GetTicks();
     s_open = true;
     s_focus = 0;
-    s_confirm.clear();
+    resetHold();
     s_armed = false;
     s_stick = 0;
     s_repeatDir = 0;
@@ -533,7 +553,6 @@ void openMenu()
     s_reveal.go(1, SHEET_SLIDE, now, QEasingCurve::OutQuint);
     s_veil.go(1, SHEET_DIM_FADE, now);
     s_focusY.set(0);
-    s_pageMix.set(1);
     s_swap.set(1);
     s_swapRow = -1;
     resetHighlights(0);
@@ -556,23 +575,6 @@ void closeMenu(bool sound = true)
     requestRender();
 }
 
-// Liste ↔ confirmation : l'ancienne page s'efface pendant que la nouvelle apparaît.
-void switchPage(const QString& confirm, int focus)
-{
-    const Uint32 now = SDL_GetTicks();
-    s_previous = page();
-    s_confirm = confirm;
-    s_focus = focus;
-    s_repeatDir = 0;
-    s_pageMix.set(0);
-    s_pageMix.go(1, PAGE_FADE, now, QEasingCurve::OutCubic);
-    s_focusY.set(focus);
-    s_swap.set(1);
-    s_swapRow = -1;
-    resetHighlights(focus);
-    requestRender();
-}
-
 // Quitter le flux : un fondu au noir, puis finishLeave (hors du verrou) ; l'accueil
 // fera la suite (ConsoleHome.returnedHome). Le menu ne répond plus entre-temps.
 void beginLeave(const QString& action)
@@ -585,6 +587,76 @@ void beginLeave(const QString& action)
     requestRender();
 }
 
+// Le surlignage glisse jusqu'à la ligne `next` (qui existe et n'est pas la ligne en focus).
+void focusRow(int next)
+{
+    resetHold();
+    const Uint32 now = SDL_GetTicks();
+    s_highlight[s_focus].go(0, SHEET_FOCUS_FADE, now);
+    s_highlight[next].go(1, SHEET_FOCUS_FADE, now);
+    s_focus = next;
+    s_focusY.go(next, SHEET_FOCUS_MOVE, now, QEasingCurve::OutCubic);
+    play("move");
+    requestRender();
+}
+
+void resetHold()
+{
+    if (s_holding && s_audio != 0) {
+        SDL_ClearQueuedAudio(s_audio);   // le son de l'appui s'arrête avec lui
+    }
+    s_holding = false;
+    s_hold.set(0);
+    s_holdDone.set(0);
+    s_holdDoneAt = 0;
+}
+
+// A (ou le clic) enfoncé sur une ligne à maintenir : elle se remplit.
+void startHold()
+{
+    const Uint32 now = SDL_GetTicks();
+    s_holding = true;
+    s_hold.go(1, int((1 - s_hold.at(now)) * HOLD_DURATION), now);
+    play("hold");
+    requestRender();
+}
+
+// Lâché avant la fin : elle se vide.
+void releaseHold()
+{
+    if (!s_holding || s_holdDoneAt != 0) {
+        return;
+    }
+    const Uint32 now = SDL_GetTicks();
+    s_holding = false;
+    s_hold.go(0, int(s_hold.at(now) * HOLD_DRAIN), now);
+    if (s_audio != 0) {
+        SDL_ClearQueuedAudio(s_audio);   // le son de l'appui s'arrête avec lui
+    }
+    requestRender();
+}
+
+// Fil du minuteur : pleine, la coche arrive ; puis le départ, comme un choix du menu. Le
+// fondu et le retour de l'accueil se font sur le fil des événements : un SDL_QUIT l'y
+// amène (interceptQuit).
+void holdStep(Uint32 now)
+{
+    if (s_holding && s_holdDoneAt == 0 && s_hold.at(now) >= 1) {
+        s_holdDoneAt = now;
+        s_holdDone.go(1, HOLD_SWAP, now, QEasingCurve::OutCubic);
+        play("confirm");
+    }
+    if (s_holdDoneAt != 0 && s_leaving.isEmpty() && now - s_holdDoneAt >= (Uint32)HOLD_FINISH) {
+        beginLeave(actions().value(s_focus).key);
+        s_holding = false;
+        s_holdDoneAt = 0;   // un seul départ : finishLeave vide s_leaving, il ne doit pas repartir
+        SDL_Event quit;
+        quit.type = SDL_QUIT;
+        quit.quit.timestamp = now;
+        SDL_PushEvent(&quit);
+    }
+}
+
 // Renvoie faux à une extrémité de la liste.
 bool step(int direction)
 {
@@ -593,13 +665,7 @@ bool step(int direction)
         play("edge");
         return false;
     }
-    const Uint32 now = SDL_GetTicks();
-    s_highlight[s_focus].go(0, SHEET_FOCUS_FADE, now);
-    s_highlight[next].go(1, SHEET_FOCUS_FADE, now);
-    s_focus = next;
-    s_focusY.go(next, SHEET_FOCUS_MOVE, now, QEasingCurve::OutCubic);
-    play("move");
-    requestRender();
+    focusRow(next);
     return true;
 }
 
@@ -625,12 +691,7 @@ void repeatStep(Uint32 now)
 
 void back()
 {
-    if (s_confirm.isEmpty()) {
-        closeMenu();
-        return;
-    }
-    play("close");
-    switchPage(QString(), actionIndex(s_confirm));
+    closeMenu();
 }
 
 void switchStats()
@@ -639,7 +700,7 @@ void switchStats()
     s_swapFrom = statsValue(s_stats);
     s_stats = !s_stats;
     QSettings().setValue(STATS_SETTING, s_stats.load());
-    if (s_open && s_confirm.isEmpty()) {
+    if (s_open) {
         s_swapRow = actionIndex(QStringLiteral("stats"));
         s_swap.set(0);
         s_swap.go(1, SHEET_VALUE_SWAP, now);
@@ -656,15 +717,8 @@ void switchStats()
 
 void activate()
 {
-    if (!s_confirm.isEmpty()) {
-        if (s_focus == 1) {
-            play("select");
-            beginLeave(s_confirm);
-        }
-        else {
-            back();
-        }
-        return;
+    if (holdRow()) {
+        return;   // elle se maintient (startHold)
     }
     const QString key = actions().value(s_focus).key;
     if (key == QLatin1String("resume")) {
@@ -674,10 +728,6 @@ void activate()
     else if (key == QLatin1String("stats")) {
         play("tick");
         switchStats();
-    }
-    else if (key == QLatin1String("quit") || key == QLatin1String("reboot") || key == QLatin1String("poweroff")) {
-        play("select");
-        switchPage(key, 0);   // Annuler : le choix sûr
     }
     else {
         play("select");
@@ -772,14 +822,19 @@ namespace {
 // quand la fenêtre du flux se fermera, l'écran restera noir, sans laisser voir le
 // bureau. Qt est suspendu pendant le flux : on le fait tourner le temps qu'elle
 // affiche une image. Fil SDL principal, hors du verrou.
-void showHomeWindow()
+QQuickWindow* homeWindow()
 {
-    QQuickWindow* window = nullptr;
     for (QWindow* candidate : QGuiApplication::topLevelWindows()) {
-        if ((window = qobject_cast<QQuickWindow*>(candidate)) != nullptr) {
-            break;
+        if (QQuickWindow* window = qobject_cast<QQuickWindow*>(candidate)) {
+            return window;
         }
     }
+    return nullptr;
+}
+
+void showHomeWindow()
+{
+    QQuickWindow* window = homeWindow();
     if (window == nullptr || window->isVisible()) {
         return;
     }
@@ -807,9 +862,10 @@ void finishLeave()
     SDL_Delay(CURTAIN_FADE + 3 * FRAME_MS);   // le minuteur et le fil d'affichage du flux s'en chargent
     showHomeWindow();
     QMutexLocker locker(&s_lock);
-    s_exit = s_leaving;
+    s_exit = s_leaving == QLatin1String(ENDED) ? QString() : s_leaving;
     s_leaving.clear();
     s_open = false;
+    s_quitPassing = true;
     freeze(SDL_GetTicks());   // l'écran reste noir jusqu'à la fermeture de la fenêtre du flux
     SDL_Event quit;
     quit.type = SDL_QUIT;
@@ -826,6 +882,7 @@ void StreamMenu::prepare(const QString& game, const QStringList& powerActions, c
     s_session = nullptr;
     s_open = false;
     s_exit.clear();
+    s_quitPassing = false;
     s_game = game;
     s_power = powerActions;
     s_layout = buttonLayout;
@@ -874,7 +931,7 @@ void StreamMenu::onButton(uint8_t button, bool pressed)
 {
     {
         QMutexLocker locker(&s_lock);
-        if (!s_open || !s_leaving.isEmpty()) {
+        if (!s_open || !s_leaving.isEmpty() || s_holdDoneAt != 0) {
             return;
         }
         const int direction = button == SDL_CONTROLLER_BUTTON_DPAD_UP || button == SDL_CONTROLLER_BUTTON_DPAD_LEFT ? -1
@@ -884,7 +941,10 @@ void StreamMenu::onButton(uint8_t button, bool pressed)
             if (direction != 0 && direction == s_repeatDir) {
                 s_repeatDir = 0;
             }
-            if (button == SDL_CONTROLLER_BUTTON_A && s_armed) {
+            if (button == SDL_CONTROLLER_BUTTON_A && s_holding) {
+                releaseHold();
+            }
+            else if (button == SDL_CONTROLLER_BUTTON_A && s_armed) {
                 s_armed = false;
                 activate();
             }
@@ -892,10 +952,60 @@ void StreamMenu::onButton(uint8_t button, bool pressed)
         else if (direction != 0) {
             hold(direction);
         }
+        else if (button == SDL_CONTROLLER_BUTTON_A && holdRow()) {
+            startHold();
+        }
         else if (button == SDL_CONTROLLER_BUTTON_A) {
             s_armed = true;
         }
         else if (button == SDL_CONTROLLER_BUTTON_B) {
+            back();
+        }
+        if (!s_finishPending) {
+            return;
+        }
+        s_finishPending = false;
+    }
+    finishLeave();
+}
+
+void StreamMenu::onPointer(int x, int y, int button, bool pressed)
+{
+    {
+        QMutexLocker locker(&s_lock);
+        if (!s_open || !s_leaving.isEmpty() || s_holdDoneAt != 0) {
+            return;
+        }
+        // Points de la fenêtre → pixels de l'écran (s_screen).
+        SDL_Window* window = SDL_GetMouseFocus();
+        int width = 0, height = 0;
+        if (window != nullptr) {
+            SDL_GetWindowSize(window, &width, &height);
+        }
+        const qreal scale = width > 0 ? qreal(s_screen.width()) / width : 1;
+        const int row = StreamPainter::rowAt(page(), s_screen, QPointF(x, y) * scale);
+        if (row >= 0 && row != s_focus && row < s_highlight.size() && !s_holding) {
+            focusRow(row);
+        }
+        if (button == SDL_BUTTON_LEFT && pressed) {
+            s_armed = row >= 0 && !holdRow();
+            if (row >= 0 && holdRow()) {
+                startHold();   // le clic se maintient, comme A
+            }
+            else if (row == -2) {
+                back();     // à côté du panneau : comme B
+            }
+        }
+        else if (button == SDL_BUTTON_LEFT && s_holding) {
+            releaseHold();
+        }
+        else if (button == SDL_BUTTON_LEFT && s_armed) {
+            s_armed = false;
+            if (row == s_focus) {
+                activate();
+            }
+        }
+        else if (button == SDL_BUTTON_RIGHT && pressed) {
             back();
         }
         if (!s_finishPending) {
@@ -912,7 +1022,7 @@ void StreamMenu::onAxis(uint8_t axis, int16_t value)
         return;
     }
     QMutexLocker locker(&s_lock);
-    if (!s_open || !s_leaving.isEmpty()) {
+    if (!s_open || !s_leaving.isEmpty() || s_holdDoneAt != 0) {
         return;
     }
     const int direction = value <= -STICK_PUSH ? -1 : value >= STICK_PUSH ? 1 : 0;
@@ -925,6 +1035,40 @@ void StreamMenu::onAxis(uint8_t axis, int16_t value)
     if (direction != 0 || qAbs(value) < STICK_REST) {
         s_stick = direction;
     }
+}
+
+bool StreamMenu::interceptQuit()
+{
+    {
+        QMutexLocker locker(&s_lock);
+        if (s_quitPassing) {
+            s_quitPassing = false;
+            // Aucun autre SDL_QUIT ne doit survivre au flux : la navigation à la manette de
+            // l'accueil (SdlGamepadKeyNavigation) en ferait un « quitter l'application ».
+            SDL_FlushEvent(SDL_QUIT);
+            return false;
+        }
+        attach();
+        if (!s_leaving.isEmpty() && !s_finishPending) {
+            return true;   // un départ est déjà en cours : son SDL_QUIT suivra
+        }
+        if (!s_screen.isValid()) {
+            s_screen = screenSize();
+        }
+        if (s_finishPending) {   // une confirmation maintenue jusqu'au bout (holdStep)
+            s_finishPending = false;
+            locker.unlock();
+            finishLeave();
+            return true;
+        }
+        // ponytail: connexion perdue, le PC n'envoie plus d'image : le fondu ne paraît que
+        // si le décodeur en réaffiche une (statistiques affichées). La fenêtre de l'accueil
+        // revient quand même avant que celle du flux se ferme : plus de trou.
+        beginLeave(QLatin1String(ENDED));
+        s_finishPending = false;
+    }
+    finishLeave();
+    return true;
 }
 
 void StreamMenu::toggleStats()

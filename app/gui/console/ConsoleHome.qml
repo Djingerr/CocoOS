@@ -189,6 +189,12 @@ FocusScope {
         }
     }
     Keys.onEscapePressed: homeScreen.dismissNotification()     // accueil : sinon rien à fermer
+    // Ctrl + Maj + Alt + Tab : le bouton Home au clavier, d'où que soit le focus (aussi en
+    // jeu : keyboard.cpp). Avec Maj, Qt reçoit Tab comme Backtab.
+    Shortcut {
+        sequences: ["Ctrl+Alt+Shift+Tab", "Ctrl+Alt+Shift+Backtab"]
+        onActivated: home.homeButton()
+    }
 
     onActiveComputerIndexChanged: rebuildAppModel()
     onActiveHostPairedChanged: maybeStartPairing()
@@ -978,7 +984,7 @@ FocusScope {
         })
         session.connectionStarted.connect(function() {
             home.streamStarted = true
-            streamCurtain.cover()
+            keepHomeUnderStream(session)
             Sounds.play("ready")
             launchScreen.close(false)
         })
@@ -990,6 +996,21 @@ FocusScope {
             "session": session,
             "isResume": launchResume
         }))
+    }
+
+    // Le flux démarre. La page d'origine (StreamSegue) cachait la fenêtre dès la connexion,
+    // avant que celle du flux n'existe : on voyait le bureau entre les deux. Notre
+    // gestionnaire passe avant le sien (branché plus tôt) et le débranche : la fenêtre reste,
+    // rideau et logo à l'écran, sous celle du flux, tout le temps du flux (au retour, rien
+    // à réafficher : le flux se ferme sur elle).
+    function keepHomeUnderStream(session) {
+        var segue = stackView.currentItem
+        var kept = !!(segue && segue.connectionStarted)
+        if (kept)
+            session.connectionStarted.disconnect(segue.connectionStarted)
+        console.info("[console-ui] Lancement : fenêtre de l'accueil " + (kept ? "gardée sous le flux" : "cachée par StreamSegue"))
+        streamCurtain.cover()
+        streamCurtain.reveal("")
     }
 
     // Le menu en jeu (bouton Home pendant le flux) : son titre, ses actions, ses glyphes.
@@ -1023,7 +1044,7 @@ FocusScope {
         if (session) {
             session.connectionStarted.connect(function() {
                 home.streamStarted = true
-                streamCurtain.cover()
+                keepHomeUnderStream(session)
             })
         }
         var component = Qt.createComponent("qrc:/gui/QuitSegue.qml")
@@ -1496,6 +1517,7 @@ FocusScope {
                          .concat(home.legendOptions)
                        : home.legendOptions
         onActivated: { home.wakeHost(); Sounds.play("select") }
+        onHintTriggered: function(glyph) { if (glyph === "Y") homeScreen.options.open() }
     }
 
     // Liaison Moonlight : le code à saisir une fois sur le PC (repli quand le
@@ -1513,6 +1535,7 @@ FocusScope {
         error: home.pairingError !== ""
         busy: !error
         hints: home.legendOptions
+        onHintTriggered: function(glyph) { if (glyph === "Y") homeScreen.options.open() }
     }
 
     // --- Premier démarrage ---
