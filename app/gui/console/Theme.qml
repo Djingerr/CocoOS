@@ -59,6 +59,16 @@ QtObject {
     readonly property int holdDrain: 280
     readonly property real holdCurve: 1.4
     readonly property real holdBounce: 1.035
+    // …et, pleine, le libellé monte en s'effaçant (holdSwapShift fois sa hauteur, holdSwapMove /
+    // holdSwapFade, curveOut) : une coche tracée (holdCheckDraw après holdCheckDelay) et le
+    // libellé de fin prennent sa place, comme « Stream terminé » dans le prototype.
+    readonly property real holdSwapShift: 0.8
+    readonly property int holdSwapMove: 300
+    readonly property int holdSwapFade: 200
+    readonly property int holdCheckSize: 18
+    readonly property int holdCheckGap: 8
+    readonly property int holdCheckDelay: 140
+    readonly property int holdCheckDraw: 280
     // Refus (Pressable.refuse : action indisponible, code faux) : secousse horizontale, les
     // positions du prototype réparties sur shakeDuration, courbe « ease-out » de CSS.
     readonly property int shakeDuration: 440

@@ -212,6 +212,14 @@ Item {
     }
 
     // --- Actions ---
+    component PlayText: Text {
+        property var value
+        height: Theme.playHeight
+        verticalAlignment: Text.AlignVCenter
+        text: value || ""
+        color: Theme.inkOnAccent
+        font.family: Theme.fontUi; font.pixelSize: Theme.playLabelSize; font.weight: Font.DemiBold
+    }
     Row {
         id: actions
         anchors.bottom: parent.bottom
@@ -245,12 +253,34 @@ Item {
                     ink: Theme.accent
                     fontSize: Theme.playGlyphFontSize
                 }
-                Text {
+                // Le libellé : au lancement, il cède la place à « Lancement… » en glissant
+                // (swapText du prototype), et le bouton s'élargit pour le contenir.
+                SwapBox {
+                    id: playText
+                    readonly property string text: root.playLabel !== "" ? root.playLabel
+                        : root.pressed ? (root.running ? qsTr("Reprise…") : qsTr("Lancement…"))
+                        : root.running ? qsTr("Reprendre") : qsTr("Jouer")
                     anchors.verticalCenter: parent.verticalCenter
-                    text: root.playLabel !== "" ? root.playLabel : root.running ? qsTr("Reprendre") : qsTr("Jouer")
-                    color: Theme.inkOnAccent
-                    font.family: Theme.fontUi; font.pixelSize: Theme.playLabelSize; font.weight: Font.DemiBold
+                    width: playMetrics.advanceWidth; height: Theme.playHeight
+                    Behavior on width {
+                        enabled: root.animated
+                        NumberAnimation {
+                            duration: Theme.springSnappy.duration
+                            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
+                        }
+                    }
+                    key: text
+                    value: text
+                    direction: root.pressed ? 1 : -1
+                    animated: root.animated
+                    duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
+                    enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
+
+                    PlayText {}
+                    PlayText {}
                 }
+                TextMetrics { id: playMetrics; font: playFont.font; text: playText.text }
+                PlayText { id: playFont; visible: false }
             }
             MouseArea { anchors.fill: parent; onClicked: root.playRequested() }
         }

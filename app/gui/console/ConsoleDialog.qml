@@ -15,6 +15,7 @@ FocusScope {
     property string confirmLabel: qsTr("Confirmer")
     property string cancelLabel: qsTr("Annuler")
     property bool holdToConfirm: false
+    property string doneLabel                // une fois l'appui maintenu au bout (« Extinction »…)
 
     // Menu : [{ label, key }] à la place d'Annuler / Confirmer.
     property var actions: []
@@ -212,12 +213,16 @@ FocusScope {
                             opacity: parent.focused ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: Theme.sheetFocusFade } }
                         }
+                        // À la souris comme à la manette : on presse, on relâche (ou on maintient).
                         MouseArea {
                             anchors.fill: parent
-                            onClicked: {
-                                root.focusedButton = index
-                                if (!root.holdFocused) root.activate()
+                            onPressed: { root.focusedButton = index; root.pressing = true }
+                            onReleased: {
+                                if (!root.pressing) return
+                                root.pressing = false
+                                if (containsMouse && !root.holdFocused) root.activate()
                             }
+                            onCanceled: root.pressing = false
                         }
                     }
                 }
@@ -233,6 +238,7 @@ FocusScope {
                         anchors.fill: parent
                         holding: root.pressing && root.holdFocused
                         label: root.labels[root.focusedButton] || ""
+                        doneLabel: root.doneLabel
                         labelX: Theme.sheetFocusOutset
                         radius: Theme.sheetFocusRadius
                         onCompleted: root.activate()

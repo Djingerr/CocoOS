@@ -537,7 +537,8 @@ FocusScope {
         } else if (key === "cancel") {
             confirmDialog.ask(qsTr("Annuler le téléchargement ?"),
                               qsTr("Les fichiers déjà téléchargés de %1 seront supprimés du PC.").arg(name),
-                              qsTr("Annuler le téléchargement"), function() { CompanionClient.cancelDownload(gameId) })
+                              qsTr("Annuler le téléchargement"), function() { CompanionClient.cancelDownload(gameId) },
+                              qsTr("Téléchargement annulé"))
         }
     }
 
@@ -565,7 +566,7 @@ FocusScope {
                           qsTr("Désinstaller"), function() {
                               CompanionClient.uninstall(info.id)
                               home.setUninstall(info.id, "UNINSTALLING")
-                          })
+                          }, qsTr("Désinstallation lancée"))
     }
 
     // Réseau vers le PC : sondé seulement quand l'accueil est à l'écran et le PC en ligne.
@@ -698,15 +699,15 @@ FocusScope {
         } else if (key === "quit") {
             confirmDialog.ask(qsTr("Quitter %1 ?").arg(running),
                               qsTr("Toute progression non sauvegardée sera perdue."),
-                              qsTr("Quitter"), function() { home.quitRunningGame() })
+                              qsTr("Quitter"), function() { home.quitRunningGame() }, qsTr("Fermeture du jeu"))
         } else if (key === "suspend") {
             SystemStatus.power("suspend")
         } else if (key === "reboot") {
             confirmDialog.ask(qsTr("Redémarrer la console ?"), "", qsTr("Redémarrer"),
-                              function() { SystemStatus.power("reboot") })
+                              function() { SystemStatus.power("reboot") }, qsTr("Redémarrage"))
         } else if (key === "poweroff") {
             confirmDialog.ask(qsTr("Éteindre la console ?"), "", qsTr("Éteindre"),
-                              function() { SystemStatus.power("poweroff") })
+                              function() { SystemStatus.power("poweroff") }, qsTr("Extinction"))
         }
     }
 
@@ -859,7 +860,7 @@ FocusScope {
             confirmDialog.ask(qsTr("Un jeu est déjà en cours"),
                               qsTr("%1 est en cours sur votre PC. Le fermer et lancer %2 ? Toute progression non sauvegardée sera perdue.")
                                   .arg(appModel.getRunningAppName()).arg(item.name),
-                              qsTr("Fermer et jouer"), function() { home.quitAndLaunch(index) })
+                              qsTr("Fermer et jouer"), function() { home.quitAndLaunch(index) }, qsTr("C'est parti"))
             return
         }
 
@@ -1490,11 +1491,13 @@ FocusScope {
         anchors.fill: parent
         holdToConfirm: true
         property var pending: null
-        // Pose la question ; `action` est appelée si l'on confirme.
-        function ask(title, message, confirmLabel, action) {
+        // Pose la question ; `action` est appelée si l'on confirme (A maintenu), `doneLabel`
+        // s'affiche alors à la place du libellé.
+        function ask(title, message, confirmLabel, action, doneLabel) {
             confirmDialog.title = title
             confirmDialog.message = message
             confirmDialog.confirmLabel = confirmLabel
+            confirmDialog.doneLabel = doneLabel || ""
             pending = action
             open()
         }
