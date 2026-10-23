@@ -77,6 +77,7 @@ FocusScope {
         // console ; ensuite le panneau d'options (bouton Y) fait foi.
         property bool streamProfileInitialized: false
         property bool sounds: true          // réglage « Sons » du panneau d'options
+        property bool reduceMotion: false   // « Réduire les animations » (Theme.reducedMotion)
         property string lastGame: ""        // dernier jeu lancé : l'accueil s'ouvre dessus
         property string favorites: "[]"     // jeux épinglés (X), le dernier épinglé en tête (JSON)
         property string recentGames: "{}"   // date de la dernière partie lancée d'ici, par jeu (JSON, ms)
@@ -95,6 +96,7 @@ FocusScope {
     Component.onCompleted: {
         hideUpstreamChrome()
         Sounds.enabled = consoleConfig.sounds
+        Theme.reducedMotion = consoleConfig.reduceMotion
 
         // Démarre la découverte du HostCompanion (mDNS _hostcompanion._tcp).
         // Si un host appairé est déjà connu, le client se reconnecte tout seul
@@ -1135,12 +1137,13 @@ FocusScope {
         var buttons = [ { label: qsTr("Auto"), value: "auto" }, { label: "Xbox", value: "xbox" },
                         { label: "PlayStation", value: "playstation" }, { label: "Nintendo", value: "nintendo" } ]
         var sounds = [ { label: qsTr("Coupés"), value: false }, { label: qsTr("Activés"), value: true } ]
+        var motion = [ { label: qsTr("Non"), value: false }, { label: qsTr("Oui"), value: true } ]
         // Chaque langue dans sa langue.
         var language = [ { label: "Français", value: p.LANG_FR }, { label: "English", value: p.LANG_EN } ]
 
         optionChoices = { res: res, fps: fps.map(function(f) { return { label: "" + f, value: f } }),
                           rateAuto: hdr, advanced: hdr, codec: codec, hdr: hdr, brightness: brightness, volume: volume,
-                          sleep: sleep, buttons: buttons, sounds: sounds, language: language }
+                          sleep: sleep, buttons: buttons, sounds: sounds, motion: motion, language: language }
         // `toggle` : deux options [désactivé, activé], affichées en interrupteur.
         var row = function(key, label, index, toggle) {
             return { key: key, label: label, index: index, toggle: toggle === true,
@@ -1156,6 +1159,7 @@ FocusScope {
         consoleRows.push(row("buttons", qsTr("Boutons"),
                              Math.max(0, buttons.findIndex(function(c) { return c.value === consoleConfig.buttonLayout }))))
         consoleRows.push(row("sounds", qsTr("Sons"), consoleConfig.sounds ? 1 : 0, true))
+        consoleRows.push(row("motion", qsTr("Réduire les animations"), consoleConfig.reduceMotion ? 1 : 0, true))
         consoleRows.push(row("language", qsTr("Langue"), english ? 1 : 0))
         if (WifiSetup.available)
             consoleRows.push({ key: "wifi", label: qsTr("Wi-Fi"), action: true,
@@ -1241,6 +1245,9 @@ FocusScope {
         } else if (key === "sounds") {
             consoleConfig.sounds = choice.value
             Sounds.enabled = choice.value
+        } else if (key === "motion") {
+            consoleConfig.reduceMotion = choice.value
+            Theme.reducedMotion = choice.value
         } else if (key === "brightness") {
             SystemStatus.setBrightness(choice.value)
         } else if (key === "volume") {
@@ -1257,7 +1264,7 @@ FocusScope {
             p.save()
             p.retranslate()
         }
-        if (["advanced", "sounds", "brightness", "volume", "sleep", "buttons", "language"].indexOf(key) >= 0) {
+        if (["advanced", "sounds", "motion", "brightness", "volume", "sleep", "buttons", "language"].indexOf(key) >= 0) {
             refreshOptions()
             return
         }

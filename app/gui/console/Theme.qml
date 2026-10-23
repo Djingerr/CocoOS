@@ -18,6 +18,12 @@ QtObject {
     // Écrit par la racine de l'écran ; sert aussi au sourceSize des images.
     property real scale: 1
     readonly property int margin: 72                 // marge latérale commune
+    // « Réduire les animations » (onglet Console, écrit par ConsoleHome) : pas de ressort
+    // (une courbe simple et courte à la place), ni flou des textes, ni ombres, ni dérive
+    // du fond, ni reflet des vignettes. Pour qui supporte mal le mouvement, et pour une
+    // carte qui ne tiendrait pas ses 60 images par seconde.
+    property bool reducedMotion: false
+    readonly property var reducedSpring: ({ curve: curveOut, duration: 200 })
 
     // --- Couleurs ---
     readonly property color accent: "#F2802A"
@@ -44,9 +50,9 @@ QtObject {
     readonly property var curveExit: [0.4, 0, 1, 1, 1, 1]         // sortie d'un texte remplacé
     // Ressorts physiques du prototype (raideur, amortissement, masse 1), en courbe pour
     // Easing.BezierSpline et durée (cf. Spring.js) : { curve, duration }.
-    readonly property var springSnappy: Spring.make(380, 28)      // ≈ 394 ms, dépasse de 4 % : focus, chiffres
-    readonly property var springBouncy: Spring.make(300, 18)      // ≈ 613 ms, 15 % : relâchement, interrupteurs
-    readonly property var springGentle: Spring.make(220, 24)      // ≈ 460 ms, 1 % : île, formes
+    readonly property var springSnappy: reducedMotion ? reducedSpring : Spring.make(380, 28)   // ≈ 394 ms, dépasse de 4 % : focus, chiffres
+    readonly property var springBouncy: reducedMotion ? reducedSpring : Spring.make(300, 18)   // ≈ 613 ms, 15 % : relâchement, interrupteurs
+    readonly property var springGentle: reducedMotion ? reducedSpring : Spring.make(220, 24)   // ≈ 460 ms, 1 % : île, formes
     // Appui (Pressable) : A enfoncé, l'élément s'écrase en pressDuration (curveOut) ;
     // relâché, il revient avec springBouncy, et l'action part.
     readonly property int pressDuration: 90
@@ -406,7 +412,7 @@ QtObject {
     // Flou du texte qui entre ou sort (blur(3px) du prototype). Rendu par un calque par texte,
     // à passer à 0 si la carte cible ne tient pas ses 60 images par seconde. swapBlurSpread :
     // rayon de MultiEffect pour cet écart type CSS.
-    readonly property real swapBlur: 3
+    readonly property real swapBlur: reducedMotion ? 0 : 3
     readonly property real swapBlurSpread: 2
 
     // --- Réapparition d'un bloc (Appear), au retour d'un lancement ---

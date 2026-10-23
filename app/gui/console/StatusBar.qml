@@ -254,7 +254,7 @@ Item {
             height: Theme.islandSize.height + 2 * Theme.islandShadowPad
             source: "shadows/island.png"
             opacity: Math.min(1, pill.open) * root.contentOpacity
-            visible: opacity > 0
+            visible: opacity > 0 && !Theme.reducedMotion
         }
 
         // --- Pastille de l'hôte, qui s'ouvre en île de notification ---

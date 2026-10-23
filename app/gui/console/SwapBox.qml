@@ -24,8 +24,8 @@ Item {
     property var exitCurve: null
     property int exitDuration: 0
     // Flou (px) de l'exemplaire qui entre ou sort, plein quand il est invisible, nul une fois
-    // posé (le flou du swapText). À fixer à la création ; 0 : pas de flou. Le calque n'existe
-    // que pendant la transition : posé, le texte est rendu net, en direct. Rendu GPU seulement (le rendu logiciel, celui des tests, n'a pas de calques).
+    // posé (le flou du swapText) ; 0 : pas de flou. Le calque n'existe que pendant la
+    // transition : posé, le texte est rendu net, en direct. Rendu GPU seulement (le rendu logiciel, celui des tests, n'a pas de calques).
     property real blur: 0
     readonly property bool blurred: blur > 0 && GraphicsInfo.api !== GraphicsInfo.Unknown
                                     && GraphicsInfo.api !== GraphicsInfo.Software
@@ -45,10 +45,8 @@ Item {
         items = [holder.children[0], holder.children[1]]
         items[0].value = value
         items[1].opacity = 0
-        if (blur > 0) {
-            blurLayer(items[0])
-            blurLayer(items[1])
-        }
+        blurLayer(items[0])         // (sans flou, le calque reste éteint : rien ne coûte)
+        blurLayer(items[1])
         completed = true
     }
     // Un calque à la taille de l'exemplaire à l'écran (le canevas est mis à l'échelle).

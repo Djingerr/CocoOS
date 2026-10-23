@@ -401,18 +401,36 @@ Item {
         function test_9b_languageSetting() {
             keyClick(Qt.Key_Hangup)
             keyClick(Qt.Key_PageDown)                       // onglet Console (R1)
-            for (var i = 0; i < 5; i++) keyClick(Qt.Key_Down)
+            for (var i = 0; i < 6; i++) keyClick(Qt.Key_Down)
             var retranslations = StreamingPreferences.retranslations
-            compare(screen.optionRows[5].label, "Langue")
-            compare(screen.optionRows[5].options[screen.optionRows[5].index], "Français")
+            compare(screen.optionRows[6].label, "Langue")
+            compare(screen.optionRows[6].options[screen.optionRows[6].index], "Français")
             keyClick(Qt.Key_Right)
             compare(StreamingPreferences.language, StreamingPreferences.LANG_EN)
             compare(StreamingPreferences.retranslations, retranslations + 1)
-            compare(screen.optionRows[5].options[screen.optionRows[5].index], "English")
+            compare(screen.optionRows[6].options[screen.optionRows[6].index], "English")
             compare(home.humanSize(1.5 * 1024 * 1024 * 1024), "1.5 Go")   // virgule → point
             keyClick(Qt.Key_Left)
             compare(StreamingPreferences.language, StreamingPreferences.LANG_FR)
             compare(home.humanSize(1.5 * 1024 * 1024 * 1024), "1,5 Go")
+            keyClick(Qt.Key_Escape)
+        }
+
+        // « Réduire les animations » : plus de ressort ni de flou des textes, tout de suite.
+        function test_9b_reduceMotion() {
+            keyClick(Qt.Key_Hangup)
+            keyClick(Qt.Key_PageDown)                       // onglet Console (R1)
+            for (var i = 0; i < 5; i++) keyClick(Qt.Key_Down)
+            compare(screen.optionRows[5].label, "Réduire les animations")
+            verify(!Theme.reducedMotion)
+            verify(Theme.springSnappy.duration > Theme.reducedSpring.duration)
+            keyClick(Qt.Key_Return)                         // A bascule, au relâché
+            verify(Theme.reducedMotion)
+            compare(Theme.springSnappy, Theme.reducedSpring)
+            compare(Theme.swapBlur, 0)
+            keyClick(Qt.Key_Return)
+            verify(!Theme.reducedMotion)
+            verify(Theme.swapBlur > 0)
             keyClick(Qt.Key_Escape)
         }
 
@@ -422,7 +440,8 @@ Item {
             keyClick(Qt.Key_Hangup)
             InputStatus.bumperPressed(1)
             compare(screen.optionRows.map(function(r) { return r.label }),
-                    ["Luminosité", "Volume", "Veille de l'écran", "Boutons", "Sons", "Langue", "Wi-Fi"])
+                    ["Luminosité", "Volume", "Veille de l'écran", "Boutons", "Sons", "Réduire les animations",
+                     "Langue", "Wi-Fi"])
             keyClick(Qt.Key_Right)                          // luminosité 60 → 70 %
             compare(SystemStatus.brightness, 70)
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Left)    // volume 80 → 70 % (le stub part de 75)

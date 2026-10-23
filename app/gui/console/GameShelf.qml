@@ -34,7 +34,7 @@ FocusScope {
     // chaque déplacement (comme le prototype), et seulement si l'étagère a la manette (ni
     // en veille, ni pendant un lancement ou dans un panneau) et que son entrée est finie.
     property real sheen: 0
-    readonly property bool sheenArmed: focused && shown && enterStep === 0
+    readonly property bool sheenArmed: focused && shown && enterStep === 0 && !Theme.reducedMotion
     function restartSheen() {
         sheenSweep.stop()
         sheen = 0
@@ -261,7 +261,7 @@ FocusScope {
                         height: parent.height + 2 * Theme.shelfShadowPad
                         source: "shadows/thumb.png"
                         opacity: del.glow
-                        visible: opacity > 0
+                        visible: opacity > 0 && !Theme.reducedMotion
                     }
                     Item {
                         id: card

@@ -147,7 +147,7 @@ FocusScope {
         BackdropLayer {
             id: backdropLayer
             anchors.fill: parent
-            driftEnabled: root.driftAllowed && idle.running && !root.launching && !sheet.opened
+            driftEnabled: root.driftAllowed && idle.running && !root.launching && !sheet.opened && !Theme.reducedMotion
             opacity: root.entered ? 1 : 0
             zoom: root.launching ? Theme.launchBackdropZoom : 1
             unveiled: root.launching
