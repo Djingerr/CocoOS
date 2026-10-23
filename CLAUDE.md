@@ -330,8 +330,8 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
 - ✅ **Étagère en portrait (2026-10-23, demande de Marco : « rendre l'OS beau »)** : les vignettes
   passent du 16:9 au portrait 3:4 (108 × 144, coins de 10), le format des jaquettes d'Apollo /
   Sunshine (600 × 800), désormais affichées entières au lieu d'être recadrées. Une dizaine de jeux
-  tiennent sur la largeur. Le bloc héros remonte de 54 px (`heroBottom` 532 : toujours 25 px
-  au-dessus de la vignette active), les écrans de message avec lui ; le toast suit l'étagère ; un
+  tiennent sur la largeur. Le bloc héros remonte de 54 px (`heroBottom` 532, au-dessus de
+  l'anneau de la vignette active depuis le carrousel), les écrans de message avec lui ; le toast suit l'étagère ; un
   jeu sans jaquette écrit son nom sur trois lignes. Tout découle des jetons de `Theme.qml`.
   L'accueil s'écarte donc des captures de référence du prototype Ambiant (étagère et héros) :
   `compare.py` n'a plus de sens que pour la barre haute et le fond. ⚠️ Pas vu avec les vraies
@@ -340,7 +340,8 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   la vignette active (0 18px 40px -12px) et sous l'île ouverte (0 14px 34px -8px), en **images
   pré-calculées** (`shadows/*.png`, `harness/make-shadows.py`, aucun flou à l'exécution ;
   `RectangularShadow` exigerait Qt 6.9) ; filet clair intérieur des vignettes (plus net sur
-  l'active) ; la vignette active s'écrase depuis son centre tant que A est tenu ; halo de la poignée
+  l'active) ; la vignette active s'écrase depuis son centre tant que A est tenu (1,02 depuis le
+  carrousel) ; halo de la poignée
   du curseur sur la ligne en focus, crans placés sous la poignée et qui pulsent quand on les franchit
   (×1,9, orange, 440 ms) ; pouce d'interrupteur plus clair sur la ligne en focus ; explication d'un
   refus dépliée sous la liste (réseau déjà connecté). Corrigé au passage : le soulignement des
@@ -536,7 +537,8 @@ Fichiers (dans `app/gui/console/`) :
 - `ElasticIndicator.qml` — indicateur dont les deux bords rejoignent la cible séparément (le
   soulignement des onglets s'étire en changeant d'onglet)
 - `HoldFill.qml` — remplissage d'un appui maintenu (actions destructives : `ConsoleDialog`
-  `holdToConfirm`, « Oublier ce PC »)
+  `holdToConfirm`, « Oublier ce PC », « Quitter la partie » du héros) ; libellés centrés
+  (`centered`) et rebond laissé à l'appelant (`bounces: false`) pour un bouton
 - `Theme.qml` (+ `qmldir`) — singleton des jetons de design : couleurs, tailles, durées, ressort
 - `fonts/` — Sora embarquée (OFL, instances statiques de Google Fonts, 400 à 700), chargée par
   `Theme.qml` (`Theme.fontsReady`) ; seule famille de l'interface (pas de mono)
@@ -545,8 +547,8 @@ Fichiers (dans `app/gui/console/`) :
   Quitter la partie à la manette (haut depuis l'étagère)
 - `GameShelf.qml` — l'étagère de vignettes en carrousel : anneau, défilement aux bords, focus,
   répétition manette
-- `SwapBox.qml`, `Appear.qml`, `ButtonGlyph.qml` — remplacement de texte en glissant,
-  apparition en fondu-glissé, glyphe de bouton
+- `SwapBox.qml`, `Appear.qml`, `ButtonGlyph.qml` — remplacement de texte en glissant (et en se
+  floutant, `blur`, rendu GPU seulement), apparition en fondu-glissé, glyphe de bouton
 - `Format.js` — mise en forme des données Companion (source, dernière session, temps de jeu)
 - `Library.js` — l'étagère : utilitaires écartés, ordre (favoris, récents, nom), synchronisation
   du `ListModel` sans recréer les vignettes
@@ -857,6 +859,7 @@ Tout est dans `docs/ui/ambiant/harness/` (hors de `app/`, rien n'entre dans le b
 ```bash
 cd docs/ui/ambiant/harness
 qml-qt6 -I stubs Harness.qml -- view=HomeDemo          # l'accueil, 10 jeux de démo, au clavier
+qml-qt6 -I stubs Harness.qml -- view=HomeDemo running=0   # Minecraft en cours : ↑ pour Reprendre / Quitter
 qml-qt6 -I stubs Harness.qml -- view=ConsoleHomeDemo   # le vrai ConsoleHome sur faux modules
 qml-qt6 Harness.qml -- view=PagesDemo page=code        # search|loading|pin|pin-error|code|code-busy|code-error|dialog|curtain
 ./shot.sh /tmp/a.png view=HomeDemo focus=6 drift=0 delay=2500   # capture (rendu GPU, sans fenêtre)
