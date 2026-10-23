@@ -908,6 +908,25 @@ Item {
             keyClick(Qt.Key_Escape)
         }
 
+        // Changer une valeur ne fait pas bouger le soulignement des onglets (la liste des
+        // réglages est reconstruite à chaque changement, pas les onglets).
+        function test_9u_tabUnderlineStaysWhenAValueChanges() {
+            keyClick(Qt.Key_Hangup)
+            keyClick(Qt.Key_PageDown)                       // onglet Console
+            var underline = find(screen.options, "targetLeft")
+            wait(800)                                       // posé sur « Console »
+            var left = underline.leftEdge, moved = 0
+            verify(left > 0)
+            var watch = function() { moved = Math.max(moved, Math.abs(underline.leftEdge - left)) }
+            underline.leftEdgeChanged.connect(watch)
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Left)    // volume : -10 %
+            wait(600)
+            underline.leftEdgeChanged.disconnect(watch)
+            compare(moved, 0)
+            keyClick(Qt.Key_Right)
+            keyClick(Qt.Key_Escape)
+        }
+
         // En dernier : l'hôte du faux modèle est supprimé.
         function test_9z_forgettingThePcForgetsTheCompanionToo() {
             var forgets = CompanionClient.forgets

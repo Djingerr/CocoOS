@@ -12,6 +12,7 @@ Row {
     property string suffix
     property color color: Theme.ink2
     property int pixelSize: Theme.sheetValueSize
+    property bool animated: true          // faux : la nouvelle valeur s'affiche d'emblée
 
     FontMetrics {
         id: metrics
@@ -26,6 +27,7 @@ Row {
             clip: true
             opacity: index < root.digits - 1 && root.value < power ? 0 : 1
             Behavior on opacity {
+                enabled: root.animated
                 NumberAnimation {
                     duration: Theme.rollFade
                     easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
@@ -38,6 +40,7 @@ Row {
                 color: root.color
                 font.family: Theme.fontUi; font.pixelSize: root.pixelSize; font.features: { "tnum": 1 }
                 Behavior on y {
+                    enabled: root.animated
                     NumberAnimation {
                         duration: Theme.springSnappy.duration
                         easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve

@@ -52,6 +52,10 @@ FocusScope {
     property int bumpDir: 0
     // Butée élastique d'une valeur ou du curseur en bout de course (px, signé).
     property real rubberX: 0
+    // Vrai le temps d'un changement d'onglet : les lignes, réutilisées d'un onglet à
+    // l'autre, prennent leurs nouvelles valeurs sans les animer (interrupteurs, chiffres,
+    // curseur).
+    property bool settling: false
     // Curseur maintenu : répétitions comptées (le pas accélère), arrêt sur un cran.
     property int sliderRepeats: 0
     property double sliderHoldUntil: 0
@@ -106,7 +110,9 @@ FocusScope {
         applyFlick()
         bumpAnim.complete()
         rubberAnim.complete()
+        settling = true
         tab = next
+        settling = false
         current = 0
         pressing = false
         Sounds.play("move")
@@ -305,12 +311,14 @@ FocusScope {
     // disque du prototype, rogné à la piste).
     component Switch: Item {
         id: sw
+        property bool animated: true
         property bool checked: false
         property bool pressed: false
         property real nudge: 0               // butée, en px
         property string text                 // la valeur, pour les lecteurs d'écran
         property real spread: checked ? Theme.switchFillRadius : 0
         Behavior on spread {
+            enabled: sw.animated
             NumberAnimation {
                 duration: Theme.switchFill
                 easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
@@ -346,6 +354,7 @@ FocusScope {
             color: sw.checked ? Theme.inkOnAccent : Theme.ink2
             transform: Translate { x: sw.nudge }
             Behavior on x {
+                enabled: sw.animated
                 NumberAnimation {
                     duration: Theme.springBouncy.duration
                     easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springBouncy.curve
@@ -358,6 +367,7 @@ FocusScope {
                 }
             }
             Behavior on color {
+                enabled: sw.animated
                 ColorAnimation {
                     duration: Theme.switchInkFade
                     easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
@@ -495,9 +505,11 @@ FocusScope {
             visible: root.tabs.length > 1
 
             ButtonGlyph { anchors.verticalCenter: parent.verticalCenter; label: "LB"; ink: Theme.ink3 }
+            // Un onglet par place, conservé quand `tabs` est remplacé (à chaque réglage
+            // changé) : recréé, il laisserait un instant le soulignement sans cible.
             Repeater {
                 id: tabRepeater
-                model: root.tabs
+                model: root.tabs.length
                 Item {
                     id: tabItem
                     readonly property bool active: index === root.tab
@@ -506,7 +518,7 @@ FocusScope {
                     Text {
                         id: tabLabel
                         anchors.verticalCenter: parent.verticalCenter
-                        text: modelData.label
+                        text: root.tabs[index] ? root.tabs[index].label : ""
                         color: Theme.ink3
                         font.family: Theme.fontUi; font.pixelSize: Theme.sheetTabSize
                         font.weight: tabItem.active ? Font.DemiBold : Font.Medium
@@ -646,6 +658,7 @@ FocusScope {
                         }
                         Switch {
                             anchors.verticalCenter: parent.verticalCenter
+                            animated: !root.settling
                             visible: line.row.toggle === true
                             checked: line.row.index === 1
                             pressed: line.focused && (root.pressingRow || (root.flick !== null && root.flick.row === line.index))
@@ -676,6 +689,7 @@ FocusScope {
                             visible: line.numeric
                             width: Theme.sheetValueBox.width; height: Theme.sheetValueBox.height
                             RollingNumber {
+                                animated: !root.settling
                                 anchors.right: parent.right
                                 anchors.verticalCenter: parent.verticalCenter
                                 value: line.parts ? line.parts.n : 0
@@ -713,6 +727,7 @@ FocusScope {
                             radius: height / 2
                             color: line.row.auto === true ? Theme.ink3 : Theme.accent
                             Behavior on width {
+                                enabled: !root.settling
                                 NumberAnimation {
                                     duration: Theme.springSnappy.duration
                                     easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
@@ -736,6 +751,7 @@ FocusScope {
                             radius: width / 2
                             color: line.row.auto === true ? Theme.ink2 : Theme.ink
                             Behavior on x {
+                                enabled: !root.settling
                                 NumberAnimation {
                                     duration: Theme.springSnappy.duration
                                     easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
