@@ -78,6 +78,7 @@ FocusScope {
         property bool streamProfileInitialized: false
         property bool sounds: true          // réglage « Sons » du panneau d'options
         property bool reduceMotion: false   // « Réduire les animations » (Theme.reducedMotion)
+        property bool rumble: true          // « Vibrations » : la manette vibre (InputStatus.feedback)
         property string lastGame: ""        // dernier jeu lancé : l'accueil s'ouvre dessus
         property string favorites: "[]"     // jeux épinglés (X), le dernier épinglé en tête (JSON)
         property string recentGames: "{}"   // date de la dernière partie lancée d'ici, par jeu (JSON, ms)
@@ -654,6 +655,12 @@ FocusScope {
     // jeu, c'est la session qui le reçoit : elle rend la main à l'accueil (gamepad.cpp).
     property double homeGuardUntil: 0
 
+    // Vibrations : la manette suit certains sons (butée, refus, confirmation, lancement).
+    Connections {
+        target: Sounds
+        function onPlayed(name) { InputStatus.feedback(name) }
+    }
+
     Connections {
         target: InputStatus
         function onActivity() { home.rearmSleep() }
@@ -1138,12 +1145,13 @@ FocusScope {
                         { label: "PlayStation", value: "playstation" }, { label: "Nintendo", value: "nintendo" } ]
         var sounds = [ { label: qsTr("Coupés"), value: false }, { label: qsTr("Activés"), value: true } ]
         var motion = [ { label: qsTr("Non"), value: false }, { label: qsTr("Oui"), value: true } ]
+        var rumble = [ { label: qsTr("Coupées"), value: false }, { label: qsTr("Activées"), value: true } ]
         // Chaque langue dans sa langue.
         var language = [ { label: "Français", value: p.LANG_FR }, { label: "English", value: p.LANG_EN } ]
 
         optionChoices = { res: res, fps: fps.map(function(f) { return { label: "" + f, value: f } }),
                           rateAuto: hdr, advanced: hdr, codec: codec, hdr: hdr, brightness: brightness, volume: volume,
-                          sleep: sleep, buttons: buttons, sounds: sounds, motion: motion, language: language }
+                          sleep: sleep, buttons: buttons, sounds: sounds, rumble: rumble, motion: motion, language: language }
         // `toggle` : deux options [désactivé, activé], affichées en interrupteur.
         var row = function(key, label, index, toggle) {
             return { key: key, label: label, index: index, toggle: toggle === true,
@@ -1159,6 +1167,8 @@ FocusScope {
         consoleRows.push(row("buttons", qsTr("Boutons"),
                              Math.max(0, buttons.findIndex(function(c) { return c.value === consoleConfig.buttonLayout }))))
         consoleRows.push(row("sounds", qsTr("Sons"), consoleConfig.sounds ? 1 : 0, true))
+        if (InputStatus.controllerCount > 0)
+            consoleRows.push(row("rumble", qsTr("Vibrations"), consoleConfig.rumble ? 1 : 0, true))
         consoleRows.push(row("motion", qsTr("Réduire les animations"), consoleConfig.reduceMotion ? 1 : 0, true))
         consoleRows.push(row("language", qsTr("Langue"), english ? 1 : 0))
         if (WifiSetup.available)
@@ -1245,6 +1255,9 @@ FocusScope {
         } else if (key === "sounds") {
             consoleConfig.sounds = choice.value
             Sounds.enabled = choice.value
+        } else if (key === "rumble") {
+            consoleConfig.rumble = choice.value
+            if (choice.value) InputStatus.feedback("confirm")   // pour la sentir
         } else if (key === "motion") {
             consoleConfig.reduceMotion = choice.value
             Theme.reducedMotion = choice.value
@@ -1264,7 +1277,7 @@ FocusScope {
             p.save()
             p.retranslate()
         }
-        if (["advanced", "sounds", "motion", "brightness", "volume", "sleep", "buttons", "language"].indexOf(key) >= 0) {
+        if (["advanced", "sounds", "rumble", "motion", "brightness", "volume", "sleep", "buttons", "language"].indexOf(key) >= 0) {
             refreshOptions()
             return
         }

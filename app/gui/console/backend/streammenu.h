@@ -33,6 +33,11 @@ void prepare(const QString& game, const QStringList& powerActions, const QString
 // autrement. Ne le dit qu'une fois.
 QString takeExit();
 
+// Vibration des manettes branchées pour un son de l'interface : "edge" (butée), "deny"
+// (refus), "confirm" (appui maintenu au bout), "launch" (un jeu part) ; les autres sons ne
+// vibrent pas. N'importe quel fil (SDL est sûr ici) ; réglage ConsoleUi/rumble.
+void rumble(const QString& sound);
+
 // Fil des événements SDL du flux (gamepad.cpp, keyboard.cpp, mouse.cpp).
 bool isOpen();
 void toggle();

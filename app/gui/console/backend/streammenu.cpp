@@ -33,6 +33,7 @@ const int STICK_PUSH = 20000;
 const int STICK_REST = 10000;
 
 const char* STATS_SETTING = "ConsoleUi/streamStats";
+const char* RUMBLE_SETTING = "ConsoleUi/rumble";
 // Départ sans action pour l'accueil : le flux s'est fermé autrement que par le menu.
 const char* ENDED = "ended";
 const char* SOUNDS_SETTING = "ConsoleUi/sounds";
@@ -162,6 +163,7 @@ std::atomic<bool> s_repeat { false };       // l'overlay a changé depuis la der
 std::atomic<Uint32> s_lastFrameTicks { 0 };
 
 bool s_soundsOn = false;
+bool s_rumbleOn = true;
 QHash<QString, QByteArray> s_sounds;    // échantillons, volume appliqué
 SDL_AudioDeviceID s_audio = 0;
 
@@ -326,6 +328,9 @@ void loadSounds()
 // Un son à la fois, comme à l'accueil : le suivant coupe le précédent.
 void play(const char* name)
 {
+    if (s_rumbleOn) {
+        StreamMenu::rumble(QLatin1String(name));
+    }
     const QByteArray samples = s_sounds.value(QLatin1String(name));
     if (!s_soundsOn || samples.isEmpty()) {
         return;
@@ -895,6 +900,7 @@ void StreamMenu::prepare(const QString& game, const QStringList& powerActions, c
     s_statsView = StreamPainter::Stats();
     s_statsFade.set(0);   // les statistiques apparaissent avec les premiers chiffres
     s_soundsOn = QSettings().value(SOUNDS_SETTING, true).toBool();
+    s_rumbleOn = QSettings().value(RUMBLE_SETTING, true).toBool();
     if (s_soundsOn) {
         loadSounds();
     }
@@ -1034,6 +1040,34 @@ void StreamMenu::onAxis(uint8_t axis, int16_t value)
     }
     if (direction != 0 || qAbs(value) < STICK_REST) {
         s_stick = direction;
+    }
+}
+
+void StreamMenu::rumble(const QString& sound)
+{
+    // Moteur grave, moteur aigu (0 à 0xFFFF), durée : une touche légère pour une butée,
+    // un coup franc pour une confirmation, une poussée douce pour un lancement.
+    struct Rumble { const char* sound; Uint16 low; Uint16 high; Uint32 ms; };
+    static const Rumble RUMBLES[] = {
+        { "edge", 0x2800, 0x5000, 40 },
+        { "deny", 0x7000, 0x3000, 90 },
+        { "confirm", 0xA000, 0xC000, 120 },
+        { "launch", 0x6000, 0x2000, 220 },
+    };
+    if (!SDL_WasInit(SDL_INIT_GAMECONTROLLER)) {
+        return;
+    }
+    for (const Rumble& r : RUMBLES) {
+        if (sound != QLatin1String(r.sound)) {
+            continue;
+        }
+        for (int i = 0; i < SDL_NumJoysticks(); i++) {
+            SDL_GameController* gc = SDL_GameControllerFromInstanceID(SDL_JoystickGetDeviceInstanceID(i));
+            if (gc != nullptr) {
+                SDL_GameControllerRumble(gc, r.low, r.high, r.ms);
+            }
+        }
+        return;
     }
 }
 

@@ -19,6 +19,8 @@ QtObject {
     function prepareStreamMenu(game, powerActions, buttonLayout) {
         streamMenu = [game, powerActions, buttonLayout]
     }
+    property var feedbacks: []           // sons transmis aux vibrations (feedback)
+    function feedback(sound) { feedbacks = feedbacks.concat([sound]) }
     function takeStreamExit() {
         var exit = streamExit
         streamExit = ""

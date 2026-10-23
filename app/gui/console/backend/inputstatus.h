@@ -46,6 +46,9 @@ public:
     Q_INVOKABLE void prepareStreamMenu(const QString& game, const QStringList& powerActions,
                                        const QString& buttonLayout);
     Q_INVOKABLE QString takeStreamExit();
+    // Un son de l'interface vient d'être joué (Sounds.played) : la manette vibre pour
+    // certains (StreamMenu::rumble), sauf réglage ConsoleUi/rumble éteint.
+    Q_INVOKABLE void feedback(const QString& sound);
 
     // Correspondances SDL → UI (statiques pour être vérifiables seules).
     static QString layoutForType(int sdlControllerType);

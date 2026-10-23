@@ -416,6 +416,14 @@ Item {
             keyClick(Qt.Key_Escape)
         }
 
+        // Vibrations : chaque son joué est transmis à InputStatus (qui choisit lesquels vibrent),
+        // même sons coupés.
+        function test_9b_rumbleFollowsSounds() {
+            InputStatus.feedbacks = []
+            keyClick(Qt.Key_Left)                           // tout à gauche : une butée
+            verify(InputStatus.feedbacks.indexOf("edge") >= 0)
+        }
+
         // « Réduire les animations » : plus de ressort ni de flou des textes, tout de suite.
         function test_9b_reduceMotion() {
             keyClick(Qt.Key_Hangup)

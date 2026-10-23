@@ -6,6 +6,7 @@
 #include <QCoreApplication>
 #include <QDateTime>
 #include <QEvent>
+#include <QSettings>
 
 namespace {
 
@@ -24,6 +25,13 @@ void InputStatus::prepareStreamMenu(const QString& game, const QStringList& powe
 QString InputStatus::takeStreamExit()
 {
     return StreamMenu::takeExit();
+}
+
+void InputStatus::feedback(const QString& sound)
+{
+    if (QSettings().value(QStringLiteral("ConsoleUi/rumble"), true).toBool()) {
+        StreamMenu::rumble(sound);
+    }
 }
 
 InputStatus::InputStatus(QObject* parent)
