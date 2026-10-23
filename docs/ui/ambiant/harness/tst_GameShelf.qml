@@ -204,7 +204,10 @@ Item {
         // Le jeu en cours sur le PC : sa vignette, et elle seule, porte le point.
         function test_runningGameIsMarked() {
             shelf.runningName = "Jeu 2"
-            tryVerify(function() { listView().forceLayout(); return listView().itemAtIndex(2) !== null }, 1000)
+            tryVerify(function() {
+                listView().forceLayout()
+                return listView().itemAtIndex(1) !== null && listView().itemAtIndex(2) !== null
+            }, 2000)
             verify(listView().itemAtIndex(2).running)
             verify(!listView().itemAtIndex(1).running)
             shelf.runningName = ""

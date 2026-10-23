@@ -25,6 +25,15 @@ const qreal HOLD_SWAP_SHIFT = 16;        // Theme.holdSwapShift × la hauteur du
 const qreal HOLD_CHECK_SIZE = 18;
 const qreal HOLD_CHECK_GAP = 8;
 const qreal CHECK_STROKE = 2.4;          // sur la grille 24 × 24 de CheckMark.qml
+// Curseur d'une ligne (volume, luminosité), comme celui du panneau d'options : un rail, un
+// remplissage orange, une poignée (plus grande sur la ligne en focus).
+const qreal SLIDER_WIDTH = 120;
+const qreal SLIDER_GAP = 16;             // entre la valeur et le rail
+const qreal SLIDER_RAIL = 4;
+const qreal SLIDER_THUMB = 12;
+const qreal SLIDER_THUMB_FOCUS = 16;
+const qreal SLIDER_HIT = 12;             // marge de clic autour du rail
+const QColor SLIDER_RAIL_COLOR(255, 255, 255, qRound(0.16 * 255));
 const QColor OK("#69D08E");
 const QColor FAIR("#E8C547");
 const QColor POOR("#E5574F");
@@ -329,6 +338,21 @@ int StreamPainter::rowAt(const Page& page, QSize screen, QPointF pos)
     return int(row);
 }
 
+qreal StreamPainter::sliderAt(const Page& page, QSize screen, QPointF pos, bool dragging)
+{
+    const int row = dragging ? page.focus : rowAt(page, screen, pos);
+    if (screen.isEmpty() || row < 0 || page.sliders.value(row, -1) < 0) {
+        return -1;
+    }
+    const qreal canvasX = pos.x() * CANVAS_HEIGHT / screen.height();
+    const qreal right = screen.width() * CANVAS_HEIGHT / screen.height() - SHEET_PAD_SIDE;
+    const qreal left = right - SLIDER_WIDTH;
+    if (!dragging && canvasX < left - SLIDER_HIT) {
+        return -1;
+    }
+    return qBound<qreal>(0, (canvasX - left) / SLIDER_WIDTH, 1);
+}
+
 QImage StreamPainter::paintStats(const Stats& stats, qreal opacity, QSize screen,
                                  const Notice& notice, qreal noticeOpacity)
 {
@@ -417,6 +441,26 @@ void drawCheck(QPainter& p, const QRectF& box, const QColor& color, qreal drawn)
     p.restore();
 }
 
+// Le rail d'un curseur, à droite de la ligne `row`.
+QRectF sliderRail(const QRectF& row)
+{
+    return QRectF(row.right() - SLIDER_WIDTH, row.center().y() - SLIDER_RAIL / 2, SLIDER_WIDTH, SLIDER_RAIL);
+}
+
+void drawSlider(QPainter& p, const QRectF& row, qreal at, qreal focus)
+{
+    const QRectF rail = sliderRail(row);
+    const qreal fill = rail.width() * qBound<qreal>(0, at, 1);
+    p.setPen(Qt::NoPen);
+    p.setBrush(SLIDER_RAIL_COLOR);
+    p.drawRoundedRect(rail, SLIDER_RAIL / 2, SLIDER_RAIL / 2);
+    p.setBrush(ACCENT);
+    p.drawRoundedRect(QRectF(rail.x(), rail.y(), fill, rail.height()), SLIDER_RAIL / 2, SLIDER_RAIL / 2);
+    const qreal thumb = SLIDER_THUMB + (SLIDER_THUMB_FOCUS - SLIDER_THUMB) * focus;
+    p.setBrush(INK);
+    p.drawEllipse(QPointF(rail.x() + fill, rail.center().y()), thumb / 2, thumb / 2);
+}
+
 // Le remplissage d'un appui maintenu sur la ligne `row` (HoldFill.qml).
 void drawHold(QPainter& p, const QRectF& row, const QString& label, const StreamPainter::Frame& frame, qreal opacity)
 {
@@ -462,8 +506,14 @@ void drawPage(QPainter& p, const StreamPainter::Page& page, const StreamPainter:
                              width + 2 * SHEET_FOCUS_OUTSET, SHEET_ROW_HEIGHT),
                       SHEET_FOCUS_RADIUS, SHEET_FOCUS_RADIUS);
     for (int i = 0; i < page.labels.size(); i++) {
-        const QRectF row(x, y + i * SHEET_ROW_HEIGHT, width, SHEET_ROW_HEIGHT);
+        const QRectF line(x, y + i * SHEET_ROW_HEIGHT, width, SHEET_ROW_HEIGHT);
         const qreal h = highlight.value(i, i == page.focus ? 1 : 0);
+        // Un curseur : il prend la droite de la ligne, la valeur se range à sa gauche.
+        const qreal slider = page.sliders.value(i, -1);
+        if (slider >= 0) {
+            drawSlider(p, line, slider, h);
+        }
+        const QRectF row = slider >= 0 ? line.adjusted(0, 0, -(SLIDER_WIDTH + SLIDER_GAP), 0) : line;
         const QColor ink = mix(INK2, INK, h);
         const QString value = page.values.value(i);
         p.setFont(sora(SHEET_LABEL_SIZE));

@@ -441,6 +441,12 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     SystemStatus passé à `prepareStreamMenu`), **avis** en haut à droite pendant le jeu (réseau
     mauvais 10 s, manette presque vide, capture enregistrée ; `StreamPainter::Notice`). Harnais :
     `streammenu-shot … page=stats notice="Réseau instable" tone=bad`.
+  - **Curseurs pour le volume et la luminosité, partout** : dans l'onglet Console (lignes `slider`
+    comme le débit, crans à 25 / 50 / 75, luminosité 5 % au moins) et dans le menu en jeu (rail,
+    remplissage orange, poignée dessinés par `StreamPainter` à droite de la ligne, la valeur à
+    gauche ; ← / → de 5 % en 5 %, la poignée glisse en 160 ms ; à la souris, clic ou glisser par
+    crans de 5 %, `StreamPainter::sliderAt`, vérifié par `streammenu-rows.cpp`). Harnais :
+    `streammenu-shot … page=menu sliders=1`.
   - La dérive lente du fond existait déjà (zoom 1,03 → 1,09 en 30 s, arrêtée après 10 s sans
     action, pour la batterie) : rien d'ajouté. Couleur d'accent et « dernier jeu au démarrage » :
     écartés par Marco.

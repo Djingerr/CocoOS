@@ -82,6 +82,28 @@ int main(int argc, char* argv[])
         failures += check(menu, QString(), screen);
         failures += check(confirm, QStringLiteral("Toute progression non sauvegardée sera perdue."), screen);
     }
+    // Le curseur d'une ligne : son milieu vaut 0,5, la gauche de la ligne n'en est pas ; tenu,
+    // il suit la souris où qu'elle soit, borné.
+    {
+        const QSize screen(1280, 720);
+        StreamPainter::Page page;
+        page.title = QStringLiteral("Elden Ring");
+        page.labels = QStringList { "Reprendre", "Volume" };
+        page.sliders = QVector<qreal> { -1, 0.6 };
+        page.focus = 1;
+        const qreal k = screen.height() / 800.0;
+        const qreal railMiddle = (screen.width() / k - 44 - 60) * k;   // bord droit des lignes − la moitié du rail
+        int row1 = -1;
+        for (int y = 0; y < screen.height() && row1 < 0; y++)
+            if (StreamPainter::rowAt(page, screen, QPointF(railMiddle, y)) == 1) row1 = y + 10;
+        const qreal middle = StreamPainter::sliderAt(page, screen, QPointF(railMiddle, row1));
+        const qreal label = StreamPainter::sliderAt(page, screen, QPointF(screen.width() - 400 * k, row1));
+        const qreal far = StreamPainter::sliderAt(page, screen, QPointF(10, 10), true);
+        if (qAbs(middle - 0.5) > 0.01 || label != -1 || far != 0) {
+            std::printf("curseur : milieu %.3f, libellé %.3f, tenu loin %.3f\n", middle, label, far);
+            failures++;
+        }
+    }
     std::printf(failures ? "%d écart(s)\n" : "ok\n", failures);
     return failures ? 1 : 0;
 }

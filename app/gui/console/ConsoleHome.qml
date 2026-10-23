@@ -1116,6 +1116,10 @@ FocusScope {
     // Curseur du débit, en Mb/s : bornes et crans marqués.
     readonly property var bitrateRange: [5, 150]
     readonly property var bitrateStops: [10, 20, 40, 80]
+    // Curseurs en % (luminosité, volume) : crans marqués, et la luminosité jamais sous 5 %
+    // (SystemStatus.setBrightness : on ne verrait plus rien pour remonter).
+    readonly property var percentStops: [25, 50, 75]
+    readonly property int brightnessMin: 5
 
     // Langue de l'interface : le réglage de Moonlight, dont la traduction est chargée au
     // démarrage (languages/qml_en.ts). « Auto » (jamais choisie) suit la langue du système.
@@ -1167,18 +1171,6 @@ FocusScope {
         var hdr = [ { label: qsTr("Désactivé"), value: false }, { label: qsTr("Activé"), value: true } ]
 
         // Console : réglages du système et de la conf console (ConsoleUi).
-        var percents = function(from) {
-            var list = []
-            for (var v = from; v <= 100; v += 10) list.push({ label: qsTr("%1 %").arg(v), value: v })
-            return list
-        }
-        var nearest = function(list, value) {
-            var best = 0
-            for (var i = 1; i < list.length; i++)
-                if (Math.abs(list[i].value - value) < Math.abs(list[best].value - value)) best = i
-            return best
-        }
-        var brightness = percents(10), volume = percents(0)
         var sleep = [ { label: qsTr("2 min"), value: 2 }, { label: qsTr("5 min"), value: 5 },
                       { label: qsTr("10 min"), value: 10 }, { label: qsTr("30 min"), value: 30 },
                       { label: qsTr("Jamais"), value: 0 } ]
@@ -1191,7 +1183,7 @@ FocusScope {
         var language = [ { label: "Français", value: p.LANG_FR }, { label: "English", value: p.LANG_EN } ]
 
         optionChoices = { res: res, fps: fps.map(function(f) { return { label: "" + f, value: f } }),
-                          rateAuto: hdr, advanced: hdr, codec: codec, hdr: hdr, brightness: brightness, volume: volume,
+                          rateAuto: hdr, advanced: hdr, codec: codec, hdr: hdr,
                           sleep: sleep, buttons: buttons, sounds: sounds, rumble: rumble, motion: motion, language: language }
         // `toggle` : deux options [désactivé, activé], affichées en interrupteur.
         var row = function(key, label, index, toggle) {
@@ -1199,10 +1191,15 @@ FocusScope {
                      options: optionChoices[key].map(function(c) { return c.label }) }
         }
         var consoleRows = []
+        // Luminosité et volume : des curseurs (comme le débit), en %.
+        var percentSlider = function(key, label, value, min) {
+            return { key: key, label: label, slider: true, value: value, min: min, max: 100,
+                     stops: percentStops, format: qsTr("%1 %") }
+        }
         if (SystemStatus.brightness >= 0)
-            consoleRows.push(row("brightness", qsTr("Luminosité"), nearest(brightness, SystemStatus.brightness)))
+            consoleRows.push(percentSlider("brightness", qsTr("Luminosité"), SystemStatus.brightness, brightnessMin))
         if (SystemStatus.volume >= 0)
-            consoleRows.push(row("volume", qsTr("Volume"), nearest(volume, SystemStatus.volume)))
+            consoleRows.push(percentSlider("volume", qsTr("Volume"), SystemStatus.volume, 0))
         consoleRows.push(row("sleep", qsTr("Veille de l'écran"),
                              Math.max(0, sleep.findIndex(function(c) { return c.value === consoleConfig.sleepMinutes }))))
         consoleRows.push(row("buttons", qsTr("Boutons"),
@@ -1302,10 +1299,10 @@ FocusScope {
         } else if (key === "motion") {
             consoleConfig.reduceMotion = choice.value
             Theme.reducedMotion = choice.value
-        } else if (key === "brightness") {
-            SystemStatus.setBrightness(choice.value)
+        } else if (key === "brightness") {          // les curseurs : `index` est la valeur, en %
+            SystemStatus.setBrightness(index)
         } else if (key === "volume") {
-            SystemStatus.setVolume(choice.value)
+            SystemStatus.setVolume(index)
         } else if (key === "sleep") {
             consoleConfig.sleepMinutes = choice.value
             rearmSleep()

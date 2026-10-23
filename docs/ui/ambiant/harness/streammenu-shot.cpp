@@ -68,6 +68,13 @@ int main(int argc, char* argv[])
         menu.values = QStringList { QString(), QStringLiteral("Masquées") };
         menu.backLabel = QStringLiteral("Fermer");
     }
+    if (opt.value(QStringLiteral("sliders")) == QLatin1String("1") && page == QLatin1String("menu")) {
+        // sliders=1 : Volume et Luminosité, des curseurs (comme dans le vrai menu, après Reprendre)
+        menu.labels.insert(1, QStringLiteral("Luminosité"));
+        menu.labels.insert(1, QStringLiteral("Volume"));
+        menu.values = QStringList { QString(), QStringLiteral("60 %"), QStringLiteral("85 %"), QStringLiteral("Masquées") };
+        menu.sliders = QVector<qreal> { -1, 0.6, 0.85 };
+    }
 
     const int latency = opt.value(QStringLiteral("latency"), QStringLiteral("12")).toInt();
     StreamPainter::Stats stats;

@@ -38,6 +38,8 @@ struct Page {
     QString message;
     QStringList labels;
     QStringList values;     // valeur à droite de la ligne ("" : une action, glyphe A en focus)
+    QVector<qreal> sliders; // par ligne : un curseur à cette position (0 à 1) à droite, la valeur
+                            // à sa gauche ; < 0 ou absent : pas de curseur
     int focus = 0;
     QString backLabel;      // légende : B <backLabel>, A Valider
     QString confirmLabel;   // légende de A ; vide : « Valider »
@@ -78,6 +80,9 @@ bool paintFrame(const Frame& frame, QImage& image);
 // La ligne de `page` sous `pos` (en pixels de l'écran, panneau en place) : -1 dans le
 // panneau, hors des lignes ; -2 hors du panneau.
 int rowAt(const Page& page, QSize screen, QPointF pos);
+// Sur le curseur d'une ligne (ou tout près) : la position visée, de 0 à 1 ; -1 sinon.
+// `dragging` : la poignée est tenue, c'est celui de la ligne en focus, où que soit `pos`.
+qreal sliderAt(const Page& page, QSize screen, QPointF pos, bool dragging = false);
 
 // Hors du menu : les statistiques (en haut à gauche) et l'avis (en haut à droite, qui
 // descend en apparaissant), sur une image qui part du coin haut gauche de l'écran ; nulle

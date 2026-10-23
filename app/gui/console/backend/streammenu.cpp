@@ -56,7 +56,9 @@ const int CURTAIN_FADE = 250;       // fondu au noir avant de quitter le flux
 const int STREAM_FADE_IN = 400;     // au début du flux, le noir s'efface sur ses premières images
 const int NOTICE_FADE = 220;        // un avis pendant le jeu paraît, reste NOTICE_HOLD, s'efface
 const Uint32 NOTICE_HOLD = 3000;
-const int VALUE_STEP = 10;          // volume, luminosité : ← / → de 10 %
+const int VALUE_STEP = 5;           // volume, luminosité : ← / → de 5 % (la souris aussi, par crans de 5)
+const int SLIDER_MOVE = 160;        // la poignée rejoint la nouvelle valeur, OutCubic
+const int BRIGHTNESS_MIN = 5;       // SystemStatus.setBrightness : jamais tout à fait noir
 const int POOR_SECONDS = 10;        // réseau « mauvais » (Format.networkQuality) aussi longtemps : un avis
 const int POOR_RTT = 50;            // au-delà : mauvais (ms), comme la pastille de l'accueil
 const int POOR_VARIANCE = 15;
@@ -164,6 +166,8 @@ bool s_quitPassing = false;             // le SDL_QUIT de finishLeave : il ferme
 QObject* s_system = nullptr;            // SystemStatus (volume, luminosité), fil principal seulement
 int s_volume = -1;                      // ses valeurs, gardées ici (lues sur tous les fils) ; -1 : absent
 int s_brightness = -1;
+Anim s_volumeAnim, s_brightnessAnim;    // leurs curseurs, qui glissent (en %)
+bool s_dragSlider = false;              // la souris tient un curseur
 StreamPainter::Notice s_notice;         // l'avis en cours, hors du menu (en haut à droite)
 Anim s_noticeFade;
 SDL_TimerID s_noticeTimer = 0;
@@ -259,6 +263,8 @@ StreamPainter::Page page()
     page.focus = s_focus;
     page.title = s_game.isEmpty() ? Text::tr("Menu") : s_game;
     for (const Action& action : actions()) {
+        page.sliders.append(action.key == QLatin1String("volume") ? s_volume / 100.0
+                          : action.key == QLatin1String("brightness") ? s_brightness / 100.0 : -1);
         page.labels.append(action.label);
         page.values.append(action.key == QLatin1String("stats") ? statsValue(s_stats)
                          : action.key == QLatin1String("volume") ? percent(s_volume)
@@ -299,6 +305,11 @@ StreamPainter::Frame frame(Uint32 now)
     frame.statsOpacity = s_statsFade.at(now);
     frame.layout = s_layout;
     frame.curtain = s_curtain.at(now);
+    const QList<Action> list = actions();
+    for (int i = 0; i < list.size() && i < frame.page.sliders.size(); i++) {
+        if (list[i].key == QLatin1String("volume")) frame.page.sliders[i] = s_volumeAnim.at(now) / 100;
+        if (list[i].key == QLatin1String("brightness")) frame.page.sliders[i] = s_brightnessAnim.at(now) / 100;
+    }
     frame.hold = qPow(s_hold.at(now), HOLD_CURVE);
     frame.holdDone = s_holdDone.at(now);
     frame.doneLabel = doneLabel();
@@ -308,7 +319,7 @@ StreamPainter::Frame frame(Uint32 now)
 bool animating(Uint32 now)
 {
     for (const Anim* anim : { &s_reveal, &s_veil, &s_blurMix, &s_focusY, &s_swap, &s_statsFade, &s_curtain,
-                              &s_hold, &s_holdDone, &s_noticeFade }) {
+                              &s_hold, &s_holdDone, &s_noticeFade, &s_volumeAnim, &s_brightnessAnim }) {
         if (anim->running(now)) {
             return true;
         }
@@ -325,7 +336,7 @@ bool animating(Uint32 now)
 void freeze(Uint32 now)
 {
     for (Anim* anim : { &s_reveal, &s_veil, &s_blurMix, &s_focusY, &s_swap, &s_statsFade, &s_curtain,
-                        &s_hold, &s_holdDone, &s_noticeFade }) {
+                        &s_hold, &s_holdDone, &s_noticeFade, &s_volumeAnim, &s_brightnessAnim }) {
         anim->set(anim->at(now));
     }
     for (Anim& highlight : s_highlight) {
@@ -793,22 +804,42 @@ bool valueRow()
     return key == QLatin1String("volume") || key == QLatin1String("brightness");
 }
 
-// ← / → sur le volume ou la luminosité : 10 % de plus ou de moins. Le réglage lui-même
+// Le volume ou la luminosité (ligne en focus) passe à `wanted` : la poignée glisse, la valeur
+// change (en glissant, sauf `dragged` : elle suit la souris). Le réglage lui-même
 // (SystemStatus) se fait hors du verrou, par l'appelant : renvoie la valeur à poser, -1 sinon.
-int adjust(int direction)
+int setValue(int wanted, bool dragged)
 {
-    int& value = actions().value(s_focus).key == QLatin1String("volume") ? s_volume : s_brightness;
-    const int min = &value == &s_volume ? 0 : VALUE_STEP;
-    const int next = qBound(min, value + direction * VALUE_STEP, 100);
+    const bool volume = actions().value(s_focus).key == QLatin1String("volume");
+    int& value = volume ? s_volume : s_brightness;
+    Anim& anim = volume ? s_volumeAnim : s_brightnessAnim;
+    const int next = qBound(volume ? 0 : BRIGHTNESS_MIN, wanted, 100);
     if (next == value) {
-        play("edge");
+        if (!dragged) {
+            play("edge");
+        }
         return -1;
     }
     const QString from = percent(value);
     value = next;
-    swapValue(s_focus, from);
+    if (dragged) {
+        anim.set(next);
+        s_swapRow = -1;
+        requestRender();
+    }
+    else {
+        anim.go(next, SLIDER_MOVE, SDL_GetTicks(), QEasingCurve::OutCubic);
+        swapValue(s_focus, from);
+    }
     play("tick");
     return next;
+}
+
+// ← / → sur le volume ou la luminosité : le cran de 5 % suivant (61 → 65, 61 → 60).
+int adjust(int direction)
+{
+    const int value = actions().value(s_focus).key == QLatin1String("volume") ? s_volume : s_brightness;
+    const int floor = value / VALUE_STEP * VALUE_STEP;
+    return setValue(direction > 0 ? floor + VALUE_STEP : (value == floor ? floor - VALUE_STEP : floor), false);
 }
 
 // Fil principal (celui du flux : Qt y est suspendu, mais SystemStatus s'appelle directement).
@@ -1100,6 +1131,9 @@ void StreamMenu::prepare(const QString& game, const QStringList& powerActions, c
     s_system = system;
     s_volume = system != nullptr ? system->property("volume").toInt() : -1;
     s_brightness = system != nullptr ? system->property("brightness").toInt() : -1;
+    s_volumeAnim.set(s_volume);
+    s_brightnessAnim.set(s_brightness);
+    s_dragSlider = false;
     s_notice = StreamPainter::Notice();
     s_noticeFade.set(0);
     if (s_noticeTimer != 0) {
@@ -1224,6 +1258,8 @@ void StreamMenu::screenshot()
 
 void StreamMenu::onPointer(int x, int y, int button, bool pressed)
 {
+    QString setting;      // volume ou luminosité tirés : appliqués hors du verrou
+    int settingValue = -1;
     {
         QMutexLocker locker(&s_lock);
         if (!s_open || !s_leaving.isEmpty() || s_holdDoneAt != 0) {
@@ -1236,11 +1272,31 @@ void StreamMenu::onPointer(int x, int y, int button, bool pressed)
             SDL_GetWindowSize(window, &width, &height);
         }
         const qreal scale = width > 0 ? qreal(s_screen.width()) / width : 1;
-        const int row = StreamPainter::rowAt(page(), s_screen, QPointF(x, y) * scale);
-        if (row >= 0 && row != s_focus && row < s_highlight.size() && !s_holding) {
+        const QPointF at = QPointF(x, y) * scale;
+        const int row = StreamPainter::rowAt(page(), s_screen, at);
+        if (row >= 0 && row != s_focus && row < s_highlight.size() && !s_holding && !s_dragSlider) {
             focusRow(row);
         }
-        if (button == SDL_BUTTON_LEFT && pressed) {
+        // Un curseur (volume, luminosité) : cliqué, la poignée y vient ; tiré, elle suit.
+        const qreal slider = StreamPainter::sliderAt(page(), s_screen, at);
+        if (button == SDL_BUTTON_LEFT && pressed && slider >= 0) {
+            s_dragSlider = true;
+        }
+        else if (button == SDL_BUTTON_LEFT && !pressed && s_dragSlider) {
+            s_dragSlider = false;
+            s_armed = false;
+            button = 0;   // (rien d'autre à faire de ce relâché)
+        }
+        if (s_dragSlider && valueRow()) {
+            // Où que soit la souris, la position horizontale sur le rail, par crans de 5 %.
+            const qreal fraction = StreamPainter::sliderAt(page(), s_screen, at, true);
+            setting = actions().value(s_focus).key;
+            settingValue = setValue(qRound(fraction * 100 / VALUE_STEP) * VALUE_STEP, true);
+        }
+        if (button == SDL_BUTTON_LEFT && pressed && s_dragSlider) {
+            // (un clic sur un curseur ne fait que le régler)
+        }
+        else if (button == SDL_BUTTON_LEFT && pressed) {
             s_armed = row >= 0 && !holdRow();
             if (row >= 0 && holdRow()) {
                 startHold();   // le clic se maintient, comme A
@@ -1262,6 +1318,8 @@ void StreamMenu::onPointer(int x, int y, int button, bool pressed)
             back();
         }
         if (!s_finishPending) {
+            locker.unlock();
+            applySetting(setting, settingValue);
             return;
         }
         s_finishPending = false;

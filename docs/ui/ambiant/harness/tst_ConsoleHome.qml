@@ -450,10 +450,12 @@ Item {
             compare(screen.optionRows.map(function(r) { return r.label }),
                     ["Luminosité", "Volume", "Veille de l'écran", "Boutons", "Sons", "Réduire les animations",
                      "Langue", "Wi-Fi"])
-            keyClick(Qt.Key_Right)                          // luminosité 60 → 70 %
-            compare(SystemStatus.brightness, 70)
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Left)    // volume 80 → 70 % (le stub part de 75)
-            verify(SystemStatus.volume === 70 || SystemStatus.volume === 60)
+            verify(screen.optionRows[0].slider && screen.optionRows[1].slider)   // des curseurs
+            keyClick(Qt.Key_Right)                          // luminosité 60 → 61 %
+            compare(SystemStatus.brightness, 61)
+            compare(screen.optionRows[0].value, 61)
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Left)    // volume 75 → 74 %
+            compare(SystemStatus.volume, 74)
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Right)   // veille : 5 → 10 min
             compare(screen.optionRows[2].options[screen.optionRows[2].index], "10 min")
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Right); keyClick(Qt.Key_Right)   // Boutons : PlayStation
