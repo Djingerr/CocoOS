@@ -10,6 +10,7 @@ import "../../../../app/gui/console"
 //   ./shot.sh /tmp/a.png view=PagesDemo page=pin delay=1500
 //
 // page : search | loading | pin | pin-error | code | code-busy | code-error | dialog | curtain
+// (code-error : le code est refusé à `at` ms, 600 par défaut)
 HomeScreen {
     id: demo
 
@@ -63,8 +64,13 @@ HomeScreen {
         digits: [4, 8, 2, 0, 0, 0]
         active: 3
         busy: demo.page === "code-busy"
-        errorText: demo.page === "code-error" ? "Code incorrect — réessayez." : ""
         onSubmitted: function(code) { console.info("[demo] code " + code) }
+        // L'erreur arrive après coup, comme du PC : les cases se secouent, le message se déplie.
+        Timer {
+            interval: Number(demo.args.at || 600)
+            running: demo.page === "code-error"
+            onTriggered: parent.errorText = "Code incorrect — réessayez."
+        }
     }
 
     // Rideau entre un jeu et l'accueil, pendant la fermeture du jeu.

@@ -94,6 +94,8 @@ FocusScope {
 
     // Message bref au-dessus de l'étagère.
     function toast(message) { toastItem.show(message) }
+    // Jouer est impossible : le bouton Jouer se secoue.
+    function refusePlay() { hero.refusePlay() }
 
     // À appeler quand l'utilisateur agit sans changer de jeu : relance la dérive.
     function wake() { idle.restart() }

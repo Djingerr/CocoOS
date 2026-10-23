@@ -846,6 +846,8 @@ FocusScope {
         // PC injoignable et impossible à réveiller : pas de session vers une
         // adresse vide (« Host not found (Error 3) »).
         if (!activeHostOnline) {
+            homeScreen.refusePlay()
+            Sounds.play("edge")
             homeScreen.toast(qsTr("%1 est hors ligne").arg(activeHostName))
             return
         }
@@ -1432,7 +1434,8 @@ FocusScope {
     property string wifiTarget: ""      // réseau en cours de connexion
 
     readonly property var wifiRows: WifiSetup.networks.map(function(n) {
-        return { key: n.ssid, label: n.ssid, bars: n.bars, action: true,
+        // Le réseau connecté : coché, et le choisir à nouveau est refusé.
+        return { key: n.ssid, label: n.ssid, bars: n.bars, action: true, checked: n.active, locked: n.active,
                  value: n.active ? qsTr("Connecté") : n.known ? qsTr("Enregistré") : n.secured ? "" : qsTr("Ouvert") }
     })
 

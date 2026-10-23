@@ -407,6 +407,10 @@ Item {
             compare(screen.currentIndex, 0)                 // l'étagère n'a rien reçu
             keyClick(Qt.Key_Return)
             compare(CompanionClient.confirmedCode, "190000")
+            var pairing = find(home, "errorText")
+            CompanionClient.pairingFailed("PAIR_INVALID")    // code refusé : les cases se secouent
+            compare(pairing.errorText, "Code incorrect — réessayez.")
+            tryVerify(function() { return find(pairing, "shakeProgress").shakeProgress < 1 }, 300)
             CompanionClient.paired = true
             verify(!screen.staged)
             keyClick(Qt.Key_Right)
@@ -698,6 +702,10 @@ Item {
             walk(home)
             verify(sheet && sheet.opened)
             compare(sheet.rows.map(function(r) { return r.label }), ["Maison", "Voisins", "Café"])
+            verify(sheet.rows[0].checked && !sheet.rows[1].checked)  // le réseau connecté est coché…
+            keyClick(Qt.Key_Return)                         // …et le choisir à nouveau est refusé
+            verify(sheet.opened)
+            compare(WifiSetup.lastConnect, null)
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)  // « Voisins » : protégé, inconnu
             verify(!sheet.opened)
             keyClick(Qt.Key_S); keyClick(Qt.Key_E); keyClick(Qt.Key_C); keyClick(Qt.Key_R)

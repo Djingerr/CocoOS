@@ -27,6 +27,9 @@ Item {
     property bool actionsShown: true
 
     signal playRequested()
+
+    // Jouer est impossible (PC hors ligne) : le bouton se secoue.
+    function refusePlay() { playButton.refuse() }
     signal optionsRequested()
     signal favoriteRequested()
 
@@ -216,6 +219,7 @@ Item {
         }
 
         Pressable {
+            id: playButton
             width: Theme.playPadLeft + playRow.width + Theme.playPadRight
             height: Theme.playHeight
             down: root.held || root.pressed

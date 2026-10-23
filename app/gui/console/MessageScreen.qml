@@ -24,6 +24,9 @@ FocusScope {
     signal activated()
     property bool pressing: false
 
+    // Refus (code faux) : les cases du code se secouent.
+    function refuse() { codeRow.refuse() }
+
     anchors.fill: parent
     Keys.onReturnPressed: function(event) { if (!event.isAutoRepeat) pressing = true }
     Keys.onEnterPressed: function(event) { if (!event.isAutoRepeat) pressing = true }
@@ -73,40 +76,73 @@ FocusScope {
                 font.family: Theme.fontUi; font.pixelSize: Theme.heroSubSize
             }
 
-            Row {
-                topPadding: Theme.messageBlockTop
+            Pressable {
+                id: codeRow
                 visible: root.code !== ""
-                spacing: Theme.codeCellGap
-                Repeater {
-                    model: root.code.length
-                    Rectangle {
-                        readonly property bool focused: index === root.codeFocus
-                        width: Theme.codeCellSize.width; height: Theme.codeCellSize.height
-                        radius: Theme.codeCellRadius
-                        color: focused ? Theme.codeCellFocusFill : Theme.codeCellFill
-                        Text {
-                            anchors.centerIn: parent
-                            text: root.code.charAt(index)
-                            color: root.codeFocus < 0 || parent.focused ? Theme.ink : Theme.ink2
-                            font.family: Theme.fontUi; font.pixelSize: Theme.codeDigitSize; font.weight: Font.Medium
-                        }
+                width: cells.width; height: cells.height
+                Row {
+                    id: cells
+                    topPadding: Theme.messageBlockTop
+                    spacing: Theme.codeCellGap
+                    Repeater {
+                        model: root.code.length
                         Rectangle {
-                            visible: parent.focused
-                            anchors { left: parent.left; right: parent.right; bottom: parent.bottom
-                                      margins: Theme.codeUnderlineInset }
-                            height: Theme.underlineHeight; radius: Theme.underlineRadius
-                            color: Theme.accent
+                            readonly property bool focused: index === root.codeFocus
+                            width: Theme.codeCellSize.width; height: Theme.codeCellSize.height
+                            radius: Theme.codeCellRadius
+                            color: focused ? Theme.codeCellFocusFill : Theme.codeCellFill
+                            Text {
+                                anchors.centerIn: parent
+                                text: root.code.charAt(index)
+                                color: root.codeFocus < 0 || parent.focused ? Theme.ink : Theme.ink2
+                                font.family: Theme.fontUi; font.pixelSize: Theme.codeDigitSize; font.weight: Font.Medium
+                            }
+                            Rectangle {
+                                visible: parent.focused
+                                anchors { left: parent.left; right: parent.right; bottom: parent.bottom
+                                          margins: Theme.codeUnderlineInset }
+                                height: Theme.underlineHeight; radius: Theme.underlineRadius
+                                color: Theme.accent
+                            }
                         }
                     }
                 }
             }
 
-            Text {
-                topPadding: Theme.messageBlockTop
-                visible: root.status !== ""
-                text: root.status
-                color: root.error ? Theme.accent : Theme.ink2
-                font.family: Theme.fontUi; font.pixelSize: Theme.launchStageSize
+            // Ligne d'état : elle apparaît en dépliant (sa place, puis le texte qui descend).
+            Item {
+                readonly property bool shown: root.status !== ""
+                width: statusText.width
+                height: shown ? statusText.implicitHeight : 0
+                visible: height > 0
+                clip: true
+                Behavior on height {
+                    NumberAnimation {
+                        duration: Theme.unfoldDuration
+                        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                    }
+                }
+                Text {
+                    id: statusText
+                    topPadding: Theme.messageBlockTop
+                    y: parent.shown ? 0 : -Theme.unfoldShift
+                    opacity: parent.shown ? 1 : 0
+                    text: root.status
+                    color: root.error ? Theme.accent : Theme.ink2
+                    font.family: Theme.fontUi; font.pixelSize: Theme.launchStageSize
+                    Behavior on y {
+                        NumberAnimation {
+                            duration: Theme.unfoldMove
+                            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                        }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Theme.unfoldFade
+                            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                        }
+                    }
+                }
             }
             // La piste de l'écran de lancement, parcourue par un segment orange.
             Item {

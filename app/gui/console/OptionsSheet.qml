@@ -19,6 +19,8 @@ FocusScope {
     // Une valeur numérique (« 60 », « 40 % ») roule chiffre par chiffre. Un curseur
     // { key, label, slider: true, value, min, max, stops, format: "%1 Mb/s", auto } signale
     // la nouvelle valeur à la place d'un index (`auto` : valeur grisée, calculée ailleurs).
+    // `checked` (vrai ou faux) réserve une coche devant le libellé, tracée si vrai (réseau
+    // connecté) ; `locked` : la ligne refuse A (et ← / → pour un réglage) en se secouant.
     property string title: qsTr("Options")
     property var tabs: []
     property int tab: 0
@@ -117,6 +119,12 @@ FocusScope {
     function change(dir, wrap) {
         if (current >= rows.length) return
         var row = rows[current]
+        if (row.locked && (wrap || !row.action)) {
+            lineRepeater.itemAt(current).refuse()
+            focusHighlight.refuse()             // (la ligne et son surlignage, ensemble)
+            Sounds.play("edge")
+            return
+        }
         if (row.action) {
             if (wrap) {
                 Sounds.play("select")
@@ -370,6 +378,62 @@ FocusScope {
         }
     }
 
+    // Coche du prototype (polyligne 4.5,12.5 → 9.3,17.3 → 19.5,7 sur 24 × 24) : tracée
+    // trait après trait quand `checked` passe à vrai, effacée sinon (Theme.check*).
+    component CheckMark: Item {
+        id: check
+        property bool checked: false
+        property real drawn: 0
+        readonly property real unit: width / 24
+        readonly property var points: [Qt.point(4.5, 12.5), Qt.point(9.3, 17.3), Qt.point(19.5, 7)]
+        readonly property var legs: [Math.hypot(points[1].x - points[0].x, points[1].y - points[0].y),
+                                     Math.hypot(points[2].x - points[1].x, points[2].y - points[1].y)]
+
+        states: State {
+            name: "checked"; when: check.checked
+            PropertyChanges { target: check; drawn: 1 }
+        }
+        transitions: [
+            Transition {
+                to: "checked"
+                SequentialAnimation {
+                    PauseAnimation { duration: Theme.checkDelay }
+                    NumberAnimation {
+                        property: "drawn"; duration: Theme.checkDraw
+                        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                    }
+                }
+            },
+            Transition {
+                from: "checked"
+                NumberAnimation {
+                    property: "drawn"; duration: Theme.checkErase
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                }
+            }
+        ]
+        Repeater {
+            model: 2
+            Rectangle {
+                readonly property point from: check.points[index]
+                readonly property point to: check.points[index + 1]
+                readonly property real done: (check.drawn * (check.legs[0] + check.legs[1])
+                                              - (index === 0 ? 0 : check.legs[0])) / check.legs[index]
+                readonly property real stroke: Theme.checkStroke * check.unit
+                visible: done > 0
+                x: from.x * check.unit - stroke / 2; y: from.y * check.unit - stroke / 2
+                width: Math.min(done, 1) * check.legs[index] * check.unit + stroke; height: stroke
+                radius: stroke / 2
+                color: Theme.accent
+                antialiasing: true
+                transform: Rotation {
+                    origin.x: stroke / 2; origin.y: stroke / 2
+                    angle: Math.atan2(to.y - from.y, to.x - from.x) * 180 / Math.PI
+                }
+            }
+        }
+    }
+
     component ValueText: Item {
         id: slot
         property string value
@@ -507,6 +571,7 @@ FocusScope {
             width: panel.width - 2 * Theme.sheetPadSide
 
             Pressable {
+                id: focusHighlight
                 x: -Theme.sheetFocusOutset
                 y: root.rowY(root.current)
                 width: parent.width + 2 * Theme.sheetFocusOutset
@@ -527,6 +592,7 @@ FocusScope {
             // Un délégué par ligne, conservé quand `rows` est remplacé : c'est ce qui
             // permet à la valeur de glisser de l'ancienne à la nouvelle.
             Repeater {
+                id: lineRepeater
                 model: root.rows.length
                 Pressable {
                     id: line
@@ -534,6 +600,7 @@ FocusScope {
                     readonly property var row: root.rows[index] || ({ label: "", options: [""], index: 0 })
                     readonly property bool focused: root.current === index
                     readonly property color ink: focused ? Theme.ink : Theme.ink2
+                    readonly property bool checkable: row.checked !== undefined
                     readonly property string valueLabel: row.slider ? row.format.arg(row.value)
                                                        : row.action ? (row.value || "") : (row.options[row.index] || "")
                     // Valeur numérique (toutes les options sont des nombres) : elle roule.
@@ -548,9 +615,16 @@ FocusScope {
                     y: root.rowY(index)
                     width: list.width; height: root.rowHeight(index)
 
-                    Text {
+                    CheckMark {
+                        visible: line.checkable
                         y: (Theme.sheetRowHeight - height) / 2
-                        width: parent.width - value.width - Theme.sheetRowGap
+                        width: Theme.checkSize; height: width
+                        checked: line.row.checked === true
+                    }
+                    Text {
+                        x: line.checkable ? Theme.checkSize + Theme.checkGap : 0
+                        y: (Theme.sheetRowHeight - height) / 2
+                        width: parent.width - value.width - Theme.sheetRowGap - x
                         text: line.row.label
                         color: line.ink
                         wrapMode: Text.WordWrap

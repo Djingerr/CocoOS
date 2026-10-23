@@ -290,9 +290,17 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     son bord avant part au ressort « vif », l'arrière suit 40 ms plus tard (420 ms, `curveOut`),
     d'où l'étirement. Le libellé qui devient actif s'allume en 220 ms après 90 ms. Composant
     réutilisable (profils de flux du §12).
+  - **Étape 6, refus et coche** : `Pressable.refuse()` secoue l'élément (440 ms : −9, 8, −5, 3,
+    −1 px puis 0) avec le son `edge`. Là où c'est refusé aujourd'hui : le code Companion faux (les
+    cases ; la ligne d'état d'un `MessageScreen` apparaît en dépliant, 340 ms), Jouer quand le PC
+    est hors ligne et impossible à réveiller (en plus du toast), le réseau Wi-Fi déjà connecté
+    (ligne `locked`, avec son surlignage). Une ligne `checked` d'`OptionsSheet` a une coche devant
+    son libellé, tracée trait après trait (300 ms après 60 ms, orange) : le réseau connecté. Elle se
+    trace quand le réseau connecté change (pas à chaque ouverture de la liste).
   ⚠️ Vu dans le harnais (`HomeDemo` : `do=hold,release` ; reflet : `goto=7 at=2500 delay=4400` ;
   interrupteurs : `do=options,down,down,down,down,down,right at=2000` ; curseur :
-  `do=options,down,down,down,right` ; onglets : `do=options,down,up,tab at=2000 delay=2550`),
+  `do=options,down,down,down,right` ; onglets : `do=options,down,up,tab at=2000 delay=2550` ;
+  refus : `view=ConsoleHomeDemo do=wifi,down,up,a at=2500 delay=2990`, `view=PagesDemo page=code-error`),
   pas à la manette ni à 60 i/s sur l'Orange Pi (le reflet redessine le calque de la vignette
   active pendant 950 ms).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,

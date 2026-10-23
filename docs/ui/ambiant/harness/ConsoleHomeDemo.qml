@@ -13,7 +13,7 @@ import "../../../../app/gui/console"
 //
 // Arguments du harnais :
 //   do     actions jouées à `at` ms, séparées par des virgules et espacées de
-//          150 ms : left, right, down, a, pin (bouton X), home (bouton Home), sleep,
+//          150 ms : left, right, down, up, a, pin (bouton X), home (bouton Home), sleep,
 //          wifi (liste des réseaux), net:<réseau> (le choisir), launch (bouton A),
 //          details (bas sur l'étagère : la fiche du jeu ; Elden Ring en a une de démo)
 //   at     instant de `do`, en ms (300 par défaut)
@@ -114,10 +114,10 @@ Item {
             else if (action === "options") screen.options.open()
             else if (action === "tab") screen.options.switchTab(1)
             else if (action.indexOf("net:") === 0) home.chooseNetwork(action.slice(4))
-            else if (action === "down" || action === "a") {
+            else if (action === "down" || action === "up" || action === "a") {
                 var target = home.Window.activeFocusItem
                 while (target && target.step === undefined) target = target.parent
-                if (target && action === "down") target.step(1)
+                if (target && action !== "a") target.step(action === "down" ? 1 : -1)
                 else if (target) target.activate()
             }
         }

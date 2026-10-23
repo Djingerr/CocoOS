@@ -51,6 +51,18 @@ QtObject {
     readonly property int pressDuration: 90
     readonly property real pressScale: 0.955         // bouton (Jouer)
     readonly property real pressRowScale: 0.985      // ligne d'un panneau (options, dialog)
+    // Refus (Pressable.refuse : action indisponible, code faux) : secousse horizontale, les
+    // positions du prototype réparties sur shakeDuration, courbe « ease-out » de CSS.
+    readonly property int shakeDuration: 440
+    readonly property var shakeKeys: [0, -9, 8, -5, 3, -1, 0]
+    readonly property var shakeCurve: [0, 0, 0.58, 1, 1, 1]
+    // Message qui apparaît en dépliant (ligne d'état d'un écran de message) : sa place en
+    // unfoldDuration (curveOut), le texte en fondu (unfoldFade) en descendant de unfoldShift
+    // px (unfoldMove).
+    readonly property int unfoldDuration: 340
+    readonly property int unfoldFade: 200
+    readonly property int unfoldMove: 300
+    readonly property int unfoldShift: 4
 
     // --- Polices ---
     // Embarquées (la console est hors ligne), en graisses statiques : un fichier
@@ -418,6 +430,14 @@ QtObject {
     readonly property int switchInkFade: 220         // couleur du pouce, curveOut
     readonly property int switchBump: 3              // butée : aller-retour de tant de px…
     readonly property int switchBumpDuration: 260    // …en tant de ms, curveOut
+    // Coche tracée devant la valeur choisie d'une liste (réseau Wi-Fi connecté) : le glyphe
+    // 24 × 24 du prototype, tracé en checkDraw ms (curveOut) après checkDelay, effacé en checkErase.
+    readonly property int checkSize: 22
+    readonly property real checkStroke: 2.4          // sur la grille 24 × 24 du glyphe
+    readonly property int checkGap: 16               // entre la coche et le libellé
+    readonly property int checkDraw: 300
+    readonly property int checkDelay: 60
+    readonly property int checkErase: 120
     // Valeur numérique (RollingNumber) : chaque chiffre roule avec springSnappy ; un
     // chiffre de tête apparaît / s'efface en rollFade (curveOut).
     readonly property int rollFade: 220
