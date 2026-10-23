@@ -24,8 +24,8 @@ Item {
     property var exitCurve: null
     property int exitDuration: 0
     // Flou (px) de l'exemplaire qui entre ou sort, plein quand il est invisible, nul une fois
-    // posé (le flou du swapText). À fixer à la création ; 0 : pas de flou. Rendu GPU
-    // seulement (le rendu logiciel, celui des tests, n'a pas de calques).
+    // posé (le flou du swapText). À fixer à la création ; 0 : pas de flou. Le calque n'existe
+    // que pendant la transition : posé, le texte est rendu net, en direct. Rendu GPU seulement (le rendu logiciel, celui des tests, n'a pas de calques).
     property real blur: 0
     readonly property bool blurred: blur > 0 && GraphicsInfo.api !== GraphicsInfo.Unknown
                                     && GraphicsInfo.api !== GraphicsInfo.Software
@@ -58,7 +58,7 @@ Item {
         })
         slot.layer.smooth = true
         slot.layer.effect = blurEffect
-        slot.layer.enabled = Qt.binding(function() { return root.blurred })
+        slot.layer.enabled = Qt.binding(function() { return root.blurred && slot.opacity < 1 })
     }
     // Le flou suit l'opacité de l'exemplaire (même courbe, même durée, comme dans le
     // prototype) : seul le mélange final change pendant le glissement, rien n'est recalculé.

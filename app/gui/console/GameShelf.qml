@@ -2,9 +2,8 @@ import QtQuick
 import QtQuick.Effects
 
 // Étagère de vignettes portrait (3:4, les jaquettes) en bas de l'accueil : le carrousel du
-// prototype des micro-interactions. Un seul anneau glisse d'une vignette à l'autre (ressort
-// « vif ») et la piste ne défile (ressort « souple ») que pour garder la vignette active loin
-// des bords : l'œil suit un objet. Avec la manette, la vignette active grandit depuis son
+// prototype des micro-interactions, à sélecteur fixe : l'anneau reste à gauche et ce sont
+// les vignettes qui défilent dessous (ressort « vif »). Avec la manette, la vignette active grandit depuis son
 // centre et les autres s'estompent ; sans elle (panneau ouvert, héros), l'anneau s'efface.
 // Consomme un modèle exposant le rôle `boxart` (url ; vide = pas de jaquette) et,
 // s'il les a, `name` (écrit sur la vignette de repli), `favorite` (pastille), `pending`
@@ -61,50 +60,24 @@ FocusScope {
 
     readonly property real pitch: Theme.shelfThumbSize.width + Theme.shelfGap
     property bool animated: false       // pas de ressort pendant la mise en place
-    // Défilement de la piste (px) : sa cible, et la valeur qui la suit au ressort « souple ».
-    // Pas de ressort non plus tant que l'étagère n'est pas montrée : une sélection posée
-    // avant l'entrée (dernier jeu joué) est d'emblée en place.
-    property real scrollTarget: 0
-    property real scroll: scrollTarget
-    Behavior on scroll {
-        enabled: root.animated && root.shown
-        NumberAnimation {
-            duration: Theme.springGentle.duration
-            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springGentle.curve
-        }
-    }
-    // L'anneau (px, sur la piste) : il suit la vignette active au ressort « vif » ; aux
-    // extrémités, il bute (bump, en index) puis revient.
+    // Défilement de la piste (px) : la vignette active toujours sous l'anneau, à la marge
+    // gauche ; aux extrémités, la piste bute (bump, en index) puis revient. Pas de ressort
+    // tant que l'étagère n'est pas montrée : une sélection posée avant l'entrée (dernier jeu
+    // joué) est d'emblée en place.
     property real bump: 0
-    property real ringX: Theme.margin + (currentIndex + bump) * pitch
-    Behavior on ringX {
+    property real scroll: (currentIndex + bump) * pitch
+    Behavior on scroll {
         enabled: root.animated && root.shown
         NumberAnimation {
             duration: Theme.springSnappy.duration
             easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
         }
     }
-    // Place de la vignette active, agrandie, une fois la piste arrivée (l'écran de lancement
-    // en part).
+    // Place de la vignette active, agrandie, sous l'anneau (l'écran de lancement en part).
     readonly property rect activeRect: {
         var w = Theme.shelfThumbSize.width, h = Theme.shelfThumbSize.height, k = Theme.shelfActiveScale
-        return Qt.rect(Theme.margin + currentIndex * pitch - scrollTarget + w * (1 - k) / 2,
-                       h * (1 - k) / 2, w * k, h * k)
+        return Qt.rect(Theme.margin + w * (1 - k) / 2, h * (1 - k) / 2, w * k, h * k)
     }
-
-    // La piste ne bouge que si la vignette active s'approche à moins de
-    // Theme.shelfScrollMargin d'un bord (prototype : carLayout).
-    function updateScroll() {
-        if (width <= 0) return
-        var x = Theme.margin + currentIndex * pitch, m = Theme.shelfScrollMargin
-        var target = scrollTarget
-        if (x - target < m) target = x - m
-        if (x + Theme.shelfThumbSize.width - target > width - m)
-            target = x + Theme.shelfThumbSize.width - width + m
-        var full = 2 * Theme.margin + count * pitch - Theme.shelfGap
-        scrollTarget = Math.max(0, Math.min(target, full - width))
-    }
-    onWidthChanged: updateScroll()
 
     implicitHeight: Theme.shelfThumbSize.height
 
@@ -113,20 +86,15 @@ FocusScope {
         if (currentIndex !== lastIndex)
             direction = currentIndex > lastIndex ? 1 : -1
         lastIndex = currentIndex
-        updateScroll()
         restartSheen()
     }
 
     Component.onCompleted: {
         lastIndex = currentIndex
-        updateScroll()
         animated = true
     }
     // (count vaut 0 tant que le modèle n'est pas chargé : ne pas y perdre la sélection.)
-    onCountChanged: {
-        if (count > 0 && currentIndex >= count) currentIndex = count - 1
-        updateScroll()
-    }
+    onCountChanged: if (count > 0 && currentIndex >= count) currentIndex = count - 1
 
     // Déplace la sélection d'un cran ; en bout de liste, petit rebond.
     function move(dir) {
@@ -181,8 +149,12 @@ FocusScope {
         readonly property size thumbTextureSize: Qt.size(
             Math.ceil(Theme.shelfThumbSize.width * Theme.shelfActiveScale * Theme.scale),
             Math.ceil(Theme.shelfThumbSize.height * Theme.shelfActiveScale * Theme.scale))
-        // (originX : la vue décale son origine quand un élément passe devant les autres.)
-        readonly property real wantedX: originX + root.scroll - Theme.margin
+        // (originX : la vue décale son origine quand un élément passe devant les autres, ou
+        // quand elle revient de loin et place ses vignettes à l'estime.)
+        function sync() {
+            var x = originX + root.scroll - Theme.margin
+            if (contentX !== x) contentX = x
+        }
 
         width: parent.width; height: Theme.shelfThumbSize.height
         orientation: ListView.Horizontal
@@ -191,9 +163,11 @@ FocusScope {
         currentIndex: -1
         // Synchronisation impérative : ListView réécrit contentX de son côté quand
         // le modèle change, ce qu'une simple liaison ne rattraperait pas.
-        onWantedXChanged: contentX = wantedX
-        onContentXChanged: if (contentX !== wantedX) contentX = wantedX
-        Component.onCompleted: contentX = wantedX
+        // Pas de liaison : l'origine bouge pendant qu'on écrit contentX (boucle de liaison).
+        onOriginXChanged: sync()
+        onContentXChanged: sync()
+        Component.onCompleted: sync()
+        Connections { target: root; function onScrollChanged() { list.sync() } }
 
         delegate: Item {
             id: del
@@ -215,7 +189,9 @@ FocusScope {
                     easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
                 }
             }
-            property real dim: root.focused && !current ? Theme.shelfRestOpacity : 1
+            // Survolée à la souris (pas la vignette active) : elle grandit un peu et s'éclaire.
+            readonly property bool hovered: thumbMouse.containsMouse && !lit
+            property real dim: root.focused && !current ? (hovered ? Theme.shelfHoverOpacity : Theme.shelfRestOpacity) : 1
             Behavior on dim {
                 NumberAnimation {
                     duration: Theme.shelfFocusFade
@@ -240,6 +216,10 @@ FocusScope {
                     State {
                         name: "lit"; when: del.lit
                         PropertyChanges { target: thumb; scale: Theme.shelfActiveScale }
+                    },
+                    State {
+                        name: "hover"; when: del.hovered
+                        PropertyChanges { target: thumb; scale: Theme.shelfHoverScale }
                     }
                 ]
                 transitions: [
@@ -399,7 +379,8 @@ FocusScope {
                     }
                 }
 
-                MouseArea {
+                HoverArea {
+                    id: thumbMouse
                     anchors.fill: parent
                     onClicked: {
                         if (del.index === root.currentIndex) {
@@ -414,7 +395,7 @@ FocusScope {
         }
     }
 
-    // L'anneau, au-dessus des vignettes : il apparaît avec elles à l'entrée.
+    // L'anneau, fixe, au-dessus des vignettes : il apparaît avec elles à l'entrée.
     Appear {
         anchors.fill: parent
         shown: root.shown
@@ -427,7 +408,7 @@ FocusScope {
         Item {
             readonly property real boxWidth: Theme.shelfThumbSize.width * Theme.shelfActiveScale + 2 * Theme.shelfRingGap
             readonly property real boxHeight: Theme.shelfThumbSize.height * Theme.shelfActiveScale + 2 * Theme.shelfRingGap
-            x: root.ringX - root.scroll + (Theme.shelfThumbSize.width - boxWidth) / 2
+            x: Theme.margin + (Theme.shelfThumbSize.width - boxWidth) / 2
             y: (Theme.shelfThumbSize.height - boxHeight) / 2
             width: boxWidth; height: boxHeight
             opacity: root.focused ? 1 : 0

@@ -52,6 +52,16 @@ QtObject {
     readonly property int pressDuration: 90
     readonly property real pressScale: 0.955         // bouton (Jouer)
     readonly property real pressRowScale: 0.985      // ligne d'un panneau (options, dialog)
+    // Survol à la souris (HoverArea) : une liste y amène sa sélection ; un bouton grandit à
+    // hoverScale (ressort « vif ») et s'éclaire en hoverFade (curveOut) ; une vignette de
+    // l'étagère grandit à shelfHoverScale et remonte à shelfHoverOpacity ; un choix du
+    // sélecteur de profil se pose sur un fond hoverFill.
+    readonly property real hoverScale: 1.04
+    readonly property int hoverFade: 160
+    readonly property real shelfHoverScale: 1.04
+    readonly property real shelfHoverOpacity: 0.8
+    readonly property color hoverFill: Qt.rgba(1, 1, 1, 0.08)
+    readonly property int chevronTouch: 8            // marge de clic autour d'un chevron ‹ ›
     // Appui maintenu (HoldFill : actions destructives) : A tenu holdDuration ms remplit la
     // ligne (affiché : progression^holdCurve) ; lâché avant, elle se vide en holdDrain ms.
     // Pleine : un rebond jusqu'à holdBounce (springBouncy.duration, curveOut), puis l'action.
@@ -316,9 +326,6 @@ QtObject {
     readonly property real shelfTapScale: 1.02
     readonly property real shelfRestOpacity: 0.48    // vignettes non sélectionnées
     readonly property int shelfFocusFade: 220        // opacité, ombre et filet
-    // La piste ne défile (ressort « souple ») que pour garder la vignette active à
-    // shelfScrollMargin des bords (prototype : 44 pour une marge de 36, soit 8 de plus).
-    readonly property int shelfScrollMargin: 80
     // Un seul anneau glisse d'une vignette à l'autre (ressort « vif ») : shelfRingGap autour de
     // la vignette agrandie, un trait de shelfRingWidth puis un halo de shelfRingHalo
     // (box-shadow 0 0 0 2px, 0 0 0 7px). Sans la manette, il s'efface (shelfRingFade) en
@@ -669,6 +676,7 @@ QtObject {
     readonly property int codeCellRadius: 14
     readonly property color codeCellFill: Qt.rgba(1, 1, 1, 0.06)
     readonly property color codeCellFocusFill: Qt.rgba(1, 1, 1, 0.12)   // case en cours de saisie
+    readonly property color codeCellHoverFill: Qt.rgba(1, 1, 1, 0.09)   // survolée à la souris
     readonly property int codeDigitSize: 40          // 500
     readonly property int codeUnderlineInset: 16     // soulignement orange de la case en cours de saisie
     // Attente sans durée connue : un segment orange parcourt la piste de lancement.

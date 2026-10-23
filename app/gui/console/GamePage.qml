@@ -44,6 +44,20 @@ FocusScope {
         Sounds.play("back")
     }
 
+    // Molette sur la description : elle défile, sans passer au bouton.
+    function scrollText(dir) {
+        var max = Math.max(0, text.contentHeight - text.height)
+        var next = Math.min(max, Math.max(0, scrollY + dir * Theme.gamePageScrollLines * lineHeight))
+        if (next === scrollY) return
+        scrollY = next
+        Sounds.play("move")
+    }
+    function uninstall() {
+        if (!onButton || !canUninstall || uninstalling) return
+        Sounds.play("select")
+        uninstallRequested()
+    }
+
     // Un cran de défilement, ou le passage au bouton une fois en bas.
     function step(dir) {
         var max = Math.max(0, text.contentHeight - text.height)
@@ -87,10 +101,7 @@ FocusScope {
             break
         case Qt.Key_Return:
         case Qt.Key_Enter:
-            if (onButton && canUninstall && !uninstalling) {
-                Sounds.play("select")
-                uninstallRequested()
-            }
+            uninstall()
             break
         }
     }
@@ -158,6 +169,12 @@ FocusScope {
             contentHeight: body.height
             contentY: root.scrollY
             clip: true
+            MouseArea {
+                parent: text
+                anchors.fill: parent
+                acceptedButtons: Qt.NoButton
+                onWheel: function(wheel) { if (wheel.angleDelta.y !== 0) root.scrollText(wheel.angleDelta.y > 0 ? -1 : 1) }
+            }
             interactive: false
             Behavior on contentY { NumberAnimation { duration: Theme.gamePageScroll; easing.type: Theme.easeOut } }
 
@@ -182,6 +199,23 @@ FocusScope {
             height: Theme.playHeight; radius: height / 2
             color: root.onButton ? Theme.gamePageButtonFocusFill : Theme.gamePageButtonFill
             Behavior on color { ColorAnimation { duration: Theme.sheetFocusFade } }
+            // Survolé, il prend le focus et grandit ; cliqué, il s'écrase.
+            scale: buttonMouse.pressed ? Theme.pressScale : buttonMouse.containsMouse ? Theme.hoverScale : 1
+            Behavior on scale {
+                NumberAnimation {
+                    duration: Theme.springSnappy.duration
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
+                }
+            }
+            HoverArea {
+                id: buttonMouse
+                anchors.fill: parent
+                onPointed: if (!root.onButton && root.canUninstall && !root.uninstalling) {
+                    root.onButton = true
+                    Sounds.play("tick")
+                }
+                onClicked: root.uninstall()
+            }
 
             Row {
                 id: buttonRow
@@ -212,6 +246,7 @@ FocusScope {
             hints: (root.onButton && root.canUninstall && !root.uninstalling
                     ? [{ glyph: "A", label: qsTr("Désinstaller") }] : [])
                    .concat([{ glyph: "B", label: qsTr("Retour") }])
+            onTriggered: function(glyph) { if (glyph === "A") root.uninstall(); else root.close() }
         }
     }
 }

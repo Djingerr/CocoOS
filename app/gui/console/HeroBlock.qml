@@ -293,6 +293,37 @@ Item {
             }
         }
     }
+    // Options, Épingler : un glyphe et un libellé, qui s'éclairent et grandissent au survol.
+    component TextButton: Pressable {
+        id: textButton
+        property string glyph
+        property string label
+        signal clicked()
+        readonly property color ink: textMouse.containsMouse ? Theme.ink : Theme.optionsColor
+        anchors.verticalCenter: parent.verticalCenter
+        width: textRow.width; height: textRow.height
+        down: textMouse.pressed
+        hovered: textMouse.containsMouse
+        hoverScale: Theme.hoverScale
+        Row {
+            id: textRow
+            spacing: Theme.optionsGap
+            ButtonGlyph {
+                anchors.verticalCenter: parent.verticalCenter
+                label: textButton.glyph
+                ink: textButton.ink
+                Behavior on ink { ColorAnimation { duration: Theme.hoverFade } }
+            }
+            Text {
+                anchors.verticalCenter: parent.verticalCenter
+                text: textButton.label
+                color: textButton.ink
+                font.family: Theme.fontUi; font.pixelSize: Theme.optionsLabelSize; font.weight: Font.Medium
+                Behavior on color { ColorAnimation { duration: Theme.hoverFade } }
+            }
+        }
+        HoverArea { id: textMouse; anchors.fill: parent; onClicked: textButton.clicked() }
+    }
     component PlayText: Text {
         property var value
         height: Theme.playHeight
@@ -318,7 +349,9 @@ Item {
             id: playButton
             width: Theme.playPadLeft + playRow.width + Theme.playPadRight
             height: Theme.playHeight
-            down: root.held || root.pressed || root.playHeld
+            down: root.held || root.pressed || root.playHeld || playMouse.pressed
+            hovered: playMouse.containsMouse
+            hoverScale: Theme.hoverScale
 
             Rectangle { anchors.fill: parent; radius: height / 2; color: Theme.accent }
             Row {
@@ -365,17 +398,25 @@ Item {
                 PlayText { id: playFont; visible: false }
             }
             FocusRing { shown: root.activeFocus && root.selected === 0 }
-            MouseArea { anchors.fill: parent; onClicked: root.playRequested() }
+            HoverArea {
+                id: playMouse
+                anchors.fill: parent
+                onPointed: if (root.activeFocus && root.selected !== 0) root.choose(0)
+                onClicked: root.playRequested()
+            }
         }
 
         // Quitter la partie : A (ou le clic) tenu jusqu'au bout.
         Pressable {
             id: quitButton
             visible: root.running
-            width: quitLabel.implicitWidth + 2 * Theme.quitPad
+            // (assez large pour la coche et « Partie terminée »)
+            width: Math.max(quitLabel.implicitWidth, quitFill.doneWidth) + 2 * Theme.quitPad
             height: Theme.playHeight
             down: (root.quitHeld || quitMouse.pressed) && !quitFill.done
             downScale: Theme.quitPressScale
+            hovered: quitMouse.containsMouse && !quitFill.done
+            hoverScale: Theme.hoverScale
 
             Item {
                 anchors.fill: parent
@@ -384,8 +425,10 @@ Item {
                     anchors.fill: parent
                     radius: height / 2
                     color: "transparent"
-                    border.width: Theme.quitBorderWidth; border.color: Theme.quitBorder
+                    border.width: Theme.quitBorderWidth
+                    border.color: quitMouse.containsMouse ? Theme.ink3 : Theme.quitBorder
                     border.pixelAligned: false
+                    Behavior on border.color { ColorAnimation { duration: Theme.hoverFade } }
                 }
                 PlayText {
                     id: quitLabel
@@ -408,9 +451,10 @@ Item {
                 }
                 FocusRing { shown: root.activeFocus && root.selected === 1 }
             }
-            MouseArea {
+            HoverArea {
                 id: quitMouse
                 anchors.fill: parent
+                onPointed: if (root.activeFocus && root.selected !== 1) root.choose(1)
                 onReleased: if (!quitFill.done) root.holdHintRequested()
             }
             // Le jeu tourne encore un moment après : la coche reste, puis le bouton se vide.
@@ -425,48 +469,15 @@ Item {
             }
         }
 
-        Item {
-            anchors.verticalCenter: parent.verticalCenter
-            width: optionsRow.width; height: optionsRow.height
-
-            Row {
-                id: optionsRow
-                spacing: Theme.optionsGap
-                ButtonGlyph {
-                    anchors.verticalCenter: parent.verticalCenter
-                    label: "Y"
-                    ink: Theme.optionsColor
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: qsTr("Options")
-                    color: Theme.optionsColor
-                    font.family: Theme.fontUi; font.pixelSize: Theme.optionsLabelSize; font.weight: Font.Medium
-                }
-            }
-            MouseArea { anchors.fill: parent; onClicked: root.optionsRequested() }
+        TextButton {
+            glyph: "Y"
+            label: qsTr("Options")
+            onClicked: root.optionsRequested()
         }
-
-        Item {
-            anchors.verticalCenter: parent.verticalCenter
-            width: favoriteRow.width; height: favoriteRow.height
-
-            Row {
-                id: favoriteRow
-                spacing: Theme.optionsGap
-                ButtonGlyph {
-                    anchors.verticalCenter: parent.verticalCenter
-                    label: "X"
-                    ink: Theme.optionsColor
-                }
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.favorite ? qsTr("Désépingler") : qsTr("Épingler")
-                    color: Theme.optionsColor
-                    font.family: Theme.fontUi; font.pixelSize: Theme.optionsLabelSize; font.weight: Font.Medium
-                }
-            }
-            MouseArea { anchors.fill: parent; onClicked: root.favoriteRequested() }
+        TextButton {
+            glyph: "X"
+            label: root.favorite ? qsTr("Désépingler") : qsTr("Épingler")
+            onClicked: root.favoriteRequested()
         }
     }
 }

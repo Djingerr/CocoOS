@@ -257,6 +257,15 @@ FocusScope {
                                      : ok ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, 0.25)
                                      : Theme.keyboardKeyFill
                                 Behavior on color { ColorAnimation { duration: Theme.sheetFocusFade } }
+                                // Cliquée, elle s'écrase ; relâchée, elle revient au ressort « rebond ».
+                                scale: keyMouse.pressed ? Theme.pressScale : 1
+                                Behavior on scale {
+                                    NumberAnimation {
+                                        duration: keyMouse.pressed ? Theme.pressDuration : Theme.springBouncy.duration
+                                        easing.type: Easing.BezierSpline
+                                        easing.bezierCurve: keyMouse.pressed ? Theme.curveOut : Theme.springBouncy.curve
+                                    }
+                                }
                                 Text {
                                     anchors.centerIn: parent
                                     text: parent.modelData.t !== undefined ? parent.modelData.t : parent.modelData.label
@@ -264,8 +273,14 @@ FocusScope {
                                     font.family: Theme.fontUi; font.pixelSize: Theme.keyboardKeyTextSize
                                     font.weight: Font.Medium
                                 }
-                                MouseArea {
+                                HoverArea {
+                                    id: keyMouse
                                     anchors.fill: parent
+                                    onPointed: if (!parent.focused) {
+                                        root.row = keyRow.index
+                                        root.col = parent.index
+                                        Sounds.play("move")
+                                    }
                                     onClicked: {
                                         root.row = keyRow.index
                                         root.col = parent.index
@@ -284,6 +299,14 @@ FocusScope {
                 anchors.bottomMargin: Theme.sheetPadBottom
                 hints: [ { glyph: "A", label: qsTr("Taper") }, { glyph: "B", label: qsTr("Effacer") },
                          { glyph: "X", label: qsTr("Majuscules") }, { glyph: "Y", label: qsTr("Valider") } ]
+                // Les mêmes gestes qu'à la manette (cf. Keys.onPressed).
+                onTriggered: function(glyph) {
+                    if (glyph === "A") root.press(root.keys[root.row][root.col])
+                    else if (glyph === "X") root.press({ cmd: "shift" })
+                    else if (glyph === "Y") root.submit()
+                    else if (root.text.length > 0) root.backspace()
+                    else { root.close(); root.cancelled() }
+                }
             }
         }
     }

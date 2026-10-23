@@ -262,6 +262,21 @@ FocusScope {
             color: Theme.hintFill
             opacity: root.progressShown && hintLabel.text !== "" ? Theme.hintOpacity : 0
             Behavior on opacity { NumberAnimation { duration: Theme.launchProgressFade } }
+            // À la souris, comme B : survolée elle grandit, cliquée elle s'écrase.
+            readonly property bool clickable: root.cancellable || root.error !== ""
+            scale: hintMouse.pressed ? Theme.pressScale : hintMouse.containsMouse ? Theme.hoverScale : 1
+            Behavior on scale {
+                NumberAnimation {
+                    duration: Theme.springSnappy.duration
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
+                }
+            }
+            HoverArea {
+                id: hintMouse
+                anchors.fill: parent
+                enabled: parent.clickable && parent.opacity > 0
+                onClicked: root.cancelRequested()
+            }
 
             Row {
                 id: hint

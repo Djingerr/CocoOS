@@ -3,12 +3,15 @@ import QtQuick
 // Élément qui répond à l'appui : tant que `down` est vrai (A enfoncé), il s'écrase en
 // Theme.pressDuration ; relâché, il revient avec le ressort « rebond ». L'action part
 // au relâché, chez l'appelant. refuse() le secoue (action indisponible, code faux).
+// Survolé à la souris (`hovered`), il grandit à `hoverScale` (ressort « vif »).
 // Aucune dépendance Moonlight.
 Item {
     id: root
 
     property bool down: false
     property real downScale: Theme.pressScale
+    property bool hovered: false
+    property real hoverScale: 1
     property real liftY: 0                   // décalage vertical (apparition d'une ligne)
 
     function refuse() { shake.restart() }
@@ -28,10 +31,16 @@ Item {
         }
     }
 
-    states: State {
-        name: "down"; when: root.down
-        PropertyChanges { target: root; scale: root.downScale }
-    }
+    states: [
+        State {
+            name: "down"; when: root.down
+            PropertyChanges { target: root; scale: root.downScale }
+        },
+        State {
+            name: "hover"; when: root.hovered
+            PropertyChanges { target: root; scale: root.hoverScale }
+        }
+    ]
     transitions: [
         Transition {
             to: "down"
@@ -45,6 +54,12 @@ Item {
             NumberAnimation {
                 property: "scale"; duration: Theme.springBouncy.duration
                 easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springBouncy.curve
+            }
+        },
+        Transition {
+            NumberAnimation {
+                property: "scale"; duration: Theme.springSnappy.duration
+                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
             }
         }
     ]

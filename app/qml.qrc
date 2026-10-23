@@ -50,6 +50,8 @@
         <file>gui/console/ElasticIndicator.qml</file>
         <file>gui/console/HoldFill.qml</file>
         <file>gui/console/Pressable.qml</file>
+        <file>gui/console/HoverArea.qml</file>
+        <file>gui/console/Pointer.js</file>
         <file>gui/console/RollingNumber.qml</file>
         <file>gui/console/Spring.js</file>
         <file>gui/console/StreamProfiles.js</file>

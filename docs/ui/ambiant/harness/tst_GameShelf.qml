@@ -3,8 +3,8 @@ import QtTest
 import "../../../../app/gui/console"
 
 // Logique de l'étagère : répétition qui accélère à l'appui prolongé, arrêt au
-// relâchement, butée de l'anneau en bout de liste, sélection conservée pendant le
-// chargement, et le carrousel du prototype (anneau, défilement aux bords, focus).
+// relâchement, butée de la piste en bout de liste, sélection conservée pendant le
+// chargement, et le carrousel (anneau fixe, piste qui défile, focus).
 //
 //   QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -input tst_GameShelf.qml
 Item {
@@ -24,8 +24,10 @@ Item {
             games.clear()
             for (var i = 0; i < 10; i++)
                 games.append({ boxart: "" })
+            shelf.animated = false              // la piste revient d'emblée au début
             shelf.currentIndex = 0
             shelf.bump = 0
+            shelf.animated = true
             launches.clear()
             shelf.forceActiveFocus()
         }
@@ -46,7 +48,7 @@ Item {
         function test_bumpAtBothEnds() {
             keyClick(Qt.Key_Left)
             compare(shelf.currentIndex, 0)
-            verify(shelf.bump < 0)                      // l'anneau bute…
+            verify(shelf.bump < 0)                      // la piste bute…
             tryCompare(shelf, "bump", 0, 1000)
             shelf.currentIndex = 9
             keyClick(Qt.Key_Right)
@@ -86,24 +88,21 @@ Item {
             return found
         }
 
-        // L'anneau suit la vignette active ; la piste ne défile que pour la garder à
-        // Theme.shelfScrollMargin des bords, et revient à zéro au début.
-        function test_ringFollowsAndTrackScrollsOnlyAtTheEdges() {
-            shelf.currentIndex = 3
-            tryCompare(shelf, "ringX", Theme.margin + 3 * shelf.pitch, 2000)
-            compare(shelf.scrollTarget, 0)                  // loin du bord : la piste ne bouge pas
-            shelf.currentIndex = 9
-            var full = 2 * Theme.margin + 10 * shelf.pitch - Theme.shelfGap
-            verify(full > shelf.width)
-            compare(shelf.scrollTarget, full - shelf.width) // au bout : calée sur la fin
-            tryCompare(shelf, "scroll", shelf.scrollTarget, 2000)
+        // L'anneau reste à la marge gauche ; la piste défile pour y amener la vignette active.
+        function test_ringStaysAndTrackScrolls() {
             var r = ring()
+            var ringCenter = function() { return r.mapToItem(shelf, r.width / 2, 0).x }
+            var x0 = ringCenter()
+            compare(x0, Theme.margin + Theme.shelfThumbSize.width / 2)
+            shelf.currentIndex = 3
+            compare(ringCenter(), x0)                       // l'anneau ne bouge pas
+            tryCompare(shelf, "scroll", 3 * shelf.pitch, 2000)
+            shelf.currentIndex = 9
+            tryCompare(shelf, "scroll", 9 * shelf.pitch, 2000)
             tryVerify(function() {
-                return Math.abs(r.mapToItem(shelf, r.width / 2, 0).x
-                                - thumbAt(9).mapToItem(shelf, Theme.shelfThumbSize.width / 2, 0).x) < 0.5
+                return Math.abs(ringCenter() - thumbAt(9).mapToItem(shelf, Theme.shelfThumbSize.width / 2, 0).x) < 0.5
             }, 2000, "l'anneau est centré sur la vignette active")
             shelf.currentIndex = 0
-            compare(shelf.scrollTarget, 0)
             compare(shelf.activeRect.x, Theme.margin - Theme.shelfThumbSize.width * (Theme.shelfActiveScale - 1) / 2)
         }
 
@@ -149,8 +148,9 @@ Item {
             compare(Math.round(list.itemAtIndex(0).mapToItem(shelf, 0, 0).x), Theme.margin)
             games.insert(0, { boxart: "" })      // une app ajoutée devant la sélection
             shelf.currentIndex = 1
+            tryCompare(shelf, "scroll", shelf.pitch, 3000)
             wait(50)
-            compare(Math.round(list.itemAtIndex(1).mapToItem(shelf, 0, 0).x), Theme.margin + shelf.pitch)
+            compare(Math.round(list.itemAtIndex(1).mapToItem(shelf, 0, 0).x), Theme.margin)
         }
 
         function test_returnLaunchesCurrentGame() {

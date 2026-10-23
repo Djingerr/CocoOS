@@ -81,6 +81,9 @@ FocusScope {
             Sounds.play("edge")
             return
         }
+        moveTo(next)
+    }
+    function moveTo(next) {
         focusedButton = next
         pressing = false
         holdFill.reset()
@@ -214,9 +217,11 @@ FocusScope {
                             opacity: parent.focused ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: Theme.sheetFocusFade } }
                         }
-                        // À la souris comme à la manette : on presse, on relâche (ou on maintient).
-                        MouseArea {
+                        // À la souris comme à la manette : on survole, on presse, on relâche (ou
+                        // on maintient).
+                        HoverArea {
                             anchors.fill: parent
+                            onPointed: if (!root.pressing && root.focusedButton !== index) root.moveTo(index)
                             onPressed: { root.focusedButton = index; root.pressing = true }
                             onReleased: {
                                 if (!root.pressing) return
@@ -253,6 +258,10 @@ FocusScope {
                 anchors.bottomMargin: Theme.sheetPadBottom
                 hints: [ { glyph: "B", label: root.actions.length > 0 ? qsTr("Fermer") : root.cancelLabel },
                          { glyph: "A", label: root.holdFocused ? qsTr("Maintenir") : qsTr("Valider") } ]
+                onTriggered: function(glyph) {
+                    if (glyph === "B") root.close()
+                    else if (!root.holdFocused) root.activate()   // (un choix à maintenir se maintient)
+                }
             }
         }
     }

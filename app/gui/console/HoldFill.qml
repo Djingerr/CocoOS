@@ -21,6 +21,7 @@ Item {
     property real progress: 0
     property bool done: false
     property real bump: 1                    // 0 → 1 pendant le rebond final
+    readonly property real doneWidth: doneRow.implicitWidth   // coche + doneLabel
     signal completed()
 
     function reset() {
@@ -84,6 +85,7 @@ Item {
             Behavior on opacity { NumberAnimation { duration: Theme.holdSwapFade; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut } }
         }
         Row {
+            id: doneRow
             x: root.centered ? (root.width - width) / 2 : root.labelX
             y: (root.height - height) / 2 + (root.done ? 0 : height * Theme.holdSwapShift)
             opacity: root.done ? 1 : 0

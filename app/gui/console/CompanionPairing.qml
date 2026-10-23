@@ -63,6 +63,13 @@ MessageScreen {
     Keys.onUpPressed: { setDigit(active, digits[active] + 1); Sounds.play("tick") }
     Keys.onDownPressed: { setDigit(active, digits[active] - 1); Sounds.play("tick") }
     onActivated: submit()
+    // À la souris : cliquer une case la choisit, la molette y fait tourner le chiffre.
+    onCellClicked: function(index) { if (index !== active) moveTo(index) }
+    onCellWheel: function(index, steps) {
+        active = index
+        setDigit(index, digits[index] + steps)
+        Sounds.play("tick")
+    }
     // Code refusé par le PC : les cases se secouent, le message se déplie.
     onErrorTextChanged: if (errorText !== "") { refuse(); Sounds.play("deny") }
     Keys.onPressed: function(event) {

@@ -23,6 +23,11 @@ FocusScope {
     // fait ici compte : le relâché d'un A qui a amené cet écran ne fait rien.
     signal activated()
     property bool pressing: false
+    // À la souris : A de la légende → activated() ; ses autres boutons → hintTriggered(glyph).
+    // Une case du code (codeFocus ≥ 0) : cliquée → cellClicked(i), molette → cellWheel(i, ±1).
+    signal hintTriggered(string glyph)
+    signal cellClicked(int index)
+    signal cellWheel(int index, int steps)
 
     // Refus (code faux) : les cases du code se secouent.
     function refuse() { codeRow.refuse() }
@@ -90,7 +95,18 @@ FocusScope {
                             readonly property bool focused: index === root.codeFocus
                             width: Theme.codeCellSize.width; height: Theme.codeCellSize.height
                             radius: Theme.codeCellRadius
-                            color: focused ? Theme.codeCellFocusFill : Theme.codeCellFill
+                            color: focused ? Theme.codeCellFocusFill
+                                 : cellMouse.containsMouse ? Theme.codeCellHoverFill : Theme.codeCellFill
+                            Behavior on color { ColorAnimation { duration: Theme.hoverFade } }
+                            HoverArea {
+                                id: cellMouse
+                                anchors.fill: parent
+                                enabled: root.codeFocus >= 0
+                                onClicked: root.cellClicked(index)
+                                onWheel: function(wheel) {
+                                    if (wheel.angleDelta.y !== 0) root.cellWheel(index, wheel.angleDelta.y > 0 ? 1 : -1)
+                                }
+                            }
                             Text {
                                 anchors.centerIn: parent
                                 text: root.code.charAt(index)
@@ -177,6 +193,10 @@ FocusScope {
             anchors.bottomMargin: Theme.sheetPadBottom
             hints: root.hints
             pressing: root.pressing
+            onTriggered: function(glyph) {
+                if (glyph === "A") root.activated()
+                else root.hintTriggered(glyph)
+            }
         }
     }
 }

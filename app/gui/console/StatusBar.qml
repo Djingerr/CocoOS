@@ -304,6 +304,14 @@ Item {
                 border.width: 1
                 border.color: Theme.hostPillStroke
             }
+            // Île ouverte, à la souris : cliquée, elle se referme ; survolée, elle reste.
+            HoverArea {
+                anchors.fill: parent
+                enabled: root.islandOpen && root.islandContentShown
+                onClicked: root.dismiss()
+                onContainsMouseChanged: if (containsMouse) holdTimer.stop()
+                                        else if (enabled) holdTimer.restart()
+            }
 
             Row {
                 id: pillRow

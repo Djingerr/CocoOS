@@ -194,6 +194,9 @@ FocusScope {
             Sounds.play("edge")
             return
         }
+        moveTo(next)
+    }
+    function moveTo(next) {
         pressing = false
         applyFlick()
         bumpAnim.complete()
@@ -202,6 +205,11 @@ FocusScope {
         hintShown = false
         current = next
         Sounds.play("move")
+    }
+    // La souris bouge sur la ligne `i` : la sélection y vient (pas pendant un appui, ni en
+    // tirant le curseur).
+    function pointRow(i) {
+        if (i !== current && !pressing && !dragging && !isHidden(i)) moveTo(i)
     }
     // L1 / R1 : onglet voisin, la première ligne en focus.
     function switchTab(dir) {
@@ -423,8 +431,11 @@ FocusScope {
     component Chevron: Item {
         id: chevron
         property int dir: 1                      // -1 : ‹ ; +1 : ›
+        property bool clickable: false           // à la souris : clicked(), éclairé au survol
+        signal clicked()
         readonly property real stroke: 1.575
         readonly property real arm: 5.57
+        readonly property color ink: chevronMouse.containsMouse ? Theme.ink : Theme.ink3
 
         width: Theme.sheetChevronSize; height: width
         Repeater {
@@ -434,13 +445,21 @@ FocusScope {
                 y: 9 - chevron.stroke / 2
                 width: chevron.arm + chevron.stroke; height: chevron.stroke
                 radius: height / 2
-                color: Theme.ink3
+                color: chevron.ink
+                Behavior on color { ColorAnimation { duration: Theme.hoverFade } }
                 antialiasing: true
                 transform: Rotation {
                     origin.x: chevron.stroke / 2; origin.y: chevron.stroke / 2
                     angle: chevron.dir < 0 ? 45 * modelData : 180 - 45 * modelData
                 }
             }
+        }
+        HoverArea {
+            id: chevronMouse
+            anchors.fill: parent
+            anchors.margins: -Theme.chevronTouch
+            enabled: chevron.clickable
+            onClicked: chevron.clicked()
         }
     }
 
@@ -665,6 +684,13 @@ FocusScope {
                     readonly property bool active: index === root.tab
                     anchors.verticalCenter: parent.verticalCenter
                     width: tabLabel.width; height: Theme.sheetTabHeight
+                    scale: tabMouse.containsMouse && !active ? Theme.hoverScale : 1
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: Theme.springSnappy.duration
+                            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
+                        }
+                    }
                     Text {
                         id: tabLabel
                         anchors.verticalCenter: parent.verticalCenter
@@ -696,7 +722,7 @@ FocusScope {
                             }
                         ]
                     }
-                    MouseArea { anchors.fill: parent; onClicked: root.switchTab(index - root.tab) }
+                    HoverArea { id: tabMouse; anchors.fill: parent; onClicked: root.switchTab(index - root.tab) }
                 }
             }
             ButtonGlyph { anchors.verticalCenter: parent.verticalCenter; label: "RB"; ink: Theme.ink3 }
@@ -925,6 +951,15 @@ FocusScope {
                                         easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
                                     }
                                 }
+                                // Survolé (pas le choix en cours) : un fond discret.
+                                Rectangle {
+                                    anchors.fill: parent
+                                    anchors.margins: Theme.segmentsPad
+                                    radius: Theme.segmentsPillRadius
+                                    color: Theme.hoverFill
+                                    opacity: segmentMouse.containsMouse && !segment.chosen ? 1 : 0
+                                    Behavior on opacity { NumberAnimation { duration: Theme.hoverFade } }
+                                }
                                 Text {
                                     id: segmentLabel
                                     anchors.centerIn: parent
@@ -958,7 +993,12 @@ FocusScope {
                                         }
                                     ]
                                 }
-                                MouseArea { anchors.fill: parent; onClicked: root.choose(line.index, index) }
+                                HoverArea {
+                                    id: segmentMouse
+                                    anchors.fill: parent
+                                    onPointed: root.pointRow(line.index)
+                                    onClicked: root.choose(line.index, index)
+                                }
                             }
                         }
                     }
@@ -1027,6 +1067,7 @@ FocusScope {
                     Row {
                         id: value
                         visible: line.row.segments !== true
+                        z: 1                    // (les chevrons, au-dessus du clic de la ligne)
                         anchors.right: parent.right
                         // (un interrupteur s'aligne sur les valeurs et le glyphe A, pas sur le chevron)
                         anchors.rightMargin: line.row.toggle === true ? Theme.sheetHintRight : 0
@@ -1065,6 +1106,8 @@ FocusScope {
                             visible: line.row.toggle !== true
                             opacity: line.focused && !line.row.action ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: Theme.sheetFocusFade } }
+                            clickable: line.focused && !line.row.action
+                            onClicked: root.change(-1, false)
                         }
                         SwapBox {
                             visible: line.row.toggle !== true && !line.numeric
@@ -1098,6 +1141,8 @@ FocusScope {
                             visible: line.row.toggle !== true
                             opacity: line.focused ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: Theme.sheetFocusFade } }
+                            clickable: line.focused
+                            onClicked: root.change(1, line.row.action === true)
                         }
                     }
                     // Curseur : la piste, ses crans, le remplissage jusqu'à la valeur.
@@ -1112,11 +1157,12 @@ FocusScope {
                         width: parent.width
 
                         // À la souris : cliquer place la poignée, tirer la déplace.
-                        MouseArea {
+                        HoverArea {
                             x: -Theme.sliderHalo; y: -Theme.sliderTouch / 2
                             width: parent.width + 2 * Theme.sliderHalo; height: Theme.sliderTouch
                             enabled: line.row.slider === true
                             preventStealing: true
+                            onPointed: root.pointRow(line.index)
                             onPressed: function(mouse) {
                                 if (!line.focused) {
                                     root.current = line.index
@@ -1210,8 +1256,9 @@ FocusScope {
                         Accessible.name: line.row.label
                         Accessible.description: line.valueLabel
                     }
-                    MouseArea {
+                    HoverArea {
                         anchors.fill: parent
+                        onPointed: root.pointRow(line.index)
                         onClicked: {
                             if (line.focused) {
                                 root.change(1, true)
@@ -1258,8 +1305,9 @@ FocusScope {
                     ink: Theme.ink3
                 }
                 // À la souris : cliquer y amène, maintenir le clic oublie le PC.
-                MouseArea {
+                HoverArea {
                     anchors.fill: parent
+                    onPointed: root.pointRow(root.rows.length)
                     onPressed: {
                         if (!parent.focused) {
                             root.current = root.rows.length
@@ -1342,6 +1390,10 @@ FocusScope {
             anchors.bottomMargin: Theme.sheetPadBottom
             hints: [ { glyph: "B", label: qsTr("Fermer") },
                      { glyph: "A", label: root.current === root.rows.length ? qsTr("Maintenir") : qsTr("Changer") } ]
+            onTriggered: function(glyph) {
+                if (glyph === "B") root.close()
+                else if (root.current < root.rows.length) root.activate()   // (« Oublier ce PC » se maintient)
+            }
         }
     }
 }
