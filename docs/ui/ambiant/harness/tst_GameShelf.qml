@@ -183,6 +183,24 @@ Item {
             compare(launches.count, 1)
         }
 
+        // L2 / R2 (Maj + ← / →) : dix vignettes d'un coup, jusqu'au bout ; Page préc. / suiv.
+        // demandent la collection voisine.
+        function test_jumpAndCollections() {
+            shelf.jump(1)
+            compare(shelf.currentIndex, 9)                  // dix jeux : le dernier
+            shelf.jump(1)
+            compare(shelf.currentIndex, 9)
+            verify(shelf.bump > 0)                          // au bout : la butée
+            keyClick(Qt.Key_Left, Qt.ShiftModifier)
+            compare(shelf.currentIndex, 0)
+            var asked = []
+            var record = function(d) { asked.push(d) }
+            shelf.collectionRequested.connect(record)
+            keyClick(Qt.Key_PageDown); keyClick(Qt.Key_PageUp)
+            shelf.collectionRequested.disconnect(record)
+            compare(asked, [1, -1])
+        }
+
         // Le jeu en cours sur le PC : sa vignette, et elle seule, porte le point.
         function test_runningGameIsMarked() {
             shelf.runningName = "Jeu 2"

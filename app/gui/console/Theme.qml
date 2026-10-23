@@ -371,6 +371,17 @@ QtObject {
     readonly property int pinBadgeSize: 20
     readonly property int pinBadgeInset: 6
     readonly property int pinIconSize: 13
+    // Collections (Tous, Favoris, Récents) : des onglets alignés à droite au-dessus de
+    // l'étagère (L1 / R1), soulignés d'orange comme ceux du panneau ; changer de collection
+    // fait glisser la piste de collectionSlide px en fondu (collectionSlideDuration). L2 / R2
+    // sautent de shelfJump vignettes.
+    readonly property int collectionsBottom: 30      // au-dessus des vignettes (l'anneau, son halo)
+    readonly property int collectionsHeight: 24
+    readonly property int collectionsGap: 18
+    readonly property int collectionsSize: 14        // Sora 600 (active) / 500
+    readonly property int collectionSlide: 28
+    readonly property int collectionSlideDuration: 280
+    readonly property int shelfJump: 10
     // Jeu en cours sur le PC : un point orange en haut à gauche de sa vignette, cerclé de
     // sombre, d'où part une onde (runningPulse ms, de 1 à runningRipple fois sa taille, en
     // s'effaçant) ; immobile avec « Réduire les animations ».

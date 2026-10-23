@@ -15,6 +15,7 @@ QtObject {
     signal activity()
     signal homePressed()
     signal bumperPressed(int direction)
+    signal triggerPressed(int direction)
 
     function prepareStreamMenu(game, powerActions, buttonLayout) {
         streamMenu = [game, powerActions, buttonLayout]

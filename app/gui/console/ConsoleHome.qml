@@ -235,6 +235,23 @@ FocusScope {
     // Ses index ne sont PAS ceux d'AppModel : chaque élément porte son `appIndex`.
     ListModel { id: shelfModel }        // name, appIndex, boxart, favorite, gameId, pending, progress
     property int shelfRevision: 0       // change à chaque réordonnancement (liaisons)
+    // Collection de l'étagère affichée (Library.collection) et celles qu'on peut choisir.
+    property string collection: "all"
+    property var collections: ["all"]
+    readonly property var collectionNames: ({ all: qsTr("Tous"), favorites: qsTr("Favoris"), recent: qsTr("Récents") })
+
+    // L1 / R1 sur l'étagère : la collection voisine ; la piste arrive de ce côté.
+    function switchCollection(dir) {
+        var next = collections.indexOf(collection) + dir
+        if (next < 0 || next >= collections.length) {
+            Sounds.play("edge")
+            return
+        }
+        collection = collections[next]
+        Sounds.play("move")
+        rebuildShelf(true)
+        homeScreen.shelf.slideIn(dir)
+    }
     // Le jeu en cours sur le PC (son nom ; vide = aucun) : un point sur sa vignette.
     readonly property string runningGame: {
         for (var i = 0; i < appViewer.count; i++) {
@@ -253,7 +270,9 @@ FocusScope {
         return Math.max(recent[name] || 0, companion || 0)
     }
 
-    function rebuildShelf() {
+    // `switching` : on vient de changer de collection ; si le jeu affiché n'y est pas, la
+    // sélection repart du premier.
+    function rebuildShelf(switching) {
         var apps = []
         for (var i = 0; i < appViewer.count; i++) {
             var it = appViewer.objectAt(i)
@@ -275,7 +294,7 @@ FocusScope {
         // ligne seulement : hors ligne, l'accueil doit rester sur l'écran de recherche / réveil.
         var pending = activeHostOnline
             ? Library.pendingTiles(companionList, apps.map(function(a) { return a.name }), downloads) : []
-        var items = ordered.map(function(a) {
+        var all = ordered.map(function(a) {
             return { name: a.name, appIndex: a.appIndex, boxart: a.boxart,
                      favorite: favorites.indexOf(a.name) >= 0, gameId: "", pending: false, progress: -1 }
         }).concat(pending.map(function(g) {
@@ -283,11 +302,21 @@ FocusScope {
                      favorite: favorites.indexOf(g.name) >= 0, gameId: g.id, pending: true,
                      progress: home.downloadFraction(g.id) }
         }))
+        // La collection affichée ; vidée (dernier favori détaché), on revient à tout.
+        var played = function(name) { return home.lastPlayedTime(name, recent) }
+        collections = Library.collections(all, played)
+        if (collections.indexOf(collection) < 0) {
+            collection = "all"
+            switching = true
+        }
+        var items = Library.collection(all, collection, played)
         Library.sync(shelfModel, items)
         shelfRevision++
         var index = items.findIndex(function(a) { return a.name === selected })
         if (index >= 0)
             homeScreen.currentIndex = index
+        else if (switching)
+            homeScreen.currentIndex = 0
         maybeDirectLaunch()
     }
 
@@ -675,6 +704,10 @@ FocusScope {
         function onHomePressed() { home.homeButton() }
         function onBumperPressed(direction) {
             if (homeScreen.options.opened) homeScreen.options.switchTab(direction)
+            else if (homeScreen.shelf.activeFocus) home.switchCollection(direction)
+        }
+        function onTriggerPressed(direction) {
+            if (homeScreen.shelf.activeFocus) homeScreen.shelf.jump(direction)
         }
     }
     // À l'ouverture, le panneau suit le jeu sélectionné (ligne de ses réglages à part).
@@ -1438,6 +1471,9 @@ FocusScope {
         logo: info && info.logo ? info.logo : ""
         running: app ? app.running : false
         runningGame: home.runningGame
+        collectionLabels: home.collections.map(function(c) { return home.collectionNames[c] })
+        collectionIndex: home.collections.indexOf(home.collection)
+        onCollectionRequested: function(direction) { home.switchCollection(direction) }
         playLabel: !pending || info && info.isInstalled ? ""
                  : home.downloads[tile.gameId] ? qsTr("Téléchargement") : qsTr("Télécharger")
         updateNote: pending ? home.pendingNote(tile.gameId, info)

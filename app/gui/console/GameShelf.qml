@@ -26,6 +26,7 @@ FocusScope {
     signal launchRequested(int index)
     signal detailsRequested()
     signal upRequested()             // haut : au-dessus, le héros (une partie en cours), ou rien
+    signal collectionRequested(int direction)   // L1 / R1 (Page préc. / suiv.) : collection voisine
     // A enfoncé : la vignette active s'écrase (Theme.shelfTapScale) et le bouton Jouer avec
     // elle (cf. Pressable). Le jeu part au relâché, et seulement si l'appui a eu lieu ici :
     // le relâché d'un A qui a fermé un panneau ne lance rien.
@@ -112,13 +113,72 @@ FocusScope {
     }
     Timer { id: bumpBack; interval: Theme.edgeBumpHold; onTriggered: root.bump = 0 }
 
+    // L2 / R2 (Maj + ← / → au clavier) : Theme.shelfJump vignettes d'un coup, jusqu'au bout.
+    function jump(dir) {
+        var next = Math.max(0, Math.min(count - 1, currentIndex + dir * Theme.shelfJump))
+        if (next === currentIndex) move(dir)    // déjà au bout : la butée
+        else {
+            currentIndex = next
+            Sounds.play("move")
+        }
+    }
+
+    // Nouvelle collection : la piste arrive du côté demandé, en fondu.
+    property real slideX: 0
+    property real slideOpacity: 1
+    function slideIn(dir) {
+        if (Theme.reducedMotion) return
+        slideAnim.stop()
+        slideX = dir * Theme.collectionSlide
+        slideOpacity = 0
+        slideAnim.start()
+    }
+    ParallelAnimation {
+        id: slideAnim
+        NumberAnimation {
+            target: root; property: "slideX"; to: 0
+            duration: Theme.collectionSlideDuration; easing.type: Easing.OutCubic
+        }
+        NumberAnimation {
+            target: root; property: "slideOpacity"; to: 1
+            duration: Theme.collectionSlideDuration; easing.type: Easing.OutCubic
+        }
+    }
+
+    // Molette sur l'étagère : une vignette par cran (les pavés tactiles s'additionnent).
+    property real wheelRest: 0
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.NoButton
+        onWheel: function(wheel) {
+            var delta = wheel.angleDelta.x !== 0 ? -wheel.angleDelta.x : wheel.angleDelta.y
+            root.wheelRest += delta
+            while (Math.abs(root.wheelRest) >= 120) {
+                root.move(root.wheelRest > 0 ? -1 : 1)
+                root.wheelRest -= root.wheelRest > 0 ? 120 : -120
+            }
+        }
+    }
+
     // --- Gauche / droite, avec répétition qui accélère à l'appui prolongé ---
     PadRepeat {
         id: pad
         keys: [Qt.Key_Left, Qt.Key_Right]
         onTriggered: function(key) { root.move(key === Qt.Key_Left ? -1 : 1) }
     }
-    Keys.onPressed: function(event) { pad.press(event) }
+    Keys.onPressed: function(event) {
+        if ((event.key === Qt.Key_Left || event.key === Qt.Key_Right) && (event.modifiers & Qt.ShiftModifier)) {
+            event.accepted = true
+            root.jump(event.key === Qt.Key_Left ? -1 : 1)
+            return
+        }
+        if (event.key === Qt.Key_PageUp || event.key === Qt.Key_PageDown) {
+            event.accepted = true
+            if (!event.isAutoRepeat) root.collectionRequested(event.key === Qt.Key_PageUp ? -1 : 1)
+            return
+        }
+        pad.press(event)
+    }
     Keys.onReleased: function(event) {
         pad.release(event)
         if (pressing && !event.isAutoRepeat && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) {
@@ -159,6 +219,8 @@ FocusScope {
         }
 
         width: parent.width; height: Theme.shelfThumbSize.height
+        opacity: root.slideOpacity
+        transform: Translate { x: root.slideX }
         orientation: ListView.Horizontal
         interactive: false
         highlightFollowsCurrentItem: false

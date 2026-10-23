@@ -44,6 +44,20 @@ TestCase {
         compare(names(tiles), ["Celeste", "Outer Wilds", "Abzû", "Zelda-like"])
     }
 
+    // Collections : favoris seuls, récents du plus récent au plus ancien, et seulement
+    // celles qui ont un jeu.
+    function test_collections() {
+        var items = [ { name: "A", favorite: true }, { name: "B", favorite: false }, { name: "C", favorite: false } ]
+        var dates = { B: 100, C: 300 }
+        var played = function(n) { return dates[n] || 0 }
+        compare(names(Library.collection(items, "all", played)), ["A", "B", "C"])
+        compare(names(Library.collection(items, "favorites", played)), ["A"])
+        compare(names(Library.collection(items, "recent", played)), ["C", "B"])
+        compare(Library.collections(items, played), ["all", "favorites", "recent"])
+        items[0].favorite = false
+        compare(Library.collections(items, function() { return 0 }), ["all"])
+    }
+
     function test_toggledPinsInFrontAndUnpins() {
         compare(Library.toggled(["A", "B"], "C"), ["C", "A", "B"])
         compare(Library.toggled(["A", "B", "C"], "B"), ["A", "C"])

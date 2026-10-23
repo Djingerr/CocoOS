@@ -13,6 +13,7 @@ namespace {
 const int HOME_POLL_MS = 50;              // le rythme de SdlGamepadKeyNavigation
 const int CONTROLLERS_POLL_MS = 2000;
 const qint64 ACTIVITY_THROTTLE_MS = 500;
+const int TRIGGER_PRESS = 16000;          // gâchette (0 à 32767) : enfoncée au-delà de la moitié
 
 }
 
@@ -103,7 +104,7 @@ void InputStatus::noteActivity()
 
 void InputStatus::pollButtons()
 {
-    bool home = false, left = false, right = false;
+    bool home = false, left = false, right = false, leftTrigger = false, rightTrigger = false;
     if (SDL_WasInit(SDL_INIT_GAMECONTROLLER)) {
         for (int i = 0; i < SDL_NumJoysticks(); i++) {
             SDL_GameController* gc = SDL_GameControllerFromInstanceID(SDL_JoystickGetDeviceInstanceID(i));
@@ -111,6 +112,8 @@ void InputStatus::pollButtons()
                 home |= SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_GUIDE) != 0;
                 left |= SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_LEFTSHOULDER) != 0;
                 right |= SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) != 0;
+                leftTrigger |= SDL_GameControllerGetAxis(gc, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > TRIGGER_PRESS;
+                rightTrigger |= SDL_GameControllerGetAxis(gc, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > TRIGGER_PRESS;
             }
         }
     }
@@ -127,6 +130,16 @@ void InputStatus::pollButtons()
         noteActivity();
         emit bumperPressed(1);
     }
+    if (leftTrigger && !m_leftTriggerDown) {
+        noteActivity();
+        emit triggerPressed(-1);
+    }
+    if (rightTrigger && !m_rightTriggerDown) {
+        noteActivity();
+        emit triggerPressed(1);
+    }
+    m_leftTriggerDown = leftTrigger;
+    m_rightTriggerDown = rightTrigger;
     m_homeDown = home;
     m_leftDown = left;
     m_rightDown = right;

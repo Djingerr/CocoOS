@@ -824,6 +824,30 @@ Item {
             verify(screen.currentIndex > 0)                 // revenu à sa place
         }
 
+        // Collections : R1 sur l'étagère passe aux favoris (le jeu épinglé seul), L1 revient à
+        // tout ; détacher le dernier favori fait disparaître la collection.
+        function test_9e_collections() {
+            compare(home.collections.indexOf("favorites"), -1)  // aucun favori : pas d'onglet
+            keyClick(Qt.Key_Right)
+            var name = screen.title
+            keyClick(Qt.Key_Menu)                           // X : épinglé
+            verify(home.collections.indexOf("favorites") > 0)
+            InputStatus.bumperPressed(1)
+            compare(home.collection, "favorites")
+            compare(screen.count, 1)
+            compare(screen.title, name)
+            InputStatus.bumperPressed(-1)
+            compare(home.collection, "all")
+            compare(screen.count, 10)
+            compare(screen.title, name)                     // la sélection suit le jeu
+            InputStatus.bumperPressed(1)
+            keyClick(Qt.Key_Menu)                           // détaché : plus de favori
+            compare(home.collection, "all")
+            compare(home.collections.indexOf("favorites"), -1)
+            InputStatus.triggerPressed(1)                   // R2 : dix plus loin, le dernier
+            compare(screen.currentIndex, 9)
+        }
+
         // Les utilitaires d'Apollo (ici « Desktop ») ne sont pas sur l'étagère.
         function test_9f_utilitiesAreNotOnTheShelf() {
             compare(home.appModel.count, 11)

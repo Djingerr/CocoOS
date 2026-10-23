@@ -104,6 +104,11 @@ FocusScope {
     signal forgetRequested()
     signal favoriteRequested()                       // X sur l'étagère
     signal detailsRequested()                        // bas sur l'étagère : la fiche du jeu
+    // Collections de l'étagère : leurs libellés (masquées s'il n'y en a qu'une) et celle
+    // affichée ; collectionRequested(±1) : L1 / R1, Page préc. / suiv., ou un clic.
+    property var collectionLabels: []
+    property int collectionIndex: 0
+    signal collectionRequested(int direction)
 
     // Message bref au-dessus de l'étagère.
     function toast(message) { toastItem.show(message) }
@@ -249,6 +254,58 @@ FocusScope {
                     }
                 }
                 Keys.onMenuPressed: root.favoriteRequested()      // bouton X
+                onCollectionRequested: function(direction) { root.collectionRequested(direction) }
+            }
+
+            // Collections : [LB] Tous  Favoris  Récents [RB], à droite au-dessus de l'étagère.
+            Row {
+                id: collectionStrip
+                anchors.right: parent.right
+                anchors.rightMargin: Theme.margin
+                y: -Theme.collectionsBottom - Theme.collectionsHeight
+                height: Theme.collectionsHeight
+                spacing: Theme.collectionsGap
+                visible: root.collectionLabels.length > 1
+                opacity: shelf.focused || root.heroFocused ? 1 : Theme.shelfRestOpacity
+                Behavior on opacity { NumberAnimation { duration: Theme.shelfFocusFade } }
+
+                ButtonGlyph { anchors.verticalCenter: parent.verticalCenter; label: "LB"; ink: Theme.ink3 }
+                Repeater {
+                    id: collectionRepeater
+                    model: root.collectionLabels
+                    Item {
+                        readonly property bool active: index === root.collectionIndex
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: collectionLabel.width; height: Theme.collectionsHeight
+                        Text {
+                            id: collectionLabel
+                            anchors.verticalCenter: parent.verticalCenter
+                            text: modelData
+                            color: parent.active || collectionMouse.containsMouse ? Theme.ink : Theme.ink3
+                            Behavior on color { ColorAnimation { duration: Theme.hoverFade } }
+                            font.family: Theme.fontUi; font.pixelSize: Theme.collectionsSize
+                            font.weight: parent.active ? Font.DemiBold : Font.Medium
+                        }
+                        HoverArea {
+                            id: collectionMouse
+                            anchors.fill: parent
+                            onClicked: if (!parent.active) root.collectionRequested(index - root.collectionIndex)
+                        }
+                    }
+                }
+                ButtonGlyph { anchors.verticalCenter: parent.verticalCenter; label: "RB"; ink: Theme.ink3 }
+            }
+            ElasticIndicator {
+                readonly property Item activeTab: collectionRepeater.count > root.collectionIndex
+                                                  ? collectionRepeater.itemAt(root.collectionIndex) : null
+                visible: collectionStrip.visible
+                opacity: collectionStrip.opacity
+                y: collectionStrip.y + collectionStrip.height - Theme.underlineHeight
+                height: Theme.underlineHeight
+                targetLeft: activeTab ? collectionStrip.x + activeTab.x : 0
+                targetRight: activeTab ? collectionStrip.x + activeTab.x + activeTab.width : 0
+                animated: root.entered
+                Rectangle { anchors.fill: parent; radius: Theme.underlineRadius; color: Theme.accent }
             }
         }
 

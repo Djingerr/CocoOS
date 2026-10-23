@@ -83,6 +83,25 @@ function sync(model, items) {
         model.remove(items.length, model.count - items.length)
 }
 
+// Collections de l'étagère : "all" (tout, dans l'ordre de `order`), "favorites" (les
+// épinglés), "recent" (déjà joués, du plus récent au plus ancien). items : vignettes de
+// l'étagère ({ name, favorite, … }) ; lastPlayed(name) : date de la dernière partie en ms.
+function collection(items, kind, lastPlayed) {
+    if (kind === "favorites")
+        return items.filter(function(a) { return a.favorite })
+    if (kind === "recent")
+        return items.filter(function(a) { return lastPlayed(a.name) > 0 })
+                    .sort(function(a, b) { return lastPlayed(b.name) - lastPlayed(a.name) })
+    return items
+}
+
+// Les collections à proposer : "all" toujours, les autres si elles ont au moins un jeu.
+function collections(items, lastPlayed) {
+    return ["all", "favorites", "recent"].filter(function(kind) {
+        return kind === "all" || collection(items, kind, lastPlayed).length > 0
+    })
+}
+
 // Les favoris une fois `name` épinglé (il passe en tête) ou détaché.
 function toggled(favorites, name) {
     var rest = favorites.filter(function(n) { return n !== name })

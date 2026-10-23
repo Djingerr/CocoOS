@@ -58,6 +58,7 @@ signals:
     void activity();            // l'utilisateur a agi (au plus une fois toutes les 500 ms)
     void homePressed();         // bouton Home de la manette
     void bumperPressed(int direction);   // L1 (-1) ou R1 (+1)
+    void triggerPressed(int direction);  // L2 (-1) ou R2 (+1), enfoncée au-delà de la moitié
     void controllersChanged();
 
 protected:
@@ -76,6 +77,8 @@ private:
     bool m_homeDown = false;
     bool m_leftDown = false;
     bool m_rightDown = false;
+    bool m_leftTriggerDown = false;
+    bool m_rightTriggerDown = false;
     QString m_layout;
     int m_controllerBattery = -1;
     int m_controllerCount = 0;
