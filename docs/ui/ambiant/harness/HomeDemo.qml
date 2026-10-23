@@ -39,6 +39,7 @@ HomeScreen {
     readonly property var profileRow: ({
         key: "streamProfile", label: "Profil", segments: true, index: settings.streamProfile,
         options: ["Compétitif", "Équilibré", "Qualité", "Économie", "Manuel"],
+        hiddenOptions: settings.advanced === 1 || settings.streamProfile === 4 ? [] : [4],
         note: chosen && settings.streamProfile !== 3 && args.network === "fair" ? "Réseau moyen : un cran plus bas"
             : chosen && settings.streamProfile !== 3 && args.network === "poor" ? "Réseau faible : deux crans plus bas" : "",
         stats: [ { label: "Définition", value: (chosen ? chosen.height : 800) + "p" },
@@ -104,6 +105,7 @@ HomeScreen {
         var next = Object.assign({}, settings)
         next[key] = index
         if (key === "rate") next.rateAuto = 0          // le curseur repasse en débit fixe
+        if (key === "advanced" && index === 0 && next.streamProfile === 4) next.streamProfile = 1   // plus de Manuel
         settings = next
     }
     onForgetRequested: console.info("[demo] oublier Djinger")

@@ -21,7 +21,8 @@ FocusScope {
     // la nouvelle valeur à la place d'un index (`auto` : valeur grisée, calculée ailleurs).
     // Un sélecteur { key, label, segments: true, options, index, stats: [{ label, value }],
     // description, note } montre ses choix côte à côte, puis ses chiffres (profil de flux) avec
-    // les réglages avancés, sa description sinon.
+    // les réglages avancés, sa description sinon ; ses choix `hiddenOptions` (index) se replient
+    // et la manette les saute.
     // Réglages avancés : une ligne `advanced` n'apparaît que si l'interrupteur `revealsAdvanced`
     // de l'onglet est allumé ; une ligne `hidden` reste repliée. Repliées, elles gardent leur
     // place dans `rows` (aucune ligne ne prend celle d'une autre) ; la manette les saute.
@@ -266,6 +267,9 @@ FocusScope {
             return
         }
         var next = wrap ? (row.index + 1) % row.options.length : row.index + dir
+        var hidden = row.hiddenOptions || []
+        while (hidden.indexOf(next) >= 0)
+            next = wrap ? (next + 1) % row.options.length : next + dir
         if (next < 0 || next >= row.options.length) {
             rubber(dir)
             Sounds.play("edge")
@@ -852,15 +856,20 @@ FocusScope {
                         readonly property int count: line.row.segments === true ? line.row.options.length : 0
                         // Chaque case à la largeur de son libellé, plus une part égale de la place
                         // qui reste ; si les libellés ne tiennent pas tous, cases égales et texte réduit.
+                        // Une case repliée (`hiddenOptions`) n'a plus de largeur.
+                        readonly property var hidden: line.row.hiddenOptions || []
                         readonly property var cells: {
-                            var inner = width - 2 * Theme.segmentsPad, widths = [], sum = 0
+                            var inner = width - 2 * Theme.segmentsPad, widths = [], sum = 0, shown = 0
                             for (var i = 0; i < count; i++) {
-                                widths.push(segmentMetrics.advanceWidth(line.row.options[i]))
+                                var gone = hidden.indexOf(i) >= 0
+                                widths.push(gone ? -1 : segmentMetrics.advanceWidth(line.row.options[i]))
+                                if (gone) continue
                                 sum += widths[i]
+                                shown++
                             }
                             var cells = [], x = Theme.segmentsPad
                             for (i = 0; i < count; i++) {
-                                var w = sum <= inner ? widths[i] + (inner - sum) / count : inner / count
+                                var w = widths[i] < 0 ? 0 : sum <= inner ? widths[i] + (inner - sum) / shown : inner / shown
                                 cells.push({ x: x, width: w })
                                 x += w
                             }
@@ -893,6 +902,29 @@ FocusScope {
                                 x: (segments.cells[index] || { x: 0 }).x
                                 width: (segments.cells[index] || { width: 0 }).width
                                 height: parent.height
+                                clip: true              // (une case qui se replie)
+                                opacity: segments.hidden.indexOf(index) >= 0 ? 0 : 1
+                                Behavior on x {
+                                    enabled: line.animated
+                                    NumberAnimation {
+                                        duration: Theme.springGentle.duration
+                                        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springGentle.curve
+                                    }
+                                }
+                                Behavior on width {
+                                    enabled: line.animated
+                                    NumberAnimation {
+                                        duration: Theme.springGentle.duration
+                                        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springGentle.curve
+                                    }
+                                }
+                                Behavior on opacity {
+                                    enabled: line.animated
+                                    NumberAnimation {
+                                        duration: Theme.foldOut
+                                        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                                    }
+                                }
                                 Text {
                                     id: segmentLabel
                                     anchors.centerIn: parent

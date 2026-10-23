@@ -1069,6 +1069,28 @@ Item {
             keyClick(Qt.Key_Escape)
         }
 
+        // Manuel n'est proposé qu'avec les réglages avancés ; les éteindre sous Manuel ramène au
+        // profil par défaut.
+        function test_9x_manualOnlyWithAdvancedSettings() {
+            var row = function() { return fluxRow("streamProfile") }
+            var shown = function() { return row().options[row().index] }
+            home.applyOption("advanced", 0)
+            home.applyOption("streamProfile", 3)            // Économie, la dernière case visible
+            compare(row().hiddenOptions, [4])
+            keyClick(Qt.Key_Hangup)
+            goTo("streamProfile")
+            keyClick(Qt.Key_Right)                          // pas de Manuel au bout : la butée
+            compare(shown(), "Économie")
+            home.applyOption("advanced", 1)
+            compare(row().hiddenOptions, [])
+            keyClick(Qt.Key_Right)
+            compare(shown(), "Manuel")
+            home.applyOption("advanced", 0)                 // éteints sous Manuel
+            compare(shown(), "Équilibré")
+            compare(row().hiddenOptions, [4])
+            keyClick(Qt.Key_Escape)
+        }
+
         // En dernier : l'hôte du faux modèle est supprimé.
         function test_9z_forgettingThePcForgetsTheCompanionToo() {
             var forgets = CompanionClient.forgets

@@ -1164,6 +1164,10 @@ FocusScope {
             key: "streamProfile", label: qsTr("Profil"), segments: true,
             options: StreamProfiles.KEYS.map(function(k) { return profileNames[k] }),
             index: Math.max(0, StreamProfiles.KEYS.indexOf(s.profile)),
+            // Manuel n'a de sens qu'avec les réglages avancés (ceux d'un jeu d'avant les profils
+            // le gardent tant qu'on n'en choisit pas un autre).
+            hiddenOptions: consoleConfig.advancedSettings || s.profile === "manual"
+                           ? [] : [StreamProfiles.KEYS.indexOf("manual")],
             note: drop === 1 ? qsTr("Réseau moyen : un cran plus bas")
                 : drop === 2 ? qsTr("Réseau faible : deux crans plus bas") : "",
             description: description[s.profile] || "",
@@ -1204,6 +1208,15 @@ FocusScope {
         // Console : rien à voir avec les préférences du flux.
         if (key === "advanced") {
             consoleConfig.advancedSettings = choice.value
+            // Sans eux, plus de Manuel : le profil affiché repasse au profil par défaut (les
+            // réglages manuels restent enregistrés, Manuel les retrouve).
+            var shown = homeScreen.app ? homeScreen.app.name : ""
+            if (shown === "" || gameProfiles()[shown] === undefined) shown = ""
+            var current = settingsFor(shown)
+            if (!choice.value && current.profile === "manual") {
+                current.profile = StreamProfiles.DEFAULT
+                writeSettings(shown, current)
+            }
         } else if (key === "sounds") {
             consoleConfig.sounds = choice.value
             Sounds.enabled = choice.value

@@ -380,7 +380,10 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   Économie). Mouvement : à l'allumage, le dessous glisse faire la place (ressort « souple »), la
   description cède la place aux chiffres, puis les lignes apparaissent en cascade (90 ms, puis
   40 ms d'écart, en descendant de 12 px) ; à l'extinction, elles s'effacent du bas vers le haut
-  et le dessous remonte 110 ms après (composant `Reveal` d'`OptionsSheet`).
+  et le dessous remonte 110 ms après (composant `Reveal` d'`OptionsSheet`). **Manuel** n'est proposé
+  qu'avec les réglages avancés (`hiddenOptions` du sélecteur : la case se replie, la manette la
+  saute) ; les éteindre sous Manuel ramène le profil à Équilibré (les réglages manuels restent
+  enregistrés). Seule exception : un jeu aux réglages à part d'avant les profils garde Manuel.
   ⚠️ Libellés et paliers à valider par Marco à la manette (le doc le demande) ; le choix du palier
   n'est qu'une première version de la phase 4 (pas de sonde avant lancement ni de mémoire par
   réseau) ; anti-gigue (phase 3) et FSR (phase 5) restent à faire.
