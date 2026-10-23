@@ -33,17 +33,17 @@ FocusScope {
     // ne lance rien.
     property bool pressing: false
     // Reflet (0 → 1) qui balaie la vignette active : une fois, Theme.sheenDelay après
-    // l'arrêt du ressort, et seulement si l'étagère a la manette (ni en veille, ni
-    // pendant un lancement ou dans un panneau) et que son entrée est finie. Remis à
-    // zéro dès qu'on bouge.
+    // chaque déplacement (comme le prototype), et seulement si l'étagère a la manette (ni
+    // en veille, ni pendant un lancement ou dans un panneau) et que son entrée est finie.
     property real sheen: 0
-    readonly property bool sheenArmed: activeFocus && shown && enterStep === 0 && !posSpring.running
-    onSheenArmedChanged: {
+    readonly property bool sheenArmed: activeFocus && shown && enterStep === 0
+    function restartSheen() {
         sheenSweep.stop()
         sheen = 0
         if (sheenArmed) sheenWait.restart()
         else sheenWait.stop()
     }
+    onSheenArmedChanged: restartSheen()
     Timer { id: sheenWait; interval: Theme.sheenDelay; onTriggered: sheenSweep.start() }
     NumberAnimation {
         id: sheenSweep
@@ -74,6 +74,7 @@ FocusScope {
         if (currentIndex !== lastIndex)
             direction = currentIndex > lastIndex ? 1 : -1
         lastIndex = currentIndex
+        restartSheen()
     }
 
     Component.onCompleted: {
@@ -88,7 +89,6 @@ FocusScope {
     Behavior on pos {
         enabled: root.animated && root.shown
         SpringAnimation {
-            id: posSpring
             spring: Theme.springStrength; damping: Theme.springDamping
             mass: Theme.springMass; epsilon: Theme.springEpsilon
         }

@@ -268,8 +268,9 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     reste enfoncé pendant le lancement), lignes d'action des options, choix des dialogs, entrée
     « A » de la légende des écrans de message.
   - **Étape 2, reflet** (`GameShelf`) : une bande claire (16 % de blanc, inclinée de 15°) balaie
-    la vignette active une fois, 520 ms après l'arrêt du ressort (950 ms, `curveInOut`) ; remis à
-    zéro dès qu'on bouge, jamais sans la manette (veille, lancement, panneaux) ni pendant l'entrée.
+    la vignette active une fois, 520 ms après chaque déplacement, comme le prototype (950 ms,
+    `curveInOut`) ; remis à zéro dès qu'on bouge, jamais sans la manette (veille, lancement,
+    panneaux) ni pendant l'entrée.
     La bande n'est créée (`Loader`) que sur la vignette active, le temps du balayage.
   - **Étape 3, interrupteurs** (`OptionsSheet`, composant `Switch`) : une ligne `toggle: true`
     (options [désactivé, activé] ; HDR et Sons, dont l'ordre est passé à [Coupés, Activés]) montre

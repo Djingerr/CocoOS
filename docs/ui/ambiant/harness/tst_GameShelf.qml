@@ -75,6 +75,9 @@ Item {
                 proto.push(x)
             }
             tryCompare(shelf, "pos", 0, 3000)   // au repos avant de partir
+            // Sans la manette, pas de reflet : son dégradé incliné coûte cher au rendu logiciel
+            // des tests et fausserait la mesure en temps réel (sur la carte, c'est le GPU).
+            other.forceActiveFocus()
             // init() vient de recréer les vignettes : mesurée tout de suite (étagère déjà
             // sur 0), la vue ramasse encore ses premières images, plus lentes, et la mesure
             // en temps réel décroche (« à froid », 0,0828).
@@ -162,25 +165,22 @@ Item {
             compare(launches.count, 1)
         }
 
-        // Reflet : il balaie la vignette active une fois, Theme.sheenDelay après l'arrêt
-        // du ressort ; un déplacement le remet à zéro, et sans la manette il ne part pas.
-        function test_sheenSweepsOnceAfterTheSpringStops() {
+        // Reflet : il balaie la vignette active une fois, Theme.sheenDelay après un
+        // déplacement (comme le prototype) ; un nouveau déplacement le remet à zéro, et sans
+        // la manette il ne part pas.
+        function test_sheenSweepsOnceAfterAMove() {
             keyClick(Qt.Key_Right)
-            verify(!shelf.sheenArmed)                   // le ressort tourne
             compare(shelf.sheen, 0)
-            tryVerify(function() { return shelf.sheenArmed }, 3000)
             wait(Theme.sheenDelay - 150)
             compare(shelf.sheen, 0)
             tryVerify(function() { return shelf.sheen > 0 && shelf.sheen < 1 }, 400)
             keyClick(Qt.Key_Right)                      // on bouge : remis à zéro
             compare(shelf.sheen, 0)
-            tryVerify(function() { return shelf.sheen > 0 }, 3000)
-            tryCompare(shelf, "sheen", 1, 2000)         // une fois, puis il reste hors de la vignette
+            tryCompare(shelf, "sheen", 1, Theme.sheenDelay + Theme.sheenDuration + 500)   // une fois…
             wait(Theme.sheenDelay + 200)
-            compare(shelf.sheen, 1)
+            compare(shelf.sheen, 1)                     // …puis il reste hors de la vignette
 
             keyClick(Qt.Key_Left)
-            tryVerify(function() { return shelf.sheenArmed }, 3000)
             other.forceActiveFocus()                    // la manette part (panneau, veille…)
             wait(Theme.sheenDelay + 200)
             compare(shelf.sheen, 0)

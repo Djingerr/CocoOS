@@ -302,7 +302,7 @@ QtObject {
     readonly property int shelfProgressHeight: 4
     readonly property color shelfProgressTrack: Qt.rgba(0, 0, 0, 0.55)
     // Reflet de la vignette active : une bande claire la balaie une fois, sheenDelay
-    // après l'arrêt du ressort (sheenDuration, curveInOut). Géométrie du prototype
+    // après chaque déplacement (sheenDuration, curveInOut). Géométrie du prototype
     // (.tile::after) : une boîte qui déborde de 20 % de chaque côté (sheenOversize), un
     // dégradé incliné de sheenAngle sur la verticale, clair sur sheenSpan de sa longueur,
     // poussé de -sheenTravel à +sheenTravel de la largeur de la boîte.
