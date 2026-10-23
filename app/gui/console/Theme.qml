@@ -41,6 +41,7 @@ QtObject {
     //     courbes, le prototype fait foi) ---
     readonly property var curveOut: [0.22, 1, 0.36, 1, 1, 1]      // fondus, remplissages (BezierSpline)
     readonly property var curveInOut: [0.65, 0, 0.35, 1, 1, 1]    // reflet
+    readonly property var curveExit: [0.4, 0, 1, 1, 1, 1]         // sortie d'un texte remplacé
     // Ressorts physiques du prototype (raideur, amortissement, masse 1), en courbe pour
     // Easing.BezierSpline et durée (cf. Spring.js) : { curve, duration }.
     readonly property var springSnappy: Spring.make(380, 28)      // ≈ 394 ms, dépasse de 4 % : focus, chiffres
@@ -345,19 +346,21 @@ QtObject {
     readonly property real edgeBump: 0.12            // rebond (en index) aux extrémités de la liste
     readonly property int edgeBumpHold: 90
 
-    // --- Changement de jeu : les textes du héros se remplacent en glissant (SwapBox) ---
+    // --- Remplacement d'un texte en glissant (SwapBox) : valeurs des options, lancement ---
     // Le nouveau entre sur `durée` (easeQuint), l'ancien sort plus vite (easeOut).
     readonly property real swapTravel: 0.7           // distance : part de la hauteur du champ
     readonly property real swapEnterFade: 0.7        // fondu d'entrée : part de la durée
     readonly property real swapExitTravel: 0.8       // l'ancien va moins loin…
     readonly property real swapExitDuration: 0.8     // …en moins de temps…
     readonly property real swapExitFade: 0.45        // …et s'efface plus tôt
-    readonly property int heroMetaSwap: 300
-    readonly property int heroMetaSwapDelay: 0
-    readonly property int heroTitleSwap: 460
-    readonly property int heroTitleSwapDelay: 40
-    readonly property int heroSubSwap: 300
-    readonly property int heroSubSwapDelay: 90
+    // Changement de jeu : les textes du héros, eux, se remplacent comme dans le prototype des
+    // micro-interactions (swapText, sans son flou) : le nouveau entre de heroSwapTravel px
+    // dans le sens du déplacement (heroSwapIn, curveOut), l'ancien sort de l'autre côté
+    // (heroSwapOut, curveExit) ; le sous-titre part heroSubSwapDelay après.
+    readonly property int heroSwapTravel: 14
+    readonly property int heroSwapIn: 380
+    readonly property int heroSwapOut: 220
+    readonly property int heroSubSwapDelay: 30
 
     // --- Réapparition d'un bloc (Appear), au retour d'un lancement ---
     readonly property int enterFade: 460             // opacité 0 → 1, linéaire

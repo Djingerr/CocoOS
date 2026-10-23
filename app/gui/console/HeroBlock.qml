@@ -80,7 +80,9 @@ Item {
         value: ({ source: root.source, lastPlayed: root.lastPlayed })
         direction: root.direction
         animated: root.animated
-        duration: Theme.heroMetaSwap; delay: Theme.heroMetaSwapDelay
+        axis: "x"; distance: Theme.heroSwapTravel
+        duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
+        enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
 
         MetaLine {}
         MetaLine {}
@@ -148,7 +150,9 @@ Item {
         value: ({ title: root.title, logo: root.logo.toString() })
         direction: root.direction
         animated: root.animated
-        duration: Theme.heroTitleSwap; delay: Theme.heroTitleSwapDelay
+        axis: "x"; distance: Theme.heroSwapTravel
+        duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
+        enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
 
         TitleLines {}
         TitleLines {}
@@ -198,7 +202,10 @@ Item {
         value: ({ playtime: root.playtime, updateNote: root.updateNote })
         direction: root.direction
         animated: root.animated
-        duration: Theme.heroSubSwap; delay: Theme.heroSubSwapDelay
+        axis: "x"; distance: Theme.heroSwapTravel
+        duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
+        enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
+        delay: Theme.heroSubSwapDelay
 
         SubLine {}
         SubLine {}

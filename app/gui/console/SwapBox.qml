@@ -16,6 +16,12 @@ Item {
     property int duration: 300
     property int delay: 0
     property bool animated: true     // false : remplacement immédiat, sans glissement
+    // Style du prototype des micro-interactions (swapText), si `enterCurve` est donnée :
+    // l'entrant glisse et apparaît ensemble sur `duration` (enterCurve), le sortant part de
+    // toute la course et s'efface ensemble sur `exitDuration` (exitCurve).
+    property var enterCurve: null
+    property var exitCurve: null
+    property int exitDuration: 0
 
     property int front: 0
     readonly property Item currentItem: holder.children[front]
@@ -49,30 +55,31 @@ Item {
         enterMove.target = enterFade.target = incoming
         exitMove.target = exitFade.target = outgoing
         var size = axis === "x" ? "width" : "height"
+        var swift = enterCurve !== null
         enterMove.property = exitMove.property = axis
         enterMove.from = direction * (distance > 0 ? distance : incoming[size] * Theme.swapTravel)
         exitMove.to = -direction * (distance > 0 ? distance : outgoing[size] * Theme.swapTravel)
-                      * Theme.swapExitTravel
+                      * (swift ? 1 : Theme.swapExitTravel)
+        enterMove.duration = duration
+        enterFade.duration = swift ? duration : duration * Theme.swapEnterFade
+        exitMove.duration = swift ? exitDuration : duration * Theme.swapExitDuration
+        exitFade.duration = swift ? exitDuration : duration * Theme.swapExitFade
+        ease(enterMove, swift ? enterCurve : null, Theme.easeQuint)
+        ease(enterFade, swift ? enterCurve : null, Easing.Linear)
+        ease(exitMove, swift ? exitCurve : null, Theme.easeOut)
+        ease(exitFade, swift ? exitCurve : null, Easing.Linear)
         motion.start()
+    }
+    function ease(animation, curve, type) {
+        animation.easing.type = curve ? Easing.BezierSpline : type
+        if (curve) animation.easing.bezierCurve = curve
     }
 
     ParallelAnimation {
         id: motion
-        NumberAnimation {
-            id: enterMove; to: 0
-            duration: root.duration; easing.type: Theme.easeQuint
-        }
-        NumberAnimation {
-            id: enterFade; property: "opacity"; from: 0; to: 1
-            duration: root.duration * Theme.swapEnterFade
-        }
-        NumberAnimation {
-            id: exitMove
-            duration: root.duration * Theme.swapExitDuration; easing.type: Theme.easeOut
-        }
-        NumberAnimation {
-            id: exitFade; property: "opacity"; to: 0
-            duration: root.duration * Theme.swapExitFade
-        }
+        NumberAnimation { id: enterMove; to: 0 }
+        NumberAnimation { id: enterFade; property: "opacity"; from: 0; to: 1 }
+        NumberAnimation { id: exitMove }
+        NumberAnimation { id: exitFade; property: "opacity"; to: 0 }
     }
 }
