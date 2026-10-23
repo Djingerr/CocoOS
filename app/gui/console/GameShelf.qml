@@ -32,6 +32,28 @@ FocusScope {
     // seulement si l'appui a eu lieu ici : le relâché d'un A qui a fermé un panneau
     // ne lance rien.
     property bool pressing: false
+    // …et la vignette active s'écrase un peu, depuis son centre (comme dans le prototype).
+    property real tap: 1
+    states: State {
+        name: "pressed"; when: root.pressing
+        PropertyChanges { target: root; tap: Theme.pressScale }
+    }
+    transitions: [
+        Transition {
+            to: "pressed"
+            NumberAnimation {
+                property: "tap"; duration: Theme.pressDuration
+                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+            }
+        },
+        Transition {
+            from: "pressed"
+            NumberAnimation {
+                property: "tap"; duration: Theme.springBouncy.duration
+                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springBouncy.curve
+            }
+        }
+    ]
     // Reflet (0 → 1) qui balaie la vignette active : une fois, Theme.sheenDelay après
     // chaque déplacement (comme le prototype), et seulement si l'étagère a la manette (ni
     // en veille, ni pendant un lancement ou dans un panneau) et que son entrée est finie.
@@ -185,6 +207,11 @@ FocusScope {
                 width: Theme.shelfThumbSize.width; height: Theme.shelfThumbSize.height
                 transformOrigin: Item.BottomLeft
                 scale: 1 + (Theme.shelfActiveScale - 1) * del.f
+                transform: Scale {
+                    readonly property real factor: 1 - (1 - root.tap) * del.f
+                    origin.x: thumb.width / 2; origin.y: thumb.height / 2
+                    xScale: factor; yScale: factor
+                }
                 opacity: (del.d < 0 ? Math.min(Math.max(1 + Theme.shelfExitFade * del.d, 0), 1) : 1)
                          * (Theme.shelfRestOpacity + (1 - Theme.shelfRestOpacity) * del.f)
                          * (del.pending ? Theme.shelfPendingOpacity : 1)
@@ -203,6 +230,15 @@ FocusScope {
                     // Hors cascade d'entrée, une vignette créée en défilant est là d'emblée.
                     animateInitially: root.enterStep > 0
 
+                    // Ombre portée, sous la vignette active seulement (pré-calculée).
+                    Image {
+                        x: -Theme.shelfShadowPad; y: -Theme.shelfShadowPad
+                        width: parent.width + 2 * Theme.shelfShadowPad
+                        height: parent.height + 2 * Theme.shelfShadowPad
+                        source: "shadows/thumb.png"
+                        opacity: del.f
+                        visible: opacity > 0
+                    }
                     Item {
                         id: card
                         anchors.fill: parent
@@ -284,6 +320,14 @@ FocusScope {
                         maskSource: thumbMask
                         maskThresholdMin: 0.5
                         maskSpreadAtMin: 1.0
+                    }
+                    // Filet clair intérieur, plus net sur la vignette active.
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: Theme.shelfRounded ? Theme.shelfThumbRadius : 0
+                        color: "transparent"
+                        border.width: 1
+                        border.color: Qt.rgba(1, 1, 1, Theme.shelfEdge + (Theme.shelfEdgeActive - Theme.shelfEdge) * del.f)
                     }
                     Rectangle {
                         visible: del.progress >= 0

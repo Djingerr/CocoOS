@@ -1437,8 +1437,9 @@ FocusScope {
     property string wifiTarget: ""      // réseau en cours de connexion
 
     readonly property var wifiRows: WifiSetup.networks.map(function(n) {
-        // Le réseau connecté : coché, et le choisir à nouveau est refusé.
+        // Le réseau connecté : coché, et le choisir à nouveau est refusé (avec pourquoi).
         return { key: n.ssid, label: n.ssid, bars: n.bars, action: true, checked: n.active, locked: n.active,
+                 hint: n.active ? qsTr("La console est déjà connectée à ce réseau.") : "",
                  value: n.active ? qsTr("Connecté") : n.known ? qsTr("Enregistré") : n.secured ? "" : qsTr("Ouvert") }
     })
 

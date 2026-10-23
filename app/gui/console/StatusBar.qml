@@ -245,6 +245,17 @@ Item {
             }
         }
 
+        // Ombre de l'île ouverte (pré-calculée), sous la pastille.
+        Image {
+            x: pill.x - Theme.islandShadowPad
+            y: pill.y + pill.height / 2 - Theme.islandSize.height / 2 - Theme.islandShadowPad
+            width: Theme.islandSize.width + 2 * Theme.islandShadowPad
+            height: Theme.islandSize.height + 2 * Theme.islandShadowPad
+            source: "shadows/island.png"
+            opacity: Math.min(1, pill.open) * root.contentOpacity
+            visible: opacity > 0
+        }
+
         // --- Pastille de l'hôte, qui s'ouvre en île de notification ---
         Rectangle {
             id: pill

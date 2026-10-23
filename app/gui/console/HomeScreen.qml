@@ -87,6 +87,7 @@ FocusScope {
 
     // --- Options (bouton Y) : cf. OptionsSheet ---
     readonly property alias options: sheet           // options.open(), options.opened…
+    readonly property alias shelf: shelf             // l'étagère (shelf.pressing : A tenu)
     property alias optionTabs: sheet.tabs            // [{ label, rows }]
     readonly property alias optionRows: sheet.rows   // lignes de l'onglet affiché
     property alias optionsHost: sheet.hostName       // PC que le panneau propose d'oublier

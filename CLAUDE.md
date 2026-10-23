@@ -335,6 +335,17 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   L'accueil s'écarte donc des captures de référence du prototype Ambiant (étagère et héros) :
   `compare.py` n'a plus de sens que pour la barre haute et le fond. ⚠️ Pas vu avec les vraies
   jaquettes du PC (le harnais recadre ses images 16:10), ni à la manette.
+- ✅ **Effets du prototype des micro-interactions (2026-10-23, demande de Marco)** : ombre portée sous
+  la vignette active (0 18px 40px -12px) et sous l'île ouverte (0 14px 34px -8px), en **images
+  pré-calculées** (`shadows/*.png`, `harness/make-shadows.py`, aucun flou à l'exécution ;
+  `RectangularShadow` exigerait Qt 6.9) ; filet clair intérieur des vignettes (plus net sur
+  l'active) ; la vignette active s'écrase depuis son centre tant que A est tenu ; halo de la poignée
+  du curseur sur la ligne en focus, crans placés sous la poignée et qui pulsent quand on les franchit
+  (×1,9, orange, 440 ms) ; pouce d'interrupteur plus clair sur la ligne en focus ; explication d'un
+  refus dépliée sous la liste (réseau déjà connecté). Corrigé au passage : le soulignement des
+  onglets sautait vers « Flux » à chaque valeur changée dans « Console » (onglets recréés), et les
+  interrupteurs / chiffres / curseur s'animaient en changeant d'onglet. ⚠️ Pas vu à la manette ;
+  ombres à juger sur l'écran de la carte (discrètes sur un fond sombre, comme dans le prototype).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
@@ -484,6 +495,8 @@ Fichiers (dans `app/gui/console/`) :
 - `Logotype.qml` — le logotype « CocoOS » lettre par lettre (Sora Bold), géométrie du prototype
   de `docs/boot-animation/` ; sert à la barre haute (réduit) et à l'animation de démarrage
 - `icons/` — icônes SVG (punaise des favoris)
+- `shadows/` — ombres portées pré-calculées (vignette active, île), régénérées par
+  `harness/make-shadows.py` si une taille change (les tests vérifient leurs dimensions)
 - `languages/qml_en.ts` (+ `.qm` compilé, embarqué) — traduction anglaise de tous les textes
   console, QML et C++ (cf §11 pour la mettre à jour)
 - `StatusBar.qml` — barre haute : logotype, pastille de l'hôte + horloge / Wi-Fi / batterie (éclair en
@@ -775,6 +788,7 @@ qml-qt6 Harness.qml -- view=PagesDemo page=code        # search|loading|pin|pin-
 ./shot.sh /tmp/c.png view=ConsoleHomeDemo do=right,pin noart=Hades\ II at=2600 delay=6500   # vrai ConsoleHome
 ./ref-capture.py                                       # régénère ../ref/ et art/ depuis le prototype
 ./make-sounds.py                                       # régénère app/gui/console/sounds/*.wav (dont boot-*)
+./make-shadows.py                                      # régénère app/gui/console/shadows/*.png (ombres portées)
 # menu en jeu (C++, hors appli) : compiler streammenu-shot.cpp (commande en tête du fichier), puis
 QT_QPA_PLATFORM=offscreen /tmp/streammenu-shot /tmp/m.png page=menu stats=1 backdrop=art/hades2.jpg
 QT_QPA_PLATFORM=offscreen /tmp/streammenu-shot /tmp/m.png reveal=0.4 veil=0.5 blur=0.5 backdrop=art/hades2.jpg   # une étape d'animation

@@ -14,6 +14,7 @@ Item {
     GameShelf { id: shelf; width: parent.width; model: games }
     SignalSpy { id: launches; target: shelf; signalName: "launchRequested" }
     Item { id: other }
+    Image { id: thumbShadow; source: "../../../../app/gui/console/shadows/thumb.png" }
 
     TestCase {
         name: "GameShelf"
@@ -150,9 +151,11 @@ Item {
             keyPress(Qt.Key_Return)
             verify(shelf.pressing)
             compare(launches.count, 0)
+            tryCompare(shelf, "tap", Theme.pressScale, 500)     // la vignette active s'écrase…
             keyRelease(Qt.Key_Return)
             verify(!shelf.pressing)
             compare(launches.count, 1)
+            tryCompare(shelf, "tap", 1, Theme.springBouncy.duration + 500)   // …et revient
 
             keyRelease(Qt.Key_Return)                   // relâché sans appui
             compare(launches.count, 1)
@@ -163,6 +166,13 @@ Item {
             shelf.forceActiveFocus()
             keyRelease(Qt.Key_Return)
             compare(launches.count, 1)
+        }
+
+        // L'ombre pré-calculée (make-shadows.py) correspond à la vignette de Theme.qml.
+        function test_shadowMatchesTheThumbnail() {
+            tryCompare(thumbShadow, "status", Image.Ready)
+            compare(thumbShadow.implicitWidth, 2 * (Theme.shelfThumbSize.width + 2 * Theme.shelfShadowPad))
+            compare(thumbShadow.implicitHeight, 2 * (Theme.shelfThumbSize.height + 2 * Theme.shelfShadowPad))
         }
 
         // Reflet : il balaie la vignette active une fois, Theme.sheenDelay après un

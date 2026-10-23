@@ -12,7 +12,7 @@ import "../../../../app/gui/console/Format.js" as Format
 //   goto   index vers lequel se déplacer à `at` ms (pour capturer une transition)
 //   do     actions jouées à `at` ms, séparées par des virgules et espacées de
 //          150 ms : options, up, down, left, right, a, launch, tab (onglet suivant),
-//          hold / release (A enfoncé / relâché, sans agir : bouton Jouer ou panneau ouvert),
+//          hold / release (A enfoncé / relâché, sans agir : étagère et bouton Jouer, ou panneau ouvert),
 //          île de notification : pad (une manette arrive), lost / back (PC perdu / retrouvé),
 //          lowbattery (batterie sous le seuil), b (B la referme)
 //   at     instant de `goto` / `do`, en ms (300 par défaut)
@@ -171,7 +171,7 @@ HomeScreen {
             else if (action === "b") demo.dismissNotification()
             else if (action === "hold" || action === "release") {
                 if (demo.options.opened) demo.options.pressing = action === "hold"
-                else demo.pressed = action === "hold"
+                else demo.shelf.pressing = action === "hold"
             }
         }
     }

@@ -717,9 +717,11 @@ Item {
             verify(sheet && sheet.opened)
             compare(sheet.rows.map(function(r) { return r.label }), ["Maison", "Voisins", "Café"])
             verify(sheet.rows[0].checked && !sheet.rows[1].checked)  // le réseau connecté est coché…
-            keyClick(Qt.Key_Return)                         // …et le choisir à nouveau est refusé
+            keyClick(Qt.Key_Return)                         // …et le choisir à nouveau est refusé…
             verify(sheet.opened)
             compare(WifiSetup.lastConnect, null)
+            verify(sheet.hintShown)                         // …avec pourquoi, sous la liste
+            compare(sheet.hint, "La console est déjà connectée à ce réseau.")
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)  // « Voisins » : protégé, inconnu
             verify(!sheet.opened)
             keyClick(Qt.Key_S); keyClick(Qt.Key_E); keyClick(Qt.Key_C); keyClick(Qt.Key_R)
@@ -894,6 +896,7 @@ Item {
             var at40 = values.findIndex(function(v) { return v[1] === 40 })
             verify(at40 > 0, "arrêt sur 40 : " + values.map(function(v) { return v[1] }))
             verify(values[at40 + 1][0] - values[at40][0] >= Theme.sliderStopHold - 30, "arrêté sur 40")
+            verify(sheet.pulseStop === 40 || sheet.pulseStop === 80, "un cran franchi pulse")
 
             p.bitrateKbps = 150000; home.refreshOptions()
             keyClick(Qt.Key_Right)                          // au bout : la butée

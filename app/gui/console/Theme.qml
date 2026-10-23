@@ -177,6 +177,9 @@ QtObject {
     readonly property size islandSize: Qt.size(340, 72)
     readonly property int islandRadius: 28
     readonly property int islandRadiusMove: 380
+    // Ombre de l'île ouverte (prototype : 0 14px 34px -8px, noir à 80 %) : shadows/island.png
+    // (make-shadows.py), qui déborde de islandShadowPad.
+    readonly property int islandShadowPad: 65
     readonly property color islandFill: Qt.rgba(0, 0, 0, 0.88)
     readonly property int islandPadLeft: 16
     readonly property int islandPadRight: 20
@@ -285,6 +288,13 @@ QtObject {
     // Coins arrondis des vignettes : un masque GPU par vignette visible. Passer à
     // false (coins droits) si la carte cible ne tient pas ses 60 images par seconde.
     readonly property bool shelfRounded: true
+    // Ombre portée de la vignette active (prototype : 0 18px 40px -12px, noir à 90 %) : une
+    // image pré-calculée (shadows/thumb.png, harness/make-shadows.py, à relancer si la taille
+    // change), qui déborde de shelfShadowPad tout autour. Un filet clair intérieur borde
+    // chaque vignette (shelfEdge), plus net sur l'active (shelfEdgeActive).
+    readonly property int shelfShadowPad: 78
+    readonly property real shelfEdge: 0.06
+    readonly property real shelfEdgeActive: 0.10
     readonly property int thumbFadeIn: 260           // la jaquette chargée apparaît en fondu
     // Jeu sans jaquette : dégradé teinté d'après son nom, le nom au centre.
     readonly property real placeholderSaturation: 0.28
@@ -463,6 +473,15 @@ QtObject {
     readonly property int signalBarStep: 3           // hauteur ajoutée par barre
     readonly property int signalBarGap: 2
     readonly property int sheetHintRight: 24         // retrait du glyphe (A) de la ligne « Oublier ce PC »
+    // Explication d'un refus (ligne `locked` avec `hint`), dépliée sous la liste (unfold*) le
+    // temps de sheetHintHold ms.
+    readonly property int sheetHintTop: 10
+    readonly property int sheetHintPadH: 12
+    readonly property int sheetHintPadV: 10
+    readonly property int sheetHintRadius: 10
+    readonly property int sheetHintSize: 13
+    readonly property color sheetHintFill: Qt.rgba(1, 1, 1, 0.06)
+    readonly property int sheetHintHold: 3000
     // Interrupteur d'une ligne à deux états (HDR, Sons) : piste à contour fin, pouce qui
     // glisse avec springBouncy et s'étire pendant l'appui, orange qui se répand depuis la
     // place du pouce éteint (prototype « Interrupteurs »).
@@ -471,6 +490,7 @@ QtObject {
     readonly property color switchStrokeColor: Qt.rgba(1, 1, 1, 0.18)
     readonly property int switchInset: 3             // entre la piste et le pouce
     readonly property int switchThumb: 22
+    readonly property color switchThumbFocus: "#B6B2AC"   // pouce éteint, ligne en focus : plus clair
     readonly property int switchThumbStretch: 28     // pendant l'appui…
     readonly property int switchStretch: 150         // …en tant de ms, curveOut
     readonly property int switchFillRadius: 62       // disque orange centré sur le pouce éteint…
@@ -499,14 +519,21 @@ QtObject {
     // Curseur (ligne `slider` : le débit), plus haut qu'une ligne : sa piste sous le
     // libellé. Remplissage et curseur suivent la valeur avec springSnappy.
     readonly property int sheetSliderRowHeight: 100
-    readonly property int sliderTrackY: 72           // centre de la piste, depuis le haut de la ligne
+    readonly property int sliderTrackY: 66           // centre de la piste, depuis le haut de la ligne
     readonly property int sliderRailHeight: 6
     readonly property color sliderRail: Qt.rgba(1, 1, 1, 0.12)
     readonly property size sliderThumb: Qt.size(4, 24)
     readonly property size sliderThumbFocus: Qt.size(6, 32)
     readonly property int sliderThumbGrow: 220       // curveOut
+    readonly property int sliderHalo: 5              // halo de la poignée quand la ligne a le focus
+    readonly property color sliderHaloFill: Qt.rgba(1, 1, 1, 0.10)
+    // Un cran franchi pulse : il s'allonge jusqu'à sliderPulseScale (à sliderPulsePeak de la
+    // durée) en passant à l'orange, puis revient, en sliderPulse ms (curveOut).
+    readonly property int sliderPulse: 440
+    readonly property real sliderPulseScale: 1.9
+    readonly property real sliderPulsePeak: 0.3
     readonly property int sliderTickHeight: 10       // crans (stops), sous la piste
-    readonly property int sliderTickGap: 6
+    readonly property int sliderTickGap: 14          // sous la piste, au-delà de la poignée (qui y passe)
     // Maintenu, le pas accélère : sliderSteps[i] à partir de sliderStepAfter[i - 1]
     // répétitions ; il marque un arrêt de sliderStopHold ms sur chaque cran.
     readonly property var sliderSteps: [1, 2, 5]

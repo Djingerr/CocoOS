@@ -20,7 +20,8 @@ FocusScope {
     // { key, label, slider: true, value, min, max, stops, format: "%1 Mb/s", auto } signale
     // la nouvelle valeur à la place d'un index (`auto` : valeur grisée, calculée ailleurs).
     // `checked` (vrai ou faux) réserve une coche devant le libellé, tracée si vrai (réseau
-    // connecté) ; `locked` : la ligne refuse A (et ← / → pour un réglage) en se secouant.
+    // connecté) ; `locked` : la ligne refuse A (et ← / → pour un réglage) en se secouant, et
+    // son `hint`, s'il y en a un, se déplie sous la liste.
     property string title: qsTr("Options")
     property var tabs: []
     property int tab: 0
@@ -59,6 +60,22 @@ FocusScope {
     // Curseur maintenu : répétitions comptées (le pas accélère), arrêt sur un cran.
     property int sliderRepeats: 0
     property double sliderHoldUntil: 0
+    // Cran du curseur qui vient d'être franchi (il pulse), et l'avancée de sa pulsation.
+    property int pulseStop: -1
+    property real pulse: 1
+    NumberAnimation {
+        id: pulseAnim
+        target: root; property: "pulse"; from: 0; to: 1
+        duration: Theme.sliderPulse
+        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+    }
+    // 0 → 1 → 0 : la forme de la pulsation, pointe à Theme.sliderPulsePeak.
+    readonly property real pulseShape: pulse < Theme.sliderPulsePeak ? pulse / Theme.sliderPulsePeak
+                                                                      : (1 - pulse) / (1 - Theme.sliderPulsePeak)
+    // Explication d'un refus, dépliée sous la liste quelques secondes.
+    property string hint: ""
+    property bool hintShown: false
+    Timer { id: hintTimer; interval: Theme.sheetHintHold; onTriggered: root.hintShown = false }
     readonly property bool forgettable: tab === 0 && hostName !== ""
     readonly property int lineCount: rows.length + (forgettable ? 1 : 0)
     // 0 = fermé, 1 = ouvert ; le panneau et le voile en découlent.
@@ -71,6 +88,7 @@ FocusScope {
         tab = 0
         current = 0
         pressing = false
+        hintShown = false
         forgetHold.reset()
         opened = true
         forceActiveFocus()
@@ -97,6 +115,7 @@ FocusScope {
         applyFlick()
         bumpAnim.complete()
         rubberAnim.complete()
+        hintShown = false
         current = next
         Sounds.play("move")
     }
@@ -110,6 +129,7 @@ FocusScope {
         applyFlick()
         bumpAnim.complete()
         rubberAnim.complete()
+        hintShown = false
         settling = true
         tab = next
         settling = false
@@ -125,6 +145,11 @@ FocusScope {
             lineRepeater.itemAt(current).refuse()
             focusHighlight.refuse()             // (la ligne et son surlignage, ensemble)
             Sounds.play("edge")
+            if (row.hint) {
+                hint = row.hint
+                hintShown = true
+                hintTimer.restart()
+            }
             return
         }
         if (row.action) {
@@ -179,12 +204,16 @@ FocusScope {
         var after = Theme.sliderStepAfter, steps = Theme.sliderSteps
         var step = sliderRepeats < after[0] ? steps[0] : sliderRepeats < after[1] ? steps[1] : steps[2]
         var next = Math.min(row.max, Math.max(row.min, row.value + dir * step))
-        for (var i = 0; repeat && i < row.stops.length; i++) {
+        for (var i = 0; i < row.stops.length; i++) {
             var stop = row.stops[i]
             if (dir > 0 ? row.value < stop && next >= stop : row.value > stop && next <= stop) {
-                next = stop
-                sliderHoldUntil = now + Theme.sliderStopHold
-                sliderRepeats = 0
+                if (repeat) {                   // maintenu : arrêt sur le cran
+                    next = stop
+                    sliderHoldUntil = now + Theme.sliderStopHold
+                    sliderRepeats = 0
+                }
+                pulseStop = stop                // franchi : il pulse
+                pulseAnim.restart()
                 break
             }
         }
@@ -313,6 +342,7 @@ FocusScope {
         id: sw
         property bool animated: true
         property bool checked: false
+        property bool focused: false
         property bool pressed: false
         property real nudge: 0               // butée, en px
         property string text                 // la valeur, pour les lecteurs d'écran
@@ -351,7 +381,7 @@ FocusScope {
             height: Theme.switchThumb
             radius: height / 2
             x: sw.checked ? sw.width - Theme.switchInset - width : Theme.switchInset
-            color: sw.checked ? Theme.inkOnAccent : Theme.ink2
+            color: sw.checked ? Theme.inkOnAccent : sw.focused ? Theme.switchThumbFocus : Theme.ink2
             transform: Translate { x: sw.nudge }
             Behavior on x {
                 enabled: sw.animated
@@ -661,6 +691,7 @@ FocusScope {
                             animated: !root.settling
                             visible: line.row.toggle === true
                             checked: line.row.index === 1
+                            focused: line.focused
                             pressed: line.focused && (root.pressingRow || (root.flick !== null && root.flick.row === line.index))
                             nudge: line.focused ? root.bumpDir * Theme.switchBump * (1 - Math.abs(2 * root.bump - 1)) : 0
                             text: line.row.toggle === true ? line.row.options[line.row.index] : ""
@@ -737,13 +768,32 @@ FocusScope {
                         Repeater {
                             model: line.row.slider ? line.row.stops : []
                             Rectangle {
+                                id: tick
+                                readonly property real pulse: modelData === root.pulseStop && root.pulse < 1 ? root.pulseShape : 0
                                 x: (modelData - line.row.min) / (line.row.max - line.row.min) * slider.width
                                 y: Theme.sliderRailHeight / 2 + Theme.sliderTickGap
                                 width: 1; height: Theme.sliderTickHeight
-                                color: modelData <= line.row.value ? line.ink : Theme.inkOff
+                                color: Qt.tint(modelData <= line.row.value ? line.ink : Theme.inkOff,
+                                               Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, pulse))
+                                transform: Scale { yScale: 1 + (Theme.sliderPulseScale - 1) * tick.pulse }
                             }
                         }
                         Rectangle {
+                            x: sliderThumb.x - Theme.sliderHalo; y: sliderThumb.y - Theme.sliderHalo
+                            width: sliderThumb.width + 2 * Theme.sliderHalo
+                            height: sliderThumb.height + 2 * Theme.sliderHalo
+                            radius: width / 2
+                            color: Theme.sliderHaloFill
+                            opacity: line.focused ? 1 : 0
+                            Behavior on opacity {
+                                NumberAnimation {
+                                    duration: Theme.sliderThumbGrow
+                                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                                }
+                            }
+                        }
+                        Rectangle {
+                            id: sliderThumb
                             x: slider.at + slider.rubber - width / 2
                             y: -height / 2
                             width: line.focused ? Theme.sliderThumbFocus.width : Theme.sliderThumb.width
@@ -818,6 +868,50 @@ FocusScope {
                             root.current = root.rows.length
                             Sounds.play("move")
                         }
+                    }
+                }
+            }
+            // Explication d'un refus : elle se déplie sous la liste (sa place, puis le texte).
+            Item {
+                y: root.rowY(root.lineCount) + Theme.sheetHintTop
+                width: list.width
+                height: root.hintShown ? hintBox.height : 0
+                visible: height > 0
+                clip: true
+                Behavior on height {
+                    NumberAnimation {
+                        duration: Theme.unfoldDuration
+                        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                    }
+                }
+                Rectangle {
+                    id: hintBox
+                    y: root.hintShown ? 0 : -Theme.unfoldShift
+                    width: parent.width
+                    height: hintText.implicitHeight + 2 * Theme.sheetHintPadV
+                    radius: Theme.sheetHintRadius
+                    color: Theme.sheetHintFill
+                    opacity: root.hintShown ? 1 : 0
+                    Behavior on y {
+                        NumberAnimation {
+                            duration: Theme.unfoldMove
+                            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                        }
+                    }
+                    Behavior on opacity {
+                        NumberAnimation {
+                            duration: Theme.unfoldFade
+                            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                        }
+                    }
+                    Text {
+                        id: hintText
+                        x: Theme.sheetHintPadH; y: Theme.sheetHintPadV
+                        width: parent.width - 2 * Theme.sheetHintPadH
+                        text: root.hint
+                        color: Theme.ink2
+                        wrapMode: Text.WordWrap
+                        font.family: Theme.fontUi; font.pixelSize: Theme.sheetHintSize
                     }
                 }
             }

@@ -9,6 +9,7 @@ Item {
     width: Theme.canvasWidth; height: 200
 
     StatusBar { id: bar; width: parent.width; hostName: "Djinger"; connected: true }
+    Image { id: islandShadow; source: "../../../../app/gui/console/shadows/island.png" }
 
     TestCase {
         name: "StatusBar"
@@ -24,6 +25,13 @@ Item {
             bar.batteryPercent = 80; bar.charging = false
             wait(50)
             bar.notificationsAllowed = true
+        }
+
+        // L'ombre pré-calculée (make-shadows.py) correspond à l'île de Theme.qml.
+        function test_shadowMatchesTheIsland() {
+            tryCompare(islandShadow, "status", Image.Ready)
+            compare(islandShadow.implicitWidth, 2 * (Theme.islandSize.width + 2 * Theme.islandShadowPad))
+            compare(islandShadow.implicitHeight, 2 * (Theme.islandSize.height + 2 * Theme.islandShadowPad))
         }
 
         function test_opensThenClosesByItself() {

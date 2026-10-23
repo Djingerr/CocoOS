@@ -449,14 +449,14 @@
     </message>
     <message>
         <location filename="../ConsoleHome.qml" line="1121"/>
-        <location filename="../ConsoleHome.qml" line="1514"/>
-        <location filename="../ConsoleHome.qml" line="1518"/>
+        <location filename="../ConsoleHome.qml" line="1515"/>
+        <location filename="../ConsoleHome.qml" line="1519"/>
         <source>Wi-Fi</source>
         <translation>Wi-Fi</translation>
     </message>
     <message>
         <location filename="../ConsoleHome.qml" line="1122"/>
-        <location filename="../ConsoleHome.qml" line="1516"/>
+        <location filename="../ConsoleHome.qml" line="1517"/>
         <source>Non connecté</source>
         <translation>Not connected</translation>
     </message>
@@ -507,7 +507,7 @@
     </message>
     <message>
         <location filename="../ConsoleHome.qml" line="1141"/>
-        <location filename="../ConsoleHome.qml" line="1699"/>
+        <location filename="../ConsoleHome.qml" line="1700"/>
         <source>Console</source>
         <translation>Console</translation>
     </message>
@@ -648,116 +648,121 @@
     </message>
     <message>
         <location filename="../ConsoleHome.qml" line="1442"/>
+        <source>La console est déjà connectée à ce réseau.</source>
+        <translation>The console is already connected to this network.</translation>
+    </message>
+    <message>
+        <location filename="../ConsoleHome.qml" line="1443"/>
         <source>Connecté</source>
         <translation>Connected</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1442"/>
+        <location filename="../ConsoleHome.qml" line="1443"/>
         <source>Enregistré</source>
         <translation>Saved</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1442"/>
+        <location filename="../ConsoleHome.qml" line="1443"/>
         <source>Ouvert</source>
         <translation>Open</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1455"/>
-        <location filename="../ConsoleHome.qml" line="1479"/>
+        <location filename="../ConsoleHome.qml" line="1456"/>
+        <location filename="../ConsoleHome.qml" line="1480"/>
         <source>Mot de passe de %1</source>
         <translation>Password for %1</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1465"/>
+        <location filename="../ConsoleHome.qml" line="1466"/>
         <source>Connexion à %1…</source>
         <translation>Connecting to %1…</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1473"/>
-        <location filename="../ConsoleHome.qml" line="1515"/>
+        <location filename="../ConsoleHome.qml" line="1474"/>
+        <location filename="../ConsoleHome.qml" line="1516"/>
         <source>Connecté à %1</source>
         <translation>Connected to %1</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1516"/>
+        <location filename="../ConsoleHome.qml" line="1517"/>
         <source>Recherche des réseaux…</source>
         <translation>Searching for networks…</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1542"/>
+        <location filename="../ConsoleHome.qml" line="1543"/>
         <source>Menu</source>
         <translation>Menu</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1640"/>
+        <location filename="../ConsoleHome.qml" line="1641"/>
         <source>Mettre à jour</source>
         <translation>Update</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1641"/>
+        <location filename="../ConsoleHome.qml" line="1642"/>
         <source>Annuler</source>
         <translation>Cancel</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1652"/>
+        <location filename="../ConsoleHome.qml" line="1653"/>
         <source>Mise à jour de %1 sur le PC</source>
         <translation>Installing a %1 update on the PC</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1653"/>
+        <location filename="../ConsoleHome.qml" line="1654"/>
         <source>Mise à jour sur le PC</source>
         <translation>Updating on the PC</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1711"/>
+        <location filename="../ConsoleHome.qml" line="1712"/>
         <source>Code expiré — relancez la liaison depuis le PC.</source>
         <translation>Code expired — restart pairing from the PC.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1712"/>
+        <location filename="../ConsoleHome.qml" line="1713"/>
         <source>Code incorrect — réessayez.</source>
         <translation>Wrong code — try again.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1719"/>
+        <location filename="../ConsoleHome.qml" line="1720"/>
         <source>%1 a été désinstallé</source>
         <translation>%1 was uninstalled</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1722"/>
-        <location filename="../ConsoleHome.qml" line="1729"/>
+        <location filename="../ConsoleHome.qml" line="1723"/>
+        <location filename="../ConsoleHome.qml" line="1730"/>
         <source>La désinstallation de %1 a échoué</source>
         <translation>Uninstalling %1 failed</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1727"/>
-        <location filename="../ConsoleHome.qml" line="1741"/>
+        <location filename="../ConsoleHome.qml" line="1728"/>
+        <location filename="../ConsoleHome.qml" line="1742"/>
         <source>Impossible pendant le lancement d&apos;un jeu</source>
         <translation>Not possible while a game is launching</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1728"/>
-        <location filename="../ConsoleHome.qml" line="1742"/>
+        <location filename="../ConsoleHome.qml" line="1729"/>
+        <location filename="../ConsoleHome.qml" line="1743"/>
         <source>Steam est introuvable sur %1</source>
         <translation>Steam can&apos;t be found on %1</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1743"/>
+        <location filename="../ConsoleHome.qml" line="1744"/>
         <source>Le téléchargement de %1 a échoué</source>
         <translation>Downloading %1 failed</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1767"/>
+        <location filename="../ConsoleHome.qml" line="1768"/>
         <source>Mise à jour requise</source>
         <translation>Update required</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1769"/>
+        <location filename="../ConsoleHome.qml" line="1770"/>
         <source>Ce jeu doit être mis à jour (%1) avant d&apos;y jouer.</source>
         <translation>This game needs an update (%1) before you can play it.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="1770"/>
+        <location filename="../ConsoleHome.qml" line="1771"/>
         <source>Ce jeu doit être mis à jour avant d&apos;y jouer.</source>
         <translation>This game needs an update before you can play it.</translation>
     </message>
@@ -916,28 +921,28 @@
 <context>
     <name>OptionsSheet</name>
     <message>
-        <location filename="../OptionsSheet.qml" line="24"/>
+        <location filename="../OptionsSheet.qml" line="25"/>
         <source>Options</source>
         <translation>Options</translation>
     </message>
     <message>
-        <location filename="../OptionsSheet.qml" line="786"/>
-        <location filename="../OptionsSheet.qml" line="819"/>
+        <location filename="../OptionsSheet.qml" line="851"/>
+        <location filename="../OptionsSheet.qml" line="928"/>
         <source>Oublier ce PC</source>
         <translation>Forget this PC</translation>
     </message>
     <message>
-        <location filename="../OptionsSheet.qml" line="834"/>
+        <location filename="../OptionsSheet.qml" line="943"/>
         <source>Fermer</source>
         <translation>Close</translation>
     </message>
     <message>
-        <location filename="../OptionsSheet.qml" line="835"/>
+        <location filename="../OptionsSheet.qml" line="944"/>
         <source>Changer</source>
         <translation>Change</translation>
     </message>
     <message>
-        <location filename="../OptionsSheet.qml" line="835"/>
+        <location filename="../OptionsSheet.qml" line="944"/>
         <source>Maintenir</source>
         <translation>Hold</translation>
     </message>
@@ -1018,13 +1023,13 @@
         <translation>Latency %1 ms · jitter %2 ms</translation>
     </message>
     <message>
-        <location filename="../StatusBar.qml" line="354"/>
+        <location filename="../StatusBar.qml" line="365"/>
         <source>connexion…</source>
         <translation>connecting…</translation>
     </message>
     <message>
         <location filename="../StatusBar.qml" line="115"/>
-        <location filename="../StatusBar.qml" line="355"/>
+        <location filename="../StatusBar.qml" line="366"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>

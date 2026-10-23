@@ -36,6 +36,8 @@
         <file>gui/console/OnScreenKeyboard.qml</file>
         <file>gui/console/BootSplash.qml</file>
         <file>gui/console/icons/pin.svg</file>
+        <file>gui/console/shadows/thumb.png</file>
+        <file>gui/console/shadows/island.png</file>
         <file>gui/console/Appear.qml</file>
         <file>gui/console/SwapBox.qml</file>
         <file>gui/console/ButtonGlyph.qml</file>
