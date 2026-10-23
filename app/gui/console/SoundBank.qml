@@ -10,13 +10,19 @@ Item {
     id: bank
 
     readonly property var names: ["move", "edge", "select", "back", "open", "close", "tick", "launch", "ready",
-                                  "boot-close", "boot-open"]
+                                  "boot-close", "boot-open",
+                                  "toggle-on", "toggle-off", "hold", "confirm", "deny", "notify", "detent", "segment"]
     property var effects: ({})
 
     function play(name) {
         var effect = effects[name]
         if (effect)
             effect.play()
+    }
+    function stop(name) {
+        var effect = effects[name]
+        if (effect)
+            effect.stop()
     }
 
     Instantiator {

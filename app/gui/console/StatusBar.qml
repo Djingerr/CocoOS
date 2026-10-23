@@ -52,6 +52,7 @@ Item {
     // Ouvre l'île (ou remplace la notification affichée, sans refermer).
     function notify(n) {
         if (!notificationsAllowed) return
+        Sounds.play("notify")
         holdTimer.restart()
         if (islandOpen && islandContentShown) {
             islandContentShown = false

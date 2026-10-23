@@ -30,6 +30,8 @@ Item {
 
     onHoldingChanged: {
         if (done) return
+        if (holding) Sounds.play("hold")
+        else Sounds.stop("hold")
         run.stop()
         run.to = holding ? 1 : 0
         run.duration = (holding ? 1 - progress : progress) * (holding ? Theme.holdDuration : Theme.holdDrain)
@@ -38,7 +40,12 @@ Item {
     NumberAnimation {
         id: run
         target: root; property: "progress"
-        onFinished: if (root.holding && root.progress >= 1) { root.done = true; finish.start() }
+        onFinished: if (root.holding && root.progress >= 1) {
+            root.done = true
+            Sounds.stop("hold")
+            Sounds.play("confirm")
+            finish.start()
+        }
     }
     SequentialAnimation {
         id: finish

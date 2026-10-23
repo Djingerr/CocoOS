@@ -852,7 +852,7 @@ FocusScope {
         // adresse vide (« Host not found (Error 3) »).
         if (!activeHostOnline) {
             homeScreen.refusePlay()
-            Sounds.play("edge")
+            Sounds.play("deny")
             homeScreen.toast(qsTr("%1 est hors ligne").arg(activeHostName))
             return
         }

@@ -80,7 +80,7 @@ FocusScope {
                     || value === stop) {
                 pulseStop = stop                // un cran franchi (ou atteint) pulse
                 pulseAnim.restart()
-                Sounds.play("tick")
+                Sounds.play("detent")
                 break
             }
         }
@@ -202,7 +202,7 @@ FocusScope {
         if (row.locked && (wrap || !row.action)) {
             lineRepeater.itemAt(current).refuse()
             focusHighlight.refuse()             // (la ligne et son surlignage, ensemble)
-            Sounds.play("edge")
+            Sounds.play("deny")
             if (row.hint) {
                 hint = row.hint
                 hintShown = true
@@ -233,7 +233,7 @@ FocusScope {
                 return
             }
             applyFlick()
-            Sounds.play("tick")
+            Sounds.play(want === 1 ? "toggle-on" : "toggle-off")
             flick = { row: current, key: row.key, index: want }
             flickWait.restart()
             return
@@ -245,7 +245,7 @@ FocusScope {
             return
         }
         direction = dir
-        Sounds.play("tick")
+        Sounds.play(row.toggle ? (next === 1 ? "toggle-on" : "toggle-off") : row.segments ? "segment" : "tick")
         changed(row.key, next)
     }
     // Curseur : un cran, puis plus vite à l'appui maintenu (Theme.slider*), avec un arrêt
@@ -262,6 +262,7 @@ FocusScope {
         var after = Theme.sliderStepAfter, steps = Theme.sliderSteps
         var step = sliderRepeats < after[0] ? steps[0] : sliderRepeats < after[1] ? steps[1] : steps[2]
         var next = Math.min(row.max, Math.max(row.min, row.value + dir * step))
+        var crossed = false
         for (var i = 0; i < row.stops.length; i++) {
             var stop = row.stops[i]
             if (dir > 0 ? row.value < stop && next >= stop : row.value > stop && next <= stop) {
@@ -270,12 +271,13 @@ FocusScope {
                     sliderHoldUntil = now + Theme.sliderStopHold
                     sliderRepeats = 0
                 }
-                pulseStop = stop                // franchi : il pulse
+                pulseStop = stop                // franchi : il pulse, et clique
                 pulseAnim.restart()
+                crossed = true
                 break
             }
         }
-        Sounds.play("tick")
+        Sounds.play(crossed ? "detent" : "tick")
         changed(row.key, next)
     }
     function rubber(dir) {
@@ -315,7 +317,7 @@ FocusScope {
         var row = rows[line]
         if (index === row.index) return
         direction = index > row.index ? 1 : -1
-        Sounds.play("tick")
+        Sounds.play("segment")
         changed(row.key, index)
     }
     function rowY(i) {
@@ -1119,10 +1121,7 @@ FocusScope {
                     doneLabel: qsTr("PC oublié")
                     labelX: Theme.sheetFocusOutset
                     radius: Theme.sheetFocusRadius
-                    onCompleted: {
-                        Sounds.play("select")
-                        root.forgetConfirmed()
-                    }
+                    onCompleted: root.forgetConfirmed()      // (« confirm » : joué par HoldFill)
                 }
             }
         }

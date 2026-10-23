@@ -58,7 +58,8 @@ FocusScope {
         closed()
     }
 
-    function activate() {
+    // `silent` : le son est déjà joué (« confirm » d'un appui maintenu).
+    function activate(silent) {
         if (actions.length > 0) {
             opened = false
             Sounds.play("select")
@@ -66,7 +67,7 @@ FocusScope {
             closed()
         } else if (focusedButton === 1) {
             opened = false
-            Sounds.play("select")
+            if (!silent) Sounds.play("select")
             confirmed()
             closed()
         } else {
@@ -241,7 +242,7 @@ FocusScope {
                         doneLabel: root.doneLabel
                         labelX: Theme.sheetFocusOutset
                         radius: Theme.sheetFocusRadius
-                        onCompleted: root.activate()
+                        onCompleted: root.activate(true)
                     }
                 }
             }

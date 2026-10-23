@@ -64,7 +64,7 @@ MessageScreen {
     Keys.onDownPressed: { setDigit(active, digits[active] - 1); Sounds.play("tick") }
     onActivated: submit()
     // Code refusé par le PC : les cases se secouent, le message se déplie.
-    onErrorTextChanged: if (errorText !== "") { refuse(); Sounds.play("edge") }
+    onErrorTextChanged: if (errorText !== "") { refuse(); Sounds.play("deny") }
     Keys.onPressed: function(event) {
         if (event.key >= Qt.Key_0 && event.key <= Qt.Key_9) {
             setDigit(active, event.key - Qt.Key_0)

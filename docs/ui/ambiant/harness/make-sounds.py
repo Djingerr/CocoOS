@@ -38,6 +38,16 @@ SOUNDS = {
     "tick":   [(1800, 0.025, dict(gain=0.018, type="triangle"))],
     "launch": [(200, 1.8, dict(gain=0.018, to=620))],
     "ready":  [(880, 0.10, dict(gain=0.035)), (1320, 0.20, dict(gain=0.03, at=0.08))],
+    # Micro-interactions (même synthèse, sons propres à la console) :
+    "toggle-on":  [(720, 0.05, dict(gain=0.035)), (1080, 0.08, dict(gain=0.03, at=0.04))],
+    "toggle-off": [(900, 0.05, dict(gain=0.03)), (600, 0.08, dict(gain=0.03, at=0.04))],
+    "hold":       [(260, 0.90, dict(gain=0.02, to=780, type="triangle"))],   # appui maintenu (Theme.holdDuration)
+    "confirm":    [(660, 0.10, dict(gain=0.04)), (880, 0.12, dict(gain=0.035, at=0.06)),
+                   (1320, 0.24, dict(gain=0.03, at=0.12))],
+    "deny":       [(240, 0.07, dict(gain=0.055, type="triangle")), (180, 0.10, dict(gain=0.05, type="triangle", at=0.08))],
+    "notify":     [(1047, 0.12, dict(gain=0.028)), (1568, 0.26, dict(gain=0.022, at=0.10))],
+    "detent":     [(2400, 0.02, dict(gain=0.02, type="triangle"))],
+    "segment":    [(560, 0.10, dict(gain=0.03, to=760))],
 }
 ATTACK = 0.006      # montée du gain
 FLOOR = 0.0001      # gain de départ et d'arrivée (les rampes WebAudio sont exponentielles)

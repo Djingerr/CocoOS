@@ -346,6 +346,15 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   onglets sautait vers « Flux » à chaque valeur changée dans « Console » (onglets recréés), et les
   interrupteurs / chiffres / curseur s'animaient en changeant d'onglet. ⚠️ Pas vu à la manette ;
   ombres à juger sur l'écran de la carte (discrètes sur un fond sombre, comme dans le prototype).
+- ✅ **Suite des effets du prototype (2026-10-23, demande de Marco)** : au changement de jeu, méta,
+  titre et sous-titre du héros font le swapText du prototype (14 px, 380 ms à l'entrée, 220 ms à la
+  sortie, sans flou) ; au lancement, « Jouer » cède la place à « Lancement… » (« Reprise… ») et le
+  bouton s'élargit ; un appui maintenu plein montre une coche tracée et un libellé de fin
+  (« Extinction », « PC oublié »…) avant l'action, et se fait aussi à la souris (clic tenu) ; le
+  curseur de débit se règle à la souris (clic, glisser, accroche aux crans, butée élastique). **Sons**
+  nouveaux, synthétisés comme les autres (`make-sounds.py`) : `toggle-on` / `toggle-off`, `hold`
+  (coupé si on lâche) puis `confirm`, `deny` (refus), `notify` (île), `detent` (cran du curseur),
+  `segment` (profil). ⚠️ Aucun son n'a encore été écouté ; rien vu à la manette.
 - ✅ **Profils de flux (2026-10-23, demande de Marco ; phase 1 du chantier §12)** : en tête de
   l'onglet Flux, un sélecteur (prototype « Sélecteur de profil » : pastille élastique, chiffres
   remplacés en cascade) — Compétitif, **Équilibré (par défaut)**, Qualité, Économie, Manuel
