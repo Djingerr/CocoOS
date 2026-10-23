@@ -193,8 +193,24 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     se lève et l'accueil rentre (`entryAllowed`). Il garde la manette tant qu'il couvre. La
     toolbar Material (bande bleue en haut du rideau, ré-affichée par `StreamSegue` en se dépilant)
     est détachée de la fenêtre (`header = null`), plus seulement cachée.
-    Les autres fins de flux (connexion perdue, combinaison Start + Select + L1 + R1) passent
-    encore par le trou : la fenêtre du flux se ferme avant qu'on ait la main.
+    Les autres fins de flux (connexion perdue, Start + Select + L1 + R1, Ctrl+Alt+Maj+Q, fenêtre
+    fermée) passent par le même chemin depuis le 2026-10-23 : `session.cpp` confie chaque
+    `SDL_QUIT` à `StreamMenu::interceptQuit`, qui fait le fondu au noir et `finishLeave` (sortie
+    vide pour l'accueil : le rideau se lève aussitôt), puis laisse passer le `SDL_QUIT` qu'il
+    pousse. Connexion perdue : plus d'image du PC, le fondu ne paraît pas toujours, mais la
+    fenêtre de l'accueil revient avant que celle du flux se ferme (plus de trou).
+    **Au lancement** aussi (2026-10-23) : `StreamSegue` cachait la fenêtre Qt dès
+    `connectionStarted`, avant que celle du flux n'existe (bureau visible). `ConsoleHome
+    .keepHomeUnderStream`, branché avant lui, le débranche (Qt saute un gestionnaire débranché
+    pendant l'émission) : la fenêtre reste, rideau et logo, sous celle du flux, **tout le
+    flux** (au retour, le flux se ferme sur elle : aucun trou, vu par Marco). Journal :
+    « [console-ui] Lancement : fenêtre de l'accueil gardée sous le flux ». Sous KDE, il reste
+    ~0,2 s d'animation à l'ouverture : effets KWin « Échelle » (scale, toute fenêtre qui
+    s'ouvre) et « Plein écran » (Moonlight crée sa fenêtre puis la passe en plein écran) ;
+    rien de tel sous cage / gamescope. **Piège** : un `SDL_QUIT`
+    resté dans la file après le flux est pris par `SdlGamepadKeyNavigation` pour « quitter
+    l'application » (CocoOS se fermait après « Quitter » maintenu : le départ repartait une 2ᵉ
+    fois) ; `interceptQuit` vide la file des `SDL_QUIT` quand il laisse passer le sien.
     ⚠️ Le menu a été vu dans un vrai flux par Marco, mais pas encore ses animations ni ses sons.
     Le flou sur l'Orange Pi est incertain (images AFBC du décodeur Rockchip) : si la copie échoue,
     le voile reste. Cadence des animations sur la carte à mesurer (objectif 60 i/s).
@@ -306,7 +322,12 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     jouer »), et « Oublier ce PC » (qui ne demande plus deux pressions). Remplissage orange de
     gauche à droite (affiché : progression^1,4), libellé repris en `inkOnAccent` sous lui, vidange
     en 280 ms si on lâche, rebond à 1,035, puis l'action. « Annuler » reste le choix par défaut ;
-    la légende dit « Maintenir ». Le menu en jeu (QPainter) garde sa confirmation à une pression.
+    la légende dit « Maintenir ». Le menu en jeu aussi, depuis le 2026-10-23, et **sans page de
+    confirmation** (demande de Marco) : A, Entrée ou le clic tenus directement sur « Quitter … »,
+    « Redémarrer », « Éteindre » de la liste (`streampainter` `drawHold`, `streammenu`
+    `startHold` / `holdStep`), coche et libellé de fin, puis le départ (un `SDL_QUIT` ramène
+    `holdStep`, fil du minuteur, sur le fil des événements ; le minuteur ne doit pas s'arrêter
+    entre la coche et le départ, sinon le menu restait bloqué).
   - **Étape 8, île de notification** (`StatusBar`) : la pastille de l'hôte s'ouvre (340 × 72, taille
     au ressort « souple », rayon en 380 ms) pour un événement système, puis se referme seule après
     2,8 s ; B la referme. Événements : manette branchée / débranchée (`InputStatus.controllerCount`,
@@ -365,6 +386,41 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   MultiEffect par texte, posé une fois : pendant le glissement seul le mélange final change.
   Rendu GPU seulement (le rendu logiciel des tests n'a pas de calques). ⚠️ Pas vu à la manette ;
   `Theme.swapBlur` à 0 si la carte ne tient pas ses 60 i/s.
+- ✅ **Sélecteur fixe, nets, Partie terminée (2026-10-23, demande de Marco)** : l'anneau de l'étagère
+  ne bouge plus, il reste à la marge gauche et la piste défile dessous (ressort « vif ») ; en bout
+  de liste, c'est la piste qui bute. `shelfScrollMargin` supprimé. La dernière vignette peut venir
+  sous l'anneau : contentX dépasse la fin de la liste, la vue replace alors ses vignettes à l'estime
+  et décale `originX` pendant qu'on écrit contentX → synchro impérative (`list.sync()`), plus de
+  liaison (boucle de liaison sinon). Textes du héros (titre, « Reprendre la partie »…) flous /
+  pixelisés au repos : le calque de flou du `SwapBox` restait actif ; il n'existe plus que pendant
+  la transition (`opacity < 1`). « Partie terminée » débordait du bouton Quitter : sa largeur prend
+  la plus grande de ses deux étiquettes (`HoldFill.doneWidth`). ⚠️ Pas vu à la manette.
+- ✅ **Ctrl + Maj + Alt + Tab = bouton Home (2026-10-23, demande de Marco)** : à l'accueil, un
+  `Shortcut` de `ConsoleHome` (« Tab » et « Backtab » : avec Maj, Qt reçoit Backtab) appelle
+  `homeButton()` (menu Home, réveil de veille) ; en jeu, combo `KeyComboStreamMenu` de Moonlight
+  (`keyboard.cpp`, `CONSOLE_UI` seulement) : ouvre / ferme le menu en jeu comme Home (manettes et
+  touches relâchées côté PC). **Clavier et souris dans le menu en jeu** : menu ouvert, flèches,
+  Entrée / Espace (A), Échap / Retour arrière (B) le pilotent (`keyboard.cpp`) et la souris est
+  libérée (`SdlInputHandler::syncStreamMenuMouse`, `mouse.cpp`) : survoler une ligne la
+  sélectionne, clic gauche la valide au relâché, clic droit ou à côté du panneau = B, molette =
+  une ligne ; fermé, la souris repart au jeu. Rien n'atteint le PC menu ouvert. Ligne sous la
+  souris : `StreamPainter::rowAt` (même calcul que le dessin, `choicesTop`), vérifié contre le
+  dessin par `harness/streammenu-rows.cpp`. ⚠️ Pas encore essayé par Marco dans un vrai flux.
+- ✅ **Souris partout (2026-10-23, demande de Marco)** : `HoverArea.qml` (MouseArea à survol, curseur
+  en main, `pointed()` seulement quand le pointeur bouge vraiment : `Pointer.js` écarte les survols
+  que Qt envoie quand le contenu glisse sous un pointeur immobile, sinon une liste qui défile au
+  clavier rendait la sélection à la ligne sous la souris). Listes : survoler une ligne y amène la
+  sélection (son `move`), un clic agit — options (lignes, curseur, choix du profil, « Oublier ce
+  PC », chevrons ‹ › cliquables), dialogs et menu Home, clavier à l'écran (la touche cliquée
+  s'écrase). Boutons : `Pressable.hovered` / `hoverScale` (grandit à 1,04 au ressort « vif ») —
+  Jouer / Reprendre, Quitter la partie (contour éclairci), Options et Épingler (`TextButton` du
+  héros, éclairés), Désinstaller (fiche), « B Annuler » du lancement ; onglets ; vignettes de
+  l'étagère (1,04 et 80 % d'opacité, le survol ne sélectionne pas : la piste défilerait sous la
+  souris) ; choix du profil (fond discret). La légende (`ControllerLegend.triggered`) fait ce que
+  fait le bouton (A, B, X, Y) partout où elle est posée ; écrans de message : A → `activated`,
+  Y → options ; cases du code Companion : clic pour choisir, molette pour le chiffre ; molette sur
+  la description de la fiche ; île de notification : clic la referme, survolée elle reste.
+  Testé par `tst_Hover`. ⚠️ Effets de survol pas vus à l'écran (le harnais ne bouge pas la souris).
 - ✅ **Reprendre / Quitter la partie (2026-10-23, demande de Marco)** : les deux boutons du prototype
   des micro-interactions (« Reprendre la partie », « Quitter le stream »), dans le héros, quand le
   jeu sélectionné tourne sur le PC. Libellés « Reprendre la partie » / « Quitter la partie » (à
@@ -472,7 +528,10 @@ On veut pouvoir **suivre les commits du repo officiel de moonlight** sans douleu
   nécessaires, qu'on garde minuscules (voir §9), toujours sous `#ifdef CONSOLE_UI` ou dans le
   scope `embedded`. Liste : `app.pro`, `qml.qrc`, `main.cpp` (enregistrement des singletons,
   rôle PipeWire des sons), `streaming/input/gamepad.cpp` (Home ouvre le menu en jeu, boutons
-  et stick routés vers lui, combinaison des statistiques), `streaming/video/overlaymanager.{h,cpp}`
+  et stick routés vers lui, combinaison des statistiques), `streaming/input/keyboard.cpp` +
+  `input.{h,cpp}` (Ctrl+Alt+Maj+Tab ouvre le menu en jeu, touches routées vers lui),
+  `streaming/input/mouse.cpp` (souris libérée et routée vers le menu en jeu),
+  `streaming/session.cpp` (chaque `SDL_QUIT` passe d'abord par le rideau, `interceptQuit`), `streaming/video/overlaymanager.{h,cpp}`
   (`setOverlaySurface` : une image toute faite sur l'overlay de débogage, dont le texte
   d'origine est ignoré ; un verrou empêche le moteur de rendu de disparaître pendant qu'on le
   notifie depuis le minuteur d'animation), `streaming/video/ffmpeg.cpp` (chiffres du flux chaque seconde, image
@@ -505,8 +564,8 @@ esthétiques arrêtés :
   lisibilité), le titre prend toute la place en bas à gauche.
 - **Étagère de vignettes portrait 3:4** (les jaquettes, depuis le 2026-10-23 ; 16:9 dans le
   prototype) en bas, en carrousel (prototype des micro-interactions) : le jeu sélectionné est
-  agrandi et cerné d'un **anneau** qui glisse d'une vignette à l'autre ; la piste ne défile qu'aux
-  bords ; un reflet balaie la vignette active après chaque déplacement.
+  agrandi et cerné d'un **anneau fixe** à gauche, sous lequel la piste défile (demande de Marco,
+  2026-10-23) ; un reflet balaie la vignette active après chaque déplacement.
 - **Accent orange chaud** (`#F2802A`) pour le bouton Jouer et le soulignement ; fond noir pur.
 - **État de connexion au PC host affiché en permanence** en haut (pastille : point vert + nom
   du host), pour que l'utilisateur voie d'un coup d'œil que tout marche — sans jamais voir
@@ -527,7 +586,9 @@ Fichiers (dans `app/gui/console/`) :
 - `Sounds.qml`, `SoundBank.qml`, `sounds/` — sons de l'interface (singleton `Sounds.play("move")`)
 - `PadRepeat.qml` — répétition des flèches à l'appui prolongé (étagère, options)
 - `Pressable.qml` — élément qui s'écrase tant que `down` (A enfoncé) et revient avec le ressort
-  « rebond » ; l'action part au relâché, chez l'appelant
+  « rebond » ; l'action part au relâché, chez l'appelant ; grandit au survol (`hovered`)
+- `HoverArea.qml` + `Pointer.js` — zone de clic à survol (curseur en main) ; `pointed()` quand la
+  souris bouge vraiment dessus (une liste y amène sa sélection)
 - `Spring.js` — ressorts physiques du prototype des micro-interactions, en courbes
   `Easing.BezierSpline` (jetons `Theme.spring*`)
 - `RollingNumber.qml` — nombre dont chaque chiffre roule dans sa colonne 0–9 (options)
@@ -545,7 +606,7 @@ Fichiers (dans `app/gui/console/`) :
 - `BackdropLayer.qml` — fond en fondu croisé (deux calques) + voile + dérive lente
 - `HeroBlock.qml` — méta, titre, sous-titre, boutons Jouer / Options ; partie en cours, Reprendre /
   Quitter la partie à la manette (haut depuis l'étagère)
-- `GameShelf.qml` — l'étagère de vignettes en carrousel : anneau, défilement aux bords, focus,
+- `GameShelf.qml` — l'étagère de vignettes en carrousel : anneau fixe, piste qui défile, focus,
   répétition manette
 - `SwapBox.qml`, `Appear.qml`, `ButtonGlyph.qml` — remplacement de texte en glissant (et en se
   floutant, `blur`, rendu GPU seulement), apparition en fondu-glissé, glyphe de bouton
@@ -870,6 +931,8 @@ qml-qt6 Harness.qml -- view=PagesDemo page=code        # search|loading|pin|pin-
 ./make-sounds.py                                       # régénère app/gui/console/sounds/*.wav (dont boot-*)
 ./make-shadows.py                                      # régénère app/gui/console/shadows/*.png (ombres portées)
 # menu en jeu (C++, hors appli) : compiler streammenu-shot.cpp (commande en tête du fichier), puis
+# (streammenu-rows.cpp, compilé de même : vérifie la ligne sous la souris contre le dessin, « ok »)
+# appui maintenu : page=confirm focus=1 hold=0.45, puis hold=1 holdDone=1 (la coche)
 QT_QPA_PLATFORM=offscreen /tmp/streammenu-shot /tmp/m.png page=menu stats=1 backdrop=art/hades2.jpg
 QT_QPA_PLATFORM=offscreen /tmp/streammenu-shot /tmp/m.png reveal=0.4 veil=0.5 blur=0.5 backdrop=art/hades2.jpg   # une étape d'animation
 ./shot.sh /tmp/d.png view=BootDemo size=1280x720 t=1400   # animation de démarrage, instant figé
