@@ -1,4 +1,5 @@
 import QtQuick
+import QtQuick.Effects
 
 // Boîte dont le contenu se remplace en glissant : l'ancien sort, le nouveau entre,
 // dans le sens donné par `direction`, verticalement ou horizontalement (`axis`).
@@ -22,9 +23,18 @@ Item {
     property var enterCurve: null
     property var exitCurve: null
     property int exitDuration: 0
+    // Flou (px) de l'exemplaire qui entre ou sort, plein quand il est invisible, nul une fois
+    // posé (le flou du swapText). À fixer à la création ; 0 : pas de flou. Rendu GPU
+    // seulement (le rendu logiciel, celui des tests, n'a pas de calques).
+    property real blur: 0
+    readonly property bool blurred: blur > 0 && GraphicsInfo.api !== GraphicsInfo.Unknown
+                                    && GraphicsInfo.api !== GraphicsInfo.Software
 
     property int front: 0
-    readonly property Item currentItem: holder.children[front]
+    // Les deux exemplaires, relevés à la création (les calques de flou s'ajoutent ensuite
+    // parmi les enfants de `holder`).
+    property var items: [null, null]
+    readonly property Item currentItem: items[front]
     property bool completed: false
 
     clip: true
@@ -32,9 +42,33 @@ Item {
     Item { id: holder; width: parent.width; height: parent.height }
 
     Component.onCompleted: {
-        holder.children[0].value = value
-        holder.children[1].opacity = 0
+        items = [holder.children[0], holder.children[1]]
+        items[0].value = value
+        items[1].opacity = 0
+        if (blur > 0) {
+            blurLayer(items[0])
+            blurLayer(items[1])
+        }
         completed = true
+    }
+    // Un calque à la taille de l'exemplaire à l'écran (le canevas est mis à l'échelle).
+    function blurLayer(slot) {
+        slot.layer.textureSize = Qt.binding(function() {
+            return Qt.size(Math.ceil(slot.width * Theme.scale), Math.ceil(slot.height * Theme.scale))
+        })
+        slot.layer.smooth = true
+        slot.layer.effect = blurEffect
+        slot.layer.enabled = Qt.binding(function() { return root.blurred })
+    }
+    // Le flou suit l'opacité de l'exemplaire (même courbe, même durée, comme dans le
+    // prototype) : seul le mélange final change pendant le glissement, rien n'est recalculé.
+    Component {
+        id: blurEffect
+        MultiEffect {
+            blurEnabled: true
+            blurMax: Math.ceil(root.blur * Theme.scale * Theme.swapBlurSpread)
+            blur: 1 - opacity
+        }
     }
     onKeyChanged: if (completed) wait.restart()
 
@@ -48,9 +82,9 @@ Item {
             return
         }
         motion.stop()   // une transition en cours repart de là où elle en est
-        var outgoing = holder.children[front]
+        var outgoing = items[front]
         front = 1 - front
-        var incoming = holder.children[front]
+        var incoming = items[front]
         incoming.value = value
         enterMove.target = enterFade.target = incoming
         exitMove.target = exitFade.target = outgoing

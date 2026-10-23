@@ -4,7 +4,8 @@ import QtQuick
 // sous-titre (temps de jeu, mise à jour) et actions (Jouer, Options, Épingler).
 // Tout est posé à partir du BAS du bloc : un titre sur deux lignes le fait
 // grandir vers le haut, sans déplacer les actions. Quand le jeu change, chaque
-// champ se remplace en glissant (SwapBox). Aucune dépendance Moonlight.
+// champ se remplace en glissant et en se floutant (SwapBox, swapText du prototype).
+// Aucune dépendance Moonlight.
 Item {
     id: root
 
@@ -83,6 +84,7 @@ Item {
         axis: "x"; distance: Theme.heroSwapTravel
         duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
         enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
+        blur: Theme.swapBlur
 
         MetaLine {}
         MetaLine {}
@@ -153,6 +155,7 @@ Item {
         axis: "x"; distance: Theme.heroSwapTravel
         duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
         enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
+        blur: Theme.swapBlur
 
         TitleLines {}
         TitleLines {}
@@ -205,6 +208,7 @@ Item {
         axis: "x"; distance: Theme.heroSwapTravel
         duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
         enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
+        blur: Theme.swapBlur
         delay: Theme.heroSubSwapDelay
 
         SubLine {}
@@ -275,6 +279,7 @@ Item {
                     animated: root.animated
                     duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
                     enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
+                    blur: Theme.swapBlur
 
                     PlayText {}
                     PlayText {}

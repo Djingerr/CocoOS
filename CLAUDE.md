@@ -358,10 +358,15 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   (160 ms, 0,94). En bout de liste, l'anneau bute. Le soulignement orange de la vignette active
   disparaît (la teinte ambiante ne colore plus que le voile). Le lancement en part et y revient
   (cf. plus haut). Corrigé au passage : l'illustration de l'écran de lancement se rechargeait à
-  chaque taille pendant qu'il grandissait (image noire furtive). ⚠️ Pas vu à la manette.
+  chaque taille pendant qu'il grandissait (image noire furtive). **Textes du jeu** : le swapText
+  garde maintenant son flou (3 px, plein à l'invisible, nul une fois posé : il suit l'opacité),
+  sur la méta, le titre, le sous-titre et le libellé du bouton Jouer (`SwapBox.blur`). Un calque
+  MultiEffect par texte, posé une fois : pendant le glissement seul le mélange final change.
+  Rendu GPU seulement (le rendu logiciel des tests n'a pas de calques). ⚠️ Pas vu à la manette ;
+  `Theme.swapBlur` à 0 si la carte ne tient pas ses 60 i/s.
 - ✅ **Suite des effets du prototype (2026-10-23, demande de Marco)** : au changement de jeu, méta,
   titre et sous-titre du héros font le swapText du prototype (14 px, 380 ms à l'entrée, 220 ms à la
-  sortie, sans flou) ; au lancement, « Jouer » cède la place à « Lancement… » (« Reprise… ») et le
+  sortie ; flou de 3 px ajouté ensuite, cf. « Carrousel du prototype ») ; au lancement, « Jouer » cède la place à « Lancement… » (« Reprise… ») et le
   bouton s'élargit ; un appui maintenu plein montre une coche tracée et un libellé de fin
   (« Extinction », « PC oublié »…) avant l'action, et se fait aussi à la souris (clic tenu) ; le
   curseur de débit se règle à la souris (clic, glisser, accroche aux crans, butée élastique). **Sons**

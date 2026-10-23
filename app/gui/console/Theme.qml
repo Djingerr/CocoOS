@@ -372,13 +372,18 @@ QtObject {
     readonly property real swapExitDuration: 0.8     // …en moins de temps…
     readonly property real swapExitFade: 0.45        // …et s'efface plus tôt
     // Changement de jeu : les textes du héros, eux, se remplacent comme dans le prototype des
-    // micro-interactions (swapText, sans son flou) : le nouveau entre de heroSwapTravel px
+    // micro-interactions (swapText) : le nouveau entre de heroSwapTravel px
     // dans le sens du déplacement (heroSwapIn, curveOut), l'ancien sort de l'autre côté
     // (heroSwapOut, curveExit) ; le sous-titre part heroSubSwapDelay après.
     readonly property int heroSwapTravel: 14
     readonly property int heroSwapIn: 380
     readonly property int heroSwapOut: 220
     readonly property int heroSubSwapDelay: 30
+    // Flou du texte qui entre ou sort (blur(3px) du prototype). Rendu par un calque par texte,
+    // à passer à 0 si la carte cible ne tient pas ses 60 images par seconde. swapBlurSpread :
+    // rayon de MultiEffect pour cet écart type CSS.
+    readonly property real swapBlur: 3
+    readonly property real swapBlurSpread: 2
 
     // --- Réapparition d'un bloc (Appear), au retour d'un lancement ---
     readonly property int enterFade: 460             // opacité 0 → 1, linéaire
