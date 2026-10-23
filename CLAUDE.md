@@ -326,6 +326,15 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   Ambiant (inchangé par ce chantier).
   pas à la manette ni à 60 i/s sur l'Orange Pi (le reflet redessine le calque de la vignette
   active pendant 950 ms).
+- ✅ **Étagère en portrait (2026-10-23, demande de Marco : « rendre l'OS beau »)** : les vignettes
+  passent du 16:9 au portrait 3:4 (108 × 144, coins de 10), le format des jaquettes d'Apollo /
+  Sunshine (600 × 800), désormais affichées entières au lieu d'être recadrées. Une dizaine de jeux
+  tiennent sur la largeur. Le bloc héros remonte de 54 px (`heroBottom` 532 : toujours 25 px
+  au-dessus de la vignette active), les écrans de message avec lui ; le toast suit l'étagère ; un
+  jeu sans jaquette écrit son nom sur trois lignes. Tout découle des jetons de `Theme.qml`.
+  L'accueil s'écarte donc des captures de référence du prototype Ambiant (étagère et héros) :
+  `compare.py` n'a plus de sens que pour la barre haute et le fond. ⚠️ Pas vu avec les vraies
+  jaquettes du PC (le harnais recadre ses images 16:10), ni à la manette.
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
   anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
   `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
@@ -411,8 +420,9 @@ Sombre et immersif, **100 % navigable à la manette**, jamais d'élément "burea
 esthétiques arrêtés :
 - **L'illustration du jeu sélectionné devient le décor** (plein écran, sous un voile de
   lisibilité), le titre prend toute la place en bas à gauche.
-- **Étagère de vignettes 16:9** en bas : le jeu sélectionné est calé à gauche, agrandi et
-  **souligné d'orange** ; tout le mouvement vient d'un seul ressort.
+- **Étagère de vignettes portrait 3:4** (les jaquettes, depuis le 2026-10-23 ; 16:9 dans le
+  prototype) en bas : le jeu sélectionné est calé à gauche, agrandi et **souligné d'orange** ; tout
+  le mouvement vient d'un seul ressort ; un reflet balaie la vignette active après chaque déplacement.
 - **Accent orange chaud** (`#F2802A`) pour le bouton Jouer et le soulignement ; fond noir pur.
 - **État de connexion au PC host affiché en permanence** en haut (pastille : point vert + nom
   du host), pour que l'utilisateur voie d'un coup d'œil que tout marche — sans jamais voir

@@ -1,7 +1,7 @@
 import QtQuick
 import QtQuick.Effects
 
-// Étagère de vignettes 16:9 en bas de l'accueil : le jeu sélectionné est calé à
+// Étagère de vignettes portrait (3:4, les jaquettes) en bas de l'accueil : le jeu sélectionné est calé à
 // gauche, agrandi et souligné d'orange ; les suivants défilent vers la droite,
 // les précédents s'estompent en sortant.
 // Consomme un modèle exposant le rôle `boxart` (url ; vide = pas de jaquette) et,
@@ -236,7 +236,7 @@ FocusScope {
                                 horizontalAlignment: Text.AlignHCenter
                                 verticalAlignment: Text.AlignVCenter
                                 wrapMode: Text.WordWrap
-                                maximumLineCount: 2
+                                maximumLineCount: Theme.placeholderLines
                                 elide: Text.ElideRight
                                 font.family: Theme.fontUi; font.pixelSize: Theme.placeholderTextSize
                                 font.weight: Font.DemiBold

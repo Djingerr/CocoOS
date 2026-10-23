@@ -228,7 +228,7 @@ QtObject {
     property string buttonLayout: "xbox"
 
     // --- Bloc héros (HeroBlock), ancré par le bas : il grandit vers le haut ---
-    readonly property int heroBottom: 586
+    readonly property int heroBottom: 532            // 25 px au-dessus de la vignette active de l'étagère
     readonly property int heroWidth: 660
     // Méta : source | dernière session
     readonly property color heroMetaColor: Qt.rgba(1, 1, 1, 0.78)
@@ -273,9 +273,10 @@ QtObject {
 
     // --- Étagère de vignettes (GameShelf) ---
     readonly property int shelfBottom: 736           // bord bas des vignettes
-    readonly property size shelfThumbSize: Qt.size(176, 99)      // 16:9
+    // Portrait 3:4 : le format des jaquettes d'Apollo / Sunshine (600 × 800), affichées entières.
+    readonly property size shelfThumbSize: Qt.size(108, 144)
     readonly property int shelfGap: 14
-    readonly property int shelfThumbRadius: 8
+    readonly property int shelfThumbRadius: 10
     readonly property color shelfThumbFill: "#111111"            // sous l'image, pendant son chargement
     readonly property real shelfActiveScale: 1.18    // vignette du jeu sélectionné
     readonly property int shelfActiveLift: 8
@@ -289,7 +290,8 @@ QtObject {
     readonly property real placeholderSaturation: 0.28
     readonly property real placeholderLightTop: 0.22
     readonly property real placeholderLightBottom: 0.10
-    readonly property int placeholderTextSize: 15    // Sora 600, deux lignes au plus
+    readonly property int placeholderTextSize: 15    // Sora 600…
+    readonly property int placeholderLines: 3        // …sur tant de lignes au plus
     readonly property int placeholderPad: 12
     readonly property color placeholderInk: Qt.rgba(1, 1, 1, 0.82)
     // Jeu épinglé : pastille orange (punaise) dans le coin haut droit de la vignette.
@@ -369,7 +371,7 @@ QtObject {
     readonly property int driftIdleTimeout: 10000
 
     // --- Message bref (Toast), centré au-dessus de l'étagère ---
-    readonly property int toastTop: 650
+    readonly property int toastTop: 571              // sur le haut de l'étagère
     readonly property int toastMaxWidth: 760
     readonly property int toastPadH: 20
     readonly property int toastPadV: 12
