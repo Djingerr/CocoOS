@@ -4,6 +4,7 @@ import QtQuick
 // des options : un titre, un message, deux choix (Annuler en premier et par défaut :
 // le choix sûr). Haut / bas (ou gauche / droite) choisissent, A valide, B annule.
 // Avec `actions`, c'est un menu : autant de choix que d'actions, A émet chosen(key).
+// `holdToConfirm` : confirmer une action destructive demande de maintenir A (HoldFill).
 // Remplit son parent et se dessine, comme LaunchScreen, sur le canevas mis à
 // l'échelle. Aucune dépendance Moonlight.
 FocusScope {
@@ -13,6 +14,7 @@ FocusScope {
     property string message: ""
     property string confirmLabel: qsTr("Confirmer")
     property string cancelLabel: qsTr("Annuler")
+    property bool holdToConfirm: false
 
     // Menu : [{ label, key }] à la place d'Annuler / Confirmer.
     property var actions: []
@@ -28,6 +30,10 @@ FocusScope {
     property bool pressing: false
     readonly property var labels: actions.length > 0 ? actions.map(function(a) { return a.label })
                                                      : [cancelLabel, confirmLabel]
+    // Choix à maintenir (A tenu) plutôt qu'à presser.
+    readonly property var holds: actions.length > 0 ? actions.map(function(a) { return false })
+                                                    : [false, holdToConfirm]
+    readonly property bool holdFocused: holds[focusedButton] === true
     // 0 = fermé, 1 = ouvert ; le panneau et le voile en découlent.
     property real reveal: opened ? 1 : 0
     Behavior on reveal { NumberAnimation { duration: Theme.sheetSlide; easing.type: Theme.easeQuint } }
@@ -37,6 +43,7 @@ FocusScope {
     function open() {
         focusedButton = 0
         pressing = false
+        holdFill.reset()
         opened = true
         forceActiveFocus()
         Sounds.play("open")
@@ -74,6 +81,7 @@ FocusScope {
         }
         focusedButton = next
         pressing = false
+        holdFill.reset()
         Sounds.play("move")
     }
 
@@ -104,7 +112,7 @@ FocusScope {
         event.accepted = true
         if (pressing && !event.isAutoRepeat && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) {
             pressing = false
-            activate()
+            if (!holdFocused) activate()            // (un choix à maintenir se vide s'il est lâché trop tôt)
         }
     }
     onActiveFocusChanged: if (!activeFocus) pressing = false
@@ -165,6 +173,7 @@ FocusScope {
                 width: title.width
 
                 Pressable {
+                    id: highlight
                     x: -Theme.sheetFocusOutset
                     y: root.focusedButton * Theme.sheetRowHeight
                     width: parent.width + 2 * Theme.sheetFocusOutset
@@ -207,9 +216,26 @@ FocusScope {
                             anchors.fill: parent
                             onClicked: {
                                 root.focusedButton = index
-                                root.activate()
+                                if (!root.holdFocused) root.activate()
                             }
                         }
+                    }
+                }
+                // Choix à maintenir : le remplissage, par-dessus la ligne et son surlignage
+                // (dont il suit l'écrasement).
+                Item {
+                    x: highlight.x; y: highlight.y
+                    width: highlight.width; height: highlight.height
+                    scale: highlight.scale
+                    visible: root.holdFocused
+                    HoldFill {
+                        id: holdFill
+                        anchors.fill: parent
+                        holding: root.pressing && root.holdFocused
+                        label: root.labels[root.focusedButton] || ""
+                        labelX: Theme.sheetFocusOutset
+                        radius: Theme.sheetFocusRadius
+                        onCompleted: root.activate()
                     }
                 }
             }
@@ -219,7 +245,7 @@ FocusScope {
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: Theme.sheetPadBottom
                 hints: [ { glyph: "B", label: root.actions.length > 0 ? qsTr("Fermer") : root.cancelLabel },
-                         { glyph: "A", label: qsTr("Valider") } ]
+                         { glyph: "A", label: root.holdFocused ? qsTr("Maintenir") : qsTr("Valider") } ]
             }
         }
     }

@@ -39,7 +39,6 @@ FocusScope {
 
     property bool opened: false
     property int current: 0              // ligne en focus ; rows.length = « Oublier ce PC »
-    property bool confirming: false      // « Oublier ce PC » attend sa confirmation
     property int direction: 1            // sens du dernier changement de valeur
     // A enfoncé : la ligne d'action ou d'interrupteur en focus s'écrase (Pressable) ;
     // A agit au relâché.
@@ -67,8 +66,8 @@ FocusScope {
     function open() {
         tab = 0
         current = 0
-        confirming = false
         pressing = false
+        forgetHold.reset()
         opened = true
         forceActiveFocus()
         Sounds.play("open")
@@ -79,7 +78,6 @@ FocusScope {
         applyFlick()
         rubberAnim.complete()
         opened = false
-        confirming = false
         pressing = false
         Sounds.play("close")
         closed()
@@ -91,7 +89,6 @@ FocusScope {
             Sounds.play("edge")
             return
         }
-        confirming = false
         pressing = false
         applyFlick()
         bumpAnim.complete()
@@ -111,7 +108,6 @@ FocusScope {
         rubberAnim.complete()
         tab = next
         current = 0
-        confirming = false
         pressing = false
         Sounds.play("move")
     }
@@ -235,17 +231,9 @@ FocusScope {
         duration: Theme.switchBumpDuration
         easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
     }
+    // A, au relâché. « Oublier ce PC » ne se valide pas ainsi : il se maintient (forgetHold).
     function activate() {
-        if (current < rows.length) {
-            change(1, true)
-        } else if (!confirming) {
-            confirming = true
-            Sounds.play("tick")
-        } else {
-            confirming = false
-            Sounds.play("select")
-            forgetConfirmed()
-        }
+        if (current < rows.length) change(1, true)
     }
 
     PadRepeat {
@@ -776,7 +764,6 @@ FocusScope {
                             if (line.focused) {
                                 root.change(1, true)
                             } else {
-                                root.confirming = false
                                 root.current = line.index
                                 Sounds.play("move")
                             }
@@ -785,7 +772,7 @@ FocusScope {
                 }
             }
 
-            // « Oublier ce PC » : une première pression demande confirmation.
+            // « Oublier ce PC » : A maintenu (HoldFill, ci-dessous).
             Pressable {
                 readonly property bool focused: root.current === root.rows.length
                 down: root.pressingRow && focused
@@ -796,9 +783,8 @@ FocusScope {
 
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
-                    text: root.confirming ? qsTr("Confirmer : oublier %1 ?").arg(root.hostName)
-                                          : qsTr("Oublier ce PC")
-                    color: root.confirming ? Theme.accent : parent.focused ? Theme.ink : Theme.ink2
+                    text: qsTr("Oublier ce PC")
+                    color: parent.focused ? Theme.ink : Theme.ink2
                     font.family: Theme.fontUi; font.pixelSize: Theme.sheetLabelSize
                     Behavior on color { ColorAnimation { duration: Theme.sheetFocusFade } }
                 }
@@ -812,12 +798,30 @@ FocusScope {
                 MouseArea {
                     anchors.fill: parent
                     onClicked: {
-                        if (parent.focused) {
-                            root.activate()
-                        } else {
+                        if (!parent.focused) {
                             root.current = root.rows.length
                             Sounds.play("move")
                         }
+                    }
+                }
+            }
+            // A maintenu sur « Oublier ce PC » : le remplissage, par-dessus la ligne et son
+            // surlignage (dont il suit l'écrasement).
+            Item {
+                x: focusHighlight.x; y: focusHighlight.y
+                width: focusHighlight.width; height: focusHighlight.height
+                scale: focusHighlight.scale
+                visible: root.forgettable && root.current === root.rows.length
+                HoldFill {
+                    id: forgetHold
+                    anchors.fill: parent
+                    holding: root.pressing && parent.visible
+                    label: qsTr("Oublier ce PC")
+                    labelX: Theme.sheetFocusOutset
+                    radius: Theme.sheetFocusRadius
+                    onCompleted: {
+                        Sounds.play("select")
+                        root.forgetConfirmed()
                     }
                 }
             }
@@ -827,7 +831,8 @@ FocusScope {
             x: Theme.sheetPadSide
             anchors.bottom: parent.bottom
             anchors.bottomMargin: Theme.sheetPadBottom
-            hints: [ { glyph: "B", label: qsTr("Fermer") }, { glyph: "A", label: qsTr("Changer") } ]
+            hints: [ { glyph: "B", label: qsTr("Fermer") },
+                     { glyph: "A", label: root.current === root.rows.length ? qsTr("Maintenir") : qsTr("Changer") } ]
         }
     }
 }

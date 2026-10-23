@@ -1480,9 +1480,11 @@ FocusScope {
     }
 
     // --- Confirmations (« un autre jeu tourne déjà », quitter le jeu, éteindre…) ---
+    // Toutes destructives : confirmer demande de maintenir A.
     ConsoleDialog {
         id: confirmDialog
         anchors.fill: parent
+        holdToConfirm: true
         property var pending: null
         // Pose la question ; `action` est appelée si l'on confirme.
         function ask(title, message, confirmLabel, action) {

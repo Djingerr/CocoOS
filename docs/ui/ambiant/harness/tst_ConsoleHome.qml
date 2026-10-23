@@ -169,14 +169,26 @@ Item {
             compare(screen.currentIndex, 1)
         }
 
-        function test_4_forgettingThePcAsksTwice() {
+        // A maintenu jusqu'au bout (action destructive) : remplissage, rebond, puis l'action.
+        function holdA() {
+            keyPress(Qt.Key_Return)
+            wait(Theme.holdDuration + Theme.springBouncy.duration + 200)
+            keyRelease(Qt.Key_Return)
+        }
+
+        // « Oublier ce PC » se maintient : un appui bref ne fait rien, un maintien lâché trop
+        // tôt se vide (l'oubli lui-même : test_9z, en dernier).
+        function test_4_forgettingThePcIsHeld() {
             keyClick(Qt.Key_Hangup)
             for (var i = 0; i < screen.optionRows.length; i++) keyClick(Qt.Key_Down)   // jusqu'à « Oublier ce PC »
             keyClick(Qt.Key_Return)
-            verify(screen.options.confirming)
-            compare(home.computerModel.count, 1)    // rien n'est supprimé à la première pression
-            keyClick(Qt.Key_Up)                     // s'éloigner annule
-            verify(!screen.options.confirming)
+            compare(home.computerModel.count, 1)    // appui bref : rien
+            var fill = find(screen.options, "holding")
+            keyPress(Qt.Key_Return)
+            tryVerify(function() { return fill.progress > 0.3 }, Theme.holdDuration)
+            keyRelease(Qt.Key_Return)               // lâché trop tôt : il se vide
+            tryCompare(fill, "progress", 0, Theme.holdDrain + 300)
+            compare(home.computerModel.count, 1)
             keyClick(Qt.Key_Escape)
         }
 
@@ -492,6 +504,8 @@ Item {
             verify(confirm)
             compare(SystemStatus.lastPower, "")           // rien sans confirmation
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)
+            compare(SystemStatus.lastPower, "")           // un appui bref ne confirme pas : A se maintient
+            holdA()
             compare(SystemStatus.lastPower, "poweroff")
             InputStatus.homePressed(); verify(dialog("Menu"))
             InputStatus.homePressed(); verify(!dialog("Menu"))   // Home referme le menu
@@ -781,7 +795,7 @@ Item {
             verify(dialog("Celeste"))
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)  // « Annuler le téléchargement »
             verify(dialog("Annuler le téléchargement ?"))   // les fichiers seront supprimés : on confirme
-            keyClick(Qt.Key_Right); keyClick(Qt.Key_Return)
+            keyClick(Qt.Key_Right); holdA()
             compare(lastCall(), "cancel:dl-1")
             CompanionClient.downloadStateChanged("dl-1", "CANCELLED", 0, 0)
             tryCompare(screen, "playLabel", "Télécharger")
@@ -828,7 +842,7 @@ Item {
             verify(page.onButton)                           // …puis le bouton
             keyClick(Qt.Key_Return)
             verify(dialog("Désinstaller Elden Ring ?"))
-            keyClick(Qt.Key_Right); keyClick(Qt.Key_Return) // confirmer
+            keyClick(Qt.Key_Right); holdA()                 // confirmer : A maintenu
             compare(CompanionClient.uninstallCalls[CompanionClient.uninstallCalls.length - 1], "game-1")
             verify(page.uninstalling)
             verify(page.shown)                              // la fiche reste ouverte pendant le travail du PC
@@ -899,7 +913,7 @@ Item {
             var forgets = CompanionClient.forgets
             keyClick(Qt.Key_Hangup)
             for (var i = 0; i < screen.optionRows.length; i++) keyClick(Qt.Key_Down)   // jusqu'à « Oublier ce PC »
-            keyClick(Qt.Key_Return); keyClick(Qt.Key_Return)
+            holdA()
             compare(CompanionClient.forgets, forgets + 1)
             compare(home.computerModel.count, 0)
         }

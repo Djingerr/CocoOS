@@ -118,7 +118,7 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     L'accueil s'ouvre sur le **dernier jeu lancé** (`ConsoleUi/lastGame`).
   - **Options (Y)** : `OptionsSheet.qml`, panneau latéral qui lit et écrit `StreamingPreferences`
     (résolution, images par seconde, débit, codec, HDR), plus « Sons » (`ConsoleUi/sounds`) et
-    « Oublier ce PC » à double confirmation, qui oublie l'appairage Moonlight ET Companion.
+    « Oublier ce PC » à appui maintenu (étape 7 des micro-interactions), qui oublie l'appairage Moonlight ET Companion.
   - **Lancement** : `LaunchScreen.qml` (illustration plein écran, étapes, barre). Il vit dans la
     fenêtre, AU-DESSUS de la pile d'écrans : la page `StreamSegue` upstream fait son travail
     dessous, invisible, sans être modifiée. En direct, le flux démarre ~1,1 s après A (le temps
@@ -156,7 +156,7 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     action à l'accueil ; jamais pendant un lancement ni un flux.
   - **Bouton Home** (`InputStatus`) : à l'accueil, ouvre le menu Home (`ConsoleDialog` en mode
     `actions`) : reprendre / quitter le jeu en cours (quitter sans `QuitSegue`, pas de page
-    upstream), mettre en veille, redémarrer, éteindre (ces deux derniers confirmés). En jeu,
+    upstream), mettre en veille, redémarrer, éteindre (ces deux derniers confirmés, A maintenu). En jeu,
     voir « Menu en jeu » plus bas. Au clavier : touche Origine.
   - **Menu en jeu** (`backend/streammenu`, 2026-10-02) : en jeu, Home ouvre par-dessus le flux
     un panneau (même dessin que `ConsoleDialog`, refait en QPainter par `streampainter` : le flux
@@ -297,10 +297,19 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     (ligne `locked`, avec son surlignage). Une ligne `checked` d'`OptionsSheet` a une coche devant
     son libellé, tracée trait après trait (300 ms après 60 ms, orange) : le réseau connecté. Elle se
     trace quand le réseau connecté change (pas à chaque ouverture de la liste).
+  - **Étape 7, appui maintenu** (`HoldFill.qml`) : confirmer une action destructive demande de
+    maintenir A 900 ms : toutes les confirmations de `ConsoleHome` (`confirmDialog.holdToConfirm` :
+    quitter le jeu, redémarrer, éteindre, désinstaller, annuler un téléchargement, « Fermer et
+    jouer »), et « Oublier ce PC » (qui ne demande plus deux pressions). Remplissage orange de
+    gauche à droite (affiché : progression^1,4), libellé repris en `inkOnAccent` sous lui, vidange
+    en 280 ms si on lâche, rebond à 1,035, puis l'action. « Annuler » reste le choix par défaut ;
+    la légende dit « Maintenir ». Le menu en jeu (QPainter) garde sa confirmation à une pression.
   ⚠️ Vu dans le harnais (`HomeDemo` : `do=hold,release` ; reflet : `goto=7 at=2500 delay=4400` ;
   interrupteurs : `do=options,down,down,down,down,down,right at=2000` ; curseur :
   `do=options,down,down,down,right` ; onglets : `do=options,down,up,tab at=2000 delay=2550` ;
-  refus : `view=ConsoleHomeDemo do=wifi,down,up,a at=2500 delay=2990`, `view=PagesDemo page=code-error`),
+  refus : `view=ConsoleHomeDemo do=wifi,down,up,a at=2500 delay=2990`, `view=PagesDemo page=code-error` ;
+  appui maintenu : `view=ConsoleHomeDemo do=home,down,down,a,down,hold at=4000 delay=5400` — après
+  l'animation de démarrage, qui rend sinon le focus à l'accueil),
   pas à la manette ni à 60 i/s sur l'Orange Pi (le reflet redessine le calque de la vignette
   active pendant 950 ms).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
@@ -416,6 +425,8 @@ Fichiers (dans `app/gui/console/`) :
 - `RollingNumber.qml` — nombre dont chaque chiffre roule dans sa colonne 0–9 (options)
 - `ElasticIndicator.qml` — indicateur dont les deux bords rejoignent la cible séparément (le
   soulignement des onglets s'étire en changeant d'onglet)
+- `HoldFill.qml` — remplissage d'un appui maintenu (actions destructives : `ConsoleDialog`
+  `holdToConfirm`, « Oublier ce PC »)
 - `Theme.qml` (+ `qmldir`) — singleton des jetons de design : couleurs, tailles, durées, ressort
 - `fonts/` — Sora embarquée (OFL, instances statiques de Google Fonts, 400 à 700), chargée par
   `Theme.qml` (`Theme.fontsReady`) ; seule famille de l'interface (pas de mono)

@@ -51,6 +51,13 @@ QtObject {
     readonly property int pressDuration: 90
     readonly property real pressScale: 0.955         // bouton (Jouer)
     readonly property real pressRowScale: 0.985      // ligne d'un panneau (options, dialog)
+    // Appui maintenu (HoldFill : actions destructives) : A tenu holdDuration ms remplit la
+    // ligne (affiché : progression^holdCurve) ; lâché avant, elle se vide en holdDrain ms.
+    // Pleine : un rebond jusqu'à holdBounce (springBouncy.duration, curveOut), puis l'action.
+    readonly property int holdDuration: 900
+    readonly property int holdDrain: 280
+    readonly property real holdCurve: 1.4
+    readonly property real holdBounce: 1.035
     // Refus (Pressable.refuse : action indisponible, code faux) : secousse horizontale, les
     // positions du prototype réparties sur shakeDuration, courbe « ease-out » de CSS.
     readonly property int shakeDuration: 440
