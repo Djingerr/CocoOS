@@ -421,6 +421,30 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   Y → options ; cases du code Companion : clic pour choisir, molette pour le chiffre ; molette sur
   la description de la fiche ; île de notification : clic la referme, survolée elle reste.
   Testé par `tst_Hover`. ⚠️ Effets de survol pas vus à l'écran (le harnais ne bouge pas la souris).
+- ✅ **Améliorations proposées puis validées (2026-10-23, demande de Marco)**, un commit chacune :
+  - **« Réduire les animations »** (onglet Console, `ConsoleUi/reduceMotion`, `Theme.reducedMotion`) :
+    les trois ressorts deviennent `Theme.reducedSpring` (curveOut, 200 ms), plus de flou des textes,
+    d'ombres, de dérive du fond, de reflet, de bande de chargement, d'onde « en cours », de fondu
+    d'entrée du flux. Plan B pour l'Orange Pi.
+  - **Vibrations** (`StreamMenu::rumble`, `InputStatus.feedback`, `Sounds.played`) : butée, refus,
+    appui maintenu au bout, lancement ; aussi dans le menu en jeu. Réglage « Vibrations »
+    (`ConsoleUi/rumble`) dans l'onglet Console quand une manette est branchée.
+  - **Point « en cours »** sur la vignette du jeu qui tourne sur le PC (`GameShelf.runningName`,
+    `ConsoleHome.runningGame`), avec une onde. Harnais : `view=HomeDemo running=2`.
+  - **Bande de chargement** sur les vignettes dont la jaquette charge.
+  - **Le flux sort du noir** à sa première image (400 ms), pendant du fondu de sortie.
+  - **Collections** Tous / Favoris / Récents (onglets à droite au-dessus de l'étagère, L1 / R1,
+    Page préc. / suiv., clic ; `Library.collection(s)`), **saut** de dix vignettes (L2 / R2 lues par
+    `InputStatus.triggerPressed`, Maj + ← / →), molette sur l'étagère.
+  - **Menu en jeu** : « Capture d'écran » (aussi le bouton Partager / Capture, MISC1, plus envoyé au
+    PC ; PNG pleine définition dans `Images/CocoOS`), « Volume » et « Luminosité » (← / →, via
+    SystemStatus passé à `prepareStreamMenu`), **avis** en haut à droite pendant le jeu (réseau
+    mauvais 10 s, manette presque vide, capture enregistrée ; `StreamPainter::Notice`). Harnais :
+    `streammenu-shot … page=stats notice="Réseau instable" tone=bad`.
+  - La dérive lente du fond existait déjà (zoom 1,03 → 1,09 en 30 s, arrêtée après 10 s sans
+    action, pour la batterie) : rien d'ajouté. Couleur d'accent et « dernier jeu au démarrage » :
+    écartés par Marco.
+  ⚠️ Rien vu à la manette ni dans un vrai flux : vibrations, avis, capture, volume, collections.
 - ✅ **Reprendre / Quitter la partie (2026-10-23, demande de Marco)** : les deux boutons du prototype
   des micro-interactions (« Reprendre la partie », « Quitter le stream »), dans le héros, quand le
   jeu sélectionné tourne sur le PC. Libellés « Reprendre la partie » / « Quitter la partie » (à
@@ -528,7 +552,7 @@ On veut pouvoir **suivre les commits du repo officiel de moonlight** sans douleu
   nécessaires, qu'on garde minuscules (voir §9), toujours sous `#ifdef CONSOLE_UI` ou dans le
   scope `embedded`. Liste : `app.pro`, `qml.qrc`, `main.cpp` (enregistrement des singletons,
   rôle PipeWire des sons), `streaming/input/gamepad.cpp` (Home ouvre le menu en jeu, boutons
-  et stick routés vers lui, combinaison des statistiques), `streaming/input/keyboard.cpp` +
+  et stick routés vers lui, combinaison des statistiques, Partager = capture d'écran), `streaming/input/keyboard.cpp` +
   `input.{h,cpp}` (Ctrl+Alt+Maj+Tab ouvre le menu en jeu, touches routées vers lui),
   `streaming/input/mouse.cpp` (souris libérée et routée vers le menu en jeu),
   `streaming/session.cpp` (chaque `SDL_QUIT` passe d'abord par le rideau, `interceptQuit`), `streaming/video/overlaymanager.{h,cpp}`
