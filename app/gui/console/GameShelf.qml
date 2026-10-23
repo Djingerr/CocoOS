@@ -315,6 +315,28 @@ FocusScope {
                             opacity: status === Image.Ready ? 1 : 0
                             Behavior on opacity { NumberAnimation { duration: Theme.thumbFadeIn } }
                         }
+                        // Pendant le chargement de la jaquette : une bande claire passe, en boucle.
+                        Loader {
+                            anchors.fill: parent
+                            active: art.status === Image.Loading && !Theme.reducedMotion
+                            sourceComponent: Item {
+                                Rectangle {
+                                    id: shimmer
+                                    width: parent.width * Theme.shimmerSpan; height: parent.height
+                                    gradient: Gradient {
+                                        orientation: Gradient.Horizontal
+                                        GradientStop { position: 0; color: "transparent" }
+                                        GradientStop { position: 0.5; color: Theme.shimmerColor }
+                                        GradientStop { position: 1; color: "transparent" }
+                                    }
+                                    NumberAnimation on x {
+                                        from: -shimmer.width; to: shimmer.parent.width
+                                        duration: Theme.shimmerDuration; loops: Animation.Infinite
+                                        easing.type: Easing.InOutSine
+                                    }
+                                }
+                            }
+                        }
                         // Reflet : la bande claire du dégradé du prototype, sur toute la
                         // hauteur de sa boîte (cf. Theme.sheen*). Créée le temps du balayage,
                         // sur la vignette active seulement : rien de plus à créer pendant que

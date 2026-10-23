@@ -354,6 +354,11 @@ QtObject {
     readonly property real shelfEdge: 0.06
     readonly property real shelfEdgeActive: 0.10
     readonly property int thumbFadeIn: 260           // la jaquette chargée apparaît en fondu
+    // Jaquette en cours de chargement : une bande claire (shimmerColor, shimmerSpan de la
+    // largeur) traverse la case vide en shimmerDuration, en boucle.
+    readonly property color shimmerColor: Qt.rgba(1, 1, 1, 0.07)
+    readonly property real shimmerSpan: 0.7
+    readonly property int shimmerDuration: 1300
     // Jeu sans jaquette : dégradé teinté d'après son nom, le nom au centre.
     readonly property real placeholderSaturation: 0.28
     readonly property real placeholderLightTop: 0.22
