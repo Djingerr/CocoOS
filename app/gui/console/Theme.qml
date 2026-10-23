@@ -477,6 +477,19 @@ QtObject {
     readonly property int sheetListBottom: 20
     readonly property int sheetViewportBleed: 12
     readonly property int sheetEdgeFade: 28          // fondu au bord de la liste, s'il reste à voir
+    // Réglages avancés (lignes `advanced`) et lignes repliées (`hidden`) : à l'ouverture, les
+    // lignes du dessous glissent faire la place (springGentle), puis les nouvelles apparaissent
+    // en cascade, du haut vers le bas (unfoldDelay, puis unfoldStagger d'écart, unfoldIn ms en
+    // curveOut, en descendant de foldShift px) ; à la fermeture, elles s'effacent du bas vers le
+    // haut (foldStaggerOut d'écart, foldOut ms) et les lignes du dessous remontent foldGlideDelay
+    // après. Le texte du profil et ses chiffres se relaient de la même façon.
+    readonly property int unfoldDelay: 90
+    readonly property int unfoldStagger: 40
+    readonly property int unfoldIn: 300
+    readonly property int foldShift: 12
+    readonly property int foldStaggerOut: 18
+    readonly property int foldOut: 140
+    readonly property int foldGlideDelay: 110
     readonly property int sheetLabelSize: 17
     readonly property color sheetFocusFill: Qt.rgba(1, 1, 1, 0.10)   // surlignage de la ligne en focus
     readonly property int sheetFocusRadius: 14
@@ -549,13 +562,17 @@ QtObject {
     readonly property int segmentsRadius: 14
     readonly property color segmentsTrack: Qt.rgba(1, 1, 1, 0.06)
     readonly property int segmentsPillRadius: 10
-    readonly property int segmentsLabelSize: 12      // Sora 500 (« Compétitif » tient dans un cinquième)
+    readonly property int segmentsLabelSize: 13      // Sora 500 ; chaque case à la largeur de son libellé…
+    readonly property int segmentsLabelMin: 10       // …et, s'ils ne tiennent pas tous, le texte se réduit jusque-là
     readonly property int statsTop: 12               // les chiffres, sous la piste
     readonly property int statsGap: 2                // entre l'intitulé et la valeur
     readonly property int statsLabelSize: 11         // ink3
     readonly property int statsValueSize: 14         // chiffres tabulaires
     readonly property int statsValueHeight: 20
     readonly property int statsStagger: 45
+    readonly property var statsWeights: [0.22, 0.2, 0.24, 0.34]   // largeur de chaque chiffre (la priorité, plus longue)
+    readonly property int profileTextSize: 13        // description du profil (sans les réglages avancés), ink2
+    readonly property int profileTextLineHeight: 18  // deux lignes au plus : la hauteur des chiffres
     readonly property int sheetNoteSize: 12          // note à droite du libellé (réseau), ink3
     readonly property int sliderTrackY: 66           // centre de la piste, depuis le haut de la ligne
     readonly property int sliderRailHeight: 6

@@ -9,6 +9,7 @@ Item {
 
     property bool down: false
     property real downScale: Theme.pressScale
+    property real liftY: 0                   // décalage vertical (apparition d'une ligne)
 
     function refuse() { shake.restart() }
     property real shakeProgress: 1
@@ -19,6 +20,7 @@ Item {
         easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.shakeCurve
     }
     transform: Translate {
+        y: root.liftY
         x: {
             var keys = Theme.shakeKeys, at = root.shakeProgress * (keys.length - 1)
             var i = Math.min(Math.floor(at), keys.length - 2)

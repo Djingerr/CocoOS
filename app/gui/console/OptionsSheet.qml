@@ -20,7 +20,11 @@ FocusScope {
     // { key, label, slider: true, value, min, max, stops, format: "%1 Mb/s", auto } signale
     // la nouvelle valeur à la place d'un index (`auto` : valeur grisée, calculée ailleurs).
     // Un sélecteur { key, label, segments: true, options, index, stats: [{ label, value }],
-    // note } montre ses choix côte à côte, puis ses chiffres (profil de flux).
+    // description, note } montre ses choix côte à côte, puis ses chiffres (profil de flux) avec
+    // les réglages avancés, sa description sinon.
+    // Réglages avancés : une ligne `advanced` n'apparaît que si l'interrupteur `revealsAdvanced`
+    // de l'onglet est allumé ; une ligne `hidden` reste repliée. Repliées, elles gardent leur
+    // place dans `rows` (aucune ligne ne prend celle d'une autre) ; la manette les saute.
     // `checked` (vrai ou faux) réserve une coche devant le libellé, tracée si vrai (réseau
     // connecté) ; `locked` : la ligne refuse A (et ← / → pour un réglage) en se secouant, et
     // son `hint`, s'il y en a un, se déplie sous la liste.
@@ -113,6 +117,24 @@ FocusScope {
     property bool hintShown: false
     Timer { id: hintTimer; interval: Theme.sheetHintHold; onTriggered: root.hintShown = false }
     readonly property bool forgettable: tab === 0 && hostName !== ""
+    readonly property bool showAdvanced: {
+        for (var i = 0; i < rows.length; i++)
+            if (rows[i].revealsAdvanced) return rows[i].index === 1
+        return true
+    }
+    function isHidden(i) {
+        var r = rows[i]
+        return r !== undefined && (r.hidden === true || r.advanced === true && !showAdvanced)
+    }
+    // Les lignes repliées en même temps : leur ordre, pour la cascade.
+    readonly property int advancedCount: rows.filter(function(r) { return r.advanced === true }).length
+    // Délai avant que les lignes ne glissent à leur nouvelle place : nul quand on ouvre les
+    // réglages avancés (le dessous fait d'abord la place), le temps que les lignes repliées
+    // s'effacent sinon. Posé AVANT de signaler le changement (cf. announce).
+    property int glideDelay: 0
+    function announce(row, next) {
+        glideDelay = row && row.revealsAdvanced && next === 1 ? 0 : Theme.foldGlideDelay
+    }
     // Défilement de la liste (px) : la ligne en focus reste visible.
     property real scroll: 0
     Behavior on scroll {
@@ -129,7 +151,11 @@ FocusScope {
         scroll = Math.max(0, Math.min(next, rowY(lineCount) - view))
     }
     onCurrentChanged: revealCurrent()
-    onRowsChanged: Qt.callLater(revealCurrent)
+    onRowsChanged: Qt.callLater(function() {
+        // La ligne en focus vient d'être repliée : on remonte à la ligne visible au-dessus.
+        while (root.current > 0 && root.isHidden(root.current)) root.current--
+        root.revealCurrent()
+    })
     readonly property int lineCount: rows.length + (forgettable ? 1 : 0)
     // 0 = fermé, 1 = ouvert ; le panneau et le voile en découlent.
     property real reveal: opened ? 1 : 0
@@ -162,6 +188,7 @@ FocusScope {
 
     function step(dir) {
         var next = current + dir
+        while (next >= 0 && next < rows.length && isHidden(next)) next += dir
         if (next < 0 || next >= lineCount) {
             Sounds.play("edge")
             return
@@ -246,6 +273,7 @@ FocusScope {
         }
         direction = dir
         Sounds.play(row.toggle ? (next === 1 ? "toggle-on" : "toggle-off") : row.segments ? "segment" : "tick")
+        announce(row, next)
         changed(row.key, next)
     }
     // Curseur : un cran, puis plus vite à l'appui maintenu (Theme.slider*), avec un arrêt
@@ -305,6 +333,7 @@ FocusScope {
     // Lignes de hauteurs variables : un curseur, un sélecteur sont plus hauts.
     function rowHeight(i) {
         return i >= rows.length ? Theme.sheetRowHeight
+             : isHidden(i) ? 0
              : rows[i].slider ? Theme.sheetSliderRowHeight
              : rows[i].segments ? Theme.sheetSegmentsRowHeight : Theme.sheetRowHeight
     }
@@ -318,6 +347,7 @@ FocusScope {
         if (index === row.index) return
         direction = index > row.index ? 1 : -1
         Sounds.play("segment")
+        announce(row, index)
         changed(row.key, index)
     }
     function rowY(i) {
@@ -331,6 +361,7 @@ FocusScope {
         var f = flick
         flick = null
         flickWait.stop()
+        announce(rows.find(function(r) { return r.key === f.key }), f.index)
         changed(f.key, f.index)
     }
     Timer { id: flickWait; interval: Theme.pressDuration; onTriggered: root.applyFlick() }
@@ -480,12 +511,70 @@ FocusScope {
         }
     }
 
+    // Apparition en cascade (réglages avancés) : `shown` va de 0 à 1 quand `on` passe à vrai,
+    // Theme.unfoldDelay puis `order` fois Theme.unfoldStagger après, en descendant ; il revient
+    // à 0 du dernier des `count` éléments au premier, en remontant. D'emblée tant que
+    // `animated` est faux (création, changement d'onglet, panneau fermé).
+    component Reveal: Item {
+        id: reveal
+        property bool on: true
+        property int order: 0
+        property int count: 1
+        property bool animated: true
+        property real shown: 1
+        opacity: shown
+        visible: shown > 0
+        transform: Translate { y: (reveal.shown - 1) * Theme.foldShift }
+        states: State {
+            name: "off"; when: !reveal.on
+            PropertyChanges { target: reveal; shown: 0 }
+        }
+        transitions: [
+            Transition {
+                to: "off"
+                enabled: reveal.animated
+                SequentialAnimation {
+                    PauseAnimation { duration: Math.max(0, reveal.count - 1 - reveal.order) * Theme.foldStaggerOut }
+                    NumberAnimation {
+                        property: "shown"; duration: Theme.foldOut
+                        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                    }
+                }
+            },
+            Transition {
+                from: "off"
+                enabled: reveal.animated
+                SequentialAnimation {
+                    PauseAnimation { duration: Theme.unfoldDelay + reveal.order * Theme.unfoldStagger }
+                    NumberAnimation {
+                        property: "shown"; duration: Theme.unfoldIn
+                        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                    }
+                }
+            }
+        ]
+    }
+
+    component ProfileText: Text {
+        property var value
+        width: parent ? parent.width : 0
+        text: value || ""
+        color: Theme.ink2
+        wrapMode: Text.WordWrap
+        maximumLineCount: 2
+        elide: Text.ElideRight
+        lineHeightMode: Text.FixedHeight; lineHeight: Theme.profileTextLineHeight
+        font.family: Theme.fontUi; font.pixelSize: Theme.profileTextSize
+    }
+
     component StatText: Text {
         property var value
+        width: parent ? parent.width : 0
         height: Theme.statsValueHeight
         verticalAlignment: Text.AlignVCenter
         text: value || ""
         color: Theme.ink
+        fontSizeMode: Text.HorizontalFit; minimumPixelSize: Theme.segmentsLabelMin
         font.family: Theme.fontUi; font.pixelSize: Theme.statsValueSize; font.features: { "tnum": 1 }
     }
 
@@ -704,8 +793,34 @@ FocusScope {
 
                     down: root.pressingRow && focused
                     downScale: Theme.pressRowScale
-                    y: root.rowY(index)
                     width: list.width; height: root.rowHeight(index)
+                    // Repliée (réglages avancés éteints, ou `hidden`) : elle s'efface en remontant ;
+                    // dépliée, elle apparaît en descendant, à son tour dans la cascade. Sa place
+                    // glisse au ressort « souple » (après root.glideDelay).
+                    property bool ready: false
+                    Component.onCompleted: ready = true
+                    readonly property bool animated: ready && root.opened && !root.settling
+                    Reveal {
+                        id: fold
+                        on: !root.isHidden(line.index)
+                        order: { var n = 0; for (var i = 0; i < line.index; i++) if (root.rows[i] && root.rows[i].advanced) n++; return n }
+                        count: root.advancedCount
+                        animated: line.animated
+                    }
+                    opacity: fold.shown
+                    visible: fold.shown > 0
+                    liftY: (fold.shown - 1) * Theme.foldShift
+                    y: root.rowY(index)
+                    Behavior on y {
+                        enabled: line.animated
+                        SequentialAnimation {
+                            PauseAnimation { duration: root.glideDelay }
+                            NumberAnimation {
+                                duration: Theme.springGentle.duration
+                                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springGentle.curve
+                            }
+                        }
+                    }
 
                     CheckMark {
                         visible: line.checkable
@@ -735,18 +850,38 @@ FocusScope {
                     Item {
                         id: segments
                         readonly property int count: line.row.segments === true ? line.row.options.length : 0
-                        readonly property real cell: count > 0 ? (width - 2 * Theme.segmentsPad) / count : 0
+                        // Chaque case à la largeur de son libellé, plus une part égale de la place
+                        // qui reste ; si les libellés ne tiennent pas tous, cases égales et texte réduit.
+                        readonly property var cells: {
+                            var inner = width - 2 * Theme.segmentsPad, widths = [], sum = 0
+                            for (var i = 0; i < count; i++) {
+                                widths.push(segmentMetrics.advanceWidth(line.row.options[i]))
+                                sum += widths[i]
+                            }
+                            var cells = [], x = Theme.segmentsPad
+                            for (i = 0; i < count; i++) {
+                                var w = sum <= inner ? widths[i] + (inner - sum) / count : inner / count
+                                cells.push({ x: x, width: w })
+                                x += w
+                            }
+                            return cells
+                        }
+                        readonly property var chosenCell: cells[line.row.index || 0] || ({ x: 0, width: 0 })
                         visible: count > 0
                         y: Theme.segmentsTop
                         z: 1                    // (au-dessus du clic de la ligne)
                         width: parent.width; height: Theme.segmentsHeight
 
+                        FontMetrics {
+                            id: segmentMetrics
+                            font.family: Theme.fontUi; font.pixelSize: Theme.segmentsLabelSize; font.weight: Font.Medium
+                        }
                         Rectangle { anchors.fill: parent; radius: Theme.segmentsRadius; color: Theme.segmentsTrack }
                         ElasticIndicator {
                             y: Theme.segmentsPad
                             height: parent.height - 2 * Theme.segmentsPad
-                            targetLeft: Theme.segmentsPad + segments.cell * (line.row.index || 0)
-                            targetRight: targetLeft + segments.cell
+                            targetLeft: segments.chosenCell.x
+                            targetRight: segments.chosenCell.x + segments.chosenCell.width
                             animated: root.opened && !root.settling
                             Rectangle { anchors.fill: parent; radius: Theme.segmentsPillRadius; color: Theme.ink }
                         }
@@ -755,16 +890,17 @@ FocusScope {
                             Item {
                                 id: segment
                                 readonly property bool chosen: index === line.row.index
-                                x: Theme.segmentsPad + segments.cell * index
-                                width: segments.cell; height: parent.height
+                                x: (segments.cells[index] || { x: 0 }).x
+                                width: (segments.cells[index] || { width: 0 }).width
+                                height: parent.height
                                 Text {
                                     id: segmentLabel
                                     anchors.centerIn: parent
                                     width: parent.width
                                     horizontalAlignment: Text.AlignHCenter
-                                    elide: Text.ElideRight
                                     text: line.row.options[index] || ""
                                     color: Theme.ink2
+                                    fontSizeMode: Text.HorizontalFit; minimumPixelSize: Theme.segmentsLabelMin
                                     font.family: Theme.fontUi; font.pixelSize: Theme.segmentsLabelSize; font.weight: Font.Medium
                                     states: State {
                                         name: "chosen"; when: segment.chosen
@@ -794,33 +930,64 @@ FocusScope {
                             }
                         }
                     }
+                    // Sous la piste : la description du profil, ou ses chiffres avec les réglages
+                    // avancés ; l'une cède la place aux autres en cascade.
+                    Reveal {
+                        visible: segments.count > 0 && shown > 0
+                        on: !root.showAdvanced
+                        animated: line.animated
+                        y: Theme.segmentsTop + Theme.segmentsHeight + Theme.statsTop
+                        width: parent.width
+                        height: 2 * Theme.profileTextLineHeight
+                        SwapBox {
+                            anchors.fill: parent
+                            key: line.row.description || ""
+                            value: key
+                            direction: root.direction
+                            animated: root.opened && !root.settling
+                            duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
+                            enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
+
+                            ProfileText {}
+                            ProfileText {}
+                        }
+                    }
                     Row {
                         visible: segments.count > 0
                         y: Theme.segmentsTop + Theme.segmentsHeight + Theme.statsTop
                         width: parent.width
                         Repeater {
                             model: line.row.segments === true && line.row.stats ? line.row.stats.length : 0
-                            Column {
+                            Reveal {
                                 readonly property var stat: (line.row.stats || [])[index] || ({ label: "", value: "" })
-                                width: parent.width / Math.max(1, line.row.stats ? line.row.stats.length : 1)
-                                spacing: Theme.statsGap
-                                Text {
-                                    text: parent.stat.label
-                                    color: Theme.ink3
-                                    font.family: Theme.fontUi; font.pixelSize: Theme.statsLabelSize
-                                }
-                                SwapBox {
-                                    width: parent.width; height: Theme.statsValueHeight
-                                    key: parent.stat.value
-                                    value: key
-                                    direction: root.direction
-                                    animated: root.opened && !root.settling
-                                    delay: index * Theme.statsStagger
-                                    duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
-                                    enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
+                                on: root.showAdvanced
+                                order: index
+                                count: line.row.stats ? line.row.stats.length : 1
+                                animated: line.animated
+                                width: parent.width * (Theme.statsWeights[index] || 0.25)
+                                height: statColumn.height
+                                Column {
+                                    id: statColumn
+                                    width: parent.width
+                                    spacing: Theme.statsGap
+                                    Text {
+                                        text: parent.parent.stat.label
+                                        color: Theme.ink3
+                                        font.family: Theme.fontUi; font.pixelSize: Theme.statsLabelSize
+                                    }
+                                    SwapBox {
+                                        width: parent.width; height: Theme.statsValueHeight
+                                        key: parent.parent.stat.value
+                                        value: key
+                                        direction: root.direction
+                                        animated: root.opened && !root.settling
+                                        delay: index * Theme.statsStagger
+                                        duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
+                                        enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
 
-                                    StatText {}
-                                    StatText {}
+                                        StatText {}
+                                        StatText {}
+                                    }
                                 }
                             }
                         }
@@ -1032,6 +1199,16 @@ FocusScope {
                 downScale: Theme.pressRowScale
                 visible: root.forgettable
                 y: root.rowY(root.rows.length)
+                Behavior on y {
+                    enabled: root.opened && !root.settling
+                    SequentialAnimation {
+                        PauseAnimation { duration: root.glideDelay }
+                        NumberAnimation {
+                            duration: Theme.springGentle.duration
+                            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springGentle.curve
+                        }
+                    }
+                }
                 width: list.width; height: Theme.sheetRowHeight
 
                 Text {

@@ -104,76 +104,96 @@ Item {
             compare(screen.currentIndex, 0)
         }
 
+        // Une ligne de l'onglet Flux par sa clé, et la manette jusqu'à elle.
+        function fluxRow(key) { return home.optionTabs[0].rows.find(function(r) { return r.key === key }) }
+        function goTo(key) {
+            var sheet = screen.options
+            var target = sheet.rows.findIndex(function(r) { return r.key === key })
+            for (var i = 0; i < 20 && sheet.current !== target; i++)
+                keyClick(sheet.current < target ? Qt.Key_Down : Qt.Key_Up)
+            compare(sheet.rows[sheet.current].key, key)
+        }
+
         function test_3_optionsWriteMoonlightPreferences() {
-            var p = StreamingPreferences
+            var p = StreamingPreferences, sheet = screen.options
             p.width = 1920; p.height = 1080; p.fps = 60
             p.autoAdjustBitrate = true; p.bitrateKbps = 30000    // profil du premier démarrage
             home.refreshOptions()
-            var rows = function() { return screen.optionRows }
-            var shown = function(i) { return rows()[i].options[rows()[i].index] }
+            var shown = function(key) { var r = fluxRow(key); return r.options[r.index] }
+            var hidden = function(key) { return sheet.isHidden(sheet.rows.indexOf(fluxRow(key))) }
 
             keyClick(Qt.Key_Hangup)                 // bouton Y
-            verify(screen.options.opened)
-            compare(rows()[0].label, "Minecraft")   // en tête : les réglages du jeu sélectionné
-            compare(shown(0), "Réglages communs")
-            compare(rows()[1].label, "Profil")      // puis le profil de flux : Équilibré par défaut…
-            compare(shown(1), "Équilibré")
-            verify(rows()[2].auto)                  // …qui choisit la définition (grisée)
-            verify(rows().every(function(r) { return r.key !== "rateAuto" }))
-            keyClick(Qt.Key_Down)                   // le profil, jusqu'à Manuel : les réglages tels quels
+            verify(sheet.opened)
+            compare(sheet.rows[0].label, "Profil")  // en tête : le profil de flux, Équilibré par défaut…
+            compare(shown("streamProfile"), "Équilibré")
+            compare(shown("advanced"), "Désactivé") // …et l'essentiel seulement
+            verify(hidden("res") && hidden("profile") && hidden("hdr"))
+            keyClick(Qt.Key_Down)                   // « Réglages avancés »…
+            compare(sheet.rows[sheet.current].key, "advanced")
+            keyClick(Qt.Key_Down)                   // …puis « Oublier ce PC » : les lignes repliées sont sautées
+            compare(sheet.current, sheet.rows.length)
+            keyClick(Qt.Key_Up)
+            keyClick(Qt.Key_Return)                 // A : les réglages avancés
+            compare(shown("advanced"), "Activé")
+            verify(!hidden("res") && !hidden("hdr"))
+            compare(fluxRow("profile").label, "Minecraft")   // dont les réglages du jeu sélectionné
+            compare(shown("profile"), "Réglages communs")
+            verify(fluxRow("res").auto)             // le profil choisit la définition (grisée)…
+            verify(hidden("rateAuto"))              // …et le débit
+            goTo("streamProfile")                   // le profil, jusqu'à Manuel : les réglages tels quels
             keyClick(Qt.Key_Right); keyClick(Qt.Key_Right); keyClick(Qt.Key_Right)
-            compare(shown(1), "Manuel")
-            verify(!rows()[2].auto)
-            compare(shown(2), "1080p")
-            compare(rows()[4].label, "Débit automatique")
-            compare(shown(4), "Désactivé")          // 30 Mb/s n'est pas la valeur automatique…
-            compare(rows()[5].value, 30)            // …le curseur la montre telle quelle
+            compare(shown("streamProfile"), "Manuel")
+            verify(!fluxRow("res").auto)
+            compare(shown("res"), "1080p")
+            verify(!hidden("rateAuto"))
+            compare(shown("rateAuto"), "Désactivé") // 30 Mb/s n'est pas la valeur automatique…
+            compare(fluxRow("rate").value, 30)      // …le curseur la montre telle quelle
 
-            keyClick(Qt.Key_Down)
-            keyClick(Qt.Key_Left)                   // résolution précédente (celle de l'écran, ou 720p)
+            goTo("res")
+            keyClick(Qt.Key_Left)                   // résolution précédente
             verify(p.width !== 1920 || p.height !== 1080)
             compare(p.bitrateKbps, 30000)           // débit fixe : inchangé
             keyClick(Qt.Key_Right)
             compare(p.width, 1920)
             compare(screen.currentIndex, 0)         // les flèches ne touchent pas à la liste des jeux
 
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Right)       // images par seconde : 60 → 90
+            goTo("fps"); keyClick(Qt.Key_Right)     // images par seconde : 60 → 90
             compare(p.fps, 90)
             keyClick(Qt.Key_Left)
             compare(p.fps, 60)
 
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down)        // le curseur du débit : un cran, en débit fixe
-            var before = rows()[5].value            // (30 Mb/s est la valeur automatique à 90 i/s : le débit a pu le devenir)
+            goTo("rate")                            // le curseur du débit : un cran, en débit fixe
+            var before = fluxRow("rate").value      // (30 Mb/s est la valeur automatique à 90 i/s : le débit a pu le devenir)
             keyClick(Qt.Key_Right)
             compare(p.bitrateKbps, (before + 1) * 1000)
             verify(!p.autoAdjustBitrate)
-            compare(shown(4), "Désactivé")
-            keyClick(Qt.Key_Up); keyClick(Qt.Key_Right)         // « Débit automatique » (après l'étirement du pouce)
+            compare(shown("rateAuto"), "Désactivé")
+            goTo("rateAuto"); keyClick(Qt.Key_Right)            // « Débit automatique » (après l'étirement du pouce)
             tryVerify(function() { return p.autoAdjustBitrate }, 500)
             compare(p.bitrateKbps, p.getDefaultBitrate(1920, 1080, 60, false))
-            verify(rows()[5].auto)                  // le curseur montre la valeur automatique, grisée
-            keyClick(Qt.Key_Up); keyClick(Qt.Key_Right)         // 90 images par seconde : le débit automatique suit
+            verify(fluxRow("rate").auto)            // le curseur montre la valeur automatique, grisée
+            goTo("fps"); keyClick(Qt.Key_Right)     // 90 images par seconde : le débit automatique suit
             compare(p.bitrateKbps, p.getDefaultBitrate(1920, 1080, 90, false))
             keyClick(Qt.Key_Left)
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down)        // pousser le curseur repasse en débit fixe, depuis l'automatique
-            var auto = rows()[5].value
+            goTo("rate")                            // pousser le curseur repasse en débit fixe, depuis l'automatique
+            var auto = fluxRow("rate").value
             keyClick(Qt.Key_Left)
             verify(!p.autoAdjustBitrate)
             compare(p.bitrateKbps, (auto - 1) * 1000)
-            compare(shown(4), "Désactivé")
+            compare(shown("rateAuto"), "Désactivé")
 
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)      // codec : A passe au suivant
+            goTo("codec"); keyClick(Qt.Key_Return)  // codec : A passe au suivant
             compare(p.videoCodecConfig, p.VCC_FORCE_H264)
             keyClick(Qt.Key_Left)
             compare(p.videoCodecConfig, p.VCC_AUTO)
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)      // HDR
+            goTo("hdr"); keyClick(Qt.Key_Return)    // HDR
             verify(p.enableHdr)
             keyClick(Qt.Key_Return)
             verify(!p.enableHdr)
             verify(p.saves > 0)
 
             keyClick(Qt.Key_Escape)                 // bouton B
-            verify(!screen.options.opened)
+            verify(!sheet.opened)
             keyClick(Qt.Key_Right)                  // le focus est revenu à l'étagère
             compare(screen.currentIndex, 1)
         }
@@ -414,7 +434,7 @@ Item {
             keyClick(Qt.Key_Left); keyClick(Qt.Key_Left)    // Auto : sans manette, Xbox
             compare(Theme.buttonLayout, "xbox")
             InputStatus.bumperPressed(-1)                   // retour à l'onglet Flux
-            compare(screen.optionRows[1].label, "Profil")
+            compare(screen.optionRows[0].label, "Profil")
             keyClick(Qt.Key_Escape)
         }
 
@@ -615,12 +635,14 @@ Item {
             var p = StreamingPreferences
             p.fps = 60
             var name = screen.title
+            home.applyOption("advanced", 1)                // (la ligne du jeu est un réglage avancé)
             keyClick(Qt.Key_Hangup)
-            compare(screen.optionRows[0].label, name)
+            compare(fluxRow("profile").label, name)
+            goTo("profile")
             keyClick(Qt.Key_Right)                          // « Réglages à part »
-            var fps = screen.optionRows.findIndex(function(r) { return r.key === "fps" })
-            for (var i = 0; i < fps; i++) keyClick(Qt.Key_Down)
+            goTo("fps")
             keyClick(Qt.Key_Right)                          // 60 → 90 images par seconde
+            var fps = screen.optionRows.indexOf(fluxRow("fps"))
             compare(screen.optionRows[fps].options[screen.optionRows[fps].index], "90")
             compare(p.fps, 60)                              // les réglages communs n'ont pas bougé
             keyClick(Qt.Key_Escape)
@@ -637,8 +659,9 @@ Item {
             home.returnedHome()                             // (ce que fait la pile d'écrans au retour)
 
             keyClick(Qt.Key_Hangup)                         // retour aux réglages communs
+            goTo("profile")
             keyClick(Qt.Key_Left)
-            compare(screen.optionRows[fps].options[screen.optionRows[fps].index], "60")
+            compare(fluxRow("fps").options[fluxRow("fps").index], "60")
             keyClick(Qt.Key_Escape)
         }
 
@@ -895,10 +918,9 @@ Item {
             var values = []
             var record = function(key, value) { if (key === "rate") values.push([Date.now(), value]) }
             sheet.changed.connect(record)
+            home.applyOption("advanced", 1)
             keyClick(Qt.Key_Hangup)
-            var rate = screen.optionRows.findIndex(function(r) { return r.key === "rate" })
-            for (var i = 0; i < rate; i++) keyClick(Qt.Key_Down)
-            compare(screen.optionRows[sheet.current].key, "rate")
+            goTo("rate")
             keyPress(Qt.Key_Right)
             tryVerify(function() { return p.bitrateKbps >= 75000 }, 8000)
             keyRelease(Qt.Key_Right)
@@ -942,7 +964,7 @@ Item {
             compare(p.bitrateKbps, 150000)
             tryVerify(function() { return sheet.rubberX > 0 }, 300)
             tryCompare(sheet, "rubberX", 0, 1500)
-            keyClick(Qt.Key_Up); keyClick(Qt.Key_Up)        // images par seconde, déjà à 30
+            goTo("fps")                                     // images par seconde, déjà à 30
             keyClick(Qt.Key_Left)
             compare(p.fps, 30)
             tryVerify(function() { return sheet.rubberX < 0 }, 300)
@@ -985,7 +1007,7 @@ Item {
             compare(row("streamProfile").stats[0].value, chosen.height + "p")
             compare(row("streamProfile").stats[3].value, "équilibre")
             verify(row("res").auto && row("fps").auto && row("rate").auto)
-            verify(!row("rateAuto"))                        // le profil choisit le débit
+            verify(row("rateAuto").hidden)                  // le profil choisit le débit
 
             var saves = p.saves
             home.applyGameProfile("")                       // au lancement
@@ -1001,16 +1023,49 @@ Item {
             home.refreshOptions()
             compare(row("streamProfile").note, "")
 
+            home.applyOption("advanced", 1)
             keyClick(Qt.Key_Hangup)                         // toucher la définition : Manuel
-            var res = home.optionTabs[0].rows.indexOf(row("res"))
-            for (var i = 0; i < res; i++) keyClick(Qt.Key_Down)
+            goTo("res")
             var before = shown("res")
-            keyClick(Qt.Key_Left)
+            keyClick(row("res").index > 0 ? Qt.Key_Left : Qt.Key_Right)   // (vers une autre définition)
             compare(shown("streamProfile"), "Manuel")
             verify(!row("res").auto)
             verify(shown("res") !== before)
-            verify(row("rateAuto"))                         // en Manuel, le débit automatique revient
+            verify(!row("rateAuto").hidden)                 // en Manuel, le débit automatique revient
             compare(p.fps, chosen.fps)                      // le reste vient du profil
+            keyClick(Qt.Key_Escape)
+        }
+
+        // Réglages avancés : allumés, les lignes avancées apparaissent en cascade, du haut vers le
+        // bas ; éteints, elles s'effacent du bas vers le haut.
+        function test_9w_advancedSettingsUnfoldInCascade() {
+            home.applyOption("advanced", 0)
+            keyClick(Qt.Key_Hangup)
+            var sheet = screen.options
+            var line = function(key) {
+                var found = null
+                var walk = function(from) {
+                    for (var i = 0; i < from.children.length && !found; i++) {
+                        var c = from.children[i]
+                        if (c.row !== undefined && c.focused !== undefined && c.row.key === key) found = c
+                        else walk(c)
+                    }
+                }
+                walk(sheet)
+                return found
+            }
+            var first = line("res"), last = line("hdr")
+            verify(first && last)
+            compare(first.opacity, 0)
+            goTo("advanced")
+            keyClick(Qt.Key_Return)                         // A : allumés
+            tryVerify(function() { return first.opacity > 0.5 }, 1000)
+            verify(last.opacity < first.opacity, "en cascade : la dernière après la première")
+            tryCompare(last, "opacity", 1, 1500)
+            keyClick(Qt.Key_Return)                         // éteints
+            tryVerify(function() { return last.opacity < 0.5 }, 1000)
+            verify(first.opacity > last.opacity, "du bas vers le haut")
+            tryCompare(first, "opacity", 0, 1500)
             keyClick(Qt.Key_Escape)
         }
 

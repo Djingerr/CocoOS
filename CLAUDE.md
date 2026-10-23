@@ -367,6 +367,20 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   Manuel = les réglages d'avant, tels quels. Mémorisé dans `ConsoleUi/streamProfile` (communs) ou
   dans les réglages à part d'un jeu (Manuel pour ceux d'avant les profils). Le panneau d'options
   défile désormais (onglet Flux plus haut que l'écran, longues listes Wi-Fi), fondus aux bords.
+  Définitions : celle de l'écran de la console si elle tient sous le plafond du profil (l'image le
+  remplit), sinon les définitions courantes 16:9 (540p, 720p, 1080p, 1440p) — plus de tailles au
+  format de l'écran (1728 × 1080…). Les cases du sélecteur prennent la largeur de leur libellé
+  (« Competitive » entier en anglais).
+  **Réglages avancés** (interrupteur sous le profil, `ConsoleUi/advancedSettings`, éteint par défaut) :
+  éteint, l'onglet Flux se réduit à l'essentiel — le profil (avec une phrase qui le décrit au lieu
+  de ses chiffres), l'interrupteur, « Oublier ce PC » ; allumé, les chiffres du profil, les
+  réglages à part du jeu, définition, images/s, débit, codec, HDR. Les lignes restent toutes dans
+  le modèle (`advanced`, `hidden` : repliées, hauteur nulle, sautées par la manette) : aucune ne
+  prend plus la place d'une autre (ce qui faisait sauter les animations en passant de Manuel à
+  Économie). Mouvement : à l'allumage, le dessous glisse faire la place (ressort « souple »), la
+  description cède la place aux chiffres, puis les lignes apparaissent en cascade (90 ms, puis
+  40 ms d'écart, en descendant de 12 px) ; à l'extinction, elles s'effacent du bas vers le haut
+  et le dessous remonte 110 ms après (composant `Reveal` d'`OptionsSheet`).
   ⚠️ Libellés et paliers à valider par Marco à la manette (le doc le demande) ; le choix du palier
   n'est qu'une première version de la phase 4 (pas de sonde avant lancement ni de mémoire par
   réseau) ; anti-gigue (phase 3) et FSR (phase 5) restent à faire.

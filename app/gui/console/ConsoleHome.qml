@@ -87,6 +87,9 @@ FocusScope {
         // Profil de flux des réglages communs (StreamProfiles.js) ; « manual » : les réglages
         // tels quels. Un jeu à réglages à part garde le sien dans gameProfiles.
         property string streamProfile: StreamProfiles.DEFAULT
+        // « Réglages avancés » (onglet Flux) : les réglages du flux un à un, les chiffres des
+        // profils, les réglages à part d'un jeu. Éteint, l'essentiel seulement.
+        property bool advancedSettings: false
     }
 
     Component.onCompleted: {
@@ -1062,12 +1065,19 @@ FocusScope {
         // Résolution : 720p, celle de l'écran, 1080p (et l'actuelle si elle n'y est pas).
         var nativeW = Math.round(Screen.width * Screen.devicePixelRatio)
         var nativeH = Math.round(Screen.height * Screen.devicePixelRatio)
+        // (« 1440p » pour une définition courante, « Natif 1280×800 » pour celle de l'écran)
+        var resLabel = function(w, h) {
+            return w === nativeW && h === nativeH ? qsTr("Natif %1×%2").arg(w).arg(h)
+                 : StreamProfiles.STANDARD.some(function(r) { return r.width === w && r.height === h }) ? h + "p"
+                 : w + "×" + h
+        }
         var res = [ { label: "720p", w: 1280, h: 720 }, { label: "1080p", w: 1920, h: 1080 } ]
         var same = function(w, h) { return function(r) { return r.w === w && r.h === h } }
         if (nativeW > 0 && !res.some(same(nativeW, nativeH)))
-            res.splice(1, 0, { label: qsTr("Natif %1×%2").arg(nativeW).arg(nativeH), w: nativeW, h: nativeH })
+            res.push({ label: resLabel(nativeW, nativeH), w: nativeW, h: nativeH })
         if (!res.some(same(e.width, e.height)))
-            res.push({ label: e.width + "×" + e.height, w: e.width, h: e.height })
+            res.push({ label: resLabel(e.width, e.height), w: e.width, h: e.height })
+        res.sort(function(a, b) { return a.w * a.h - b.w * b.h })     // ← plus petite, → plus grande
 
         var fps = [30, 60, 90, 120]
         if (fps.indexOf(e.fps) < 0)
@@ -1108,7 +1118,7 @@ FocusScope {
         var language = [ { label: "Français", value: p.LANG_FR }, { label: "English", value: p.LANG_EN } ]
 
         optionChoices = { res: res, fps: fps.map(function(f) { return { label: "" + f, value: f } }),
-                          rateAuto: hdr, codec: codec, hdr: hdr, brightness: brightness, volume: volume,
+                          rateAuto: hdr, advanced: hdr, codec: codec, hdr: hdr, brightness: brightness, volume: volume,
                           sleep: sleep, buttons: buttons, sounds: sounds, language: language }
         // `toggle` : deux options [désactivé, activé], affichées en interrupteur.
         var row = function(key, label, index, toggle) {
@@ -1139,9 +1149,16 @@ FocusScope {
         var profileNames = { competitive: qsTr("Compétitif"), balanced: qsTr("Équilibré"), quality: qsTr("Qualité"),
                              saver: qsTr("Économie"), manual: qsTr("Manuel") }
         var gigabytes = StreamProfiles.gigabytesPerHour(e.bitrateKbps)
-        var priority = { competitive: qsTr("réactivité"), balanced: qsTr("équilibre"), quality: qsTr("image"),
-                         saver: qsTr("≈ %1 Go/h").arg(gigabytes.toLocaleString(Qt.locale(english ? "en_US" : "fr_FR"), "f", 1)),
-                         manual: qsTr("vos réglages") }
+        var gigabytesText = gigabytes.toLocaleString(Qt.locale(english ? "en_US" : "fr_FR"), "f", 1)
+        var priority = { competitive: qsTr("latence"), balanced: qsTr("équilibre"), quality: qsTr("image"),
+                         saver: qsTr("≈ %1 Go/h").arg(gigabytesText), manual: qsTr("vos réglages") }
+        // Sans les réglages avancés : une phrase simple à la place des chiffres.
+        var description = {
+            competitive: qsTr("Le plus réactif : toutes les images de l'écran, pour les jeux rapides."),
+            balanced: qsTr("Le meilleur compromis entre image et fluidité, adapté à votre réseau."),
+            quality: qsTr("La plus belle image, quand le réseau suit."),
+            saver: qsTr("Moins de données et de batterie : environ %1 Go par heure.").arg(gigabytesText),
+            manual: qsTr("Vos propres réglages, dans les réglages avancés.") }
         var drop = chosen && s.profile !== "saver" ? StreamProfiles.networkDrop(context.quality) : 0
         var streamProfileRow = {
             key: "streamProfile", label: qsTr("Profil"), segments: true,
@@ -1149,24 +1166,33 @@ FocusScope {
             index: Math.max(0, StreamProfiles.KEYS.indexOf(s.profile)),
             note: drop === 1 ? qsTr("Réseau moyen : un cran plus bas")
                 : drop === 2 ? qsTr("Réseau faible : deux crans plus bas") : "",
+            description: description[s.profile] || "",
             stats: [ { label: qsTr("Définition"), value: e.height + "p" },
                      { label: qsTr("Images/s"), value: "" + e.fps },
                      { label: qsTr("Débit"), value: qsTr("%1 Mb/s").arg(mbps) },
                      { label: qsTr("Priorité"), value: priority[s.profile] || "" } ] }
-        // (grisées : choisies par le profil ; les toucher passe en Manuel)
-        var byProfile = function(r) { r.auto = chosen !== null; return r }
+        // Les lignes restent toutes là (aucune ne prend la place d'une autre) : `advanced`, elles
+        // n'apparaissent qu'avec les réglages avancés ; `hidden`, elles restent repliées.
+        // `auto` : grisées, choisies par le profil (les toucher passe en Manuel).
+        var advanced = function(r) { r.advanced = true; return r }
+        var byProfile = function(r) { r.auto = chosen !== null; return advanced(r) }
+        var rateAuto = advanced(row("rateAuto", qsTr("Débit automatique"), optionAutoBitrate ? 1 : 0, true))
+        rateAuto.hidden = chosen !== null
         optionTabs = [
-            { label: qsTr("Flux"), rows: profileRow.concat([
+            { label: qsTr("Flux"), rows: [
                 streamProfileRow,
+                { key: "advanced", label: qsTr("Réglages avancés"), toggle: true, revealsAdvanced: true,
+                  index: consoleConfig.advancedSettings ? 1 : 0, options: optionChoices.advanced.map(function(c) { return c.label }) }
+            ].concat(profileRow.map(advanced), [
                 byProfile(row("res", qsTr("Résolution"), res.findIndex(same(e.width, e.height)))),
-                byProfile(row("fps", qsTr("Images par seconde"), fps.indexOf(e.fps)))
-            ], chosen ? [] : [row("rateAuto", qsTr("Débit automatique"), optionAutoBitrate ? 1 : 0, true)], [
-                { key: "rate", label: qsTr("Débit"), slider: true, value: mbps, auto: chosen !== null || optionAutoBitrate,
-                  min: bitrateRange[0], max: Math.max(bitrateRange[1], mbps), stops: bitrateStops,
-                  format: qsTr("%1 Mb/s") },
+                byProfile(row("fps", qsTr("Images par seconde"), fps.indexOf(e.fps))),
+                rateAuto,
+                advanced({ key: "rate", label: qsTr("Débit"), slider: true, value: mbps, auto: chosen !== null || optionAutoBitrate,
+                           min: bitrateRange[0], max: Math.max(bitrateRange[1], mbps), stops: bitrateStops,
+                           format: qsTr("%1 Mb/s") }),
                 // (un ancien réglage « HEVC HDR » est montré comme HEVC)
-                row("codec", qsTr("Codec"), codecIndex >= 0 ? codecIndex : 2),
-                row("hdr", qsTr("HDR"), s.enableHdr ? 1 : 0, true)
+                advanced(row("codec", qsTr("Codec"), codecIndex >= 0 ? codecIndex : 2)),
+                advanced(row("hdr", qsTr("HDR"), s.enableHdr ? 1 : 0, true))
             ]) },
             { label: qsTr("Console"), rows: consoleRows }
         ]
@@ -1176,7 +1202,9 @@ FocusScope {
         var p = StreamingPreferences
         var choice = optionChoices[key] ? optionChoices[key][index] : null    // (curseur : `index` est la valeur)
         // Console : rien à voir avec les préférences du flux.
-        if (key === "sounds") {
+        if (key === "advanced") {
+            consoleConfig.advancedSettings = choice.value
+        } else if (key === "sounds") {
             consoleConfig.sounds = choice.value
             Sounds.enabled = choice.value
         } else if (key === "brightness") {
@@ -1195,7 +1223,7 @@ FocusScope {
             p.save()
             p.retranslate()
         }
-        if (["sounds", "brightness", "volume", "sleep", "buttons", "language"].indexOf(key) >= 0) {
+        if (["advanced", "sounds", "brightness", "volume", "sleep", "buttons", "language"].indexOf(key) >= 0) {
             refreshOptions()
             return
         }

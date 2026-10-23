@@ -21,6 +21,7 @@ import "../../../../app/gui/console/StreamProfiles.js" as Profiles
 //   sound  0 pour couper les sons (coupés d'office pendant une capture)
 //   connected=0, signal=0..4, battery=0..100, charging=1   états de la barre haute
 //   network=good|fair|poor   réseau vu par les profils de flux (Options > Flux > Profil)
+//   advanced=1               réglages avancés allumés au départ
 //   pad=xbox|playstation|nintendo, padbattery=0..3          manette (glyphes, batterie)
 // Pour comparer à une référence, capturer après l'entrée de l'écran : delay=2500.
 HomeScreen {
@@ -29,7 +30,8 @@ HomeScreen {
     property var args: ({})
     readonly property var game: games.count > 0 ? games.get(currentIndex) : null
     // Réglages de la maquette (tableau SETTINGS du prototype)
-    property var settings: ({ streamProfile: 1, res: 1, fps: 1, rateAuto: 1, rate: 20, codec: 0, hdr: 0, sounds: 1 })
+    property var settings: ({ streamProfile: 1, advanced: args.advanced === "1" ? 1 : 0, res: 1, fps: 1, rateAuto: 1, rate: 20,
+                              codec: 0, hdr: 0, sounds: 1 })
     // Profil de flux, sur l'écran du harnais (1280 × 800, 60 Hz) ; Manuel : les réglages ci-dessous.
     readonly property var chosen: Profiles.launchSettings(Profiles.KEYS[settings.streamProfile], {
         width: 1280, height: 800, refresh: 60, quality: args.network || "good",
@@ -42,7 +44,12 @@ HomeScreen {
         stats: [ { label: "Définition", value: (chosen ? chosen.height : 800) + "p" },
                  { label: "Images/s", value: "" + (chosen ? chosen.fps : [30, 60, 90, 120][settings.fps]) },
                  { label: "Débit", value: Math.round(chosen ? chosen.bitrateKbps / 1000 : settings.rate) + " Mb/s" },
-                 { label: "Priorité", value: ["réactivité", "équilibre", "image", "≈ 2,3 Go/h", "vos réglages"][settings.streamProfile] } ] })
+                 { label: "Priorité", value: ["latence", "équilibre", "image", "≈ 2,3 Go/h", "vos réglages"][settings.streamProfile] } ],
+        description: ["Le plus réactif : toutes les images de l'écran, pour les jeux rapides.",
+                      "Le meilleur compromis entre image et fluidité, adapté à votre réseau.",
+                      "La plus belle image, quand le réseau suit.",
+                      "Moins de données et de batterie : environ 2,3 Go par heure.",
+                      "Vos propres réglages, dans les réglages avancés."][settings.streamProfile] })
 
     focus: true
     model: DemoGames { id: games }
@@ -70,13 +77,19 @@ HomeScreen {
     optionTabs: [
         { label: "Flux", rows: [
             profileRow,
-            { key: "res", label: "Résolution", options: ["720p", "Natif 1280×800", "1080p"], index: settings.res, auto: chosen !== null },
-            { key: "fps", label: "Images par seconde", options: ["30", "60", "90", "120"], index: settings.fps, auto: chosen !== null },
-            { key: "rateAuto", label: "Débit automatique", options: ["Désactivé", "Activé"], index: settings.rateAuto, toggle: true },
-            { key: "rate", label: "Débit", slider: true, value: settings.rate, auto: settings.rateAuto === 1,
-              min: 5, max: 150, stops: [10, 20, 40, 80], format: "%1 Mb/s" },
-            { key: "codec", label: "Codec", options: ["Auto (AV1)", "H.264", "HEVC", "AV1"], index: settings.codec },
-            { key: "hdr", label: "HDR", options: ["Désactivé", "Activé"], index: settings.hdr, toggle: true }
+            { key: "advanced", label: "Réglages avancés", options: ["Désactivé", "Activé"], index: settings.advanced,
+              toggle: true, revealsAdvanced: true },
+            { key: "res", label: "Résolution", options: ["720p", "Natif 1280×800", "1080p"], index: settings.res,
+              auto: chosen !== null, advanced: true },
+            { key: "fps", label: "Images par seconde", options: ["30", "60", "90", "120"], index: settings.fps,
+              auto: chosen !== null, advanced: true },
+            { key: "rateAuto", label: "Débit automatique", options: ["Désactivé", "Activé"], index: settings.rateAuto,
+              toggle: true, advanced: true, hidden: chosen !== null },
+            { key: "rate", label: "Débit", slider: true, value: chosen ? Math.round(chosen.bitrateKbps / 1000) : settings.rate,
+              auto: chosen !== null || settings.rateAuto === 1, min: 5, max: 150, stops: [10, 20, 40, 80], format: "%1 Mb/s",
+              advanced: true },
+            { key: "codec", label: "Codec", options: ["Auto (AV1)", "H.264", "HEVC", "AV1"], index: settings.codec, advanced: true },
+            { key: "hdr", label: "HDR", options: ["Désactivé", "Activé"], index: settings.hdr, toggle: true, advanced: true }
         ] },
         { label: "Console", rows: [
             { key: "brightness", label: "Luminosité", options: ["40 %", "50 %", "60 %", "70 %"], index: 2 },
