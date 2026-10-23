@@ -13,6 +13,7 @@
 // reveal=, veil=, blur=, focusY=, pageMix= (avec page=confirm : la liste s'efface),
 // swap= (avec stats=1 : « Masquées » sort, « Affichées » entre), de 0 à 1.
 // hold= (page=confirm focus=1 : le remplissage de l'appui maintenu), holdDone= (la coche).
+// page=stats notice="Réseau instable" tone=bad : l'avis pendant le jeu, en haut à droite.
 
 #include "streampainter.h"
 
@@ -114,7 +115,14 @@ int main(int argc, char* argv[])
     }
     QImage image(screen, QImage::Format_ARGB32_Premultiplied);
     if (page == QLatin1String("stats")) {
-        image = StreamPainter::paintStats(stats, number("opacity", 1), screen);
+        // notice=texte (tone=good|warn|bad) : l'avis en haut à droite ; stats=0 : lui seul.
+        StreamPainter::Notice notice;
+        notice.text = opt.value(QStringLiteral("notice"));
+        const QString tone = opt.value(QStringLiteral("tone"));
+        notice.tone = tone == QLatin1String("warn") ? StreamPainter::Notice::Warn
+                    : tone == QLatin1String("bad") ? StreamPainter::Notice::Bad : StreamPainter::Notice::Good;
+        image = StreamPainter::paintStats(opt.value(QStringLiteral("stats")) == QLatin1String("0") ? StreamPainter::Stats() : stats,
+                                          number("opacity", 1), screen, notice, number("noticeOpacity", 1));
     }
     else {
         StreamPainter::paintFrame(frame, image);

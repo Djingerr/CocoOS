@@ -1065,7 +1065,7 @@ FocusScope {
 
     // Le menu en jeu (bouton Home pendant le flux) : son titre, ses actions, ses glyphes.
     function prepareStreamMenu(game) {
-        InputStatus.prepareStreamMenu(game, SystemStatus.powerActions, Theme.buttonLayout)
+        InputStatus.prepareStreamMenu(game, SystemStatus.powerActions, Theme.buttonLayout, SystemStatus)
     }
 
     // Retour à l'accueil : fin du jeu, échec, annulation.

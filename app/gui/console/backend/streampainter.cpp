@@ -76,6 +76,10 @@ const QColor STATS_FILL(0, 0, 0, qRound(0.6 * 255));
 const qreal STATS_TITLE_SIZE = 14;       // Sora 500, la ligne du flux
 const qreal STATS_LINE_SIZE = 13;
 const qreal STATS_LINE_HEIGHT = 1.5;
+const qreal NOTICE_HEIGHT = 40;          // l'avis : une pastille sombre, un point, un texte
+const qreal NOTICE_PAD_X = 16;
+const qreal NOTICE_SIZE = 14;            // Sora 500
+const qreal NOTICE_SHIFT = 10;           // il descend d'autant en apparaissant
 
 // Les tailles sont en points sur une image à 72 ppp (1 point = 1 pixel) : QFont
 // n'accepte que des tailles de pixel entières, le canevas a des demi-pixels.
@@ -325,20 +329,45 @@ int StreamPainter::rowAt(const Page& page, QSize screen, QPointF pos)
     return int(row);
 }
 
-QImage StreamPainter::paintStats(const Stats& stats, qreal opacity, QSize screen)
+QImage StreamPainter::paintStats(const Stats& stats, qreal opacity, QSize screen,
+                                 const Notice& notice, qreal noticeOpacity)
 {
-    if (stats.lines.isEmpty() || opacity <= 0 || screen.isEmpty()) {
+    const bool showStats = !stats.lines.isEmpty() && opacity > 0;
+    const bool showNotice = !notice.text.isEmpty() && noticeOpacity > 0;
+    if ((!showStats && !showNotice) || screen.isEmpty()) {
         return QImage();
     }
     const qreal scale = screen.height() / CANVAS_HEIGHT;
     QImage image = canvasImage(QSize(1, 1));
-    const QSizeF size = statsSize(stats, &image);
-    image = canvasImage(QSize(qCeil((STATS_MARGIN + size.width()) * scale),
-                              qCeil((STATS_MARGIN + size.height()) * scale)));
+    const QSizeF size = showStats ? statsSize(stats, &image) : QSizeF();
+    // L'avis est à droite : l'image prend alors toute la largeur (une bande, en haut).
+    const qreal width = showNotice ? screen.width() / scale : STATS_MARGIN + size.width();
+    const qreal height = qMax(showStats ? STATS_MARGIN + size.height() : 0.0,
+                              showNotice ? STATS_MARGIN + NOTICE_HEIGHT : 0.0);
+    image = canvasImage(QSize(qCeil(width * scale), qCeil(height * scale)));
     image.fill(Qt::transparent);
     QPainter p(&image);
     beginCanvas(p, screen);
-    drawStats(p, stats, opacity);
+    if (showStats) {
+        drawStats(p, stats, opacity);
+    }
+    if (showNotice) {
+        const QFont font = sora(NOTICE_SIZE, QFont::Medium);
+        const qreal textWidth = QFontMetricsF(font, p.device()).horizontalAdvance(notice.text);
+        const qreal pill = NOTICE_PAD_X + HOST_DOT_SIZE + HOST_DOT_GAP + textWidth + NOTICE_PAD_X;
+        const QRectF box(width - STATS_MARGIN - pill, STATS_MARGIN - NOTICE_SHIFT * (1 - noticeOpacity),
+                         pill, NOTICE_HEIGHT);
+        p.setOpacity(noticeOpacity);
+        p.setPen(Qt::NoPen);
+        p.setBrush(STATS_FILL);
+        p.drawRoundedRect(box, NOTICE_HEIGHT / 2, NOTICE_HEIGHT / 2);
+        p.setBrush(notice.tone == Notice::Good ? OK : notice.tone == Notice::Warn ? ACCENT : POOR);
+        p.drawEllipse(QRectF(box.x() + NOTICE_PAD_X, box.center().y() - HOST_DOT_SIZE / 2, HOST_DOT_SIZE, HOST_DOT_SIZE));
+        p.setFont(font);
+        p.setPen(INK);
+        p.drawText(QRectF(box.x() + NOTICE_PAD_X + HOST_DOT_SIZE + HOST_DOT_GAP, box.y(), textWidth + 1, box.height()),
+                   Qt::AlignLeft | Qt::AlignVCenter, notice.text);
+    }
     return image;
 }
 

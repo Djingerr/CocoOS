@@ -24,6 +24,14 @@ struct Stats {
     QColor dot;
 };
 
+// Un avis bref pendant le jeu, en haut à droite : manette presque vide, réseau instable,
+// capture enregistrée. Le point dit le ton : Good (vert), Warn (orange), Bad (rouge).
+struct Notice {
+    enum Tone { Good, Warn, Bad };
+    QString text;
+    Tone tone = Good;
+};
+
 // Le contenu du panneau : une liste d'actions, ou une confirmation.
 struct Page {
     QString title;
@@ -71,8 +79,11 @@ bool paintFrame(const Frame& frame, QImage& image);
 // panneau, hors des lignes ; -2 hors du panneau.
 int rowAt(const Page& page, QSize screen, QPointF pos);
 
-// Les statistiques seules, sur une image qui part du coin haut gauche de l'écran.
-QImage paintStats(const Stats& stats, qreal opacity, QSize screen);
+// Hors du menu : les statistiques (en haut à gauche) et l'avis (en haut à droite, qui
+// descend en apparaissant), sur une image qui part du coin haut gauche de l'écran ; nulle
+// s'il n'y a rien à montrer.
+QImage paintStats(const Stats& stats, qreal opacity, QSize screen,
+                  const Notice& notice = Notice(), qreal noticeOpacity = 0);
 
 // Le fond du menu : une image du jeu, déjà réduite (au huitième), floutée, assombrie
 // et mise à la taille de l'écran.

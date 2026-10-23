@@ -17,6 +17,7 @@
 // L'accueil le prépare avant chaque flux (InputStatus.prepareStreamMenu) et lit au
 // retour l'action qui a fait quitter le flux (InputStatus.takeStreamExit).
 
+#include <QObject>
 #include <QString>
 #include <QStringList>
 
@@ -28,7 +29,9 @@ struct AVFrame;
 namespace StreamMenu {
 
 // Fil de Qt, avant le flux.
-void prepare(const QString& game, const QStringList& powerActions, const QString& buttonLayout);
+// `system` : SystemStatus (volume et luminosité réglables depuis le menu ; nul : sans).
+void prepare(const QString& game, const QStringList& powerActions, const QString& buttonLayout,
+             QObject* system = nullptr);
 // "home", "quit", "suspend", "reboot" ou "poweroff" ; vide si le flux s'est fini
 // autrement. Ne le dit qu'une fois.
 QString takeExit();
@@ -48,13 +51,16 @@ void onAxis(uint8_t axis, int16_t value);
 // `button` à 0 : un simple déplacement.
 void onPointer(int x, int y, int button, bool pressed);
 void toggleStats();
+// Capture d'écran de l'image du jeu (bouton Partager de la manette, ligne du menu), dans
+// Images/CocoOS ; un avis (ou la ligne du menu) dit si elle est enregistrée.
+void screenshot();
 // SDL_QUIT reçu par la boucle du flux (session.cpp). Un flux qui se ferme autrement que par
 // le menu (connexion perdue, combinaison de la manette, Ctrl+Alt+Maj+Q, fenêtre fermée)
 // passe lui aussi par le fondu au noir et le rideau : vrai, ce SDL_QUIT est mangé et un
 // autre le suit, une fois la fenêtre de l'accueil revenue ; faux, il ferme le flux.
 bool interceptQuit();
 
-// Fil du décodeur (ffmpeg.cpp).
+// Fil du décodeur (ffmpeg.cpp). updateStats : chaque seconde (les avis s'en servent).
 bool wantsStats();
 void updateStats(const _VIDEO_STATS& stats, int videoFormat, int width, int height, double megabitsPerSec);
 void offerFrame(const AVFrame* frame);

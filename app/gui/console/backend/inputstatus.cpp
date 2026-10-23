@@ -18,9 +18,9 @@ const int TRIGGER_PRESS = 16000;          // gâchette (0 à 32767) : enfoncée 
 }
 
 void InputStatus::prepareStreamMenu(const QString& game, const QStringList& powerActions,
-                                    const QString& buttonLayout)
+                                    const QString& buttonLayout, QObject* system)
 {
-    StreamMenu::prepare(game, powerActions, buttonLayout);
+    StreamMenu::prepare(game, powerActions, buttonLayout, system);
 }
 
 QString InputStatus::takeStreamExit()

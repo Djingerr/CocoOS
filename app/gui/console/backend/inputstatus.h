@@ -44,7 +44,7 @@ public:
     // glyphes à montrer, avant chaque flux ; au retour, l'action choisie ("home",
     // "quit", "suspend", "reboot", "poweroff"), vide si le flux s'est fini autrement.
     Q_INVOKABLE void prepareStreamMenu(const QString& game, const QStringList& powerActions,
-                                       const QString& buttonLayout);
+                                       const QString& buttonLayout, QObject* system = nullptr);
     Q_INVOKABLE QString takeStreamExit();
     // Un son de l'interface vient d'être joué (Sounds.played) : la manette vibre pour
     // certains (StreamMenu::rumble), sauf réglage ConsoleUi/rumble éteint.

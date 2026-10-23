@@ -317,6 +317,13 @@ void SdlInputHandler::handleControllerButtonEvent(SDL_ControllerButtonEvent* eve
         }
         return;
     }
+    // Console: Share / Capture takes a screenshot (StreamMenu) and is not sent to the PC
+    if (event->button == SDL_CONTROLLER_BUTTON_MISC1) {
+        if (event->state == SDL_PRESSED) {
+            StreamMenu::screenshot();
+        }
+        return;
+    }
     if (StreamMenu::isOpen()) {
         StreamMenu::onButton(event->button, event->state == SDL_PRESSED);
         syncStreamMenuMouse();

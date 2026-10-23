@@ -14,7 +14,12 @@
 #include <QLocale>
 #include <QMutex>
 #include <QMutexLocker>
+#include <QDateTime>
+#include <QDir>
+#include <QRegularExpression>
 #include <QSettings>
+#include <QStandardPaths>
+#include <QThreadPool>
 #include <QtMath>
 
 #include <atomic>
@@ -49,6 +54,12 @@ const int BLUR_FADE = 200;          // l'image floutée remplace le voile
 const int STATS_FADE = 220;         // Theme.toastFade
 const int CURTAIN_FADE = 250;       // fondu au noir avant de quitter le flux
 const int STREAM_FADE_IN = 400;     // au début du flux, le noir s'efface sur ses premières images
+const int NOTICE_FADE = 220;        // un avis pendant le jeu paraît, reste NOTICE_HOLD, s'efface
+const Uint32 NOTICE_HOLD = 3000;
+const int VALUE_STEP = 10;          // volume, luminosité : ← / → de 10 %
+const int POOR_SECONDS = 10;        // réseau « mauvais » (Format.networkQuality) aussi longtemps : un avis
+const int POOR_RTT = 50;            // au-delà : mauvais (ms), comme la pastille de l'accueil
+const int POOR_VARIANCE = 15;
 // Appui maintenu des confirmations (Theme.hold*, HoldFill.qml) : plein en HOLD_DURATION,
 // affiché progression^HOLD_CURVE, vidé en HOLD_DRAIN si on lâche ; plein, la coche arrive en
 // HOLD_SWAP, puis l'action part après HOLD_FINISH.
@@ -150,6 +161,18 @@ int s_repeats = 0;
 QString s_leaving;                      // action choisie, le temps du fondu au noir
 bool s_finishPending = false;           // finishLeave à lancer, hors du verrou
 bool s_quitPassing = false;             // le SDL_QUIT de finishLeave : il ferme le flux
+QObject* s_system = nullptr;            // SystemStatus (volume, luminosité), fil principal seulement
+int s_volume = -1;                      // ses valeurs, gardées ici (lues sur tous les fils) ; -1 : absent
+int s_brightness = -1;
+StreamPainter::Notice s_notice;         // l'avis en cours, hors du menu (en haut à droite)
+Anim s_noticeFade;
+SDL_TimerID s_noticeTimer = 0;
+std::atomic<bool> s_shotWanted { false };   // une capture d'écran attend la prochaine image
+QString s_shotValue;                    // valeur de la ligne « Capture d'écran » (« Enregistrée »…)
+int s_poorSeconds = 0;                  // réseau mauvais depuis… (s), bon depuis…
+int s_goodSeconds = 0;
+bool s_poorNoticed = false;
+bool s_batteryNoticed = false;
 Anim s_hold, s_holdDone;                // appui maintenu sur une confirmation, puis sa coche
 bool s_holding = false;                 // A (ou le clic) tenu sur la ligne à maintenir
 Uint32 s_holdDoneAt = 0;                // plein à cet instant ; 0 : pas encore
@@ -179,10 +202,20 @@ QString statsValue(bool shown)
     return shown ? Text::tr("Affichées") : Text::tr("Masquées");
 }
 
+QString percent(int value)
+{
+    return Text::tr("%1 %").arg(value);
+}
+
 QList<Action> actions()
 {
     QList<Action> list = {
         { "resume", Text::tr("Reprendre") },
+        { "shot", Text::tr("Capture d'écran") },
+    };
+    if (s_volume >= 0) list.append({ "volume", Text::tr("Volume") });
+    if (s_brightness >= 0) list.append({ "brightness", Text::tr("Luminosité") });
+    list += QList<Action> {
         { "stats", Text::tr("Statistiques du flux") },
         { "home", Text::tr("Retour à l'accueil") },
         { "quit", s_game.isEmpty() ? Text::tr("Quitter le jeu") : Text::tr("Quitter %1").arg(s_game) },
@@ -227,7 +260,10 @@ StreamPainter::Page page()
     page.title = s_game.isEmpty() ? Text::tr("Menu") : s_game;
     for (const Action& action : actions()) {
         page.labels.append(action.label);
-        page.values.append(action.key == QLatin1String("stats") ? statsValue(s_stats) : QString());
+        page.values.append(action.key == QLatin1String("stats") ? statsValue(s_stats)
+                         : action.key == QLatin1String("volume") ? percent(s_volume)
+                         : action.key == QLatin1String("brightness") ? percent(s_brightness)
+                         : action.key == QLatin1String("shot") ? s_shotValue : QString());
     }
     page.backLabel = Text::tr("Fermer");
     if (holdRow()) {
@@ -272,7 +308,7 @@ StreamPainter::Frame frame(Uint32 now)
 bool animating(Uint32 now)
 {
     for (const Anim* anim : { &s_reveal, &s_veil, &s_blurMix, &s_focusY, &s_swap, &s_statsFade, &s_curtain,
-                              &s_hold, &s_holdDone }) {
+                              &s_hold, &s_holdDone, &s_noticeFade }) {
         if (anim->running(now)) {
             return true;
         }
@@ -289,7 +325,7 @@ bool animating(Uint32 now)
 void freeze(Uint32 now)
 {
     for (Anim* anim : { &s_reveal, &s_veil, &s_blurMix, &s_focusY, &s_swap, &s_statsFade, &s_curtain,
-                        &s_hold, &s_holdDone }) {
+                        &s_hold, &s_holdDone, &s_noticeFade }) {
         anim->set(anim->at(now));
     }
     for (Anim& highlight : s_highlight) {
@@ -452,6 +488,8 @@ Uint32 tick(Uint32, void*)
     StreamPainter::Frame view;
     StreamPainter::Stats stats;
     qreal statsOpacity;
+    StreamPainter::Notice notice;
+    qreal noticeOpacity;
     {
         QMutexLocker locker(&s_lock);
         if (Session::get() == nullptr || Session::get() != s_session) {
@@ -488,11 +526,14 @@ Uint32 tick(Uint32, void*)
         }
         stats = s_statsView;
         statsOpacity = s_statsFade.at(now);
+        notice = s_notice;
+        noticeOpacity = s_noticeFade.at(now);
     }
 
     // Le menu (ouvert ou en train de se fermer), sinon les statistiques, sinon rien.
     SDL_Surface* surface = menuShown ? menuSurface(view, screen)
-                                     : toSurface(StreamPainter::paintStats(stats, statsOpacity, screen));
+                                     : toSurface(StreamPainter::paintStats(stats, statsOpacity, screen,
+                                                                           notice, noticeOpacity));
 
     QMutexLocker locker(&s_lock);
     Session* session = Session::get();
@@ -548,6 +589,7 @@ void openMenu()
     const Uint32 now = SDL_GetTicks();
     s_open = true;
     s_focus = 0;
+    s_shotValue.clear();
     resetHold();
     s_armed = false;
     s_stick = 0;
@@ -698,6 +740,87 @@ void repeatStep(Uint32 now)
     s_repeatAt = now + qMax(REPEAT_MIN, REPEAT_INTERVAL - s_repeats * REPEAT_STEP);
 }
 
+// Un avis bref, hors du menu (en haut à droite) : il paraît, reste NOTICE_HOLD, s'efface.
+Uint32 hideNotice(Uint32, void*)
+{
+    QMutexLocker locker(&s_lock);
+    s_noticeTimer = 0;
+    s_noticeFade.go(0, NOTICE_FADE, SDL_GetTicks());
+    requestRender();
+    return 0;
+}
+
+void showNotice(const QString& text, StreamPainter::Notice::Tone tone)
+{
+    s_notice.text = text;
+    s_notice.tone = tone;
+    s_noticeFade.go(1, NOTICE_FADE, SDL_GetTicks(), QEasingCurve::OutCubic);
+    if (s_noticeTimer != 0) {
+        SDL_RemoveTimer(s_noticeTimer);
+    }
+    s_noticeTimer = SDL_AddTimer(NOTICE_HOLD, hideNotice, nullptr);
+    requestRender();
+}
+
+// La valeur d'une ligne change : l'ancienne sort, la nouvelle entre (SwapBox).
+void swapValue(int row, const QString& from)
+{
+    const Uint32 now = SDL_GetTicks();
+    s_swapRow = row;
+    s_swapFrom = from;
+    s_swap.set(0);
+    s_swap.go(1, SHEET_VALUE_SWAP, now);
+    requestRender();
+}
+
+// Une capture d'écran : la prochaine image du jeu (ou la dernière, si le PC n'envoie rien),
+// prise par le décodeur (captureIfWanted).
+void requestShot()
+{
+    s_shotWanted = true;
+    if (s_open) {
+        const QString from = s_shotValue;
+        s_shotValue = Text::tr("Capture…");
+        swapValue(actionIndex(QStringLiteral("shot")), from);
+    }
+    s_repeat = true;
+    LiWakeWaitForVideoFrame();
+}
+
+bool valueRow()
+{
+    const QString key = actions().value(s_focus).key;
+    return key == QLatin1String("volume") || key == QLatin1String("brightness");
+}
+
+// ← / → sur le volume ou la luminosité : 10 % de plus ou de moins. Le réglage lui-même
+// (SystemStatus) se fait hors du verrou, par l'appelant : renvoie la valeur à poser, -1 sinon.
+int adjust(int direction)
+{
+    int& value = actions().value(s_focus).key == QLatin1String("volume") ? s_volume : s_brightness;
+    const int min = &value == &s_volume ? 0 : VALUE_STEP;
+    const int next = qBound(min, value + direction * VALUE_STEP, 100);
+    if (next == value) {
+        play("edge");
+        return -1;
+    }
+    const QString from = percent(value);
+    value = next;
+    swapValue(s_focus, from);
+    play("tick");
+    return next;
+}
+
+// Fil principal (celui du flux : Qt y est suspendu, mais SystemStatus s'appelle directement).
+void applySetting(const QString& key, int value)
+{
+    if (value < 0 || s_system == nullptr) {
+        return;
+    }
+    QMetaObject::invokeMethod(s_system, key == QLatin1String("volume") ? "setVolume" : "setBrightness",
+                              Qt::DirectConnection, Q_ARG(int, value));
+}
+
 void back()
 {
     closeMenu();
@@ -738,16 +861,24 @@ void activate()
         play("tick");
         switchStats();
     }
+    else if (key == QLatin1String("shot")) {
+        play("select");
+        requestShot();
+    }
+    else if (key == QLatin1String("volume") || key == QLatin1String("brightness")) {
+        play("edge");   // ← / → les règlent
+    }
     else {
         play("select");
         beginLeave(key);
     }
 }
 
-// L'image décodée, copiée en mémoire si elle est sur le GPU et réduite au huitième
-// (moyenne des pixels : un premier flou). Nulle si le format ne s'y prête pas.
+// L'image décodée, copiée en mémoire si elle est sur le GPU et réduite `divisor` fois
+// (au huitième pour le fond du menu : la moyenne des pixels, un premier flou ; 1 pour une
+// capture d'écran). Nulle si le format ne s'y prête pas.
 // ponytail: couleurs en BT.601 par défaut, sans HDR ; à régler si le fond tire.
-QImage snapshot(const AVFrame* frame)
+QImage snapshot(const AVFrame* frame, int divisor)
 {
     AVFrame* copy = nullptr;
     if (frame->hw_frames_ctx != nullptr) {
@@ -758,10 +889,10 @@ QImage snapshot(const AVFrame* frame)
         }
         frame = copy;
     }
-    QImage image(qMax(1, frame->width / 8), qMax(1, frame->height / 8), QImage::Format_RGB32);
+    QImage image(qMax(1, frame->width / divisor), qMax(1, frame->height / divisor), QImage::Format_RGB32);
     SwsContext* context = sws_getContext(frame->width, frame->height, (AVPixelFormat)frame->format,
                                          image.width(), image.height(), AV_PIX_FMT_BGRA,   // = Format_RGB32
-                                         SWS_AREA, nullptr, nullptr, nullptr);
+                                         divisor > 1 ? SWS_AREA : SWS_BILINEAR, nullptr, nullptr, nullptr);
     if (context != nullptr) {
         uint8_t* const data[] = { image.bits() };
         const int linesize[] = { (int)image.bytesPerLine() };
@@ -770,6 +901,84 @@ QImage snapshot(const AVFrame* frame)
     }
     av_frame_free(&copy);
     return context != nullptr ? image : QImage();
+}
+
+// La capture est enregistrée (ou pas) : la ligne du menu le dit, sinon un avis.
+void shotDone(bool saved)
+{
+    QMutexLocker locker(&s_lock);
+    if (s_open) {
+        const QString from = s_shotValue;
+        s_shotValue = saved ? Text::tr("Enregistrée") : Text::tr("Échec");
+        swapValue(actionIndex(QStringLiteral("shot")), from);
+    }
+    else {
+        showNotice(saved ? Text::tr("Capture enregistrée") : Text::tr("Capture impossible"),
+                   saved ? StreamPainter::Notice::Good : StreamPainter::Notice::Bad);
+    }
+    play(saved ? "confirm" : "deny");
+}
+
+// Fil du décodeur : une capture est demandée, voici l'image. Elle est convertie ici, puis
+// enregistrée à part (un PNG en 4K prend son temps) dans Images/CocoOS, au nom du jeu.
+void captureIfWanted(const AVFrame* frame)
+{
+    if (frame == nullptr || !s_shotWanted.exchange(false)) {
+        return;
+    }
+    QString game;
+    {
+        QMutexLocker locker(&s_lock);
+        game = s_game;
+    }
+    const QImage image = snapshot(frame, 1);
+    if (image.isNull()) {
+        shotDone(false);
+        return;
+    }
+    const QString dir = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) + QStringLiteral("/CocoOS");
+    const QString name = (game.isEmpty() ? QStringLiteral("CocoOS") : game)
+                             .replace(QRegularExpression(QStringLiteral("[/\\:*?\"<>|]")), QStringLiteral(" "));
+    const QString path = dir + QLatin1Char('/') + name + QLatin1Char(' ')
+                       + QDateTime::currentDateTime().toString(QStringLiteral("yyyy-MM-dd HH.mm.ss")) + QStringLiteral(".png");
+    QThreadPool::globalInstance()->start([image, dir, path] {
+        const bool saved = QDir().mkpath(dir) && image.save(path);
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[console-ui] Capture d'écran %s : %s",
+                    saved ? "enregistrée" : "impossible", qPrintable(path));
+        shotDone(saved);
+    });
+}
+
+// Chaque seconde (fil du décodeur) : le réseau, mauvais depuis POOR_SECONDS, et la manette,
+// presque vide, valent un avis ; une fois par épisode.
+void checkHealth(const VIDEO_STATS& stats)
+{
+    if (stats.lastRtt != 0) {
+        const bool poor = stats.lastRtt > POOR_RTT || stats.lastRttVariance > POOR_VARIANCE;
+        s_poorSeconds = poor ? s_poorSeconds + 1 : 0;
+        s_goodSeconds = poor ? 0 : s_goodSeconds + 1;
+        if (s_poorSeconds == POOR_SECONDS && !s_poorNoticed) {
+            s_poorNoticed = true;
+            showNotice(Text::tr("Réseau instable"), StreamPainter::Notice::Bad);
+        }
+        if (s_goodSeconds >= POOR_SECONDS) {
+            s_poorNoticed = false;
+        }
+    }
+    bool low = false;
+    if (SDL_WasInit(SDL_INIT_GAMECONTROLLER)) {
+        for (int i = 0; i < SDL_NumJoysticks(); i++) {
+            SDL_GameController* gc = SDL_GameControllerFromInstanceID(SDL_JoystickGetDeviceInstanceID(i));
+            if (gc != nullptr) {
+                const SDL_JoystickPowerLevel level = SDL_JoystickCurrentPowerLevel(SDL_GameControllerGetJoystick(gc));
+                low |= level == SDL_JOYSTICK_POWER_LOW || level == SDL_JOYSTICK_POWER_EMPTY;
+            }
+        }
+    }
+    if (low && !s_batteryNoticed) {
+        showNotice(Text::tr("Manette presque vide"), StreamPainter::Notice::Warn);
+    }
+    s_batteryNoticed = low;
 }
 
 QString codecName(int videoFormat)
@@ -884,9 +1093,22 @@ void finishLeave()
 
 }
 
-void StreamMenu::prepare(const QString& game, const QStringList& powerActions, const QString& buttonLayout)
+void StreamMenu::prepare(const QString& game, const QStringList& powerActions, const QString& buttonLayout,
+                         QObject* system)
 {
     QMutexLocker locker(&s_lock);
+    s_system = system;
+    s_volume = system != nullptr ? system->property("volume").toInt() : -1;
+    s_brightness = system != nullptr ? system->property("brightness").toInt() : -1;
+    s_notice = StreamPainter::Notice();
+    s_noticeFade.set(0);
+    if (s_noticeTimer != 0) {
+        SDL_RemoveTimer(s_noticeTimer);
+        s_noticeTimer = 0;
+    }
+    s_shotWanted = false;
+    s_poorSeconds = s_goodSeconds = 0;
+    s_poorNoticed = s_batteryNoticed = false;
     closeAudio();
     s_session = nullptr;
     s_open = false;
@@ -941,14 +1163,22 @@ void StreamMenu::toggle()
 
 void StreamMenu::onButton(uint8_t button, bool pressed)
 {
+    QString setting;      // volume ou luminosité réglés : appliqués hors du verrou
+    int settingValue = -1;
     {
         QMutexLocker locker(&s_lock);
         if (!s_open || !s_leaving.isEmpty() || s_holdDoneAt != 0) {
             return;
         }
-        const int direction = button == SDL_CONTROLLER_BUTTON_DPAD_UP || button == SDL_CONTROLLER_BUTTON_DPAD_LEFT ? -1
-                            : button == SDL_CONTROLLER_BUTTON_DPAD_DOWN || button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT ? 1
-                            : 0;
+        // Haut / bas : la ligne ; gauche / droite : la valeur (volume, luminosité).
+        const int direction = button == SDL_CONTROLLER_BUTTON_DPAD_UP ? -1
+                            : button == SDL_CONTROLLER_BUTTON_DPAD_DOWN ? 1 : 0;
+        const int sideways = button == SDL_CONTROLLER_BUTTON_DPAD_LEFT ? -1
+                           : button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT ? 1 : 0;
+        if (pressed && sideways != 0 && valueRow()) {
+            setting = actions().value(s_focus).key;
+            settingValue = adjust(sideways);
+        }
         if (!pressed) {
             if (direction != 0 && direction == s_repeatDir) {
                 s_repeatDir = 0;
@@ -974,11 +1204,22 @@ void StreamMenu::onButton(uint8_t button, bool pressed)
             back();
         }
         if (!s_finishPending) {
+            locker.unlock();
+            applySetting(setting, settingValue);
             return;
         }
         s_finishPending = false;
     }
     finishLeave();
+}
+
+void StreamMenu::screenshot()
+{
+    QMutexLocker locker(&s_lock);
+    attach();
+    if (s_leaving.isEmpty()) {
+        requestShot();
+    }
 }
 
 void StreamMenu::onPointer(int x, int y, int button, bool pressed)
@@ -1122,14 +1363,21 @@ void StreamMenu::toggleStats()
 
 bool StreamMenu::wantsStats()
 {
-    return s_stats;
+    return true;   // chaque seconde : les avis (réseau, manette), même statistiques masquées
 }
 
 void StreamMenu::updateStats(const VIDEO_STATS& stats, int videoFormat, int width, int height, double megabitsPerSec)
 {
+    {
+        QMutexLocker locker(&s_lock);
+        attach();
+        checkHealth(stats);
+        if (!s_stats) {
+            return;
+        }
+    }
     const StreamPainter::Stats view = statsView(stats, videoFormat, width, height, megabitsPerSec);
     QMutexLocker locker(&s_lock);
-    attach();
     if (!s_stats) {
         return;
     }
@@ -1143,6 +1391,7 @@ void StreamMenu::updateStats(const VIDEO_STATS& stats, int videoFormat, int widt
 
 void StreamMenu::offerFrame(const AVFrame* frame)
 {
+    captureIfWanted(frame);
     // Cette image portera l'overlay en cours : rien à réafficher.
     s_lastFrameTicks = SDL_GetTicks();
     s_repeat = false;
@@ -1173,7 +1422,7 @@ void StreamMenu::offerFrame(const AVFrame* frame)
         }
         screen = s_screen;
     }
-    const QImage small = snapshot(frame);
+    const QImage small = snapshot(frame, 8);
     if (small.isNull() || screen.isEmpty()) {
         return;   // le voile reste
     }
@@ -1191,6 +1440,9 @@ void StreamMenu::offerFrame(const AVFrame* frame)
 
 AVFrame* StreamMenu::frameToRepeat()
 {
+    if (s_shotWanted) {
+        captureIfWanted(s_lastFrame);   // le PC n'envoie rien : la dernière image fera l'affaire
+    }
     if (!s_repeat.exchange(false) || s_lastFrame == nullptr) {
         return nullptr;
     }
