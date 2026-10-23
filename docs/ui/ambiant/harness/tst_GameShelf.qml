@@ -23,7 +23,7 @@ Item {
         function init() {
             games.clear()
             for (var i = 0; i < 10; i++)
-                games.append({ boxart: "" })
+                games.append({ boxart: "", name: "Jeu " + i })
             shelf.animated = false              // la piste revient d'emblée au début
             shelf.currentIndex = 0
             shelf.bump = 0
@@ -181,6 +181,16 @@ Item {
             shelf.forceActiveFocus()
             keyRelease(Qt.Key_Return)
             compare(launches.count, 1)
+        }
+
+        // Le jeu en cours sur le PC : sa vignette, et elle seule, porte le point.
+        function test_runningGameIsMarked() {
+            shelf.runningName = "Jeu 2"
+            tryVerify(function() { listView().forceLayout(); return listView().itemAtIndex(2) !== null }, 1000)
+            verify(listView().itemAtIndex(2).running)
+            verify(!listView().itemAtIndex(1).running)
+            shelf.runningName = ""
+            verify(!listView().itemAtIndex(2).running)
         }
 
         // L'ombre pré-calculée (make-shadows.py) correspond à la vignette de Theme.qml.

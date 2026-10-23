@@ -366,6 +366,14 @@ QtObject {
     readonly property int pinBadgeSize: 20
     readonly property int pinBadgeInset: 6
     readonly property int pinIconSize: 13
+    // Jeu en cours sur le PC : un point orange en haut à gauche de sa vignette, cerclé de
+    // sombre, d'où part une onde (runningPulse ms, de 1 à runningRipple fois sa taille, en
+    // s'effaçant) ; immobile avec « Réduire les animations ».
+    readonly property int runningDotSize: 10
+    readonly property int runningDotRing: 2
+    readonly property color runningDotRingColor: Qt.rgba(0, 0, 0, 0.55)
+    readonly property int runningPulse: 1600
+    readonly property real runningRipple: 2.6
     // Jeu pas encore installé (fin d'étagère) : vignette estompée ; en téléchargement, fine
     // barre de progression en bas, dans les marges de la pastille.
     readonly property real shelfPendingOpacity: 0.6

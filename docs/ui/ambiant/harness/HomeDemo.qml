@@ -70,6 +70,7 @@ HomeScreen {
     backdrop: game ? game.boxart : ""
     property int runningIndex: args.running !== undefined ? Number(args.running) : -1
     running: currentIndex === runningIndex
+    runningGame: runningIndex >= 0 && runningIndex < games.count ? games.get(runningIndex).name : ""
     onQuitRequested: quitDone.start()               // le PC met un moment à fermer le jeu
     Timer { id: quitDone; interval: 1200; onTriggered: demo.runningIndex = -1 }
 

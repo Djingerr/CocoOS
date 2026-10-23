@@ -235,6 +235,14 @@ FocusScope {
     // Ses index ne sont PAS ceux d'AppModel : chaque élément porte son `appIndex`.
     ListModel { id: shelfModel }        // name, appIndex, boxart, favorite, gameId, pending, progress
     property int shelfRevision: 0       // change à chaque réordonnancement (liaisons)
+    // Le jeu en cours sur le PC (son nom ; vide = aucun) : un point sur sa vignette.
+    readonly property string runningGame: {
+        for (var i = 0; i < appViewer.count; i++) {
+            var app = appViewer.objectAt(i)
+            if (app && app.running) return app.name
+        }
+        return ""
+    }
 
     function favoriteNames() { return Library.parse(consoleConfig.favorites, []) }
 
@@ -1429,6 +1437,7 @@ FocusScope {
         title: tile ? tile.name : ""
         logo: info && info.logo ? info.logo : ""
         running: app ? app.running : false
+        runningGame: home.runningGame
         playLabel: !pending || info && info.isInstalled ? ""
                  : home.downloads[tile.gameId] ? qsTr("Téléchargement") : qsTr("Télécharger")
         updateNote: pending ? home.pendingNote(tile.gameId, info)

@@ -8,11 +8,13 @@ import QtQuick.Effects
 // Consomme un modèle exposant le rôle `boxart` (url ; vide = pas de jaquette) et,
 // s'il les a, `name` (écrit sur la vignette de repli), `favorite` (pastille), `pending`
 // (jeu pas encore installé : estompé) et `progress` (0..1, barre de téléchargement ; < 0 :
-// aucune). Aucune dépendance Moonlight.
+// aucune). La vignette du jeu `runningName` (en cours sur le PC) porte un point qui pulse.
+// Aucune dépendance Moonlight.
 FocusScope {
     id: root
 
     property alias model: list.model
+    property string runningName: ""      // jeu en cours sur le PC ; vide = aucun
     readonly property alias count: list.count
     property int currentIndex: 0
     // Sens du dernier déplacement (+1 vers la droite, -1 vers la gauche).
@@ -177,6 +179,7 @@ FocusScope {
             required property var model
             readonly property string name: model.name || ""
             readonly property bool favorite: model.favorite === true
+            readonly property bool running: name !== "" && name === root.runningName
             readonly property bool pending: model.pending === true
             readonly property real progress: typeof model.progress === "number" ? model.progress : -1
             readonly property bool current: index === root.currentIndex
@@ -362,6 +365,39 @@ FocusScope {
                             width: parent.width * Math.min(Math.max(del.progress, 0), 1)
                             height: parent.height; radius: parent.radius
                             color: Theme.accent
+                        }
+                    }
+                    // En cours sur le PC : le point, et l'onde qui en part.
+                    Item {
+                        visible: del.running
+                        x: Theme.pinBadgeInset; y: Theme.pinBadgeInset
+                        width: Theme.runningDotSize + 2 * Theme.runningDotRing; height: width
+                        Rectangle {
+                            id: ripple
+                            anchors.centerIn: parent
+                            width: Theme.runningDotSize; height: width; radius: width / 2
+                            color: Theme.accent
+                            opacity: 0
+                            SequentialAnimation {
+                                running: del.running && !Theme.reducedMotion
+                                loops: Animation.Infinite
+                                ParallelAnimation {
+                                    NumberAnimation {
+                                        target: ripple; property: "scale"; from: 1; to: Theme.runningRipple
+                                        duration: Theme.runningPulse; easing.type: Easing.OutCubic
+                                    }
+                                    NumberAnimation {
+                                        target: ripple; property: "opacity"; from: 0.6; to: 0
+                                        duration: Theme.runningPulse; easing.type: Easing.OutCubic
+                                    }
+                                }
+                            }
+                        }
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: Theme.accent
+                            border.width: Theme.runningDotRing; border.color: Theme.runningDotRingColor
                         }
                     }
                     Rectangle {

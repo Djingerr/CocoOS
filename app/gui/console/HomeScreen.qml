@@ -25,6 +25,7 @@ FocusScope {
     property alias playtime: hero.playtime
     property alias updateNote: hero.updateNote
     property alias running: hero.running
+    property alias runningGame: shelf.runningName   // son point sur l'étagère
     property alias playLabel: hero.playLabel        // « Télécharger »… ; vide = Jouer
     property alias favorite: hero.favorite          // épinglé : X le détache
     property alias backdrop: backdropLayer.source    // image de fond du jeu sélectionné
