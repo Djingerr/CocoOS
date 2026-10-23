@@ -1,6 +1,7 @@
 import QtQuick
 import "../../../../app/gui/console"
 import "../../../../app/gui/console/Format.js" as Format
+import "../../../../app/gui/console/StreamProfiles.js" as Profiles
 
 // L'écran d'accueil « Ambiant » (HomeScreen) alimenté par les jeux de démo, sans
 // ConsoleHome ni backend Moonlight. Flèches gauche/droite pour changer de jeu
@@ -19,6 +20,7 @@ import "../../../../app/gui/console/Format.js" as Format
 //   drift  0 pour figer la dérive du fond (captures comparables aux références)
 //   sound  0 pour couper les sons (coupés d'office pendant une capture)
 //   connected=0, signal=0..4, battery=0..100, charging=1   états de la barre haute
+//   network=good|fair|poor   réseau vu par les profils de flux (Options > Flux > Profil)
 //   pad=xbox|playstation|nintendo, padbattery=0..3          manette (glyphes, batterie)
 // Pour comparer à une référence, capturer après l'entrée de l'écran : delay=2500.
 HomeScreen {
@@ -27,7 +29,20 @@ HomeScreen {
     property var args: ({})
     readonly property var game: games.count > 0 ? games.get(currentIndex) : null
     // Réglages de la maquette (tableau SETTINGS du prototype)
-    property var settings: ({ res: 1, fps: 1, rateAuto: 1, rate: 20, codec: 0, hdr: 0, sounds: 1 })
+    property var settings: ({ streamProfile: 1, res: 1, fps: 1, rateAuto: 1, rate: 20, codec: 0, hdr: 0, sounds: 1 })
+    // Profil de flux, sur l'écran du harnais (1280 × 800, 60 Hz) ; Manuel : les réglages ci-dessous.
+    readonly property var chosen: Profiles.launchSettings(Profiles.KEYS[settings.streamProfile], {
+        width: 1280, height: 800, refresh: 60, quality: args.network || "good",
+        defaultKbps: function(w, h, fps) { return Math.round(w * h * fps / 6220.8 / 1000) * 1000 } })
+    readonly property var profileRow: ({
+        key: "streamProfile", label: "Profil", segments: true, index: settings.streamProfile,
+        options: ["Compétitif", "Équilibré", "Qualité", "Économie", "Manuel"],
+        note: chosen && settings.streamProfile !== 3 && args.network === "fair" ? "Réseau moyen : un cran plus bas"
+            : chosen && settings.streamProfile !== 3 && args.network === "poor" ? "Réseau faible : deux crans plus bas" : "",
+        stats: [ { label: "Définition", value: (chosen ? chosen.height : 800) + "p" },
+                 { label: "Images/s", value: "" + (chosen ? chosen.fps : [30, 60, 90, 120][settings.fps]) },
+                 { label: "Débit", value: Math.round(chosen ? chosen.bitrateKbps / 1000 : settings.rate) + " Mb/s" },
+                 { label: "Priorité", value: ["réactivité", "équilibre", "image", "≈ 2,3 Go/h", "vos réglages"][settings.streamProfile] } ] })
 
     focus: true
     model: DemoGames { id: games }
@@ -54,8 +69,9 @@ HomeScreen {
     optionsHost: "Djinger"
     optionTabs: [
         { label: "Flux", rows: [
-            { key: "res", label: "Résolution", options: ["720p", "Natif 1280×800", "1080p"], index: settings.res },
-            { key: "fps", label: "Images par seconde", options: ["30", "60", "90", "120"], index: settings.fps },
+            profileRow,
+            { key: "res", label: "Résolution", options: ["720p", "Natif 1280×800", "1080p"], index: settings.res, auto: chosen !== null },
+            { key: "fps", label: "Images par seconde", options: ["30", "60", "90", "120"], index: settings.fps, auto: chosen !== null },
             { key: "rateAuto", label: "Débit automatique", options: ["Désactivé", "Activé"], index: settings.rateAuto, toggle: true },
             { key: "rate", label: "Débit", slider: true, value: settings.rate, auto: settings.rateAuto === 1,
               min: 5, max: 150, stops: [10, 20, 40, 80], format: "%1 Mb/s" },

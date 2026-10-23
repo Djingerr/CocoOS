@@ -19,6 +19,8 @@ FocusScope {
     // Une valeur numérique (« 60 », « 40 % ») roule chiffre par chiffre. Un curseur
     // { key, label, slider: true, value, min, max, stops, format: "%1 Mb/s", auto } signale
     // la nouvelle valeur à la place d'un index (`auto` : valeur grisée, calculée ailleurs).
+    // Un sélecteur { key, label, segments: true, options, index, stats: [{ label, value }],
+    // note } montre ses choix côte à côte, puis ses chiffres (profil de flux).
     // `checked` (vrai ou faux) réserve une coche devant le libellé, tracée si vrai (réseau
     // connecté) ; `locked` : la ligne refuse A (et ← / → pour un réglage) en se secouant, et
     // son `hint`, s'il y en a un, se déplie sous la liste.
@@ -111,6 +113,23 @@ FocusScope {
     property bool hintShown: false
     Timer { id: hintTimer; interval: Theme.sheetHintHold; onTriggered: root.hintShown = false }
     readonly property bool forgettable: tab === 0 && hostName !== ""
+    // Défilement de la liste (px) : la ligne en focus reste visible.
+    property real scroll: 0
+    Behavior on scroll {
+        enabled: root.opened && !root.settling
+        NumberAnimation { duration: Theme.sheetFocusMove; easing.type: Theme.easeOut }
+    }
+    function revealCurrent() {
+        var view = viewport.height - 2 * Theme.sheetViewportBleed
+        var top = rowY(current) - Theme.sheetScrollMargin
+        var bottom = rowY(current) + rowHeight(current) + Theme.sheetScrollMargin
+        var next = scroll
+        if (bottom > next + view) next = bottom - view
+        if (top < next) next = top
+        scroll = Math.max(0, Math.min(next, rowY(lineCount) - view))
+    }
+    onCurrentChanged: revealCurrent()
+    onRowsChanged: Qt.callLater(revealCurrent)
     readonly property int lineCount: rows.length + (forgettable ? 1 : 0)
     // 0 = fermé, 1 = ouvert ; le panneau et le voile en découlent.
     property real reveal: opened ? 1 : 0
@@ -121,6 +140,7 @@ FocusScope {
     function open() {
         tab = 0
         current = 0
+        scroll = 0
         pressing = false
         hintShown = false
         forgetHold.reset()
@@ -169,8 +189,9 @@ FocusScope {
         hintShown = false
         settling = true
         tab = next
-        settling = false
         current = 0
+        scroll = 0
+        settling = false
         pressing = false
         Sounds.play("move")
     }
@@ -279,9 +300,23 @@ FocusScope {
         var m = /^(\d+)(\D.*)?$/.exec(label)
         return m ? { n: parseInt(m[1]), suffix: m[2] || "" } : null
     }
-    // Lignes de hauteurs variables : un curseur est plus haut.
+    // Lignes de hauteurs variables : un curseur, un sélecteur sont plus hauts.
     function rowHeight(i) {
-        return i < rows.length && rows[i].slider ? Theme.sheetSliderRowHeight : Theme.sheetRowHeight
+        return i >= rows.length ? Theme.sheetRowHeight
+             : rows[i].slider ? Theme.sheetSliderRowHeight
+             : rows[i].segments ? Theme.sheetSegmentsRowHeight : Theme.sheetRowHeight
+    }
+    // Un choix du sélecteur de la ligne `line`, à la souris.
+    function choose(line, index) {
+        if (current !== line) {
+            pressing = false
+            current = line
+        }
+        var row = rows[line]
+        if (index === row.index) return
+        direction = index > row.index ? 1 : -1
+        Sounds.play("tick")
+        changed(row.key, index)
     }
     function rowY(i) {
         var y = 0
@@ -443,6 +478,15 @@ FocusScope {
         }
     }
 
+    component StatText: Text {
+        property var value
+        height: Theme.statsValueHeight
+        verticalAlignment: Text.AlignVCenter
+        text: value || ""
+        color: Theme.ink
+        font.family: Theme.fontUi; font.pixelSize: Theme.statsValueSize; font.features: { "tnum": 1 }
+    }
+
     component ValueText: Item {
         id: slot
         property string value
@@ -575,10 +619,45 @@ FocusScope {
             Rectangle { anchors.fill: parent; radius: Theme.underlineRadius; color: Theme.accent }
         }
 
+        // La liste défile dans cette zone, qui s'arrête au-dessus de la légende (onglets longs,
+        // réseaux Wi-Fi nombreux).
+        Item {
+            id: viewport
+            x: Theme.sheetPadSide - Theme.sheetFocusOutset - Theme.sheetViewportBleed
+            y: (tabStrip.visible ? tabStrip.y + tabStrip.height : host.y + host.height) + Theme.sheetRowsTop
+               - Theme.sheetViewportBleed
+            width: panel.width - 2 * x
+            height: legend.y - y - Theme.sheetListBottom
+            clip: true
+
+            // Fondus aux bords, s'il reste des lignes à voir de ce côté.
+            Rectangle {
+                z: 1
+                width: parent.width; height: Theme.sheetEdgeFade
+                opacity: root.scroll > 0 ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: Theme.sheetFocusFade } }
+                gradient: Gradient {
+                    GradientStop { position: 0; color: Theme.sheetFill }
+                    GradientStop { position: 1; color: Qt.rgba(Theme.sheetFill.r, Theme.sheetFill.g, Theme.sheetFill.b, 0) }
+                }
+            }
+            Rectangle {
+                z: 1
+                y: parent.height - height
+                width: parent.width; height: Theme.sheetEdgeFade
+                opacity: root.rowY(root.lineCount) - root.scroll > parent.height - 2 * Theme.sheetViewportBleed ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: Theme.sheetFocusFade } }
+                gradient: Gradient {
+                    GradientStop { position: 0; color: Qt.rgba(Theme.sheetFill.r, Theme.sheetFill.g, Theme.sheetFill.b, 0) }
+                    GradientStop { position: 1; color: Theme.sheetFill }
+                }
+            }
+        }
         Item {
             id: list
-            x: Theme.sheetPadSide
-            y: (tabStrip.visible ? tabStrip.y + tabStrip.height : host.y + host.height) + Theme.sheetRowsTop
+            parent: viewport
+            x: Theme.sheetFocusOutset + Theme.sheetViewportBleed
+            y: Theme.sheetViewportBleed - root.scroll
             width: panel.width - 2 * Theme.sheetPadSide
 
             Pressable {
@@ -642,8 +721,111 @@ FocusScope {
                         font.family: Theme.fontUi; font.pixelSize: Theme.sheetLabelSize
                         Behavior on color { ColorAnimation { duration: Theme.sheetFocusFade } }
                     }
+                    // Sélecteur : la note à droite du libellé (réseau), puis la piste et les chiffres.
+                    Text {
+                        visible: line.row.segments === true && text !== ""
+                        anchors.right: parent.right
+                        y: (Theme.sheetRowHeight - height) / 2
+                        text: line.row.note || ""
+                        color: Theme.ink3
+                        font.family: Theme.fontUi; font.pixelSize: Theme.sheetNoteSize
+                    }
+                    Item {
+                        id: segments
+                        readonly property int count: line.row.segments === true ? line.row.options.length : 0
+                        readonly property real cell: count > 0 ? (width - 2 * Theme.segmentsPad) / count : 0
+                        visible: count > 0
+                        y: Theme.segmentsTop
+                        z: 1                    // (au-dessus du clic de la ligne)
+                        width: parent.width; height: Theme.segmentsHeight
+
+                        Rectangle { anchors.fill: parent; radius: Theme.segmentsRadius; color: Theme.segmentsTrack }
+                        ElasticIndicator {
+                            y: Theme.segmentsPad
+                            height: parent.height - 2 * Theme.segmentsPad
+                            targetLeft: Theme.segmentsPad + segments.cell * (line.row.index || 0)
+                            targetRight: targetLeft + segments.cell
+                            animated: root.opened && !root.settling
+                            Rectangle { anchors.fill: parent; radius: Theme.segmentsPillRadius; color: Theme.ink }
+                        }
+                        Repeater {
+                            model: segments.count
+                            Item {
+                                id: segment
+                                readonly property bool chosen: index === line.row.index
+                                x: Theme.segmentsPad + segments.cell * index
+                                width: segments.cell; height: parent.height
+                                Text {
+                                    id: segmentLabel
+                                    anchors.centerIn: parent
+                                    width: parent.width
+                                    horizontalAlignment: Text.AlignHCenter
+                                    elide: Text.ElideRight
+                                    text: line.row.options[index] || ""
+                                    color: Theme.ink2
+                                    font.family: Theme.fontUi; font.pixelSize: Theme.segmentsLabelSize; font.weight: Font.Medium
+                                    states: State {
+                                        name: "chosen"; when: segment.chosen
+                                        PropertyChanges { target: segmentLabel; color: Theme.inkOnAccent }
+                                    }
+                                    transitions: [
+                                        Transition {
+                                            to: "chosen"
+                                            SequentialAnimation {
+                                                PauseAnimation { duration: Theme.tabInkDelay }
+                                                ColorAnimation {
+                                                    duration: Theme.tabInkIn
+                                                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                                                }
+                                            }
+                                        },
+                                        Transition {
+                                            from: "chosen"
+                                            ColorAnimation {
+                                                duration: Theme.sheetFocusFade
+                                                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                                            }
+                                        }
+                                    ]
+                                }
+                                MouseArea { anchors.fill: parent; onClicked: root.choose(line.index, index) }
+                            }
+                        }
+                    }
+                    Row {
+                        visible: segments.count > 0
+                        y: Theme.segmentsTop + Theme.segmentsHeight + Theme.statsTop
+                        width: parent.width
+                        Repeater {
+                            model: line.row.segments === true && line.row.stats ? line.row.stats.length : 0
+                            Column {
+                                readonly property var stat: (line.row.stats || [])[index] || ({ label: "", value: "" })
+                                width: parent.width / Math.max(1, line.row.stats ? line.row.stats.length : 1)
+                                spacing: Theme.statsGap
+                                Text {
+                                    text: parent.stat.label
+                                    color: Theme.ink3
+                                    font.family: Theme.fontUi; font.pixelSize: Theme.statsLabelSize
+                                }
+                                SwapBox {
+                                    width: parent.width; height: Theme.statsValueHeight
+                                    key: parent.stat.value
+                                    value: key
+                                    direction: root.direction
+                                    animated: root.opened && !root.settling
+                                    delay: index * Theme.statsStagger
+                                    duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
+                                    enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
+
+                                    StatText {}
+                                    StatText {}
+                                }
+                            }
+                        }
+                    }
                     Row {
                         id: value
+                        visible: line.row.segments !== true
                         anchors.right: parent.right
                         // (un interrupteur s'aligne sur les valeurs et le glyphe A, pas sur le chevron)
                         anchors.rightMargin: line.row.toggle === true ? Theme.sheetHintRight : 0
@@ -694,8 +876,8 @@ FocusScope {
                             key: line.valueLabel
                             value: key
 
-                            ValueText { color: line.ink }
-                            ValueText { color: line.ink }
+                            ValueText { color: line.row.auto === true ? Theme.ink3 : line.ink }
+                            ValueText { color: line.row.auto === true ? Theme.ink3 : line.ink }
                         }
                         Item {
                             visible: line.numeric
@@ -946,6 +1128,7 @@ FocusScope {
         }
 
         ControllerLegend {
+            id: legend
             x: Theme.sheetPadSide
             anchors.bottom: parent.bottom
             anchors.bottomMargin: Theme.sheetPadBottom

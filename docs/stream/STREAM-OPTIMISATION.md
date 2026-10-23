@@ -1,8 +1,14 @@
 # Optimisation du flux — profils, anti-gigue, télémétrie
 
-> Chantier **planifié, pas commencé** (décidé le 2026-10-01). À traiter quand les fronts
-> prioritaires de `CLAUDE.md` §9 le permettent. Ce document est la source de vérité du
-> chantier : en cas de doute, il gagne sur le résumé de `CLAUDE.md` §12.
+> Chantier décidé le 2026-10-01. À traiter quand les fronts prioritaires de `CLAUDE.md` §9 le
+> permettent. Ce document est la source de vérité du chantier : en cas de doute, il gagne sur
+> le résumé de `CLAUDE.md` §12.
+>
+> **État (2026-10-23)** : phase 1 livrée à la demande de Coco, sans l'audit de phase 0 (elle
+> n'a besoin d'aucune couture) : `app/gui/console/StreamProfiles.js` + sélecteur dans
+> `OptionsSheet` (cf. `CLAUDE.md` §2 « Profils de flux »). Paliers choisis au lancement d'après
+> l'écran et la qualité du réseau déjà mesurée par l'accueil (une première forme de la phase 4,
+> sans sonde ni mémoire par réseau). Libellés et paliers à valider par Coco à la manette.
 
 ---
 

@@ -470,6 +470,13 @@ QtObject {
     readonly property int sheetRowsTop: 34
     readonly property int sheetRowHeight: 60
     readonly property int sheetRowGap: 16            // entre le libellé et la valeur
+    // Liste plus haute que le panneau : elle défile (sheetFocusMove, easeOut) pour garder la
+    // ligne en focus visible, à sheetScrollMargin près, et s'arrête sheetListBottom au-dessus
+    // de la légende ; la zone déborde de sheetViewportBleed (secousse, rebond).
+    readonly property int sheetScrollMargin: 8
+    readonly property int sheetListBottom: 20
+    readonly property int sheetViewportBleed: 12
+    readonly property int sheetEdgeFade: 28          // fondu au bord de la liste, s'il reste à voir
     readonly property int sheetLabelSize: 17
     readonly property color sheetFocusFill: Qt.rgba(1, 1, 1, 0.10)   // surlignage de la ligne en focus
     readonly property int sheetFocusRadius: 14
@@ -532,6 +539,24 @@ QtObject {
     // Curseur (ligne `slider` : le débit), plus haut qu'une ligne : sa piste sous le
     // libellé. Remplissage et curseur suivent la valeur avec springSnappy.
     readonly property int sheetSliderRowHeight: 100
+    // Sélecteur de profil (ligne `segments`, prototype « Sélecteur de profil ») : une piste, une
+    // pastille (ElasticIndicator) qui passe d'un choix à l'autre en s'étirant, puis les chiffres
+    // du profil, remplacés en cascade (statsStagger d'écart, comme le swapText du prototype).
+    readonly property int sheetSegmentsRowHeight: 154
+    readonly property int segmentsTop: 50            // la piste, sous le libellé
+    readonly property int segmentsHeight: 40
+    readonly property int segmentsPad: 4
+    readonly property int segmentsRadius: 14
+    readonly property color segmentsTrack: Qt.rgba(1, 1, 1, 0.06)
+    readonly property int segmentsPillRadius: 10
+    readonly property int segmentsLabelSize: 12      // Sora 500 (« Compétitif » tient dans un cinquième)
+    readonly property int statsTop: 12               // les chiffres, sous la piste
+    readonly property int statsGap: 2                // entre l'intitulé et la valeur
+    readonly property int statsLabelSize: 11         // ink3
+    readonly property int statsValueSize: 14         // chiffres tabulaires
+    readonly property int statsValueHeight: 20
+    readonly property int statsStagger: 45
+    readonly property int sheetNoteSize: 12          // note à droite du libellé (réseau), ink3
     readonly property int sliderTrackY: 66           // centre de la piste, depuis le haut de la ligne
     readonly property int sliderRailHeight: 6
     readonly property color sliderRail: Qt.rgba(1, 1, 1, 0.12)

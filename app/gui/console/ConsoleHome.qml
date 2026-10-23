@@ -15,6 +15,7 @@ import AmbientColor 1.0
 
 import "Format.js" as Format
 import "Library.js" as Library
+import "StreamProfiles.js" as StreamProfiles
 import "BootTimeline.js" as Boot
 
 // Écran d'accueil de la console : la logique. La présentation est ailleurs :
@@ -83,6 +84,9 @@ FocusScope {
         property string buttonLayout: "auto"   // glyphes : auto (la manette branchée), xbox, playstation, nintendo
         property bool setupDone: false      // premier démarrage fait (bienvenue, réseau)
         property string gameProfiles: "{}"  // réglages de flux propres à un jeu, par nom (JSON)
+        // Profil de flux des réglages communs (StreamProfiles.js) ; « manual » : les réglages
+        // tels quels. Un jeu à réglages à part garde le sien dans gameProfiles.
+        property string streamProfile: StreamProfiles.DEFAULT
     }
 
     Component.onCompleted: {
@@ -934,7 +938,7 @@ FocusScope {
     // « 1080p60 », « 1080p60 HEVC HDR » : le flux tel qu'il est réglé.
     function streamSummary(game) {
         var p = StreamingPreferences
-        var s = settingsFor(game && gameProfiles()[game] ? game : "")
+        var s = effectiveSettings(game && gameProfiles()[game] ? game : "")
         var codec = s.videoCodecConfig === p.VCC_FORCE_H264 ? " H.264"
                   : s.videoCodecConfig === p.VCC_FORCE_AV1 ? " AV1"
                   : s.videoCodecConfig === p.VCC_AUTO ? "" : " HEVC"
@@ -1050,6 +1054,10 @@ FocusScope {
         var game = homeScreen.app ? homeScreen.app.name : ""
         var own = game !== "" && gameProfiles()[game] !== undefined
         var s = settingsFor(own ? game : "")
+        // Sous un profil automatique, les lignes montrent ce qu'il choisira au lancement.
+        var context = profileContext()
+        var chosen = StreamProfiles.launchSettings(s.profile, context)
+        var e = chosen ? Object.assign({}, s, chosen) : s
 
         // Résolution : 720p, celle de l'écran, 1080p (et l'actuelle si elle n'y est pas).
         var nativeW = Math.round(Screen.width * Screen.devicePixelRatio)
@@ -1058,19 +1066,19 @@ FocusScope {
         var same = function(w, h) { return function(r) { return r.w === w && r.h === h } }
         if (nativeW > 0 && !res.some(same(nativeW, nativeH)))
             res.splice(1, 0, { label: qsTr("Natif %1×%2").arg(nativeW).arg(nativeH), w: nativeW, h: nativeH })
-        if (!res.some(same(s.width, s.height)))
-            res.push({ label: s.width + "×" + s.height, w: s.width, h: s.height })
+        if (!res.some(same(e.width, e.height)))
+            res.push({ label: e.width + "×" + e.height, w: e.width, h: e.height })
 
         var fps = [30, 60, 90, 120]
-        if (fps.indexOf(s.fps) < 0)
-            fps.push(s.fps)
+        if (fps.indexOf(e.fps) < 0)
+            fps.push(e.fps)
         fps.sort(function(a, b) { return a - b })
 
         // Débit : automatique (la valeur que Moonlight calcule pour la résolution et la
         // fréquence, montrée grisée sur le curseur), ou réglé au curseur.
         optionAutoBitrate = s.autoAdjustBitrate
                 && s.bitrateKbps === p.getDefaultBitrate(s.width, s.height, s.fps, p.enableYUV444)
-        var mbps = Math.round(s.bitrateKbps / 1000)
+        var mbps = Math.round(e.bitrateKbps / 1000)
 
         var codec = [ { label: qsTr("Auto"), value: p.VCC_AUTO }, { label: "H.264", value: p.VCC_FORCE_H264 },
                       { label: "HEVC", value: p.VCC_FORCE_HEVC }, { label: "AV1", value: p.VCC_FORCE_AV1 } ]
@@ -1127,12 +1135,33 @@ FocusScope {
         var profileRow = game !== "" ? [ { key: "profile", label: game, index: own ? 1 : 0,
                                            options: optionChoices.profile.map(function(c) { return c.label }) } ]
                                      : []
+        // Profil de flux : le sélecteur, et sous lui ce que le profil demandera.
+        var profileNames = { competitive: qsTr("Compétitif"), balanced: qsTr("Équilibré"), quality: qsTr("Qualité"),
+                             saver: qsTr("Économie"), manual: qsTr("Manuel") }
+        var gigabytes = StreamProfiles.gigabytesPerHour(e.bitrateKbps)
+        var priority = { competitive: qsTr("réactivité"), balanced: qsTr("équilibre"), quality: qsTr("image"),
+                         saver: qsTr("≈ %1 Go/h").arg(gigabytes.toLocaleString(Qt.locale(english ? "en_US" : "fr_FR"), "f", 1)),
+                         manual: qsTr("vos réglages") }
+        var drop = chosen && s.profile !== "saver" ? StreamProfiles.networkDrop(context.quality) : 0
+        var streamProfileRow = {
+            key: "streamProfile", label: qsTr("Profil"), segments: true,
+            options: StreamProfiles.KEYS.map(function(k) { return profileNames[k] }),
+            index: Math.max(0, StreamProfiles.KEYS.indexOf(s.profile)),
+            note: drop === 1 ? qsTr("Réseau moyen : un cran plus bas")
+                : drop === 2 ? qsTr("Réseau faible : deux crans plus bas") : "",
+            stats: [ { label: qsTr("Définition"), value: e.height + "p" },
+                     { label: qsTr("Images/s"), value: "" + e.fps },
+                     { label: qsTr("Débit"), value: qsTr("%1 Mb/s").arg(mbps) },
+                     { label: qsTr("Priorité"), value: priority[s.profile] || "" } ] }
+        // (grisées : choisies par le profil ; les toucher passe en Manuel)
+        var byProfile = function(r) { r.auto = chosen !== null; return r }
         optionTabs = [
             { label: qsTr("Flux"), rows: profileRow.concat([
-                row("res", qsTr("Résolution"), res.findIndex(same(s.width, s.height))),
-                row("fps", qsTr("Images par seconde"), fps.indexOf(s.fps)),
-                row("rateAuto", qsTr("Débit automatique"), optionAutoBitrate ? 1 : 0, true),
-                { key: "rate", label: qsTr("Débit"), slider: true, value: mbps, auto: optionAutoBitrate,
+                streamProfileRow,
+                byProfile(row("res", qsTr("Résolution"), res.findIndex(same(e.width, e.height)))),
+                byProfile(row("fps", qsTr("Images par seconde"), fps.indexOf(e.fps)))
+            ], chosen ? [] : [row("rateAuto", qsTr("Débit automatique"), optionAutoBitrate ? 1 : 0, true)], [
+                { key: "rate", label: qsTr("Débit"), slider: true, value: mbps, auto: chosen !== null || optionAutoBitrate,
                   min: bitrateRange[0], max: Math.max(bitrateRange[1], mbps), stops: bitrateStops,
                   format: qsTr("%1 Mb/s") },
                 // (un ancien réglage « HEVC HDR » est montré comme HEVC)
@@ -1179,6 +1208,21 @@ FocusScope {
         }
         var own = game !== "" && gameProfiles()[game] !== undefined
         var s = settingsFor(own ? game : "")
+        if (key === "streamProfile") {
+            s.profile = StreamProfiles.KEYS[index]
+            writeSettings(own ? game : "", s)
+            refreshOptions()
+            return
+        }
+        // Un réglage du lancement touché sous un profil automatique : on passe en Manuel, à
+        // partir de ce que le profil aurait choisi.
+        var chosen = StreamProfiles.launchSettings(s.profile, profileContext())
+        if (chosen && ["res", "fps", "rate", "rateAuto"].indexOf(key) >= 0) {
+            Object.assign(s, chosen)
+            s.profile = "manual"
+            s.autoAdjustBitrate = false
+            optionAutoBitrate = false
+        }
         if (key === "res") {
             s.width = choice.w
             s.height = choice.h
@@ -1214,14 +1258,36 @@ FocusScope {
     function gameProfiles() { return Library.parse(consoleConfig.gameProfiles, {}) }
 
     function commonSettings() {
-        var p = StreamingPreferences, s = {}
+        var p = StreamingPreferences, s = { profile: consoleConfig.streamProfile }
         streamKeys.forEach(function(k) { s[k] = p[k] })
         return s
     }
 
+    // Réglages de `game` (les siens, sinon les communs), avec leur profil de flux.
     function settingsFor(game) {
         var profile = game !== "" ? gameProfiles()[game] : undefined
-        return profile ? Object.assign({}, profile) : commonSettings()
+        if (!profile) return commonSettings()
+        var s = Object.assign({}, profile)
+        if (!s.profile) s.profile = "manual"   // (réglages à part d'avant les profils)
+        return s
+    }
+
+    // Ce avec quoi `game` partira : ses réglages, et, sous un profil automatique, ce que ce
+    // profil choisit pour cet écran et ce réseau.
+    function effectiveSettings(game) {
+        var s = settingsFor(game)
+        var chosen = StreamProfiles.launchSettings(s.profile, profileContext())
+        return chosen ? Object.assign(s, chosen) : s
+    }
+
+    // L'écran de la console et la qualité du réseau vers le PC (StreamProfiles.launchSettings).
+    function profileContext() {
+        var p = StreamingPreferences
+        return { width: Math.round(Screen.width * Screen.devicePixelRatio) || 1920,
+                 height: Math.round(Screen.height * Screen.devicePixelRatio) || 1080,
+                 refresh: Screen.refreshRate,
+                 quality: activeHostOnline ? Format.networkQuality(SystemStatus.latencyMs, SystemStatus.jitterMs) : "",
+                 defaultKbps: function(w, h, fps) { return p.getDefaultBitrate(w, h, fps, p.enableYUV444) } }
     }
 
     function writeSettings(game, s) {
@@ -1233,6 +1299,7 @@ FocusScope {
             var p = StreamingPreferences
             streamKeys.forEach(function(k) { p[k] = s[k] })
             p.save()
+            if (s.profile) consoleConfig.streamProfile = s.profile
         }
     }
 
@@ -1244,12 +1311,14 @@ FocusScope {
         consoleConfig.gameProfiles = JSON.stringify(profiles)
     }
 
+    // Au lancement de `game` : ses réglages (et ce qu'en tire son profil) remplacent les
+    // communs dans les préférences, sans être enregistrés ; restoreCommonSettings les remet.
     function applyGameProfile(game) {
-        var profile = gameProfiles()[game]
-        if (!profile || commonSaved) return
+        if (commonSaved) return
+        var s = effectiveSettings(game)
         commonSaved = commonSettings()
         var p = StreamingPreferences
-        streamKeys.forEach(function(k) { p[k] = profile[k] })
+        streamKeys.forEach(function(k) { p[k] = s[k] })
     }
 
     function restoreCommonSettings() {

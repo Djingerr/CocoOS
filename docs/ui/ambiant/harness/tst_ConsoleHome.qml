@@ -7,6 +7,7 @@ import SystemStatus 1.0
 import InputStatus 1.0
 import WifiSetup 1.0
 import "../../../../app/gui/console"
+import "../../../../app/gui/console/StreamProfiles.js" as Profiles
 import "../../../../app/gui/console/BootTimeline.js" as Boot
 
 // Le vrai ConsoleHome sur de faux modules Moonlight (stubs/) : les données des
@@ -115,10 +116,18 @@ Item {
             verify(screen.options.opened)
             compare(rows()[0].label, "Minecraft")   // en tête : les réglages du jeu sélectionné
             compare(shown(0), "Réglages communs")
-            compare(shown(1), "1080p")
-            compare(rows()[3].label, "Débit automatique")
-            compare(shown(3), "Désactivé")          // 30 Mb/s n'est pas la valeur automatique…
-            compare(rows()[4].value, 30)            // …le curseur la montre telle quelle
+            compare(rows()[1].label, "Profil")      // puis le profil de flux : Équilibré par défaut…
+            compare(shown(1), "Équilibré")
+            verify(rows()[2].auto)                  // …qui choisit la définition (grisée)
+            verify(rows().every(function(r) { return r.key !== "rateAuto" }))
+            keyClick(Qt.Key_Down)                   // le profil, jusqu'à Manuel : les réglages tels quels
+            keyClick(Qt.Key_Right); keyClick(Qt.Key_Right); keyClick(Qt.Key_Right)
+            compare(shown(1), "Manuel")
+            verify(!rows()[2].auto)
+            compare(shown(2), "1080p")
+            compare(rows()[4].label, "Débit automatique")
+            compare(shown(4), "Désactivé")          // 30 Mb/s n'est pas la valeur automatique…
+            compare(rows()[5].value, 30)            // …le curseur la montre telle quelle
 
             keyClick(Qt.Key_Down)
             keyClick(Qt.Key_Left)                   // résolution précédente (celle de l'écran, ou 720p)
@@ -134,24 +143,24 @@ Item {
             compare(p.fps, 60)
 
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Down)        // le curseur du débit : un cran, en débit fixe
-            var before = rows()[4].value            // (30 Mb/s est la valeur automatique à 90 i/s : le débit a pu le devenir)
+            var before = rows()[5].value            // (30 Mb/s est la valeur automatique à 90 i/s : le débit a pu le devenir)
             keyClick(Qt.Key_Right)
             compare(p.bitrateKbps, (before + 1) * 1000)
             verify(!p.autoAdjustBitrate)
-            compare(shown(3), "Désactivé")
+            compare(shown(4), "Désactivé")
             keyClick(Qt.Key_Up); keyClick(Qt.Key_Right)         // « Débit automatique » (après l'étirement du pouce)
             tryVerify(function() { return p.autoAdjustBitrate }, 500)
             compare(p.bitrateKbps, p.getDefaultBitrate(1920, 1080, 60, false))
-            verify(rows()[4].auto)                  // le curseur montre la valeur automatique, grisée
+            verify(rows()[5].auto)                  // le curseur montre la valeur automatique, grisée
             keyClick(Qt.Key_Up); keyClick(Qt.Key_Right)         // 90 images par seconde : le débit automatique suit
             compare(p.bitrateKbps, p.getDefaultBitrate(1920, 1080, 90, false))
             keyClick(Qt.Key_Left)
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Down)        // pousser le curseur repasse en débit fixe, depuis l'automatique
-            var auto = rows()[4].value
+            var auto = rows()[5].value
             keyClick(Qt.Key_Left)
             verify(!p.autoAdjustBitrate)
             compare(p.bitrateKbps, (auto - 1) * 1000)
-            compare(shown(3), "Désactivé")
+            compare(shown(4), "Désactivé")
 
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)      // codec : A passe au suivant
             compare(p.videoCodecConfig, p.VCC_FORCE_H264)
@@ -405,7 +414,7 @@ Item {
             keyClick(Qt.Key_Left); keyClick(Qt.Key_Left)    // Auto : sans manette, Xbox
             compare(Theme.buttonLayout, "xbox")
             InputStatus.bumperPressed(-1)                   // retour à l'onglet Flux
-            compare(screen.optionRows[1].label, "Résolution")
+            compare(screen.optionRows[1].label, "Profil")
             keyClick(Qt.Key_Escape)
         }
 
@@ -609,8 +618,10 @@ Item {
             keyClick(Qt.Key_Hangup)
             compare(screen.optionRows[0].label, name)
             keyClick(Qt.Key_Right)                          // « Réglages à part »
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down); keyClick(Qt.Key_Right)   // 60 → 90 images par seconde
-            compare(screen.optionRows[2].options[screen.optionRows[2].index], "90")
+            var fps = screen.optionRows.findIndex(function(r) { return r.key === "fps" })
+            for (var i = 0; i < fps; i++) keyClick(Qt.Key_Down)
+            keyClick(Qt.Key_Right)                          // 60 → 90 images par seconde
+            compare(screen.optionRows[fps].options[screen.optionRows[fps].index], "90")
             compare(p.fps, 60)                              // les réglages communs n'ont pas bougé
             keyClick(Qt.Key_Escape)
 
@@ -627,7 +638,7 @@ Item {
 
             keyClick(Qt.Key_Hangup)                         // retour aux réglages communs
             keyClick(Qt.Key_Left)
-            compare(screen.optionRows[2].options[screen.optionRows[2].index], "60")
+            compare(screen.optionRows[fps].options[screen.optionRows[fps].index], "60")
             keyClick(Qt.Key_Escape)
         }
 
@@ -872,6 +883,7 @@ Item {
         // bout de sa liste. Les valeurs numériques roulent, les autres glissent.
         function test_9t_bitrateSliderAndRubber() {
             var p = StreamingPreferences, sheet = screen.options
+            home.applyOption("streamProfile", 4)            // Manuel
             p.width = 1920; p.height = 1080; p.fps = 30
             p.autoAdjustBitrate = false; p.bitrateKbps = 30000
             home.refreshOptions()
@@ -884,7 +896,8 @@ Item {
             var record = function(key, value) { if (key === "rate") values.push([Date.now(), value]) }
             sheet.changed.connect(record)
             keyClick(Qt.Key_Hangup)
-            for (var i = 0; i < 4; i++) keyClick(Qt.Key_Down)
+            var rate = screen.optionRows.findIndex(function(r) { return r.key === "rate" })
+            for (var i = 0; i < rate; i++) keyClick(Qt.Key_Down)
             compare(screen.optionRows[sheet.current].key, "rate")
             keyPress(Qt.Key_Right)
             tryVerify(function() { return p.bitrateKbps >= 75000 }, 8000)
@@ -953,6 +966,51 @@ Item {
             underline.leftEdgeChanged.disconnect(watch)
             compare(moved, 0)
             keyClick(Qt.Key_Right)
+            keyClick(Qt.Key_Escape)
+        }
+
+        // Profils de flux : sous un profil automatique, le lancement prend ce qu'il choisit
+        // pour cet écran et ce réseau, sans rien enregistrer ; un réseau mauvais retire deux
+        // paliers (la note le dit) ; toucher un réglage du lancement passe en Manuel, à partir
+        // de ce que le profil choisissait.
+        function test_9v_streamProfiles() {
+            var p = StreamingPreferences
+            var row = function(key) { return home.optionTabs[0].rows.find(function(r) { return r.key === key }) }
+            var shown = function(key) { return row(key).options[row(key).index] }
+            home.applyOption("streamProfile", 1)            // Équilibré
+            p.width = 1920; p.height = 1080; p.fps = 60; p.bitrateKbps = 30000; p.autoAdjustBitrate = false
+            home.refreshOptions()
+            compare(shown("streamProfile"), "Équilibré")
+            var chosen = Profiles.launchSettings("balanced", home.profileContext())
+            compare(row("streamProfile").stats[0].value, chosen.height + "p")
+            compare(row("streamProfile").stats[3].value, "équilibre")
+            verify(row("res").auto && row("fps").auto && row("rate").auto)
+            verify(!row("rateAuto"))                        // le profil choisit le débit
+
+            var saves = p.saves
+            home.applyGameProfile("")                       // au lancement
+            compare([p.width, p.height, p.fps, p.bitrateKbps], [chosen.width, chosen.height, chosen.fps, chosen.bitrateKbps])
+            compare(p.saves, saves)                         // rien d'enregistré
+            home.restoreCommonSettings()                    // au retour
+            compare([p.width, p.height, p.fps, p.bitrateKbps], [1920, 1080, 60, 30000])
+
+            SystemStatus.latencyMs = 90                     // réseau mauvais
+            home.refreshOptions()
+            compare(row("streamProfile").note, "Réseau faible : deux crans plus bas")
+            SystemStatus.latencyMs = 9
+            home.refreshOptions()
+            compare(row("streamProfile").note, "")
+
+            keyClick(Qt.Key_Hangup)                         // toucher la définition : Manuel
+            var res = home.optionTabs[0].rows.indexOf(row("res"))
+            for (var i = 0; i < res; i++) keyClick(Qt.Key_Down)
+            var before = shown("res")
+            keyClick(Qt.Key_Left)
+            compare(shown("streamProfile"), "Manuel")
+            verify(!row("res").auto)
+            verify(shown("res") !== before)
+            verify(row("rateAuto"))                         // en Manuel, le débit automatique revient
+            compare(p.fps, chosen.fps)                      // le reste vient du profil
             keyClick(Qt.Key_Escape)
         }
 

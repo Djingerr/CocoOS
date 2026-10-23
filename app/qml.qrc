@@ -52,6 +52,7 @@
         <file>gui/console/Pressable.qml</file>
         <file>gui/console/RollingNumber.qml</file>
         <file>gui/console/Spring.js</file>
+        <file>gui/console/StreamProfiles.js</file>
         <file>gui/console/OptionsSheet.qml</file>
         <file>gui/console/LaunchScreen.qml</file>
         <file>gui/console/Sounds.qml</file>

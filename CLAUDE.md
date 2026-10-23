@@ -346,9 +346,24 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   onglets sautait vers « Flux » à chaque valeur changée dans « Console » (onglets recréés), et les
   interrupteurs / chiffres / curseur s'animaient en changeant d'onglet. ⚠️ Pas vu à la manette ;
   ombres à juger sur l'écran de la carte (discrètes sur un fond sombre, comme dans le prototype).
-- 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
-  anti-gigue adaptatif, télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et
-  `docs/stream/STREAM-OPTIMISATION.md`. Côté console uniquement (Apollo reste non modifié).
+- ✅ **Profils de flux (2026-10-23, demande de Marco ; phase 1 du chantier §12)** : en tête de
+  l'onglet Flux, un sélecteur (prototype « Sélecteur de profil » : pastille élastique, chiffres
+  remplacés en cascade) — Compétitif, **Équilibré (par défaut)**, Qualité, Économie, Manuel
+  (`StreamProfiles.js`, testé par `tst_StreamProfiles`). Un profil automatique choisit **au
+  lancement** définition, images/s et débit d'après l'écran (définition, fréquence) et la qualité
+  du réseau vers le PC (un palier de moins si moyenne, deux si mauvaise ; la note le dit) ; il ne
+  touche ni au codec ni au HDR, et n'enregistre rien (`applyGameProfile` / `restoreCommonSettings`,
+  comme les réglages par jeu). Sous un profil automatique, les lignes montrent ce qu'il choisira,
+  grisées, sans « Débit automatique » ; en toucher une passe en Manuel à partir de ces valeurs.
+  Manuel = les réglages d'avant, tels quels. Mémorisé dans `ConsoleUi/streamProfile` (communs) ou
+  dans les réglages à part d'un jeu (Manuel pour ceux d'avant les profils). Le panneau d'options
+  défile désormais (onglet Flux plus haut que l'écran, longues listes Wi-Fi), fondus aux bords.
+  ⚠️ Libellés et paliers à valider par Marco à la manette (le doc le demande) ; le choix du palier
+  n'est qu'une première version de la phase 4 (pas de sonde avant lancement ni de mémoire par
+  réseau) ; anti-gigue (phase 3) et FSR (phase 5) restent à faire.
+- 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
+  télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
+  Côté console uniquement (Apollo reste non modifié).
 - **Tâche en cours** : la **validation E2E à la manette** contre le vrai host (Apollo +
   HostCompanion, jamais éprouvé en face), puis le mode kiosk (boot direct, §9 6c) et
   l'auto-accept du pairing côté host (installeur, §9 6b).
@@ -458,6 +473,9 @@ Fichiers (dans `app/gui/console/`) :
 - `Spring.js` — ressorts physiques du prototype des micro-interactions, en courbes
   `Easing.BezierSpline` (jetons `Theme.spring*`)
 - `RollingNumber.qml` — nombre dont chaque chiffre roule dans sa colonne 0–9 (options)
+- `StreamProfiles.js` — profils de flux : ce que chacun demande au lancement selon l'écran et le
+  réseau (fonctions pures)
+- `CheckMark.qml` — coche tracée trait après trait (liste Wi-Fi, fin d'un appui maintenu)
 - `ElasticIndicator.qml` — indicateur dont les deux bords rejoignent la cible séparément (le
   soulignement des onglets s'étire en changeant d'onglet)
 - `HoldFill.qml` — remplissage d'un appui maintenu (actions destructives : `ConsoleDialog`
