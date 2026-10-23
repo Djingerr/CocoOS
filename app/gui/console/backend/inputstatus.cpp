@@ -128,22 +128,26 @@ void InputStatus::refreshControllers()
 {
     QString layout;
     int battery = -1;
+    int count = 0;
     if (SDL_WasInit(SDL_INIT_GAMECONTROLLER)) {
         for (int i = 0; i < SDL_NumJoysticks(); i++) {
             if (!SDL_IsGameController(i)) {
                 continue;
+            }
+            if (count++ > 0) {
+                continue;       // famille et batterie : celles de la première
             }
             layout = layoutForType(SDL_GameControllerTypeForIndex(i));
             SDL_Joystick* joystick = SDL_JoystickFromInstanceID(SDL_JoystickGetDeviceInstanceID(i));
             if (joystick != nullptr) {
                 battery = batteryForPowerLevel(SDL_JoystickCurrentPowerLevel(joystick));
             }
-            break;
         }
     }
-    if (layout != m_layout || battery != m_controllerBattery) {
+    if (layout != m_layout || battery != m_controllerBattery || count != m_controllerCount) {
         m_layout = layout;
         m_controllerBattery = battery;
+        m_controllerCount = count;
         emit controllersChanged();
     }
 }

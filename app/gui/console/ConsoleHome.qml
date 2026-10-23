@@ -181,7 +181,7 @@ FocusScope {
             homeButton()
         }
     }
-    Keys.onEscapePressed: { /* accueil : rien à fermer */ }
+    Keys.onEscapePressed: homeScreen.dismissNotification()     // accueil : sinon rien à fermer
 
     onActiveComputerIndexChanged: rebuildAppModel()
     onActiveHostPairedChanged: maybeStartPairing()
@@ -1308,6 +1308,9 @@ FocusScope {
         batteryPercent: SystemStatus.batteryPercent
         charging: SystemStatus.charging
         controllerBattery: InputStatus.controllerBattery
+        controllerCount: InputStatus.controllerCount
+        controllerFamily: InputStatus.layout
+        notificationsAllowed: !sleepScreen.asleep && !streamCurtain.covering
 
         optionTabs: home.optionTabs
         optionsHost: home.activeHostName

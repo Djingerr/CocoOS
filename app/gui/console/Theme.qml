@@ -165,6 +165,45 @@ QtObject {
     readonly property real hostDotBlinkMin: 0.2
     readonly property int hostNameSize: 14           // Sora 500
     readonly property int hostDetailSize: 12         // ink2, chiffres tabulaires
+    // Île de notification : la pastille de l'hôte s'ouvre pour un événement système (manette,
+    // batterie, PC perdu ou retrouvé, réseau mauvais), puis se referme seule après islandHold.
+    // Taille au ressort springGentle, rayon en islandRadiusMove (curveOut) ; contenu en fondu
+    // (islandFade, curveOut) islandContentDelay après l'ouverture, islandStagger d'écart entre
+    // éléments, en montant de islandShift px depuis l'échelle islandContentScale, sans flou ;
+    // sortie en islandOut, forme refermée islandCloseDelay après. Une nouvelle notification
+    // remplace l'ancienne sans refermer : contenu changé après islandSwap, rebond d'échelle
+    // islandBounce (islandBounceDuration, curveOut). Le contenu de la pastille s'efface en
+    // islandIdleOut à l'ouverture, revient en islandIdleIn après islandIdleDelay.
+    readonly property size islandSize: Qt.size(340, 72)
+    readonly property int islandRadius: 28
+    readonly property int islandRadiusMove: 380
+    readonly property color islandFill: Qt.rgba(0, 0, 0, 0.88)
+    readonly property int islandPadLeft: 16
+    readonly property int islandPadRight: 20
+    readonly property int islandGap: 12
+    readonly property int islandIconSize: 40
+    readonly property color islandIconFill: Qt.rgba(1, 1, 1, 0.08)
+    readonly property real islandIconAccent: 0.13    // fond de l'icône d'une alerte : l'accent à tant
+    readonly property int islandTitleSize: 14        // Sora 600
+    readonly property int islandTextSize: 11         // ink2
+    readonly property int islandValueSize: 13        // chiffres tabulaires
+    readonly property int islandTextGap: 2
+    readonly property int islandHostDot: 12          // point d'état, dans l'icône « PC »
+    readonly property int islandContentDelay: 110
+    readonly property int islandStagger: 45
+    readonly property int islandFade: 340
+    readonly property int islandShift: 6
+    readonly property real islandContentScale: 0.96
+    readonly property int islandOut: 120
+    readonly property int islandCloseDelay: 110
+    readonly property int islandSwap: 100
+    readonly property real islandBounce: 1.025
+    readonly property int islandBounceDuration: 360
+    readonly property int islandIdleOut: 100
+    readonly property int islandIdleIn: 160
+    readonly property int islandIdleDelay: 200
+    readonly property int islandHold: 2800
+    readonly property int islandPoorDelay: 10000     // réseau mauvais tant de temps : notifié
     // Horloge, Wi-Fi, batterie
     readonly property int clockSize: 17              // Sora 500
     readonly property int sysGap: 14

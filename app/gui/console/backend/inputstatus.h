@@ -30,12 +30,15 @@ class InputStatus : public QObject
     // Batterie de la première manette sans fil : 0 (vide) à 3 (pleine) ; -1 si
     // filaire, sans manette ou niveau inconnu.
     Q_PROPERTY(int controllerBattery READ controllerBattery NOTIFY controllersChanged)
+    // Manettes branchées (l'île de notification de la barre haute en suit les arrivées).
+    Q_PROPERTY(int controllerCount READ controllerCount NOTIFY controllersChanged)
 
 public:
     explicit InputStatus(QObject* parent = nullptr);
 
     QString layout() const { return m_layout; }
     int controllerBattery() const { return m_controllerBattery; }
+    int controllerCount() const { return m_controllerCount; }
 
     // Menu en jeu (StreamMenu) : le nom du jeu, les actions d'alimentation et les
     // glyphes à montrer, avant chaque flux ; au retour, l'action choisie ("home",
@@ -72,4 +75,5 @@ private:
     bool m_rightDown = false;
     QString m_layout;
     int m_controllerBattery = -1;
+    int m_controllerCount = 0;
 };

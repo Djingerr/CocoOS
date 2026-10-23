@@ -12,7 +12,9 @@ import "../../../../app/gui/console/Format.js" as Format
 //   goto   index vers lequel se déplacer à `at` ms (pour capturer une transition)
 //   do     actions jouées à `at` ms, séparées par des virgules et espacées de
 //          150 ms : options, up, down, left, right, a, launch, tab (onglet suivant),
-//          hold / release (A enfoncé / relâché, sans agir : bouton Jouer ou panneau ouvert)
+//          hold / release (A enfoncé / relâché, sans agir : bouton Jouer ou panneau ouvert),
+//          île de notification : pad (une manette arrive), lost / back (PC perdu / retrouvé),
+//          lowbattery (batterie sous le seuil), b (B la referme)
 //   at     instant de `goto` / `do`, en ms (300 par défaut)
 //   drift  0 pour figer la dérive du fond (captures comparables aux références)
 //   sound  0 pour couper les sons (coupés d'office pendant une capture)
@@ -162,6 +164,11 @@ HomeScreen {
             else if (action === "a") demo.options.activate()
             else if (action === "launch") demo.launch()
             else if (action === "tab") demo.options.switchTab(1)
+            else if (action === "pad") { demo.controllerFamily = "xbox"; demo.controllerCount++ }
+            else if (action === "lost") demo.connected = false
+            else if (action === "back") demo.connected = true
+            else if (action === "lowbattery") demo.batteryPercent = 14
+            else if (action === "b") demo.dismissNotification()
             else if (action === "hold" || action === "release") {
                 if (demo.options.opened) demo.options.pressing = action === "hold"
                 else demo.pressed = action === "hold"

@@ -42,6 +42,14 @@ FocusScope {
     property alias batteryPercent: status.batteryPercent
     property alias charging: status.charging
     property alias controllerBattery: status.controllerBattery
+    property alias controllerCount: status.controllerCount
+    property alias controllerFamily: status.controllerFamily
+    // Île de notification de la barre haute : permise une fois l'accueil entré (le logo de
+    // démarrage a atterri), sans panneau ni lancement ; l'appelant y ajoute la veille.
+    property bool notificationsAllowed: true
+    readonly property alias notification: status.notification
+    function notify(n) { status.notify(n) }
+    function dismissNotification() { return status.dismiss() }
     // Le logotype de la barre haute (cible de l'animation de démarrage) et sa visibilité.
     readonly property alias statusLogo: status.logo
     property alias statusLogoShown: status.logoShown
@@ -158,6 +166,8 @@ FocusScope {
                 anchors.fill: parent
                 systemShown: !sheet.opened && !root.panelOpen
                 contentShown: root.entryAllowed
+                notificationsAllowed: root.notificationsAllowed && root.settled && root.statusLogoShown
+                                      && !sheet.opened && !root.panelOpen && !root.launching
             }
         }
 

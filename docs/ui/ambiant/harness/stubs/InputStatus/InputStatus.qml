@@ -8,6 +8,7 @@ import QtQuick
 QtObject {
     property string layout: ""
     property int controllerBattery: -1
+    property int controllerCount: 0
     property string streamExit: ""
     property var streamMenu: null
 

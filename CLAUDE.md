@@ -252,8 +252,9 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   En anglais : clavier à l'écran en QWERTY, nombres à la virgule → point (tailles, statistiques).
   Les messages d'erreur envoyés par le HostCompanion restent dans la langue du host.
   ⚠️ Vue dans le harnais et au démarrage (traduction chargée), pas encore à la manette.
-- 🚧 **Micro-interactions (2026-10-22)** — cible : `docs/ui/micro-interactions/` (brief + prototype ;
-  pour les durées et les courbes, le prototype fait foi). Huit étapes, un commit chacune :
+- ✅ **Micro-interactions (2026-10-22 → 2026-10-23)** — cible : `docs/ui/micro-interactions/` (brief +
+  prototype ; pour les durées et les courbes, le prototype fait foi). Huit étapes, un commit chacune,
+  toutes faites et vérifiées dans le harnais :
   - **Ressorts physiques** (`Spring.js`) : `spring()` du prototype converti en courbe
     `Easing.BezierSpline` de 10 segments (le maximum que Qt garde), jouée par une simple
     `NumberAnimation` ; jetons `Theme.springSnappy` / `springBouncy` / `springGentle`
@@ -304,12 +305,24 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     gauche à droite (affiché : progression^1,4), libellé repris en `inkOnAccent` sous lui, vidange
     en 280 ms si on lâche, rebond à 1,035, puis l'action. « Annuler » reste le choix par défaut ;
     la légende dit « Maintenir ». Le menu en jeu (QPainter) garde sa confirmation à une pression.
+  - **Étape 8, île de notification** (`StatusBar`) : la pastille de l'hôte s'ouvre (340 × 72, taille
+    au ressort « souple », rayon en 380 ms) pour un événement système, puis se referme seule après
+    2,8 s ; B la referme. Événements : manette branchée / débranchée (`InputStatus.controllerCount`,
+    ajouté), manette presque vide (une barre), batterie sous 20 % hors charge, PC perdu puis
+    retrouvé, réseau « mauvais » pendant 10 s. Contenu (icône, titre, détail, valeur) en cascade
+    (+110 ms, 45 ms d'écart, sans flou) ; une nouvelle notification remplace l'ancienne sans
+    refermer (rebond à 1,025). Rien pendant l'entrée de l'accueil (le vol du logo), un panneau, un
+    lancement, la veille ou le rideau ; un événement de ces moments-là est perdu. `Toast` reste
+    pour l'étagère. Plus tard : « débit ajusté » du profil Auto (§12) par `homeScreen.notify()`.
   ⚠️ Vu dans le harnais (`HomeDemo` : `do=hold,release` ; reflet : `goto=7 at=2500 delay=4400` ;
   interrupteurs : `do=options,down,down,down,down,down,right at=2000` ; curseur :
   `do=options,down,down,down,right` ; onglets : `do=options,down,up,tab at=2000 delay=2550` ;
   refus : `view=ConsoleHomeDemo do=wifi,down,up,a at=2500 delay=2990`, `view=PagesDemo page=code-error` ;
   appui maintenu : `view=ConsoleHomeDemo do=home,down,down,a,down,hold at=4000 delay=5400` — après
-  l'animation de démarrage, qui rend sinon le focus à l'accueil),
+  l'animation de démarrage, qui rend sinon le focus à l'accueil ; île : `do=pad`, `lost,back`,
+  `lowbattery` à `at=2500` dans `HomeDemo`). Rien n'a été vu à la manette ni sur l'écran de la
+  carte, aucun son n'a été écouté, et l'accueil au repos reste à 1,68 d'écart moyen du prototype
+  Ambiant (inchangé par ce chantier).
   pas à la manette ni à 60 i/s sur l'Orange Pi (le reflet redessine le calque de la vignette
   active pendant 950 ms).
 - 📋 **Chantier planifié, pas commencé : optimisation du flux** (profils Manuel / Auto,
@@ -463,7 +476,8 @@ Fichiers (dans `app/gui/console/`) :
 - `languages/qml_en.ts` (+ `.qm` compilé, embarqué) — traduction anglaise de tous les textes
   console, QML et C++ (cf §11 pour la mettre à jour)
 - `StatusBar.qml` — barre haute : logotype, pastille de l'hôte + horloge / Wi-Fi / batterie (éclair en
-  charge, orange sous `Theme.batteryLow`)
+  charge, orange sous `Theme.batteryLow`) ; la pastille s'ouvre en île de notification (`notify`,
+  `dismiss`) sur les événements système qu'elle détecte elle-même
 - `ControllerLegend.qml` — légende des boutons (glyphe + libellé), panneaux et écrans de message
 - `GamePage.qml` — fiche du jeu sélectionné (bas du pad sur l'étagère), posée dans `stage` comme
   un écran de message, sur le fond du jeu : logo ou titre, faits (`Format.facts` : genres, année,
