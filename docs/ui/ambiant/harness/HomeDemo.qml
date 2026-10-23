@@ -12,7 +12,8 @@ import "../../../../app/gui/console/StreamProfiles.js" as Profiles
 //   focus  index du jeu sélectionné au départ (0 à 9)
 //   goto   index vers lequel se déplacer à `at` ms (pour capturer une transition)
 //   do     actions jouées à `at` ms, séparées par des virgules et espacées de
-//          150 ms : options, up, down, left, right, a, launch, tab (onglet suivant),
+//          150 ms : options, up, down, left, right, a, launch, cancel (B pendant le lancement),
+//          tab (onglet suivant),
 //          hold / release (A enfoncé / relâché, sans agir : étagère et bouton Jouer, ou panneau ouvert),
 //          île de notification : pad (une manette arrive), lost / back (PC perdu / retrouvé),
 //          lowbattery (batterie sous le seuil), b (B la referme)
@@ -135,6 +136,8 @@ HomeScreen {
                 .concat(demo.game.updateNote ? ["Mise à jour de 2,4 Go sur le PC"] : [])
                 .concat(["Lancement de " + demo.game.name, "Ouverture du flux 800p60 AV1"])
             launchScreen.image = demo.game.boxart
+            launchScreen.origin = demo.activeThumbRect          // il part de la vignette
+            launchScreen.thumbnail = demo.game.boxart
             launchScreen.open()
         }
     }
@@ -151,7 +154,7 @@ HomeScreen {
                 launchScreen.close(true)
                 demo.launching = false
                 demo.pressed = false
-                demo.forceActiveFocus()
+                demo.shelf.forceActiveFocus()
             }
         }
     }
@@ -164,7 +167,7 @@ HomeScreen {
             close(true)
             demo.launching = false
             demo.pressed = false
-            demo.forceActiveFocus()
+            demo.shelf.forceActiveFocus()
         }
     }
 
@@ -194,6 +197,7 @@ HomeScreen {
             else if (action === "right") demo.options.change(1, false)
             else if (action === "a") demo.options.activate()
             else if (action === "launch") demo.launch()
+            else if (action === "cancel") launchScreen.cancelRequested()
             else if (action === "tab") demo.options.switchTab(1)
             else if (action === "pad") { demo.controllerFamily = "xbox"; demo.controllerCount++ }
             else if (action === "lost") demo.connected = false

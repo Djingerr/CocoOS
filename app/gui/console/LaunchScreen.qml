@@ -41,6 +41,7 @@ FocusScope {
 
     function open() {
         outro.stop()
+        shrink.stop()
         error = ""
         frozen = false
         progressShown = false
@@ -54,12 +55,16 @@ FocusScope {
         forceActiveFocus()
         intro.restart()
     }
-    // Disparition immédiate (le flux démarre) ou en fondu (retour à l'accueil).
+    // Disparition immédiate (le flux démarre) ou animée (retour à l'accueil) : parti de la
+    // vignette, il y retourne en rétrécissant ; sinon, en fondu.
     function close(animated) {
         if (!active) return
         intro.stop()
         barMove.stop()
-        if (animated) {
+        if (animated && fromThumb) {
+            progressShown = false
+            shrink.restart()
+        } else if (animated) {
             outro.restart()
         } else {
             active = false
@@ -97,7 +102,8 @@ FocusScope {
                 }
                 NumberAnimation {
                     target: root; property: "grow"; to: 1
-                    duration: root.fromThumb ? Theme.launchGrow : 0; easing.type: Theme.easeQuint
+                    duration: root.fromThumb ? Theme.launchGrow : 0
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springGentle.curve
                 }
                 NumberAnimation {
                     target: art; property: "opacity"; to: 1
@@ -131,6 +137,19 @@ FocusScope {
     SequentialAnimation {
         id: outro
         NumberAnimation { target: content; property: "opacity"; to: 0; duration: Theme.launchClose }
+        ScriptAction { script: root.active = false }
+    }
+    SequentialAnimation {
+        id: shrink
+        PauseAnimation { duration: Theme.launchShrinkDelay }
+        ParallelAnimation {
+            NumberAnimation {
+                target: root; property: "grow"; to: 0; duration: Theme.launchShrink
+                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveShrink
+            }
+            NumberAnimation { target: art; property: "opacity"; to: 0; duration: Theme.launchShrink }
+            NumberAnimation { target: shade; property: "opacity"; to: 0; duration: Theme.launchShrink }
+        }
         ScriptAction { script: root.active = false }
     }
 
@@ -179,7 +198,8 @@ FocusScope {
                 source: root.image
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
-                sourceSize.height: Math.round(parent.height * Theme.scale)
+                // (à la taille de l'écran, pas du cadre qui grandit : elle ne se recharge pas en route)
+                sourceSize.height: Math.round(Theme.canvasHeight * Theme.scale)
             }
             Rectangle { id: shade; anchors.fill: parent; color: Theme.background; opacity: 0 }
         }

@@ -151,8 +151,8 @@ QtObject {
         GradientStop { position: 0.78; color: Qt.rgba(0, 0, 0, 0.50) }
         GradientStop { position: 1.00; color: Qt.rgba(0, 0, 0, 0.92) }
     }
-    // Teinte ambiante (couleur dominante du fond) : elle colore le bas du voile et le
-    // soulignement de la vignette active, en fondu d'un jeu à l'autre.
+    // Teinte ambiante (couleur dominante du fond) : elle colore le bas du voile, en fondu
+    // d'un jeu à l'autre.
     readonly property real ambientTintBottom: 0.20   // opacité de la teinte au bas de l'écran
     readonly property real ambientTintStart: 0.55    // hauteur (part de l'écran) où elle commence
     readonly property int ambientFade: 700
@@ -242,7 +242,7 @@ QtObject {
     property string buttonLayout: "xbox"
 
     // --- Bloc héros (HeroBlock), ancré par le bas : il grandit vers le haut ---
-    readonly property int heroBottom: 532            // 25 px au-dessus de la vignette active de l'étagère
+    readonly property int heroBottom: 532            // au-dessus de l'anneau de la vignette active
     readonly property int heroWidth: 660
     // Méta : source | dernière session
     readonly property color heroMetaColor: Qt.rgba(1, 1, 1, 0.78)
@@ -292,10 +292,27 @@ QtObject {
     readonly property int shelfGap: 14
     readonly property int shelfThumbRadius: 10
     readonly property color shelfThumbFill: "#111111"            // sous l'image, pendant son chargement
-    readonly property real shelfActiveScale: 1.18    // vignette du jeu sélectionné
-    readonly property int shelfActiveLift: 8
-    readonly property real shelfRestOpacity: 0.5     // vignettes non sélectionnées
-    readonly property real shelfExitFade: 1.6        // estompage des vignettes qui sortent par la gauche
+    // Carrousel du prototype des micro-interactions : avec la manette, la vignette active grandit
+    // depuis son centre (ressort « vif »), les autres s'estompent (shelfFocusFade, curveOut) ;
+    // A tenu, elle redescend à shelfTapScale. Sans la manette (panneau, héros), toutes reviennent.
+    readonly property real shelfActiveScale: 1.08
+    readonly property real shelfTapScale: 1.02
+    readonly property real shelfRestOpacity: 0.48    // vignettes non sélectionnées
+    readonly property int shelfFocusFade: 220        // opacité, ombre et filet
+    // La piste ne défile (ressort « souple ») que pour garder la vignette active à
+    // shelfScrollMargin des bords (prototype : 44 pour une marge de 36, soit 8 de plus).
+    readonly property int shelfScrollMargin: 80
+    // Un seul anneau glisse d'une vignette à l'autre (ressort « vif ») : shelfRingGap autour de
+    // la vignette agrandie, un trait de shelfRingWidth puis un halo de shelfRingHalo
+    // (box-shadow 0 0 0 2px, 0 0 0 7px). Sans la manette, il s'efface (shelfRingFade) en
+    // rétrécissant à shelfRingHiddenScale.
+    readonly property int shelfRingGap: 6
+    readonly property int shelfRingRadius: 17
+    readonly property int shelfRingWidth: 2
+    readonly property int shelfRingHalo: 5
+    readonly property color shelfRingHaloColor: "#12F2F0EC"     // ink à 7 %
+    readonly property int shelfRingFade: 160
+    readonly property real shelfRingHiddenScale: 0.94
     // Coins arrondis des vignettes : un masque GPU par vignette visible. Passer à
     // false (coins droits) si la carte cible ne tient pas ses 60 images par seconde.
     readonly property bool shelfRounded: true
@@ -336,24 +353,15 @@ QtObject {
     readonly property real sheenAngle: 15
     readonly property real sheenSpan: 0.16
     readonly property real sheenTravel: 0.75
-    readonly property int underlineY: 750            // soulignement orange sous la vignette active
-    readonly property int underlineHeight: 3
+    readonly property int underlineHeight: 3         // soulignement orange (onglets, code)
     readonly property int underlineRadius: 2
-
-    // --- Mouvement de l'étagère : un seul ressort, sur la position (en index) ---
-    // Mêmes paramètres que le réglage « T » du prototype. epsilon doit rester
-    // petit : la position est un index, l'animation s'arrêterait visiblement trop tôt.
-    readonly property real springStrength: 2.2
-    readonly property real springDamping: 0.30
-    readonly property real springMass: 1
-    readonly property real springEpsilon: 0.0005
 
     // --- Entrées manette ---
     readonly property int repeatDelay: 360           // appui prolongé : délai avant répétition
     readonly property int repeatInterval: 120        // puis intervalle, réduit de repeatStep…
     readonly property int repeatStep: 10             // …à chaque répétition…
     readonly property int repeatMin: 55              // …jusqu'à ce plancher
-    readonly property real edgeBump: 0.12            // rebond (en index) aux extrémités de la liste
+    readonly property real edgeBump: 0.12            // l'anneau bute (en index) aux extrémités de la liste
     readonly property int edgeBumpHold: 90
 
     // --- Remplacement d'un texte en glissant (SwapBox) : valeurs des options, lancement ---
@@ -654,7 +662,8 @@ QtObject {
     readonly property real launchBackdropZoom: 1.12  // le fond zoome (backdropZoomDuration)…
     readonly property int launchScrimFade: 700       // …et son voile disparaît
     // L'illustration du jeu apparaît en plein écran, avec un léger zoom arrière.
-    readonly property int launchGrow: 620            // la vignette grandit jusqu'au plein écran, easeQuint
+    // La vignette grandit jusqu'au plein écran (prototype : ressort « souple » étiré de 80 ms).
+    readonly property int launchGrow: springGentle.duration + 80
     readonly property int launchImageDelay: 180
     readonly property int launchImageFade: 560
     readonly property real launchImageZoom: 1.12
@@ -682,7 +691,12 @@ QtObject {
     // seulement alors que Moonlight démarre le flux, qui fige l'interface un instant.
     readonly property int launchOpened: 1000
     readonly property int launchStreamStages: 10     // étapes de connexion de Moonlight, environ
-    readonly property int launchClose: 560           // retour à l'accueil (annulation, erreur)
+    readonly property int launchClose: 560           // retour à l'accueil (annulation, erreur), en fondu
+    // …ou, parti de la vignette, il y retourne : la progression s'efface, puis le cadre rétrécit
+    // jusqu'à elle (launchShrink après launchShrinkDelay, curveShrink) en rendant la jaquette.
+    readonly property int launchShrink: 420
+    readonly property int launchShrinkDelay: 90
+    readonly property var curveShrink: [0.32, 0.72, 0, 1, 1, 1]
     // Indication en bas d'écran (« B Annuler »)
     readonly property int hintBottom: 26
     readonly property int hintPadV: 8

@@ -28,8 +28,8 @@ FocusScope {
     property alias playLabel: hero.playLabel        // « Télécharger »… ; vide = Jouer
     property alias favorite: hero.favorite          // épinglé : X le détache
     property alias backdrop: backdropLayer.source    // image de fond du jeu sélectionné
-    // Teinte ambiante (couleur dominante du fond) : voile et soulignement. Par
-    // défaut l'accent, sans teinte du voile.
+    // Teinte ambiante (couleur dominante du fond) : le bas du voile. Par défaut
+    // l'accent, sans teinte du voile.
     property color ambient: Theme.accent
     property bool ambientTint: false
 
@@ -77,13 +77,11 @@ FocusScope {
     // son voile) pendant que LaunchScreen prend l'écran. Tout revient quand il repasse à faux.
     property alias pressed: hero.pressed
     property bool launching: false
-    // Place de la vignette du jeu sélectionné sur le canevas (agrandie, soulevée) :
-    // l'écran de lancement en part.
+    // Place de la vignette du jeu sélectionné sur le canevas (agrandie) : l'écran de
+    // lancement en part.
     readonly property rect activeThumbRect: Qt.rect(
-        Theme.margin,
-        Theme.shelfBottom - Theme.shelfActiveLift - Theme.shelfThumbSize.height * Theme.shelfActiveScale,
-        Theme.shelfThumbSize.width * Theme.shelfActiveScale,
-        Theme.shelfThumbSize.height * Theme.shelfActiveScale)
+        shelf.activeRect.x, Theme.shelfBottom - Theme.shelfThumbSize.height + shelf.activeRect.y,
+        shelf.activeRect.width, shelf.activeRect.height)
 
     // --- Options (bouton Y) : cf. OptionsSheet ---
     readonly property alias options: sheet           // options.open(), options.opened…
@@ -220,7 +218,6 @@ FocusScope {
                 focus: !root.staged && !sheet.opened
                 shown: root.entered
                 enterStep: root.settled ? 0 : Theme.entryCardStagger
-                accentColor: root.ambient
                 onLaunchRequested: function(index) { root.launchRequested(index) }
                 onDetailsRequested: root.detailsRequested()
                 Keys.onMenuPressed: root.favoriteRequested()      // bouton X

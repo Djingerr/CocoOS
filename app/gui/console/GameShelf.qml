@@ -1,16 +1,15 @@
 import QtQuick
 import QtQuick.Effects
 
-// Étagère de vignettes portrait (3:4, les jaquettes) en bas de l'accueil : le jeu sélectionné est calé à
-// gauche, agrandi et souligné d'orange ; les suivants défilent vers la droite,
-// les précédents s'estompent en sortant.
+// Étagère de vignettes portrait (3:4, les jaquettes) en bas de l'accueil : le carrousel du
+// prototype des micro-interactions. Un seul anneau glisse d'une vignette à l'autre (ressort
+// « vif ») et la piste ne défile (ressort « souple ») que pour garder la vignette active loin
+// des bords : l'œil suit un objet. Avec la manette, la vignette active grandit depuis son
+// centre et les autres s'estompent ; sans elle (panneau ouvert, héros), l'anneau s'efface.
 // Consomme un modèle exposant le rôle `boxart` (url ; vide = pas de jaquette) et,
 // s'il les a, `name` (écrit sur la vignette de repli), `favorite` (pastille), `pending`
 // (jeu pas encore installé : estompé) et `progress` (0..1, barre de téléchargement ; < 0 :
 // aucune). Aucune dépendance Moonlight.
-//
-// Tout le mouvement découle d'UNE valeur animée, `pos` (la position en index,
-// portée par un ressort) : aucune vignette n'a d'animation propre.
 FocusScope {
     id: root
 
@@ -19,46 +18,23 @@ FocusScope {
     property int currentIndex: 0
     // Sens du dernier déplacement (+1 vers la droite, -1 vers la gauche).
     property int direction: 1
-    // Apparition des vignettes et du soulignement (cf. Appear) : fondu et échelle,
+    // Apparition des vignettes et de l'anneau (cf. Appear) : fondu et échelle,
     // `enterStep` étant le délai par rang de l'entrée (0 = tous ensemble, sans délai).
     property bool shown: true
     property int enterStep: 0
-    // Couleur du soulignement (la teinte ambiante, sinon l'accent).
-    property color accentColor: Theme.accent
-    Behavior on accentColor { ColorAnimation { duration: Theme.ambientFade } }
     signal launchRequested(int index)
     signal detailsRequested()
-    // A enfoncé : le bouton Jouer s'écrase (cf. Pressable). Le jeu part au relâché, et
-    // seulement si l'appui a eu lieu ici : le relâché d'un A qui a fermé un panneau
-    // ne lance rien.
+    // A enfoncé : la vignette active s'écrase (Theme.shelfTapScale) et le bouton Jouer avec
+    // elle (cf. Pressable). Le jeu part au relâché, et seulement si l'appui a eu lieu ici :
+    // le relâché d'un A qui a fermé un panneau ne lance rien.
     property bool pressing: false
-    // …et la vignette active s'écrase un peu, depuis son centre (comme dans le prototype).
-    property real tap: 1
-    states: State {
-        name: "pressed"; when: root.pressing
-        PropertyChanges { target: root; tap: Theme.pressScale }
-    }
-    transitions: [
-        Transition {
-            to: "pressed"
-            NumberAnimation {
-                property: "tap"; duration: Theme.pressDuration
-                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
-            }
-        },
-        Transition {
-            from: "pressed"
-            NumberAnimation {
-                property: "tap"; duration: Theme.springBouncy.duration
-                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springBouncy.curve
-            }
-        }
-    ]
+    // L'étagère a la manette (« carrousel actif » du prototype).
+    readonly property bool focused: activeFocus
     // Reflet (0 → 1) qui balaie la vignette active : une fois, Theme.sheenDelay après
     // chaque déplacement (comme le prototype), et seulement si l'étagère a la manette (ni
     // en veille, ni pendant un lancement ou dans un panneau) et que son entrée est finie.
     property real sheen: 0
-    readonly property bool sheenArmed: activeFocus && shown && enterStep === 0
+    readonly property bool sheenArmed: focused && shown && enterStep === 0
     function restartSheen() {
         sheenSweep.stop()
         sheen = 0
@@ -82,38 +58,73 @@ FocusScope {
         return h / 360
     }
 
-    // Rebond aux extrémités : décalage temporaire ajouté à la cible du ressort.
-    property real bump: 0
-    property real pos: currentIndex + bump
-    property bool animated: false       // pas de ressort pendant la mise en place
     readonly property real pitch: Theme.shelfThumbSize.width + Theme.shelfGap
+    property bool animated: false       // pas de ressort pendant la mise en place
+    // Défilement de la piste (px) : sa cible, et la valeur qui la suit au ressort « souple ».
+    // Pas de ressort non plus tant que l'étagère n'est pas montrée : une sélection posée
+    // avant l'entrée (dernier jeu joué) est d'emblée en place.
+    property real scrollTarget: 0
+    property real scroll: scrollTarget
+    Behavior on scroll {
+        enabled: root.animated && root.shown
+        NumberAnimation {
+            duration: Theme.springGentle.duration
+            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springGentle.curve
+        }
+    }
+    // L'anneau (px, sur la piste) : il suit la vignette active au ressort « vif » ; aux
+    // extrémités, il bute (bump, en index) puis revient.
+    property real bump: 0
+    property real ringX: Theme.margin + (currentIndex + bump) * pitch
+    Behavior on ringX {
+        enabled: root.animated && root.shown
+        NumberAnimation {
+            duration: Theme.springSnappy.duration
+            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
+        }
+    }
+    // Place de la vignette active, agrandie, une fois la piste arrivée (l'écran de lancement
+    // en part).
+    readonly property rect activeRect: {
+        var w = Theme.shelfThumbSize.width, h = Theme.shelfThumbSize.height, k = Theme.shelfActiveScale
+        return Qt.rect(Theme.margin + currentIndex * pitch - scrollTarget + w * (1 - k) / 2,
+                       h * (1 - k) / 2, w * k, h * k)
+    }
 
-    implicitHeight: Theme.underlineY + Theme.underlineHeight
-                    - (Theme.shelfBottom - Theme.shelfThumbSize.height)
+    // La piste ne bouge que si la vignette active s'approche à moins de
+    // Theme.shelfScrollMargin d'un bord (prototype : carLayout).
+    function updateScroll() {
+        if (width <= 0) return
+        var x = Theme.margin + currentIndex * pitch, m = Theme.shelfScrollMargin
+        var target = scrollTarget
+        if (x - target < m) target = x - m
+        if (x + Theme.shelfThumbSize.width - target > width - m)
+            target = x + Theme.shelfThumbSize.width - width + m
+        var full = 2 * Theme.margin + count * pitch - Theme.shelfGap
+        scrollTarget = Math.max(0, Math.min(target, full - width))
+    }
+    onWidthChanged: updateScroll()
+
+    implicitHeight: Theme.shelfThumbSize.height
 
     property int lastIndex: 0
     onCurrentIndexChanged: {
         if (currentIndex !== lastIndex)
             direction = currentIndex > lastIndex ? 1 : -1
         lastIndex = currentIndex
+        updateScroll()
         restartSheen()
     }
 
     Component.onCompleted: {
         lastIndex = currentIndex
+        updateScroll()
         animated = true
     }
     // (count vaut 0 tant que le modèle n'est pas chargé : ne pas y perdre la sélection.)
-    onCountChanged: if (count > 0 && currentIndex >= count) currentIndex = count - 1
-
-    // Pas de ressort non plus tant que l'étagère n'est pas montrée : une sélection
-    // posée avant l'entrée (dernier jeu joué) est d'emblée en place.
-    Behavior on pos {
-        enabled: root.animated && root.shown
-        SpringAnimation {
-            spring: Theme.springStrength; damping: Theme.springDamping
-            mass: Theme.springMass; epsilon: Theme.springEpsilon
-        }
+    onCountChanged: {
+        if (count > 0 && currentIndex >= count) currentIndex = count - 1
+        updateScroll()
     }
 
     // Déplace la sélection d'un cran ; en bout de liste, petit rebond.
@@ -162,7 +173,7 @@ FocusScope {
     }
 
     // ListView pour ne créer que les vignettes proches de l'écran ; elle ne défile
-    // jamais seule, c'est `pos` qui fixe contentX.
+    // jamais seule, c'est `scroll` qui fixe contentX.
     ListView {
         id: list
 
@@ -171,7 +182,7 @@ FocusScope {
             Math.ceil(Theme.shelfThumbSize.width * Theme.shelfActiveScale * Theme.scale),
             Math.ceil(Theme.shelfThumbSize.height * Theme.shelfActiveScale * Theme.scale))
         // (originX : la vue décale son origine quand un élément passe devant les autres.)
-        readonly property real wantedX: originX + root.pos * root.pitch - Theme.margin
+        readonly property real wantedX: originX + root.scroll - Theme.margin
 
         width: parent.width; height: Theme.shelfThumbSize.height
         orientation: ListView.Horizontal
@@ -194,27 +205,60 @@ FocusScope {
             readonly property bool favorite: model.favorite === true
             readonly property bool pending: model.pending === true
             readonly property real progress: typeof model.progress === "number" ? model.progress : -1
-            readonly property real d: index - root.pos            // écart à la position courante
-            readonly property real f: Math.max(0, 1 - Math.abs(d))    // 1 = vignette active
+            readonly property bool current: index === root.currentIndex
+            readonly property bool lit: current && root.focused       // agrandie, pleine, ombrée
+            // 0 → 1 : ombre et filet de la vignette active.
+            property real glow: lit ? 1 : 0
+            Behavior on glow {
+                NumberAnimation {
+                    duration: Theme.shelfFocusFade
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                }
+            }
+            property real dim: root.focused && !current ? Theme.shelfRestOpacity : 1
+            Behavior on dim {
+                NumberAnimation {
+                    duration: Theme.shelfFocusFade
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                }
+            }
+            // (une vignette créée en défilant ne rejoue pas son agrandissement)
+            property bool ready: false
+            Component.onCompleted: ready = true
 
             width: root.pitch; height: Theme.shelfThumbSize.height
 
             Item {
                 id: thumb
-                // La vignette active s'élargit : les suivantes lui font de la place.
-                x: Theme.shelfThumbSize.width * (Theme.shelfActiveScale - 1) * Math.min(Math.max(del.d, 0), 1)
-                y: -Theme.shelfActiveLift * del.f
                 width: Theme.shelfThumbSize.width; height: Theme.shelfThumbSize.height
-                transformOrigin: Item.BottomLeft
-                scale: 1 + (Theme.shelfActiveScale - 1) * del.f
-                transform: Scale {
-                    readonly property real factor: 1 - (1 - root.tap) * del.f
-                    origin.x: thumb.width / 2; origin.y: thumb.height / 2
-                    xScale: factor; yScale: factor
-                }
-                opacity: (del.d < 0 ? Math.min(Math.max(1 + Theme.shelfExitFade * del.d, 0), 1) : 1)
-                         * (Theme.shelfRestOpacity + (1 - Theme.shelfRestOpacity) * del.f)
-                         * (del.pending ? Theme.shelfPendingOpacity : 1)
+                opacity: del.dim * (del.pending ? Theme.shelfPendingOpacity : 1)
+                states: [
+                    State {
+                        name: "tap"; when: del.lit && root.pressing
+                        PropertyChanges { target: thumb; scale: Theme.shelfTapScale }
+                    },
+                    State {
+                        name: "lit"; when: del.lit
+                        PropertyChanges { target: thumb; scale: Theme.shelfActiveScale }
+                    }
+                ]
+                transitions: [
+                    Transition {
+                        to: "tap"
+                        enabled: del.ready
+                        NumberAnimation {
+                            property: "scale"; duration: Theme.pressDuration
+                            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                        }
+                    },
+                    Transition {
+                        enabled: del.ready
+                        NumberAnimation {
+                            property: "scale"; duration: Theme.springSnappy.duration
+                            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
+                        }
+                    }
+                ]
 
                 Appear {
                     anchors.fill: parent
@@ -236,7 +280,7 @@ FocusScope {
                         width: parent.width + 2 * Theme.shelfShadowPad
                         height: parent.height + 2 * Theme.shelfShadowPad
                         source: "shadows/thumb.png"
-                        opacity: del.f
+                        opacity: del.glow
                         visible: opacity > 0
                     }
                     Item {
@@ -327,7 +371,7 @@ FocusScope {
                         radius: Theme.shelfRounded ? Theme.shelfThumbRadius : 0
                         color: "transparent"
                         border.width: 1
-                        border.color: Qt.rgba(1, 1, 1, Theme.shelfEdge + (Theme.shelfEdgeActive - Theme.shelfEdge) * del.f)
+                        border.color: Qt.rgba(1, 1, 1, Theme.shelfEdge + (Theme.shelfEdgeActive - Theme.shelfEdge) * del.glow)
                     }
                     Rectangle {
                         visible: del.progress >= 0
@@ -370,12 +414,9 @@ FocusScope {
         }
     }
 
-    // Soulignement : fixe, sous la vignette active.
+    // L'anneau, au-dessus des vignettes : il apparaît avec elles à l'entrée.
     Appear {
-        x: Theme.margin
-        y: Theme.underlineY - (Theme.shelfBottom - Theme.shelfThumbSize.height)
-        width: Theme.shelfThumbSize.width * Theme.shelfActiveScale
-        height: Theme.underlineHeight
+        anchors.fill: parent
         shown: root.shown
         delay: root.enterStep > 0 ? Theme.entryCardDelay : 0
         hiddenY: 0
@@ -383,6 +424,40 @@ FocusScope {
         fadeDuration: Theme.entryCardFade
         fadeEasing: Easing.BezierSpline
 
-        Rectangle { anchors.fill: parent; radius: Theme.underlineRadius; color: root.accentColor }
+        Item {
+            readonly property real boxWidth: Theme.shelfThumbSize.width * Theme.shelfActiveScale + 2 * Theme.shelfRingGap
+            readonly property real boxHeight: Theme.shelfThumbSize.height * Theme.shelfActiveScale + 2 * Theme.shelfRingGap
+            x: root.ringX - root.scroll + (Theme.shelfThumbSize.width - boxWidth) / 2
+            y: (Theme.shelfThumbSize.height - boxHeight) / 2
+            width: boxWidth; height: boxHeight
+            opacity: root.focused ? 1 : 0
+            scale: root.focused ? 1 : Theme.shelfRingHiddenScale
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: Theme.shelfRingFade
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                }
+            }
+            Behavior on scale {
+                NumberAnimation {
+                    duration: Theme.springSnappy.duration
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
+                }
+            }
+
+            Rectangle {         // halo
+                readonly property real out: Theme.shelfRingWidth + Theme.shelfRingHalo
+                anchors.fill: parent; anchors.margins: -out
+                radius: Theme.shelfRingRadius + out
+                color: "transparent"
+                border.width: Theme.shelfRingHalo; border.color: Theme.shelfRingHaloColor
+            }
+            Rectangle {         // trait
+                anchors.fill: parent; anchors.margins: -Theme.shelfRingWidth
+                radius: Theme.shelfRingRadius + Theme.shelfRingWidth
+                color: "transparent"
+                border.width: Theme.shelfRingWidth; border.color: Theme.ink
+            }
+        }
     }
 }

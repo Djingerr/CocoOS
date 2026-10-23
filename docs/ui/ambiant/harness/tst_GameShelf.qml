@@ -3,8 +3,8 @@ import QtTest
 import "../../../../app/gui/console"
 
 // Logique de l'étagère : répétition qui accélère à l'appui prolongé, arrêt au
-// relâchement, rebond en bout de liste, sélection conservée pendant le chargement,
-// et ressort identique à celui du prototype (même intégrateur, mêmes paramètres).
+// relâchement, butée de l'anneau en bout de liste, sélection conservée pendant le
+// chargement, et le carrousel du prototype (anneau, défilement aux bords, focus).
 //
 //   QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -input tst_GameShelf.qml
 Item {
@@ -46,7 +46,7 @@ Item {
         function test_bumpAtBothEnds() {
             keyClick(Qt.Key_Left)
             compare(shelf.currentIndex, 0)
-            verify(shelf.bump < 0)
+            verify(shelf.bump < 0)                      // l'anneau bute…
             tryCompare(shelf, "bump", 0, 1000)
             shelf.currentIndex = 9
             keyClick(Qt.Key_Right)
@@ -65,42 +65,61 @@ Item {
             tryCompare(shelf, "currentIndex", 1, 1000)   // (la vue compte à sa prochaine mise en page)
         }
 
-        // Le prototype avance par pas fixes de 16 ms : v += spring·écart − damping·v,
-        // puis x += v·0,016 (classe Spring de ambiant-prototype.html). Le
-        // SpringAnimation de Qt doit suivre la même courbe, image par image.
-        function test_springMatchesPrototype() {
-            var proto = [0], x = 0, v = 0
-            for (var n = 0; n < 200; n++) {
-                v += Theme.springStrength * (1 - x) - Theme.springDamping * v
-                x += v * 0.016
-                proto.push(x)
-            }
-            tryCompare(shelf, "pos", 0, 3000)   // au repos avant de partir
-            // Sans la manette, pas de reflet : son dégradé incliné coûte cher au rendu logiciel
-            // des tests et fausserait la mesure en temps réel (sur la carte, c'est le GPU).
-            other.forceActiveFocus()
-            // init() vient de recréer les vignettes : mesurée tout de suite (étagère déjà
-            // sur 0), la vue ramasse encore ses premières images, plus lentes, et la mesure
-            // en temps réel décroche (« à froid », 0,0828).
-            wait(500)
-            var samples = [], t0 = Date.now()
-            var record = function() { samples.push([Date.now() - t0, shelf.pos]) }
-            shelf.posChanged.connect(record)
-            shelf.currentIndex = 1
-            tryCompare(shelf, "pos", 1, 3000)
-            shelf.posChanged.disconnect(record)
-            verify(samples.length > 20, samples.length + " images")
-            // L'animation démarre à l'image qui suit le changement : on cale l'origine.
-            var best = 1
-            for (var off = 0; off <= 40; off++) {
-                var worst = 0
-                for (var i = 0; i < samples.length; i++) {
-                    var step = Math.max(0, Math.min(200, Math.round((samples[i][0] - off) / 16)))
-                    worst = Math.max(worst, Math.abs(samples[i][1] - proto[step]))
+        function listView() {
+            for (var i = 0; i < shelf.children.length; i++)
+                if (shelf.children[i].contentX !== undefined) return shelf.children[i]
+            return null
+        }
+        function thumbAt(i) {
+            listView().forceLayout()            // (les vignettes se créent à la mise en page suivante)
+            return listView().itemAtIndex(i).children[0]
+        }
+        function ring() {
+            var found = null
+            var walk = function(from) {
+                for (var i = 0; i < from.children.length && !found; i++) {
+                    if (from.children[i].boxWidth !== undefined) found = from.children[i]
+                    else walk(from.children[i])
                 }
-                best = Math.min(best, worst)
             }
-            verify(best < 0.02, "écart maximal au prototype : " + best.toFixed(4) + " index")
+            walk(shelf)
+            return found
+        }
+
+        // L'anneau suit la vignette active ; la piste ne défile que pour la garder à
+        // Theme.shelfScrollMargin des bords, et revient à zéro au début.
+        function test_ringFollowsAndTrackScrollsOnlyAtTheEdges() {
+            shelf.currentIndex = 3
+            tryCompare(shelf, "ringX", Theme.margin + 3 * shelf.pitch, 2000)
+            compare(shelf.scrollTarget, 0)                  // loin du bord : la piste ne bouge pas
+            shelf.currentIndex = 9
+            var full = 2 * Theme.margin + 10 * shelf.pitch - Theme.shelfGap
+            verify(full > shelf.width)
+            compare(shelf.scrollTarget, full - shelf.width) // au bout : calée sur la fin
+            tryCompare(shelf, "scroll", shelf.scrollTarget, 2000)
+            var r = ring()
+            tryVerify(function() {
+                return Math.abs(r.mapToItem(shelf, r.width / 2, 0).x
+                                - thumbAt(9).mapToItem(shelf, Theme.shelfThumbSize.width / 2, 0).x) < 0.5
+            }, 2000, "l'anneau est centré sur la vignette active")
+            shelf.currentIndex = 0
+            compare(shelf.scrollTarget, 0)
+            compare(shelf.activeRect.x, Theme.margin - Theme.shelfThumbSize.width * (Theme.shelfActiveScale - 1) / 2)
+        }
+
+        // Avec la manette : la vignette active grandit, les autres s'estompent, l'anneau est
+        // là. Sans elle, tout revient et l'anneau s'efface en rétrécissant.
+        function test_focusLightsTheCurrentThumbnailAndTheRing() {
+            shelf.currentIndex = 2
+            tryCompare(thumbAt(2), "scale", Theme.shelfActiveScale, 1500)
+            tryCompare(thumbAt(1), "opacity", Theme.shelfRestOpacity, 1500)
+            compare(thumbAt(1).scale, 1)
+            tryCompare(ring(), "opacity", 1, 1000)
+            other.forceActiveFocus()
+            tryCompare(thumbAt(2), "scale", 1, 1500)
+            tryCompare(thumbAt(1), "opacity", 1, 1500)
+            tryCompare(ring(), "opacity", 0, 1000)
+            compare(ring().scale, Theme.shelfRingHiddenScale)
         }
 
         // Une vignette créée en défilant est là d'emblée ; seule la cascade d'entrée
@@ -118,24 +137,20 @@ Item {
             tryCompare(late, "opacity", 0, 2000)
         }
 
-        // Un jeu déplacé en tête (épinglé, joué) : une fois le ressort posé, la
-        // vignette sélectionnée est bien à sa place, calée sur la marge.
+        // Un jeu déplacé en tête (épinglé, joué) : la vignette sélectionnée est bien à sa
+        // place, au début de la piste.
         function test_currentThumbStaysInPlaceAfterReorder() {
-            var list = null
-            for (var i = 0; i < shelf.children.length; i++)
-                if (shelf.children[i].contentX !== undefined) list = shelf.children[i]
+            var list = listView()
             shelf.currentIndex = 3
-            tryCompare(shelf, "pos", 3, 3000)
             games.move(3, 0, 1)
             shelf.currentIndex = 0
-            tryCompare(shelf, "pos", 0, 3000)
+            tryCompare(shelf, "scroll", 0, 3000)
             wait(50)
             compare(Math.round(list.itemAtIndex(0).mapToItem(shelf, 0, 0).x), Theme.margin)
             games.insert(0, { boxart: "" })      // une app ajoutée devant la sélection
             shelf.currentIndex = 1
-            tryCompare(shelf, "pos", 1, 3000)
             wait(50)
-            compare(Math.round(list.itemAtIndex(1).mapToItem(shelf, 0, 0).x), Theme.margin)
+            compare(Math.round(list.itemAtIndex(1).mapToItem(shelf, 0, 0).x), Theme.margin + shelf.pitch)
         }
 
         function test_returnLaunchesCurrentGame() {
@@ -151,11 +166,11 @@ Item {
             keyPress(Qt.Key_Return)
             verify(shelf.pressing)
             compare(launches.count, 0)
-            tryCompare(shelf, "tap", Theme.pressScale, 500)     // la vignette active s'écrase…
+            tryCompare(thumbAt(0), "scale", Theme.shelfTapScale, 500)       // la vignette active s'écrase…
             keyRelease(Qt.Key_Return)
             verify(!shelf.pressing)
             compare(launches.count, 1)
-            tryCompare(shelf, "tap", 1, Theme.springBouncy.duration + 500)   // …et revient
+            tryCompare(thumbAt(0), "scale", Theme.shelfActiveScale, Theme.springSnappy.duration + 500)   // …et revient
 
             keyRelease(Qt.Key_Return)                   // relâché sans appui
             compare(launches.count, 1)

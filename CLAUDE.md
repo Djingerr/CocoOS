@@ -226,12 +226,13 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     des réseaux, si : vérifiée contre le NetworkManager du laptop).
   - **Teinte ambiante** : `AmbientColor` tire de l'image de fond (miniature décodée hors du fil
     principal, cache) la teinte qui pèse le plus, pondérée par la saturation, rendue vive ; elle
-    colore le bas du voile et le soulignement (fondu de 700 ms). Image grise : l'orange reste.
+    colore le bas du voile (fondu de 700 ms). Image grise : pas de teinte.
     Le bouton Jouer reste orange (la marque).
   - **Lancement depuis la vignette** : l'écran de lancement part de la place de la vignette
-    active (`HomeScreen.activeThumbRect`, sa jaquette) et grandit jusqu'au plein écran en 620 ms
-    (easeQuint) pendant que l'illustration la remplace en fondu. Reprise depuis le menu Home ou
-    démo du prototype : le fondu d'origine.
+    active (`HomeScreen.activeThumbRect`, sa jaquette) et grandit jusqu'au plein écran (ressort
+    « souple » étiré à 540 ms, comme le prototype des micro-interactions) pendant que
+    l'illustration la remplace en fondu ; annulé (B, erreur), il y retourne (420 ms après 90,
+    la jaquette revient). Reprise depuis le menu Home : le fondu d'origine.
   - **Logo du jeu** à la place du titre : média `logo` du Companion (PNG d'« Extra Metadata
     Loader », côté HostCompanion), mis en cache comme les fonds (`games()[i].logo`) ; le héros
     l'affiche une fois chargé (deux lignes de titre de haut au plus), le titre en texte sinon.
@@ -346,6 +347,18 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   onglets sautait vers « Flux » à chaque valeur changée dans « Console » (onglets recréés), et les
   interrupteurs / chiffres / curseur s'animaient en changeant d'onglet. ⚠️ Pas vu à la manette ;
   ombres à juger sur l'écran de la carte (discrètes sur un fond sombre, comme dans le prototype).
+- ✅ **Carrousel du prototype (2026-10-23, demande de Marco)** : l'étagère reprend le carrousel des
+  micro-interactions, **anneau** compris (le brief l'écartait, Marco l'a demandé). Un seul anneau
+  (trait clair de 2 px à 6 px de la vignette agrandie, halo de 5 px) glisse d'une vignette à
+  l'autre au ressort « vif » ; la piste ne défile, au ressort « souple », que pour garder la
+  vignette active à 80 px des bords (le prototype : 44 pour une marge de 36) : la sélection n'est
+  plus calée à gauche. Avec la manette, la vignette active grandit à 1,08 depuis son centre
+  (ressort « vif »), les autres passent à 48 % (220 ms) ; A tenu, elle redescend à 1,02. Sans la
+  manette (options, panneau, héros), toutes reviennent et l'anneau s'efface en rétrécissant
+  (160 ms, 0,94). En bout de liste, l'anneau bute. Le soulignement orange de la vignette active
+  disparaît (la teinte ambiante ne colore plus que le voile). Le lancement en part et y revient
+  (cf. plus haut). Corrigé au passage : l'illustration de l'écran de lancement se rechargeait à
+  chaque taille pendant qu'il grandissait (image noire furtive). ⚠️ Pas vu à la manette.
 - ✅ **Suite des effets du prototype (2026-10-23, demande de Marco)** : au changement de jeu, méta,
   titre et sous-titre du héros font le swapText du prototype (14 px, 380 ms à l'entrée, 220 ms à la
   sortie, sans flou) ; au lancement, « Jouer » cède la place à « Lancement… » (« Reprise… ») et le
@@ -473,8 +486,9 @@ esthétiques arrêtés :
 - **L'illustration du jeu sélectionné devient le décor** (plein écran, sous un voile de
   lisibilité), le titre prend toute la place en bas à gauche.
 - **Étagère de vignettes portrait 3:4** (les jaquettes, depuis le 2026-10-23 ; 16:9 dans le
-  prototype) en bas : le jeu sélectionné est calé à gauche, agrandi et **souligné d'orange** ; tout
-  le mouvement vient d'un seul ressort ; un reflet balaie la vignette active après chaque déplacement.
+  prototype) en bas, en carrousel (prototype des micro-interactions) : le jeu sélectionné est
+  agrandi et cerné d'un **anneau** qui glisse d'une vignette à l'autre ; la piste ne défile qu'aux
+  bords ; un reflet balaie la vignette active après chaque déplacement.
 - **Accent orange chaud** (`#F2802A`) pour le bouton Jouer et le soulignement ; fond noir pur.
 - **État de connexion au PC host affiché en permanence** en haut (pastille : point vert + nom
   du host), pour que l'utilisateur voie d'un coup d'œil que tout marche — sans jamais voir
@@ -511,7 +525,8 @@ Fichiers (dans `app/gui/console/`) :
   `Theme.qml` (`Theme.fontsReady`) ; seule famille de l'interface (pas de mono)
 - `BackdropLayer.qml` — fond en fondu croisé (deux calques) + voile + dérive lente
 - `HeroBlock.qml` — méta, titre, sous-titre, boutons Jouer / Options
-- `GameShelf.qml` — l'étagère de vignettes, son ressort, la répétition manette
+- `GameShelf.qml` — l'étagère de vignettes en carrousel : anneau, défilement aux bords, focus,
+  répétition manette
 - `SwapBox.qml`, `Appear.qml`, `ButtonGlyph.qml` — remplacement de texte en glissant,
   apparition en fondu-glissé, glyphe de bouton
 - `Format.js` — mise en forme des données Companion (source, dernière session, temps de jeu)
