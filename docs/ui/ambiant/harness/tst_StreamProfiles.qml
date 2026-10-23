@@ -32,20 +32,26 @@ TestCase {
         verify(saver.bitrateKbps <= 5000)
     }
 
-    // Écran 1280 × 800 (16:10) : sa définition, au format de l'écran.
+    // La définition de l'écran si elle tient sous le plafond du profil (1280 × 800 : l'image
+    // le remplit), sinon les définitions courantes (1080p, 1440p…), jamais de taille bizarre.
     function test_followsTheScreen() {
         var s = Profiles.launchSettings("balanced", ctx(1280, 800, 60, "good"))
         compare([s.width, s.height], [1280, 800])
         s = Profiles.launchSettings("quality", ctx(2560, 1600, 60, "good"))
-        compare([s.width, s.height], [2304, 1440])
+        compare([s.width, s.height], [2560, 1440])
         s = Profiles.launchSettings("balanced", ctx(2560, 1600, 60, "good"))
-        compare([s.width, s.height], [1728, 1080])
+        compare([s.width, s.height], [1920, 1080])
+        s = Profiles.launchSettings("balanced", ctx(1280, 800, 60, "fair"))
+        compare([s.width, s.height], [1280, 720])
+        s = Profiles.launchSettings("saver", ctx(1280, 800, 60, "good"))
+        compare([s.width, s.height], [1280, 720])
     }
 
     // Réseau moyen : un palier de moins ; mauvais : deux. La réactivité garde ses images.
     function test_networkTakesTiersAway() {
         compare(Profiles.launchSettings("balanced", ctx(1920, 1080, 60, "fair")).height, 720)
-        compare(Profiles.launchSettings("balanced", ctx(1920, 1080, 60, "poor")).height, 540)
+        compare([Profiles.launchSettings("balanced", ctx(1920, 1080, 60, "poor")).width,
+                 Profiles.launchSettings("balanced", ctx(1920, 1080, 60, "poor")).height], [960, 540])
         var competitive = Profiles.launchSettings("competitive", ctx(1920, 1080, 120, "poor"))
         compare([competitive.height, competitive.fps], [540, 120])
         compare(Profiles.launchSettings("quality", ctx(1920, 1080, 60, "fair")).bitrateKbps, kbps(1280, 720, 60))

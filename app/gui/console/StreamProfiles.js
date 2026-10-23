@@ -9,13 +9,19 @@
 var KEYS = ["competitive", "balanced", "quality", "saver", "manual"]
 var DEFAULT = "balanced"
 
-// Définitions (hauteurs) possibles, de la plus haute à la plus basse : celle de l'écran,
-// puis les paliers courants, plafonnées à `cap` et à l'écran.
-function heights(screenHeight, cap) {
-    var top = Math.min(screenHeight, cap)
-    return [screenHeight, 1440, 1080, 720, 540]
-        .filter(function(h, i, all) { return h <= top && all.indexOf(h) === i })
-        .sort(function(a, b) { return b - a })
+// Les définitions 16:9 courantes, celles qu'Apollo et Moonlight connaissent.
+var STANDARD = [ { width: 2560, height: 1440 }, { width: 1920, height: 1080 },
+                 { width: 1280, height: 720 }, { width: 960, height: 540 } ]
+
+// Définitions possibles, de la plus haute à la plus basse : celle de l'écran de la console si
+// elle tient sous le plafond `cap` (l'image le remplit alors exactement), puis les définitions
+// courantes, jamais au-dessus de l'écran ni du plafond.
+function resolutions(screenWidth, screenHeight, cap) {
+    var list = screenHeight <= cap ? [ { width: screenWidth, height: screenHeight } ] : []
+    STANDARD.forEach(function(r) {
+        if (r.height <= cap && r.height <= screenHeight && r.height !== screenHeight) list.push(r)
+    })
+    return list
 }
 
 // Paliers retirés par la qualité du réseau : un sur un réseau moyen, deux sur un mauvais.
@@ -30,24 +36,24 @@ function launchSettings(profile, ctx) {
     if (KEYS.indexOf(profile) < 0 || profile === "manual") return null
     var drop = networkDrop(ctx.quality)
     var pick = function(cap, steps) {
-        var list = heights(ctx.height, cap)
+        var list = resolutions(ctx.width, ctx.height, cap)
         return list[Math.min(steps, list.length - 1)]
     }
-    var h, fps
+    var r, fps
     if (profile === "competitive") {          // la réactivité : toutes les images de l'écran
-        h = pick(1080, drop)
+        r = pick(1080, drop)
         fps = Math.max(60, Math.min(120, Math.round(ctx.refresh || 60)))
     } else if (profile === "balanced") {
-        h = pick(1080, drop)
+        r = pick(1080, drop)
         fps = 60
     } else if (profile === "quality") {       // l'image : plus de définition et de débit
-        h = pick(1440, drop)
+        r = pick(1440, drop)
         fps = 60
     } else {                                  // l'économie : peu de données, peu de batterie
-        h = pick(720, 0)
+        r = pick(720, 0)
         fps = 30
     }
-    var w = 2 * Math.round(h * ctx.width / ctx.height / 2)
+    var w = r.width, h = r.height
     var kbps = ctx.defaultKbps(w, h, fps)
     if (profile === "quality" && drop === 0)
         kbps = Math.min(150000, Math.round(kbps * 1.5 / 1000) * 1000)
