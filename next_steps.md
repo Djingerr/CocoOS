@@ -132,3 +132,39 @@ R, B ; toute autre touche fait sortir).
 ✅ **Passée** : les quatre états s'affichent depuis le mock (captures `grab.sh --state …`, journal vide) ;
 `tests/tst_idlescreen.qml` 6/6 (écran par état, fondu puis entrée, échelle, sortie au clavier et au clic,
 une seule sortie) ; `qmllint` sans avertissement ; build `embedded` OK.
+
+## Écran de veille — phase 4, parité visuelle (2026-10-27)
+
+Outils : `idle/preview/parity.sh [ms] [final|entree]` capture les quatre états (`grab.sh`, mutter headless,
+`--now 2026-10-27T21:46:00 --no-drift`), lance `docs/design/idle/tools/compare.py` et, pour la finale,
+`idle/preview/layout_check.py` (boîte de chaque texte, écrite par l'aperçu avec `--layout`, contre
+`reference/layout/*.json`). Captures, cartes d'écart et journaux : `docs/design/idle/captures/`.
+
+| Écran | t = 3 s : écart global | zone max | textes à ±2 px | t = 0,45 s : écart global | zone max |
+|---|---|---|---|---|---|
+| 09 jeu | 3,31 | 6,8 | 16/16 | 3,17 | 6,7 |
+| 10 jeu + téléchargement | 3,37 | 6,8 | 18/18 | 3,18 | 6,7 |
+| 11 téléchargement | 3,33 | 6,8 | 14/14 | 3,17 | 6,7 |
+| 12 repos | 0,89 | 2,9 | 13/13 | 0,83 | 4,6 |
+
+Corrections faites pendant la boucle :
+- **Lueur de l'écran 12** : opacité 0,7 ↔ 1, sans le facteur 0,22 de la spec. Dans la maquette, l'animation
+  CSS `cocoGlow` remplace l'opacité écrite sur l'élément ; la référence le confirme (écart 7,28 → 0,89).
+- **Durée** : l'écart de 6 px de la maquette s'applique aussi après la marge de 14 px qui suit « h ».
+- **Capsule** : 78 px de haut en tout (76 + contour, `box-sizing: content-box`).
+- **Premier écran** : `IdleScreen` choisissait l'écran avant que le mock ait rempli ses données (ordre des
+  `Component.onCompleted`), d'où le repos puis un fondu vers le jeu ; il choisit maintenant après
+  (`Qt.callLater`, test `test_firstScreenWaitsForTheData`).
+- **Flou d'entrée** : `MultiEffect` à `blurMax: 32` (écart type mesuré 7,8 px à `blur: 1`, à peu près
+  proportionnel), au lieu de 16 (3,1 px).
+
+Écarts restants connus (sous les seuils) :
+- Bords des glyphes : lissage de Chromium ≠ celui de Qt (le gros de l'écart de 09 à 11, sur les textes).
+- Fond de 09 à 11 : la maquette peint des dégradés CSS sur la boîte de 1480 × 920 ; la veille recadre la
+  jaquette PNG (ce que fera une vraie jaquette). Voile faible sur le fond (≤ 6,8 par zone).
+- À t = 0,45 s, la capture est en avance d'environ une image sur la maquette : le minuteur de capture et le
+  rendu de `grabToImage` ne tombent pas exactement sur l'instant d'animation.
+
+### Porte de la phase 4
+✅ **Passée** : écart global ≤ 6/255 sur chaque écran à t = 3 s, aucune zone au-dessus de 15, tous les
+textes à ±2 px de `layout/*.json` (même taille, même graisse).

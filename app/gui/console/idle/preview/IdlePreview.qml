@@ -13,7 +13,9 @@ import "../IdleFormat.js" as F
 // --state : l'écran de veille complet sur le mock (par défaut). --component : un composant
 // seul (EntryReveal, BlurredBackdrop, CoverCard, StatusLine, KeyHint, TopRightClock,
 // DurationText, ProgressRing, HairlineProgress, GlassCapsule, GradientText, Glow).
-// --grab-after : capture la fenêtre 1280 × 720 tant de ms après le démarrage, puis quitte.
+// --grab-after : capture la fenêtre 1280 × 720 tant de ms après le démarrage, puis quitte ;
+// avec --layout, écrit d'abord dans le journal (ligne « IDLE_LAYOUT ») la boîte de chaque texte
+// (cf. layout_check.py).
 // Touches : 1 à 4 changent l'état, R rejoue l'entrée, B bascule IdleTheme.entryBlur ; toute
 // autre touche fait sortir l'écran de veille (wakeRequested, puis il revient après 1 s).
 Window {
@@ -249,6 +251,40 @@ Window {
         }
     }
 
+    // Boîte de chaque IdleText dans la fenêtre (enveloppe des coins projetés) : celle de sa
+    // ligne d'icône pour une ligne d'état, celle de la pastille pour le glyphe de bouton.
+    function dumpLayout() {
+        var out = []
+        function box(item) {
+            var xs = [], ys = []
+            ;[[0, 0], [item.width, 0], [0, item.height], [item.width, item.height]].forEach(function(c) {
+                var p = item.mapToItem(win.contentItem, c[0], c[1])
+                xs.push(p.x); ys.push(p.y)
+            })
+            var x = Math.min.apply(null, xs), y = Math.min.apply(null, ys)
+            return { x: x, y: y, w: Math.max.apply(null, xs) - x, h: Math.max.apply(null, ys) - y }
+        }
+        function walk(item) {
+            if (!item || !item.visible || item.opacity === 0) return
+            if (item instanceof IdleText && item.text !== "") {
+                var target = item, parent = item.parent
+                if (parent && parent.children.length > 0 && parent.children[0] instanceof StatusIcon) target = parent
+                else if (parent && parent.width === 22 && parent.height === 22) target = parent
+                var b = box(target)
+                out.push({ text: item.label.text, x: b.x, y: b.y, w: b.w, h: b.h,
+                           size: item.textStyle.size, weight: item.textStyle.weight })
+            }
+            for (var i = 0; i < item.children.length; i++) walk(item.children[i])
+        }
+        walk(win.contentItem)
+        console.info("IDLE_LAYOUT " + JSON.stringify(out))
+    }
+
+    Timer {
+        running: win.args["grab-after"] !== undefined
+        interval: Number(win.args["grab-after"])
+        onTriggered: if (win.args.layout !== undefined) win.dumpLayout()
+    }
     Timer {
         running: win.args["grab-after"] !== undefined
         interval: Number(win.args["grab-after"])

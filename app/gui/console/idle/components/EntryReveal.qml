@@ -42,9 +42,11 @@ Item {
         transform: Translate { y: IdleTheme.entryShift * (1 - root.progress) }
         // La couche n'existe que pendant l'entrée.
         layer.enabled: IdleTheme.entryBlur && root.progress > 0 && root.progress < 1
+        // blur(8px) CSS : MultiEffect donne un écart type de 7,8 px à blurMax 32, à peu près
+        // proportionnel à `blur` (mesuré sur le laptop).
         layer.effect: MultiEffect {
             blurEnabled: true
-            blurMax: 16
+            blurMax: 32
             blur: 1 - root.progress
         }
     }

@@ -32,6 +32,7 @@ Item {
         function test_statesAndCrossfade() {
             mock.scenario = "game"
             var idle = createTemporaryObject(idleComponent, window)
+            tryVerify(function() { return idle.current !== null })
             compare(screenKind(idle.current), "game")
             verify(idle.current.entryStarted)                  // première apparition : l'entrée part tout de suite
             ;["gameDownload", "download", "rest", "game"].forEach(function(state) {
@@ -43,6 +44,19 @@ Item {
                 tryVerify(function() { return idle.current.entryStarted && idle.previous === null }, 1500)
                 compare(idle.current.opacity, 1)
             })
+        }
+
+        // Des données remplies juste après la création (le mock le fait dans son
+        // Component.onCompleted) : le premier écran est le bon, sans fondu depuis le repos.
+        Component { id: lateStatus; IdleStatus {} }
+        function test_firstScreenWaitsForTheData() {
+            var late = createTemporaryObject(lateStatus, window)
+            var idle = createTemporaryObject(idleComponent, window, { status: late })
+            late.session = { active: true, connectedAt: new Date(), game: { title: "Hades II" } }
+            tryVerify(function() { return idle.current !== null })
+            compare(screenKind(idle.current), "game")
+            compare(idle.previous, null)
+            verify(idle.current.entryStarted)
         }
 
         function test_scaleKeepsTheGrid() {

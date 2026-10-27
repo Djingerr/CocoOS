@@ -4,7 +4,7 @@ import ".."
 
 // Grand chiffre et son unité, alignés sur la ligne de base (SPEC §2.3) : « 1 h 24 min »,
 // « 42 % ». parts : [{ value, unit }]. Chiffres en `bigNumber`, unités en `unit`, 6 px entre
-// chiffre et unité, 14 px après une unité suivie d'un chiffre.
+// chaque élément (le `gap` de la maquette), plus 14 px après une unité suivie d'un chiffre.
 Row {
     id: root
 
@@ -13,6 +13,7 @@ Row {
     // Hauteur de la ligne : celle des chiffres (line-height 1).
     readonly property real numberBaseline: probe.baselineY
     height: probe.boxHeight
+    spacing: 6
 
     IdleText { id: probe; visible: false; textStyle: IdleTheme.bigNumber }
 

@@ -88,9 +88,12 @@ FocusScope {
     }
     Connections {
         target: root.status
+        enabled: root.current !== null
         function onStateChanged() { root.show(root.status.state) }
     }
-    Component.onCompleted: show(status ? status.state : "rest")
+    // Le premier écran est choisi une fois tout construit : le fournisseur de `status` peut
+    // remplir ses données dans son propre Component.onCompleted.
+    Component.onCompleted: Qt.callLater(function() { root.show(root.status ? root.status.state : "rest") })
 
     // Sortie : opacité → 0, échelle → 1,02.
     SequentialAnimation {

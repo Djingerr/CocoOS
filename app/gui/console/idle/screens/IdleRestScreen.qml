@@ -21,13 +21,15 @@ Item {
     width: IdleTheme.reference.width
     height: IdleTheme.reference.height
 
-    // --- Lueur (14 s : opacité × 0,7 ↔ 1, échelle 1 ↔ 1,08) ---
+    // --- Lueur (14 s : opacité 0,7 ↔ 1, échelle 1 ↔ 1,08) ---
+    // L'opacité de 0,22 de la spec ne s'applique pas : dans la maquette, l'animation CSS
+    // `cocoGlow` remplace l'opacité écrite sur l'élément (et la référence le confirme).
     BlurredBackdrop {
         readonly property var g: IdleTheme.restGlow
         property real pulse: 0
         box: Qt.rect(g.centerX - g.width / 2, g.top, g.width, g.height)
         blurPx: g.blurCssPx
-        layerOpacity: g.opacity * (0.7 + 0.3 * pulse)
+        layerOpacity: 0.7 + 0.3 * pulse
         layerScale: 1 + 0.08 * pulse
         SequentialAnimation on pulse {
             running: root.animated

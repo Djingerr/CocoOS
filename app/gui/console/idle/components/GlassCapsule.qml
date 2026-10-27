@@ -1,16 +1,17 @@
 import QtQuick
 import ".."
 
-// Capsule de verre de l'écran 12 (SPEC §3) : 76 px de haut, rayon 38, remplissage et
-// contour translucides, 8 px de marge intérieure. Le flou d'arrière-plan de la maquette est
+// Capsule de verre de l'écran 12 (SPEC §3) : 76 px de haut plus le contour de 1 px (la maquette
+// est en `box-sizing: content-box`, soit 78 au total), rayon 38, remplissage et contour
+// translucides, 8 px de marge intérieure. Le flou d'arrière-plan de la maquette est
 // remplacé par le simple remplissage (la lueur derrière est déjà floue).
 Item {
     id: root
 
     default property alias content: row.data
 
-    implicitWidth: row.implicitWidth + 16
-    implicitHeight: 76
+    implicitWidth: row.implicitWidth + 2 * 8 + 2
+    implicitHeight: 76 + 2
 
     Rectangle {
         anchors.fill: parent
@@ -27,7 +28,7 @@ Item {
     }
     Row {
         id: row
-        x: 8
+        x: 8 + 1
         anchors.verticalCenter: parent.verticalCenter
     }
 }
