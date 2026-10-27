@@ -83,7 +83,9 @@ FocusScope {
         property string lastGame: ""        // dernier jeu lancé : l'accueil s'ouvre dessus
         property string favorites: "[]"     // jeux épinglés (X), le dernier épinglé en tête (JSON)
         property string recentGames: "{}"   // date de la dernière partie lancée d'ici, par jeu (JSON, ms)
-        property int sleepMinutes: Theme.sleepMinutes   // veille de l'écran après inactivité ; 0 = jamais
+        // Veille après tant de secondes d'inactivité ; 0 = jamais. (Remplace `sleepMinutes`, en
+        // minutes et à 5 par défaut : tout le monde repart des 120 s de l'écran de veille.)
+        property int idleSeconds: Theme.idleSeconds
         property string buttonLayout: "auto"   // glyphes : auto (la manette branchée), xbox, playstation, nintendo
         property bool setupDone: false      // premier démarrage fait (bienvenue, réseau)
         property string gameProfiles: "{}"  // réglages de flux propres à un jeu, par nom (JSON)
@@ -667,10 +669,10 @@ FocusScope {
         : qsTr("Chargement de la bibliothèque")
 
     // --- Veille de l'écran ---
-    // Sans action à l'accueil pendant consoleConfig.sleepMinutes, l'écran passe au
+    // Sans action à l'accueil pendant consoleConfig.idleSeconds, l'écran passe au
     // noir. Jamais pendant un lancement (ni pendant un flux : Qt est alors suspendu).
     readonly property bool onTop: StackView.view === null || StackView.status === StackView.Active
-    readonly property bool sleepAllowed: onTop && !launchScreen.active && consoleConfig.sleepMinutes > 0
+    readonly property bool sleepAllowed: onTop && !launchScreen.active && consoleConfig.idleSeconds > 0
     onSleepAllowedChanged: rearmSleep()
     property var focusBeforeSleep: null
 
@@ -682,9 +684,9 @@ FocusScope {
     }
     Timer {
         id: idleTimer
-        interval: consoleConfig.sleepMinutes * 60000
+        interval: consoleConfig.idleSeconds * 1000
         onTriggered: {
-            console.info("[console-ui] Veille après " + consoleConfig.sleepMinutes + " min d'inactivité (" + home.idleStatus.state + ")")
+            console.info("[console-ui] Veille après " + consoleConfig.idleSeconds + " s d'inactivité (" + home.idleStatus.state + ")")
             home.focusBeforeSleep = home.Window.activeFocusItem
             sleepScreen.sleep()
         }
@@ -728,8 +730,9 @@ FocusScope {
     // Ce que la console sait déjà : le PC, le réseau, la batterie, le jeu qui tourne sur le PC
     // (sa jaquette Apollo, et l'heure de son lancement d'ici), le dernier jeu lancé.
     // TODO(HostCompanion) : téléchargements, jaquettes Playnite, début réel de la partie.
-    // COCOOS_IDLE_MOCK=1 (+ COCOOS_IDLE_STATE=game|gameDownload|download|rest) : les données de
-    // test des maquettes, pour voir les quatre écrans sur la console.
+    // COCOOS_IDLE_MOCK=1 (+ COCOOS_IDLE_STATE=game|gameDownload|download|rest, COCOOS_IDLE_NETWORK=
+    // 4g|5g) : les données de test des maquettes, pour voir les quatre écrans sur la console.
+    // TODO(module 5G) : la 4G / 5G réelle (kind "4g" / "5g", qualité) viendra de ModemManager.
     function tileByName(name) {
         for (var i = 0; i < shelfModel.count; i++)
             if (shelfModel.get(i).name === name) return shelfModel.get(i)
@@ -768,6 +771,7 @@ FocusScope {
         if (SystemStatus.env("COCOOS_IDLE_MOCK") !== "1") return
         var mock = Qt.createQmlObject('import "idle"; IdleStatusMock {}', home, "IdleStatusMock")
         mock.scenario = SystemStatus.env("COCOOS_IDLE_STATE") || "game"
+        mock.networkKind = SystemStatus.env("COCOOS_IDLE_NETWORK")       // "4g", "5g"…
         idleStatus = mock
     }
 
@@ -1221,8 +1225,9 @@ FocusScope {
         var hdr = [ { label: qsTr("Désactivé"), value: false }, { label: qsTr("Activé"), value: true } ]
 
         // Console : réglages du système et de la conf console (ConsoleUi).
-        var sleep = [ { label: qsTr("2 min"), value: 2 }, { label: qsTr("5 min"), value: 5 },
-                      { label: qsTr("10 min"), value: 10 }, { label: qsTr("30 min"), value: 30 },
+        var sleep = [ { label: qsTr("30 s"), value: 30 }, { label: qsTr("1 min"), value: 60 },
+                      { label: qsTr("2 min"), value: 120 }, { label: qsTr("5 min"), value: 300 },
+                      { label: qsTr("10 min"), value: 600 }, { label: qsTr("30 min"), value: 1800 },
                       { label: qsTr("Jamais"), value: 0 } ]
         var buttons = [ { label: qsTr("Auto"), value: "auto" }, { label: "Xbox", value: "xbox" },
                         { label: "PlayStation", value: "playstation" }, { label: "Nintendo", value: "nintendo" } ]
@@ -1250,8 +1255,8 @@ FocusScope {
             consoleRows.push(percentSlider("brightness", qsTr("Luminosité"), SystemStatus.brightness, brightnessMin))
         if (SystemStatus.volume >= 0)
             consoleRows.push(percentSlider("volume", qsTr("Volume"), SystemStatus.volume, 0))
-        consoleRows.push(row("sleep", qsTr("Veille de l'écran"),
-                             Math.max(0, sleep.findIndex(function(c) { return c.value === consoleConfig.sleepMinutes }))))
+        consoleRows.push(row("sleep", qsTr("Mise en veille après"),
+                             Math.max(0, sleep.findIndex(function(c) { return c.value === consoleConfig.idleSeconds }))))
         consoleRows.push(row("buttons", qsTr("Boutons"),
                              Math.max(0, buttons.findIndex(function(c) { return c.value === consoleConfig.buttonLayout }))))
         consoleRows.push(row("sounds", qsTr("Sons"), consoleConfig.sounds ? 1 : 0, true))
@@ -1354,7 +1359,7 @@ FocusScope {
         } else if (key === "volume") {
             SystemStatus.setVolume(index)
         } else if (key === "sleep") {
-            consoleConfig.sleepMinutes = choice.value
+            consoleConfig.idleSeconds = choice.value
             rearmSleep()
         } else if (key === "buttons") {
             consoleConfig.buttonLayout = choice.value
@@ -1879,13 +1884,16 @@ FocusScope {
             anchors.fill: parent
             z: 1
             status: home.idleStatus
-            onWoke: {
+            onWoke: function(resuming) {
                 var item = home.focusBeforeSleep
                 home.focusBeforeSleep = null
                 if (item) item.forceActiveFocus()
                 else homeScreen.forceActiveFocus()
                 home.rearmSleep()
-                home.playWake()
+                // A sur « Appuyez sur A pour reprendre » : le flux du jeu en cours repart.
+                var index = resuming && home.runningGame !== "" ? home.findAppIndexByName(home.runningGame) : -1
+                if (index >= 0) home.launchApp(index)
+                else home.playWake()
             }
         }
 

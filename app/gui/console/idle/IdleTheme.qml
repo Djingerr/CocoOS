@@ -38,6 +38,8 @@ QtObject {
 
     // Typographie : { size, weight, letterSpacing (px), lineHeight }
     readonly property string fontFamily: Theme.fontUi
+    // Famille de la manette (Theme.buttonLayout : "xbox", "playstation", "nintendo").
+    readonly property string buttonLayout: Theme.buttonLayout
     readonly property var eyebrow: ({ size: 12, weight: Font.DemiBold, letterSpacing: 0.96 })
     readonly property var title: ({ size: 68, weight: Font.DemiBold, letterSpacing: -3.06, lineHeight: 1.05 })
     readonly property var meta: ({ size: 17, weight: Font.Medium, letterSpacing: 0 })
@@ -54,6 +56,9 @@ QtObject {
     readonly property var restClock: ({ size: 176, weight: Font.DemiBold, letterSpacing: -9.68, lineHeight: 1.0 })
     readonly property var capsuleTitle: ({ size: 15, weight: Font.DemiBold, letterSpacing: 0 })
     readonly property var capsuleSub: ({ size: 12, weight: Font.Medium, letterSpacing: 0 })
+    // « 4G » / « 5G » à la place de l'icône Wi-Fi (pas de maquette : de la largeur de l'icône).
+    readonly property var networkBadge: ({ size: 12, weight: Font.Bold, letterSpacing: 0 })
+    readonly property var networkBadgeLarge: ({ size: 14, weight: Font.Bold, letterSpacing: 0 })
 
     // Rayons
     readonly property int radiusCover: 12

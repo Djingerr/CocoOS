@@ -90,6 +90,16 @@ TestCase {
         compare(F.wifiQuality("excellent", true), "Wi-Fi excellent")
     }
 
+    function test_networkItem() {
+        compare(F.networkItem({ kind: "wifi", quality: "excellent" }, false), { icon: "wifi", text: "Excellent" })
+        compare(F.networkItem({ kind: "wifi", rssiDbm: -70 }, true), { icon: "wifi", text: "Wi-Fi moyen" })
+        compare(F.networkItem({ kind: "5g", quality: "excellent" }, false), { badge: "5G", text: "Excellent" })
+        compare(F.networkItem({ kind: "5g", quality: "excellent" }, true), { badge: "5G", text: "5G excellente" })
+        compare(F.networkItem({ kind: "lte", quality: "good" }, true), { badge: "4G", text: "4G bonne" })
+        compare(F.networkItem({ kind: "4g", rssiDbm: -80 }, false), { badge: "4G", text: "Faible" })
+        compare(F.networkItem({ kind: "ethernet" }, false), null)
+    }
+
     function test_hostState() {
         compare(F.hostState({ reachable: true, inGame: true }), "En jeu")
         compare(F.hostState({ reachable: true, inGame: false }), "En ligne")

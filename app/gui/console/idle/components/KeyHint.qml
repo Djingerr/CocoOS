@@ -1,11 +1,14 @@
+pragma ComponentBehavior: Bound
 import QtQuick
 import ".."
 
-// Indication du bas (SPEC §2.4) : « Appuyez sur (A) pour reprendre ».
+// Indication du bas (SPEC §2.4) : « Appuyez sur (A) pour reprendre ». Le bouton du bas de la
+// manette, dessiné comme elle (cf. ButtonGlyph) : A, B sur une Nintendo, ✕ sur une PlayStation.
 Row {
     id: root
 
-    property string glyph: "A"
+    readonly property string glyph: IdleTheme.buttonLayout === "nintendo" ? "B" : "A"
+    readonly property bool cross: IdleTheme.buttonLayout === "playstation"
     property string action: qsTr("pour reprendre")
 
     spacing: 8
@@ -26,8 +29,22 @@ Row {
         border.color: IdleTheme.keyHintStroke
         IdleText {
             anchors.centerIn: parent
+            visible: !root.cross
             text: root.glyph
             textStyle: IdleTheme.keyGlyph
+        }
+        // ✕ : deux traits de la graisse de la lettre (≈ 1,5 px sur 11 px).
+        Repeater {
+            model: root.cross ? [45, -45] : []
+            Rectangle {
+                required property int modelData
+                anchors.centerIn: parent
+                width: 9; height: 1.5
+                radius: height / 2
+                color: IdleTheme.textPrimary
+                antialiasing: true
+                rotation: modelData
+            }
         }
     }
     HintText { text: root.action }

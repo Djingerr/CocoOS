@@ -110,7 +110,7 @@ HomeScreen {
         { label: "Console", rows: [
             { key: "brightness", label: "Luminosité", options: ["40 %", "50 %", "60 %", "70 %"], index: 2 },
             { key: "volume", label: "Volume", options: ["60 %", "70 %", "80 %"], index: 1 },
-            { key: "sleep", label: "Veille de l'écran", options: ["2 min", "5 min", "10 min"], index: 1 },
+            { key: "sleep", label: "Mise en veille après", options: ["1 min", "2 min", "5 min"], index: 1 },
             { key: "buttons", label: "Boutons", options: ["Auto", "Xbox", "PlayStation", "Nintendo"], index: 0 },
             { key: "sounds", label: "Sons", options: ["Coupés", "Activés"], index: settings.sounds, toggle: true },
             { key: "wifi", label: "Wi-Fi", value: "Maison-5G", action: true }

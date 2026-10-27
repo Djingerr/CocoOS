@@ -518,19 +518,25 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   `tst_ConsoleHome::test_9y_statusBarIcons`. ⚠️ Pas vu à la manette.
 - ✅ **Écran de veille « Premium » (2026-10-27, branche `feat/idle-screen`)** — cible :
   `docs/design/idle/` (brief, spec, maquettes 09 à 12, références) ; suivi détaillé dans `next_steps.md`.
-  Remplace `SleepScreen` (décision de Marco) : après `ConsoleUi/sleepMinutes` (**2 min** par défaut,
-  Options › Console › Veille de l'écran), `idle/IdleOverlay` monte au-dessus de l'accueil en fondu ;
+  Remplace `SleepScreen` (décision de Marco) : après `ConsoleUi/idleSeconds` (**120 s** par défaut ;
+  Options › Console › Mise en veille après : 30 s, 1, 2, 5, 10, 30 min, jamais ; l'ancienne clé
+  `sleepMinutes` est ignorée), `idle/IdleOverlay` monte au-dessus de l'accueil en fondu ;
   quatre écrans selon l'état : jeu en cours sur le PC (09), jeu + téléchargement (10), téléchargement
-  (11), repos (12 : date, heure en dégradé, capsule PC / Wi-Fi / batterie / dernier jeu). Une touche ou
-  un clic : sortie en 320 ms, l'accueil reprend la main tout de suite. Données réelles (`ConsoleHome`,
-  `liveIdleStatus`) : PC, Wi-Fi et latence, batterie et autonomie, jeu qui tourne (jaquette Apollo,
-  durée depuis son lancement d'ici), dernier jeu ; un élément sans donnée est masqué.
+  (11), repos (12 : date, heure en dégradé, capsule PC / réseau / batterie / dernier jeu). Une touche ou
+  un clic : sortie en 320 ms, l'accueil reprend la main tout de suite ; **A pendant une partie relance le
+  flux** du jeu en cours (« Appuyez sur A pour reprendre »). Le glyphe suit la manette (✕ PlayStation,
+  B Nintendo). En 4G / 5G (`network.kind` "4g" / "5g"), « 5G » remplace l'icône Wi-Fi (« 5G excellente »
+  dans la capsule) ; la source réelle viendra du module 5G (ModemManager, TODO). Données réelles
+  (`ConsoleHome`, `liveIdleStatus`) : PC, Wi-Fi et latence, batterie et autonomie, jeu qui tourne
+  (jaquette Apollo, durée depuis son lancement d'ici), dernier jeu ; un élément sans donnée est masqué.
   TODO(HostCompanion) : téléchargements, jaquettes Playnite. `COCOOS_IDLE_MOCK=1`
-  (+ `COCOOS_IDLE_STATE=game|gameDownload|download|rest`) montre les données des maquettes sur la console.
+  (+ `COCOOS_IDLE_STATE=game|gameDownload|download|rest`, `COCOOS_IDLE_NETWORK=4g|5g`) montre les
+  données des maquettes sur la console.
   Parité avec les maquettes (phase 4) : écart moyen ≤ 3,4/255, tous les textes à ±2 px. Aperçu :
-  `app/gui/console/idle/preview/IdlePreview.qml` (`grab.sh`, `parity.sh`). Journal : « [console-ui] Veille
-  après N min d'inactivité (état) ». ⚠️ Pas vu à la manette ni sur l'écran de la carte ; performance
-  (flou d'entrée, `IdleTheme.entryBlur`) à mesurer sur l'Orange Pi (phase 6 du brief).
+  `app/gui/console/idle/preview/IdlePreview.qml` (`grab.sh`, `parity.sh` ; `--network 5g`,
+  `--pad playstation`). Journal : « [console-ui] Veille après N s d'inactivité (état) ». ⚠️ Pas vu à la
+  manette ni sur l'écran de la carte ; performance (flou d'entrée, `IdleTheme.entryBlur`) à mesurer sur
+  l'Orange Pi (phase 6 du brief).
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
   télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
   Côté console uniquement (Apollo reste non modifié).

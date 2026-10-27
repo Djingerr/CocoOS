@@ -108,9 +108,7 @@ CoverScreen {
             items: [ { icon: "monitor", text: root.status.host.name + " · " + F.hostState(root.status.host) },
 ]
                    .concat(root.network.latencyMs >= 0 ? [{ icon: "signal", text: F.latency(root.network.latencyMs) }] : [])
-                   .concat(root.network.kind === "wifi"
-                           ? [{ icon: "wifi", text: F.wifiQuality(root.network.quality
-                                    || F.wifiQualityKey(root.network.rssiDbm), false) }] : [])
+                   .concat(F.networkItem(root.network, false) ? [F.networkItem(root.network, false)] : [])
         }
     }
 }

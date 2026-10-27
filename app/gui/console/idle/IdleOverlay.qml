@@ -4,7 +4,8 @@ import QtQuick
 // Veille de l'écran au-dessus de l'accueil (remplace SleepScreen, même interface) : après
 // l'inactivité, l'écran de veille (IdleScreen) entre en fondu. Une touche ou un clic le fait
 // sortir ; cette première action n'atteint pas l'accueil, qui reprend la main tout de suite
-// (`woke`) pendant que la veille s'efface (320 ms).
+// (`woke`) pendant que la veille s'efface (320 ms). A, quand un jeu tourne sur le PC (« Appuyez
+// sur A pour reprendre ») : `woke(true)`, à l'appelant de relancer le flux.
 FocusScope {
     id: root
 
@@ -12,7 +13,7 @@ FocusScope {
     property bool asleep: false
     // La veille couvre tout l'écran (fondu d'entrée fini) : l'accueil dessous peut être caché.
     readonly property bool covering: asleep && opacity === 1
-    signal woke()
+    signal woke(bool resuming)
 
     function sleep() {
         if (asleep) return
@@ -21,12 +22,12 @@ FocusScope {
         forceActiveFocus()
         fadeIn.restart()
     }
-    function wake() {
+    function wake(resuming) {
         if (!asleep) return
         fadeIn.stop()
         asleep = false
         if (loader.item as IdleScreen) (loader.item as IdleScreen).exit()
-        woke()
+        woke(resuming === true)
     }
 
     visible: loader.active
@@ -53,7 +54,10 @@ FocusScope {
 
     Keys.onPressed: function(event) {
         event.accepted = true
-        if (!event.isAutoRepeat) root.wake()
+        if (event.isAutoRepeat) return
+        // A : Entrée, ou Espace quand la navigation upstream est en mode interface.
+        var a = event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space
+        root.wake(a && root.status !== null && root.status.session.active === true)
     }
     MouseArea {
         anchors.fill: parent

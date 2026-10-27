@@ -3,7 +3,7 @@ import QtQuick
 import ".."
 
 // Ligne d'état (SPEC §2.3) : icône + 8 px + texte, trois items espacés de 28 px.
-// items : [{ icon: "monitor" | "signal" | "wifi", text }]
+// items : [{ icon: "monitor" | "signal" | "wifi", text }] ; `badge` (« 5G ») à la place de l'icône.
 Row {
     id: root
 
@@ -19,7 +19,13 @@ Row {
             spacing: 8
             StatusIcon {
                 anchors.verticalCenter: parent.verticalCenter
-                name: entry.modelData.icon
+                visible: !entry.modelData.badge
+                name: entry.modelData.icon || ""
+            }
+            NetworkBadge {
+                anchors.verticalCenter: parent.verticalCenter
+                visible: !!entry.modelData.badge
+                text: entry.modelData.badge || ""
             }
             IdleText {
                 anchors.verticalCenter: parent.verticalCenter

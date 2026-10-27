@@ -1,6 +1,7 @@
 pragma ComponentBehavior: Bound
 import QtQuick
 import ".."
+import "../.."
 import "../components"
 import "../IdleFormat.js" as F
 
@@ -9,6 +10,7 @@ import "../IdleFormat.js" as F
 //   qml app/gui/console/idle/preview/IdlePreview.qml -- --state game|gameDownload|download|rest
 //       [--now 2026-10-27T21:46:00] [--no-drift] [--grab-after 3000 --grab captures/09_jeu.png]
 //   qml app/gui/console/idle/preview/IdlePreview.qml -- --component CoverCard
+//   … --network 4g|5g (réseau mobile au lieu du Wi-Fi), --pad playstation|nintendo (glyphe du bouton)
 //
 // --state : l'écran de veille complet sur le mock (par défaut). --component : un composant
 // seul (EntryReveal, BlurredBackdrop, CoverCard, StatusLine, KeyHint, TopRightClock,
@@ -41,9 +43,11 @@ Window {
     IdleStatusMock {
         id: status
         scenario: win.args.state || "game"
+        networkKind: win.args.network || ""
         fixedNow: win.args.now ? new Date(win.args.now) : null
     }
 
+    Binding { when: win.args.pad !== undefined; target: Theme; property: "buttonLayout"; value: win.args.pad }
     // Fond noir dans le contenu : grabToImage ne capture pas la couleur de la fenêtre.
     Rectangle { anchors.fill: parent; color: "black" }
     Item {

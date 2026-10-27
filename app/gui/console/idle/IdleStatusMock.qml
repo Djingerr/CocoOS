@@ -8,6 +8,8 @@ IdleStatus {
     id: root
 
     property string scenario: "game"       // "game", "gameDownload", "download", "rest"
+    property string networkKind: ""        // remplace le réseau du mock ("4g", "5g"…) ; vide : le Wi-Fi
+    onNetworkKindChanged: load()
 
     // Les horodatages relatifs du mock deviennent absolus par rapport à `now`.
     function ago(seconds) { return new Date(root.now.getTime() - seconds * 1000) }
@@ -18,7 +20,7 @@ IdleStatus {
         var d = Mock.data[scenario]
         if (!d) return
         host = d.host
-        network = Object.assign({}, d.network)
+        network = Object.assign({}, d.network, networkKind !== "" ? { kind: networkKind } : {})
         battery = d.battery
         var s = Object.assign({}, d.session)
         if (s.active) {

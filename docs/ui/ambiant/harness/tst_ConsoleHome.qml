@@ -448,7 +448,7 @@ Item {
             keyClick(Qt.Key_Hangup)
             InputStatus.bumperPressed(1)
             compare(screen.optionRows.map(function(r) { return r.label }),
-                    ["Luminosité", "Volume", "Veille de l'écran", "Boutons", "Sons", "Réduire les animations",
+                    ["Luminosité", "Volume", "Mise en veille après", "Boutons", "Sons", "Réduire les animations",
                      "Langue", "Wi-Fi"])
             verify(screen.optionRows[0].slider && screen.optionRows[1].slider)   // des curseurs
             keyClick(Qt.Key_Right)                          // luminosité 60 → 61 %
@@ -665,6 +665,30 @@ Item {
             InputStatus.homePressed()                     // Home réveille, sans ouvrir le menu
             verify(!sleepScreen.asleep)
             verify(!dialog("Menu"))
+        }
+
+        // Veille pendant une partie : A (« Appuyez sur A pour reprendre ») relance le flux du jeu
+        // en cours ; une autre touche ne fait que réveiller. Sans partie, A ne fait que réveiller.
+        function test_9k_aResumesTheRunningGame() {
+            var apps = home.appModel, tile = home.currentTile()
+            sleepScreen.sleep()
+            keyClick(Qt.Key_Return)                       // pas de partie : simple réveil
+            verify(!sleepScreen.asleep)
+            verify(!launchScreen.active)
+            apps.setProperty(tile.appIndex, "running", true)
+            apps.runningName = tile.name
+            sleepScreen.sleep()
+            keyClick(Qt.Key_Down)                         // une autre touche : simple réveil
+            verify(!sleepScreen.asleep)
+            verify(!launchScreen.active)
+            sleepScreen.sleep()
+            keyClick(Qt.Key_Return)
+            verify(!sleepScreen.asleep)
+            tryCompare(launchScreen, "active", true, 1000)
+            launchScreen.cancelRequested()                // B : annule le lancement
+            tryCompare(launchScreen, "active", false, 3000)
+            apps.setProperty(tile.appIndex, "running", false)
+            apps.runningName = ""
         }
 
         // Réglages à part pour un jeu : ils ne touchent pas aux réglages communs, et ne

@@ -66,6 +66,7 @@
         <file>gui/console/idle/IdleScreen.qml</file>
         <file>gui/console/idle/IdleOverlay.qml</file>
         <file>gui/console/idle/components/IdleText.qml</file>
+        <file>gui/console/idle/components/NetworkBadge.qml</file>
         <file>gui/console/idle/components/DriftGroup.qml</file>
         <file>gui/console/idle/components/BlurredBackdrop.qml</file>
         <file>gui/console/idle/components/CoverCard.qml</file>

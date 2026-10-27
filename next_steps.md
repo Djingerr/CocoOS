@@ -238,3 +238,22 @@ Rapporter ces chiffres avant toute optimisation.
   reprend pas la partie (le brief ne prévoit que `wakeRequested()`). Faut-il qu'A relance directement le jeu
   en cours ? Libellés d'une installation (absente des maquettes) ; cas 4G/5G (pas de maquette) ; le glyphe
   « A » ne suit pas encore la manette (✕ sur PlayStation) comme le reste de l'interface.
+
+## Écran de veille — demandes de Marco (2026-10-27, après la phase 5)
+
+- **A relance le flux** quand un jeu tourne sur le PC (écrans 09 et 10) : `IdleOverlay` émet `woke(true)`
+  (A = Entrée, ou Espace en mode navigation), `ConsoleHome` lance le jeu en cours (`launchApp`) au lieu de
+  l'animation de sortie de veille. Une autre touche, ou A sans partie : simple réveil.
+  Test `tst_ConsoleHome::test_9k_aResumesTheRunningGame`.
+- **Glyphe du bouton** : `KeyHint` dessine ✕ sur une manette PlayStation, B sur une Nintendo (le bouton du
+  bas), A sinon (`IdleTheme.buttonLayout` = `Theme.buttonLayout`). Aperçu : `--pad playstation`.
+- **4G / 5G** : `network.kind` accepte "4g" / "5g" ("lte" = "4g") ; la ligne d'état montre « 5G » (texte,
+  `components/NetworkBadge`) à la place de l'icône Wi-Fi, avec la qualité (« Excellent ») ; la capsule de
+  l'écran 12 : « 5G excellente » / « 4G bonne »… (`IdleFormat.networkItem`, testé). Pas de maquette : le
+  badge prend la place et la couleur de l'icône. Source réelle : TODO(module 5G), ModemManager (technologie
+  d'accès, qualité) ; en attendant, `COCOOS_IDLE_NETWORK=5g` avec le mock, ou `--network 5g` dans l'aperçu.
+- **Délai** : nouvelle clé `ConsoleUi/idleSeconds`, **120 s** par défaut (l'ancienne `sleepMinutes`, à 5 dans
+  la conf du laptop, est ignorée), réglable dans Options › Console › **Mise en veille après** : 30 s, 1 min,
+  2 min, 5 min, 10 min, 30 min, jamais. Vérifié : binaire lancé avec une copie de la conf du laptop, veille
+  à 120 s (« [console-ui] Veille après 120 s d'inactivité (rest) »).
+- Parité inchangée (09 à 12 : 3,31 / 3,37 / 3,33 / 0,89, 61/61 textes) ; `tst_ConsoleHome` 48/48.

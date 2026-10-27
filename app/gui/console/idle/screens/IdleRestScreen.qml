@@ -142,11 +142,17 @@ Item {
                 Hairline { visible: wifiSegment.visible }
                 Segment {
                     id: wifiSegment
-                    visible: root.network.kind === "wifi" && root.network.latencyMs >= 0
+                    readonly property var item: F.networkItem(root.network, true)
+                    visible: item !== null && root.network.latencyMs >= 0
                     title: F.latency(root.network.latencyMs)
-                    subtitle: F.wifiQuality(root.network.quality || F.wifiQualityKey(root.network.rssiDbm), true)
+                    subtitle: item ? item.text : ""
                     tabular: true
-                    StatusIcon { name: "wifi"; large: true }
+                    StatusIcon { visible: !wifiSegment.item || !wifiSegment.item.badge; name: "wifi"; large: true }
+                    NetworkBadge {
+                        visible: !!wifiSegment.item && !!wifiSegment.item.badge
+                        large: true
+                        text: wifiSegment.item && wifiSegment.item.badge ? wifiSegment.item.badge : ""
+                    }
                 }
                 Hairline { visible: batterySegment.visible }
                 Segment {

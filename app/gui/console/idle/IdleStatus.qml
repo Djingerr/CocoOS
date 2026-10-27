@@ -16,7 +16,8 @@ QtObject {
     }
 
     property var host: ({ name: "", reachable: false, inGame: false, sleeping: false })
-    // { kind: "wifi" | "lte", latencyMs, rssiDbm | quality ("excellent", "good", "fair", "poor") }
+    // { kind: "wifi" | "4g" | "5g" ("lte" = "4g") | autre, latencyMs, rssiDbm | quality ("excellent",
+    // "good", "fair", "poor") }
     property var network: ({ kind: "wifi", latencyMs: -1 })
     property var battery: ({ percent: -1, charging: false, minutesLeft: -1 })
     // { active, connectedAt: date, game { title, publisher, genre, coverUrl } }

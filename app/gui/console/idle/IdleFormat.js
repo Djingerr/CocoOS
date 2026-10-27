@@ -112,6 +112,25 @@ function wifiQuality(key, rest) {
     return label ? qsTr(label) : ""
 }
 
+// Génération d'un réseau mobile : "4G", "5G" ; vide pour un autre réseau.
+function cellular(kind) {
+    return kind === "5g" ? "5G" : kind === "4g" || kind === "lte" ? "4G" : ""
+}
+var QUALITY_REST_CELL = { excellent: QT_TR_NOOP("%1 excellente"), good: QT_TR_NOOP("%1 bonne"),
+                          fair: QT_TR_NOOP("%1 moyenne"), poor: QT_TR_NOOP("%1 faible") }
+// Réseau de la console pour les lignes d'état : { icon: "wifi" } ou { badge: "5G" }, et la qualité
+// (« Excellent » ; `rest` : « Wi-Fi excellent », « 5G excellente ») ; null sans Wi-Fi ni réseau mobile.
+// network : { kind, quality ("excellent"…) ou rssiDbm }.
+function networkItem(network, rest) {
+    var key = network.quality || wifiQualityKey(network.rssiDbm)
+    var generation = cellular(network.kind)
+    if (generation !== "")
+        return { badge: generation, text: rest ? qsTr(QUALITY_REST_CELL[key] || "%1").arg(generation)
+                                               : wifiQuality(key, false) }
+    if (network.kind === "wifi") return { icon: "wifi", text: wifiQuality(key, rest) }
+    return null
+}
+
 // « En jeu », « En ligne », « En veille », « Hors ligne »
 function hostState(host) {
     if (!host || !host.reachable) return qsTr("Hors ligne")
