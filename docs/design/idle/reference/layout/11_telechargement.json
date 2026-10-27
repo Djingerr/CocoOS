@@ -1,0 +1,420 @@
+[
+ {
+  "tag": "div",
+  "x": 0,
+  "y": 0,
+  "w": 1280,
+  "h": 720,
+  "background": "rgb(0, 0, 0)"
+ },
+ {
+  "tag": "div",
+  "x": -285.5,
+  "y": -215.1,
+  "w": 1850.6,
+  "h": 1150.4,
+  "backgroundImage": "radial-gradient(circle at 30% 25%, rgb(94, 143, 78) 0%, rgba(0, 0, 0, 0) 45%), radial-gradient(circle at 70% 78%, rgb(107, 74, 47) 0%, rgba(0, 0, 0, 0) 50%), ra",
+  "filter": "blur(100px) saturate(1.1)",
+  "decorative": true
+ },
+ {
+  "tag": "div",
+  "x": 0,
+  "y": 0,
+  "w": 1280,
+  "h": 720,
+  "backgroundImage": "radial-gradient(at 28% 45%, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.82) 72%)",
+  "decorative": true
+ },
+ {
+  "tag": "svg",
+  "x": 0,
+  "y": 0,
+  "w": 1280,
+  "h": 720,
+  "opacity": "0.07",
+  "decorative": true
+ },
+ {
+  "tag": "div",
+  "x": 0,
+  "y": 0,
+  "w": 1280,
+  "h": 720
+ },
+ {
+  "tag": "div",
+  "x": 1142.4,
+  "y": 36,
+  "w": 81.6,
+  "h": 19,
+  "filter": "blur(0px)"
+ },
+ {
+  "tag": "span",
+  "x": 1142.4,
+  "y": 36,
+  "w": 44.6,
+  "h": 19,
+  "text": "21:46",
+  "fontSize": "15px",
+  "fontWeight": "600",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgb(245, 245, 247)"
+ },
+ {
+  "tag": "svg",
+  "x": 1199,
+  "y": 39.5,
+  "w": 25,
+  "h": 12,
+  "decorative": true
+ },
+ {
+  "tag": "div",
+  "x": 112,
+  "y": 104,
+  "w": 326,
+  "h": 460,
+  "filter": "blur(0px)"
+ },
+ {
+  "tag": "div",
+  "x": 110.9,
+  "y": 100.5,
+  "w": 323.4,
+  "h": 468.2
+ },
+ {
+  "tag": "div",
+  "x": 110.9,
+  "y": 100.5,
+  "w": 323.4,
+  "h": 468.2,
+  "radius": "12px",
+  "shadow": "rgba(0, 0, 0, 0.6) 0px 40px 90px 0px, rgba(255, 255, 255, 0.07) 0px 0px 0px 1px"
+ },
+ {
+  "tag": "div",
+  "x": 110.9,
+  "y": 100.5,
+  "w": 323.4,
+  "h": 468.2,
+  "backgroundImage": "radial-gradient(circle at 30% 25%, rgb(94, 143, 78) 0%, rgba(0, 0, 0, 0) 45%), radial-gradient(circle at 70% 78%, rgb(107, 74, 47) 0%, rgba(0, 0, 0, 0) 50%), ra",
+  "filter": "brightness(0.62)",
+  "decorative": true
+ },
+ {
+  "tag": "div",
+  "x": 110.9,
+  "y": 100.5,
+  "w": 323.4,
+  "h": 468.2,
+  "backgroundImage": "linear-gradient(135deg, rgba(255, 255, 255, 0.1) 0%, rgba(255, 255, 255, 0) 42%)",
+  "decorative": true
+ },
+ {
+  "tag": "div",
+  "x": -165.1,
+  "y": 5.6,
+  "w": 322.6,
+  "h": 667,
+  "backgroundImage": "linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.13), rgba(255, 255, 255, 0))",
+  "decorative": true
+ },
+ {
+  "tag": "span",
+  "x": 111.1,
+  "y": 529,
+  "w": 323.1,
+  "h": 21.3,
+  "text": "Jaquette Minecraft · 600 × 848",
+  "fontSize": "11px",
+  "fontWeight": "500",
+  "letterSpacing": "0.44px",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.45)"
+ },
+ {
+  "tag": "div",
+  "x": 111.1,
+  "y": 566.5,
+  "w": 325.1,
+  "h": 481.4,
+  "radius": "12px",
+  "decorative": true
+ },
+ {
+  "tag": "div",
+  "x": 111.1,
+  "y": 566.5,
+  "w": 325.1,
+  "h": 481.4,
+  "backgroundImage": "radial-gradient(circle at 30% 25%, rgb(94, 143, 78) 0%, rgba(0, 0, 0, 0) 45%), radial-gradient(circle at 70% 78%, rgb(107, 74, 47) 0%, rgba(0, 0, 0, 0) 50%), ra",
+  "filter": "brightness(0.62)"
+ },
+ {
+  "tag": "div",
+  "x": 520,
+  "y": 170,
+  "w": 660,
+  "h": 371.4
+ },
+ {
+  "tag": "div",
+  "x": 520,
+  "y": 170,
+  "w": 660,
+  "h": 15,
+  "filter": "blur(0px)"
+ },
+ {
+  "tag": "svg",
+  "x": 520,
+  "y": 171.5,
+  "w": 12,
+  "h": 12,
+  "decorative": true
+ },
+ {
+  "tag": "span",
+  "x": 542,
+  "y": 170,
+  "w": 243.9,
+  "h": 15,
+  "text": "TÉLÉCHARGEMENT SUR PC-SALON",
+  "fontSize": "12px",
+  "fontWeight": "600",
+  "letterSpacing": "0.96px",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.55)"
+ },
+ {
+  "tag": "span",
+  "x": 520,
+  "y": 199,
+  "w": 660,
+  "h": 71.4,
+  "text": "Minecraft",
+  "fontSize": "68px",
+  "fontWeight": "600",
+  "letterSpacing": "-3.06px",
+  "lineHeight": "71.4px",
+  "color": "rgb(245, 245, 247)",
+  "filter": "blur(0px)"
+ },
+ {
+  "tag": "span",
+  "x": 520,
+  "y": 278.4,
+  "w": 660,
+  "h": 21,
+  "text": "Mojang Studios · Bac à sable",
+  "fontSize": "17px",
+  "fontWeight": "500",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.55)",
+  "filter": "blur(0px)"
+ },
+ {
+  "tag": "div",
+  "x": 520,
+  "y": 355.4,
+  "w": 660,
+  "h": 123,
+  "filter": "blur(0px)"
+ },
+ {
+  "tag": "div",
+  "x": 520,
+  "y": 355.4,
+  "w": 660,
+  "h": 72
+ },
+ {
+  "tag": "span",
+  "x": 520,
+  "y": 355.4,
+  "w": 90.9,
+  "h": 72,
+  "text": "42",
+  "fontSize": "72px",
+  "fontWeight": "600",
+  "letterSpacing": "-3.24px",
+  "lineHeight": "72px",
+  "color": "rgb(245, 245, 247)"
+ },
+ {
+  "tag": "span",
+  "x": 616.9,
+  "y": 388.4,
+  "w": 24.2,
+  "h": 35,
+  "text": "%",
+  "fontSize": "28px",
+  "fontWeight": "500",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.5)"
+ },
+ {
+  "tag": "span",
+  "x": 520,
+  "y": 435.4,
+  "w": 660,
+  "h": 19,
+  "text": "Mise à jour · 1,2 Go/s · environ 6 min",
+  "fontSize": "15px",
+  "fontWeight": "500",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.55)"
+ },
+ {
+  "tag": "div",
+  "x": 520,
+  "y": 476.4,
+  "w": 420,
+  "h": 2,
+  "radius": "1px",
+  "background": "rgba(255, 255, 255, 0.12)"
+ },
+ {
+  "tag": "div",
+  "x": 520,
+  "y": 476.4,
+  "w": 176.4,
+  "h": 2,
+  "background": "rgb(242, 128, 42)"
+ },
+ {
+  "tag": "div",
+  "x": 497.8,
+  "y": 476.4,
+  "w": 52.9,
+  "h": 2,
+  "backgroundImage": "linear-gradient(90deg, rgba(255, 255, 255, 0), rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0))"
+ },
+ {
+  "tag": "div",
+  "x": 520,
+  "y": 522.4,
+  "w": 660,
+  "h": 19,
+  "filter": "blur(0px)"
+ },
+ {
+  "tag": "span",
+  "x": 520,
+  "y": 522.4,
+  "w": 168.4,
+  "h": 19,
+  "text": "PC-Salon · En ligne",
+  "fontSize": "15px",
+  "fontWeight": "500",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.78)"
+ },
+ {
+  "tag": "svg",
+  "x": 520,
+  "y": 524.4,
+  "w": 17,
+  "h": 15,
+  "decorative": true
+ },
+ {
+  "tag": "span",
+  "x": 716.4,
+  "y": 522.4,
+  "w": 59.2,
+  "h": 19,
+  "text": "4 ms",
+  "fontSize": "15px",
+  "fontWeight": "500",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.78)"
+ },
+ {
+  "tag": "svg",
+  "x": 716.4,
+  "y": 525.4,
+  "w": 15,
+  "h": 13,
+  "decorative": true
+ },
+ {
+  "tag": "span",
+  "x": 803.6,
+  "y": 522.4,
+  "w": 95,
+  "h": 19,
+  "text": "Excellent",
+  "fontSize": "15px",
+  "fontWeight": "500",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.78)"
+ },
+ {
+  "tag": "svg",
+  "x": 803.6,
+  "y": 525.9,
+  "w": 17,
+  "h": 12,
+  "decorative": true
+ },
+ {
+  "tag": "div",
+  "x": 0,
+  "y": 654,
+  "w": 1280,
+  "h": 22,
+  "filter": "blur(0px)"
+ },
+ {
+  "tag": "span",
+  "x": 506.8,
+  "y": 656,
+  "w": 87.5,
+  "h": 18,
+  "text": "Appuyez sur",
+  "fontSize": "14px",
+  "fontWeight": "500",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.5)"
+ },
+ {
+  "tag": "span",
+  "x": 602.3,
+  "y": 654,
+  "w": 22,
+  "h": 22,
+  "text": "A",
+  "fontSize": "11px",
+  "fontWeight": "600",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgb(245, 245, 247)",
+  "radius": "50%",
+  "border": "1px rgba(245, 245, 247, 0.45)"
+ },
+ {
+  "tag": "span",
+  "x": 632.3,
+  "y": 656,
+  "w": 140.9,
+  "h": 18,
+  "text": "pour ouvrir l'accueil",
+  "fontSize": "14px",
+  "fontWeight": "500",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.5)"
+ }
+]

@@ -1,0 +1,361 @@
+[
+ {
+  "tag": "div",
+  "x": 0,
+  "y": 0,
+  "w": 1280,
+  "h": 720,
+  "background": "rgb(0, 0, 0)"
+ },
+ {
+  "tag": "div",
+  "x": 73.3,
+  "y": 462.1,
+  "w": 1133.3,
+  "h": 535.7,
+  "opacity": "0.813529",
+  "radius": "50%",
+  "backgroundImage": "radial-gradient(rgb(242, 128, 42) 0%, rgba(0, 0, 0, 0) 65%)",
+  "filter": "blur(120px)",
+  "decorative": true
+ },
+ {
+  "tag": "svg",
+  "x": 0,
+  "y": 0,
+  "w": 1280,
+  "h": 720,
+  "opacity": "0.07",
+  "decorative": true
+ },
+ {
+  "tag": "div",
+  "x": 0,
+  "y": 0,
+  "w": 1280,
+  "h": 720
+ },
+ {
+  "tag": "div",
+  "x": 0,
+  "y": 120,
+  "w": 1280,
+  "h": 203
+ },
+ {
+  "tag": "span",
+  "x": 552.4,
+  "y": 120,
+  "w": 175.3,
+  "h": 25,
+  "text": "Mardi 27 octobre",
+  "fontSize": "20px",
+  "fontWeight": "600",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.6)",
+  "filter": "blur(0px)"
+ },
+ {
+  "tag": "span",
+  "x": 402.6,
+  "y": 147,
+  "w": 474.9,
+  "h": 176,
+  "text": "21:46",
+  "fontSize": "176px",
+  "fontWeight": "600",
+  "letterSpacing": "-9.68px",
+  "lineHeight": "176px",
+  "color": "rgba(0, 0, 0, 0)",
+  "backgroundImage": "linear-gradient(rgb(255, 255, 255) 0%, rgb(169, 169, 174) 100%)",
+  "filter": "blur(0px)"
+ },
+ {
+  "tag": "div",
+  "x": 0,
+  "y": 452,
+  "w": 1280,
+  "h": 78,
+  "filter": "blur(0px)"
+ },
+ {
+  "tag": "div",
+  "x": 317.5,
+  "y": 452,
+  "w": 645,
+  "h": 78,
+  "radius": "38px",
+  "background": "rgba(255, 255, 255, 0.06)",
+  "border": "1px rgba(255, 255, 255, 0.1)"
+ },
+ {
+  "tag": "div",
+  "x": 326.5,
+  "y": 473.5,
+  "w": 148.8,
+  "h": 35
+ },
+ {
+  "tag": "svg",
+  "x": 348.5,
+  "y": 482,
+  "w": 20,
+  "h": 18,
+  "decorative": true
+ },
+ {
+  "tag": "div",
+  "x": 380.5,
+  "y": 473.5,
+  "w": 72.8,
+  "h": 35
+ },
+ {
+  "tag": "span",
+  "x": 380.5,
+  "y": 473.5,
+  "w": 72.8,
+  "h": 19,
+  "text": "PC-Salon",
+  "fontSize": "15px",
+  "fontWeight": "600",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgb(245, 245, 247)"
+ },
+ {
+  "tag": "span",
+  "x": 380.5,
+  "y": 493.5,
+  "w": 72.8,
+  "h": 15,
+  "text": "En ligne",
+  "fontSize": "12px",
+  "fontWeight": "500",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.55)"
+ },
+ {
+  "tag": "div",
+  "x": 475.3,
+  "y": 476,
+  "w": 1,
+  "h": 30,
+  "background": "rgba(255, 255, 255, 0.1)"
+ },
+ {
+  "tag": "div",
+  "x": 476.3,
+  "y": 473.5,
+  "w": 167.6,
+  "h": 35
+ },
+ {
+  "tag": "svg",
+  "x": 498.3,
+  "y": 483.5,
+  "w": 20,
+  "h": 15,
+  "decorative": true
+ },
+ {
+  "tag": "div",
+  "x": 530.3,
+  "y": 473.5,
+  "w": 91.6,
+  "h": 35
+ },
+ {
+  "tag": "span",
+  "x": 530.3,
+  "y": 473.5,
+  "w": 91.6,
+  "h": 19,
+  "text": "4 ms",
+  "fontSize": "15px",
+  "fontWeight": "600",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgb(245, 245, 247)"
+ },
+ {
+  "tag": "span",
+  "x": 530.3,
+  "y": 493.5,
+  "w": 91.6,
+  "h": 15,
+  "text": "Wi-Fi excellent",
+  "fontSize": "12px",
+  "fontWeight": "500",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.55)"
+ },
+ {
+  "tag": "div",
+  "x": 644,
+  "y": 476,
+  "w": 1,
+  "h": 30,
+  "background": "rgba(255, 255, 255, 0.1)"
+ },
+ {
+  "tag": "div",
+  "x": 645,
+  "y": 473.5,
+  "w": 148.8,
+  "h": 35
+ },
+ {
+  "tag": "svg",
+  "x": 667,
+  "y": 478,
+  "w": 26,
+  "h": 26,
+  "decorative": true
+ },
+ {
+  "tag": "div",
+  "x": 705,
+  "y": 473.5,
+  "w": 66.8,
+  "h": 35
+ },
+ {
+  "tag": "span",
+  "x": 705,
+  "y": 473.5,
+  "w": 66.8,
+  "h": 19,
+  "text": "82 %",
+  "fontSize": "15px",
+  "fontWeight": "600",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgb(245, 245, 247)"
+ },
+ {
+  "tag": "span",
+  "x": 705,
+  "y": 493.5,
+  "w": 66.8,
+  "h": 15,
+  "text": "Environ 3 h",
+  "fontSize": "12px",
+  "fontWeight": "500",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.55)"
+ },
+ {
+  "tag": "div",
+  "x": 793.8,
+  "y": 476,
+  "w": 1,
+  "h": 30,
+  "background": "rgba(255, 255, 255, 0.1)"
+ },
+ {
+  "tag": "div",
+  "x": 794.8,
+  "y": 468.5,
+  "w": 158.7,
+  "h": 45
+ },
+ {
+  "tag": "div",
+  "x": 812.8,
+  "y": 468.5,
+  "w": 32,
+  "h": 45,
+  "radius": "5px",
+  "backgroundImage": "radial-gradient(circle at 30% 25%, rgb(94, 143, 78) 0%, rgba(0, 0, 0, 0) 45%), radial-gradient(circle at 70% 78%, rgb(107, 74, 47) 0%, rgba(0, 0, 0, 0) 50%), ra",
+  "shadow": "rgba(255, 255, 255, 0.1) 0px 0px 0px 1px",
+  "filter": "brightness(0.75)",
+  "decorative": true
+ },
+ {
+  "tag": "div",
+  "x": 856.8,
+  "y": 473.5,
+  "w": 74.7,
+  "h": 35
+ },
+ {
+  "tag": "span",
+  "x": 856.8,
+  "y": 473.5,
+  "w": 74.7,
+  "h": 19,
+  "text": "Minecraft",
+  "fontSize": "15px",
+  "fontWeight": "600",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgb(245, 245, 247)"
+ },
+ {
+  "tag": "span",
+  "x": 856.8,
+  "y": 493.5,
+  "w": 74.7,
+  "h": 15,
+  "text": "Il y a 2 h",
+  "fontSize": "12px",
+  "fontWeight": "500",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.55)"
+ },
+ {
+  "tag": "div",
+  "x": 0,
+  "y": 654,
+  "w": 1280,
+  "h": 22,
+  "filter": "blur(0px)"
+ },
+ {
+  "tag": "span",
+  "x": 506.8,
+  "y": 656,
+  "w": 87.5,
+  "h": 18,
+  "text": "Appuyez sur",
+  "fontSize": "14px",
+  "fontWeight": "500",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.5)"
+ },
+ {
+  "tag": "span",
+  "x": 602.3,
+  "y": 654,
+  "w": 22,
+  "h": 22,
+  "text": "A",
+  "fontSize": "11px",
+  "fontWeight": "600",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgb(245, 245, 247)",
+  "radius": "50%",
+  "border": "1px rgba(245, 245, 247, 0.45)"
+ },
+ {
+  "tag": "span",
+  "x": 632.3,
+  "y": 656,
+  "w": 140.9,
+  "h": 18,
+  "text": "pour ouvrir l'accueil",
+  "fontSize": "14px",
+  "fontWeight": "500",
+  "letterSpacing": "normal",
+  "lineHeight": "normal",
+  "color": "rgba(245, 245, 247, 0.5)"
+ }
+]
