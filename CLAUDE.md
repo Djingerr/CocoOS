@@ -230,7 +230,7 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     remet les communs (la session ne réenregistre jamais les préférences).
   - **Options en onglets** (L1 / R1, lus dans SDL par `InputStatus` ; PageUp / PageDown au
     clavier) : **Flux** (résolution, fréquence, débit, codec, HDR, Oublier ce PC) et **Console**
-    (luminosité par logind `SetBrightness`, volume par `wpctl`, veille de l'écran, boutons,
+    (luminosité par logind `SetBrightness`, volume par `wpctl`, mise en veille après, boutons,
     sons, langue, Wi-Fi). Une ligne peut être une action (`action: true`, A la déclenche, chevron ›).
   - **Wi-Fi et premier démarrage** : `WifiSetup` (NetworkManager par D-Bus) liste les réseaux
     et s'y connecte ; la liste est un `OptionsSheet` (titre « Wi-Fi », icône de signal), le mot
@@ -516,7 +516,8 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   sinon énergie / puissance ou charge / courant ; temps lissé d'un relevé à l'autre) et
   `SystemStatus.wifi` (NetworkManager). Vérifié sur le laptop (38 %, 13,4 W → 86 min), dans le harnais (`do=sys,sysleft`) et par
   `tst_ConsoleHome::test_9y_statusBarIcons`. ⚠️ Pas vu à la manette.
-- ✅ **Écran de veille « Premium » (2026-10-27, branche `feat/idle-screen`)** — cible :
+- ✅ **Écran de veille « Premium » (2026-10-27, branche `feat/idle-screen`, pas encore fusionnée dans
+  `console-ui`)** — cible :
   `docs/design/idle/` (brief, spec, maquettes 09 à 12, références) ; suivi détaillé dans `next_steps.md`.
   Remplace `SleepScreen` (décision de Marco) : après `ConsoleUi/idleSeconds` (**120 s** par défaut ;
   Options › Console › Mise en veille après : 30 s, 1, 2, 5, 10, 30 min, jamais ; l'ancienne clé
