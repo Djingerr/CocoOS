@@ -36,7 +36,7 @@ TestCase {
         compare(Format.credits({}), "")
     }
 
-    function test_batteryAndWifi() {
+    function test_durationAndDecimal() {
         compare(Format.duration(-1), "")
         compare(Format.duration(undefined), "")
         compare(Format.duration(0.2), "1 min")
@@ -44,10 +44,6 @@ TestCase {
         compare(Format.duration(60), "1 h")
         compare(Format.duration(119.6), "2 h")         // jamais « 1 h 60 »
         compare(Format.duration(185), "3 h 05")
-        compare(Format.wifiBand(2437), "2,4 GHz")
-        compare(Format.wifiBand(5180), "5 GHz")
-        compare(Format.wifiBand(5955), "6 GHz")
-        compare(Format.wifiBand(0), "")
         compare(Format.decimal(8.44), "8,4")
         compare(Format.decimal(12), "12")
     }

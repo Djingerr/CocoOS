@@ -81,9 +81,9 @@ HomeScreen {
     signalStrength: Number(args.signal || 4)
     batteryPercent: Number(args.battery || 82)
     charging: args.charging === "1"
-    batteryDetails: charging ? { minutes: 48, watts: 18.2, health: 93, status: "Charging" }
-                             : { minutes: 194, watts: 6.8, health: 93, status: "Discharging" }
-    wifi: ({ ssid: "Maison-5G", strength: 86, frequency: 5180, bitrate: 866, ip: "192.168.1.42", secured: true })
+    batteryDetails: charging ? { minutes: 48, watts: 18.2, status: "Charging" }
+                             : { minutes: 194, watts: 6.8, status: "Discharging" }
+    wifi: ({ ssid: "Maison-5G", strength: 86, secured: true })
     wifiChangeable: true
     onSystemRequested: function(key) { console.info("[demo] " + key) }
     controllerBattery: args.padbattery !== undefined ? Number(args.padbattery) : -1

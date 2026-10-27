@@ -6,7 +6,6 @@
 
 #include <QDir>
 #include <QFile>
-#include <QNetworkInterface>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
 #include <QDBusInterface>
@@ -69,10 +68,10 @@ void SystemStatus::start()
     refresh();
     emit changed();
 
-    qInfo("SystemStatus: battery %d %%%s (%d min, %.1f W), Wi-Fi %d/4 (-1 = none, %u MHz, %u Mb/s), power: %s",
+    qInfo("SystemStatus: battery %d %%%s (%d min, %.1f W), Wi-Fi %d/4 (-1 = none), power: %s",
           m_batteryPercent, m_charging ? " (charging)" : "",
           m_batteryDetails.value(QStringLiteral("minutes")).toInt(), m_batteryDetails.value(QStringLiteral("watts")).toDouble(),
-          m_signalStrength, m_wifi.value(QStringLiteral("frequency")).toUInt(), m_wifi.value(QStringLiteral("bitrate")).toUInt(),
+          m_signalStrength,
           qPrintable(m_powerActions.join(QLatin1Char(' '))));
 }
 
@@ -204,7 +203,7 @@ void SystemStatus::setVolume(int percent)
 int SystemStatus::readBattery(const QString& powerSupplyDir, bool* charging, QVariantMap* details)
 {
     *charging = false;
-    *details = { { QStringLiteral("minutes"), -1 }, { QStringLiteral("watts"), -1.0 }, { QStringLiteral("health"), -1 } };
+    *details = { { QStringLiteral("minutes"), -1 }, { QStringLiteral("watts"), -1.0 } };
     const QStringList supplies = QDir(powerSupplyDir).entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
     for (const QString& name : supplies) {
         const QString dir = powerSupplyDir + QLatin1Char('/') + name;
@@ -229,10 +228,10 @@ int SystemStatus::readBattery(const QString& powerSupplyDir, bool* charging, QVa
             double v = readLine(dir + QLatin1Char('/') + QLatin1String(file)).toDouble(&found);
             return found ? v : -1.0;
         };
-        double now = value("energy_now"), full = value("energy_full"), design = value("energy_full_design");
+        double now = value("energy_now"), full = value("energy_full");
         double rate = value("power_now"), watts = rate / 1e6;
         if (now < 0) {
-            now = value("charge_now"); full = value("charge_full"); design = value("charge_full_design");
+            now = value("charge_now"); full = value("charge_full");
             rate = value("current_now");
             double volts = value("voltage_now");
             watts = volts > 0 ? qAbs(rate) * volts / 1e12 : -1;
@@ -249,9 +248,6 @@ int SystemStatus::readBattery(const QString& powerSupplyDir, bool* charging, QVa
         }
         if (seconds >= 0 && (*charging || status == QLatin1String("Discharging"))) {
             (*details)[QStringLiteral("minutes")] = qRound(seconds / 60);
-        }
-        if (full > 0 && design > 0) {
-            (*details)[QStringLiteral("health")] = qMin(100, qRound(100 * full / design));
         }
         return qBound(0, percent, 100);
     }
@@ -302,23 +298,12 @@ QVariantMap SystemStatus::readWifi()
         if (!strength.isValid()) {
             continue;
         }
-        QVariantMap info = {
+        return {
             { QStringLiteral("ssid"), QString::fromUtf8(apIface.property("Ssid").toByteArray()) },
             { QStringLiteral("strength"), strength.toInt() },
-            { QStringLiteral("frequency"), apIface.property("Frequency").toUInt() },
-            { QStringLiteral("bitrate"), wireless.property("Bitrate").toUInt() / 1000 },   // kb/s → Mb/s
             { QStringLiteral("secured"), (apIface.property("Flags").toUInt() & NM_AP_FLAGS_PRIVACY) ||
                                          apIface.property("WpaFlags").toUInt() || apIface.property("RsnFlags").toUInt() },
-            { QStringLiteral("ip"), QString() },
         };
-        const QNetworkInterface iface = QNetworkInterface::interfaceFromName(deviceIface.property("Interface").toString());
-        for (const QNetworkAddressEntry& entry : iface.addressEntries()) {
-            if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol) {
-                info[QStringLiteral("ip")] = entry.ip().toString();
-                break;
-            }
-        }
-        return info;
     }
     return {};
 }

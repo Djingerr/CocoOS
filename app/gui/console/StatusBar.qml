@@ -38,8 +38,8 @@ Item {
     property string timeText: Qt.formatTime(clock.now, "HH:mm")
 
     // --- Icônes de droite : Wi-Fi, batterie, réglages ---
-    property var wifi: ({})              // { ssid, strength, frequency, bitrate, ip, secured }
-    property var batteryDetails: ({})    // { minutes, watts, health, status }
+    property var wifi: ({})              // { ssid, strength, secured }
+    property var batteryDetails: ({})    // { minutes, watts, status }
     property bool wifiChangeable: false  // A sur le Wi-Fi : la liste des réseaux
     signal activated(string key)         // A ou clic : "wifi", "settings" (la batterie n'a rien à faire)
     signal leaveRequested()              // bas ou B
@@ -880,9 +880,6 @@ Item {
         subtitle: w.secured === false ? qsTr("Connecté · réseau ouvert") : qsTr("Connecté · sécurisé")
         lines: [
             { label: qsTr("Signal"), value: w.strength !== undefined ? qsTr("%1 %").arg(w.strength) : "" },
-            { label: qsTr("Bande"), value: Format.wifiBand(w.frequency) },
-            { label: qsTr("Débit de la liaison"), value: w.bitrate > 0 ? qsTr("%1 Mb/s").arg(w.bitrate) : "" },
-            { label: qsTr("Adresse IP"), value: w.ip || "" },
             { label: qsTr("Latence vers %1").arg(root.hostName),
               value: !root.connected || root.latencyMs < 0 ? ""
                    : root.jitterMs >= 0 ? qsTr("%1 ms · gigue %2 ms").arg(root.latencyMs).arg(root.jitterMs)
@@ -905,8 +902,7 @@ Item {
             { label: root.charging ? qsTr("Pleine dans") : qsTr("Autonomie restante"),
               value: Format.duration(d.minutes) },
             { label: root.charging ? qsTr("Puissance de charge") : qsTr("Consommation"),
-              value: d.watts > 0 ? qsTr("%1 W").arg(Format.decimal(d.watts)) : "" },
-            { label: qsTr("État de la batterie"), value: d.health > 0 ? qsTr("%1 %").arg(d.health) : "" }
+              value: d.watts > 0 ? qsTr("%1 W").arg(Format.decimal(d.watts)) : "" }
         ]
         BatteryShape {
             anchors.centerIn: parent
@@ -917,7 +913,6 @@ Item {
     SysCard {
         key: "settings"
         title: qsTr("Paramètres")
-        subtitle: qsTr("Écran, son, Wi-Fi, flux…")
         action: qsTr("Ouvrir")
         Image {
             anchors.centerIn: parent

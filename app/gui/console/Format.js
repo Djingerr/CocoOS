@@ -116,12 +116,6 @@ function duration(minutes) {
                    : qsTr("%1 h %2").arg(Math.floor(minutes / 60)).arg(pad(m))
 }
 
-// Bande Wi-Fi d'après la fréquence du point d'accès (MHz) ; vide si inconnue.
-function wifiBand(mhz) {
-    if (!mhz) return ""
-    return mhz < 3000 ? qsTr("2,4 GHz") : mhz < 5925 ? "5 GHz" : "6 GHz"
-}
-
 // Nombre à une décimale, au séparateur de la langue (« 8,4 », « 8.4 » en anglais) ; « 12 » rond.
 function decimal(value) {
     var rounded = Math.round(value * 10) / 10

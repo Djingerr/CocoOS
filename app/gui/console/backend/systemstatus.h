@@ -35,12 +35,10 @@ class SystemStatus : public QObject
     Q_PROPERTY(bool charging READ charging NOTIFY changed)              // la batterie est en charge
     Q_PROPERTY(int signalStrength READ signalStrength NOTIFY changed)   // 0 à 4, -1 sans Wi-Fi
     // Détails de la batterie, -1 quand le pilote ne les donne pas : { minutes (avant d'être
-    // vide, ou pleine en charge), watts (puissance qui sort ou entre), health (capacité
-    // restante par rapport à celle d'origine, en %), status (celui du noyau : "Charging",
-    // "Discharging", "Full", "Not charging") }.
+    // vide, ou pleine en charge), watts (puissance qui sort ou entre), status (celui du
+    // noyau : "Charging", "Discharging", "Full", "Not charging") }.
     Q_PROPERTY(QVariantMap batteryDetails READ batteryDetails NOTIFY changed)
-    // Réseau Wi-Fi associé : { ssid, strength (0 à 100), frequency (MHz), bitrate (Mb/s),
-    // ip, secured } ; vide sans Wi-Fi.
+    // Réseau Wi-Fi associé : { ssid, strength (0 à 100), secured } ; vide sans Wi-Fi.
     Q_PROPERTY(QVariantMap wifi READ wifi NOTIFY changed)
     // Actions d'alimentation que logind autorise sans mot de passe, parmi
     // "suspend", "reboot", "poweroff" (lues une fois, par start()).

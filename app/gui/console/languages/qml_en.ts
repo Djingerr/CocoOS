@@ -1017,12 +1017,7 @@
         <translation>%1 h %2</translation>
     </message>
     <message>
-        <location filename="../Format.js" line="122"/>
-        <source>2,4 GHz</source>
-        <translation>2.4 GHz</translation>
-    </message>
-    <message>
-        <location filename="../Format.js" line="129"/>
+        <location filename="../Format.js" line="123"/>
         <source>,</source>
         <translation>.</translation>
     </message>
@@ -1235,8 +1230,7 @@
     <message>
         <location filename="../StatusBar.qml" line="171"/>
         <location filename="../StatusBar.qml" line="882"/>
-        <location filename="../StatusBar.qml" line="898"/>
-        <location filename="../StatusBar.qml" line="909"/>
+        <location filename="../StatusBar.qml" line="895"/>
         <source>%1 %</source>
         <translation>%1%</translation>
     </message>
@@ -1297,108 +1291,78 @@
     </message>
     <message>
         <location filename="../StatusBar.qml" line="883"/>
-        <source>Bande</source>
-        <translation>Band</translation>
-    </message>
-    <message>
-        <location filename="../StatusBar.qml" line="884"/>
-        <source>Débit de la liaison</source>
-        <translation>Link speed</translation>
-    </message>
-    <message>
-        <location filename="../StatusBar.qml" line="884"/>
-        <source>%1 Mb/s</source>
-        <translation>%1 Mbps</translation>
-    </message>
-    <message>
-        <location filename="../StatusBar.qml" line="885"/>
-        <source>Adresse IP</source>
-        <translation>IP address</translation>
-    </message>
-    <message>
-        <location filename="../StatusBar.qml" line="886"/>
         <source>Latence vers %1</source>
         <translation>Latency to %1</translation>
     </message>
     <message>
-        <location filename="../StatusBar.qml" line="888"/>
+        <location filename="../StatusBar.qml" line="885"/>
         <source>%1 ms · gigue %2 ms</source>
         <translation>%1 ms · jitter %2 ms</translation>
     </message>
     <message>
-        <location filename="../StatusBar.qml" line="891"/>
+        <location filename="../StatusBar.qml" line="888"/>
         <source>Changer de réseau</source>
         <translation>Change network</translation>
     </message>
     <message>
-        <location filename="../StatusBar.qml" line="899"/>
+        <location filename="../StatusBar.qml" line="896"/>
         <source>En charge</source>
         <translation>Charging</translation>
     </message>
     <message>
-        <location filename="../StatusBar.qml" line="900"/>
+        <location filename="../StatusBar.qml" line="897"/>
         <source>Chargée</source>
         <translation>Charged</translation>
     </message>
     <message>
-        <location filename="../StatusBar.qml" line="901"/>
+        <location filename="../StatusBar.qml" line="898"/>
         <source>Branchée, sans charger</source>
         <translation>Plugged in, not charging</translation>
     </message>
     <message>
-        <location filename="../StatusBar.qml" line="902"/>
+        <location filename="../StatusBar.qml" line="899"/>
         <source>Sur batterie</source>
         <translation>On battery</translation>
     </message>
     <message>
-        <location filename="../StatusBar.qml" line="905"/>
+        <location filename="../StatusBar.qml" line="902"/>
         <source>Pleine dans</source>
         <translation>Full in</translation>
     </message>
     <message>
-        <location filename="../StatusBar.qml" line="905"/>
+        <location filename="../StatusBar.qml" line="902"/>
         <source>Autonomie restante</source>
         <translation>Time remaining</translation>
     </message>
     <message>
-        <location filename="../StatusBar.qml" line="907"/>
+        <location filename="../StatusBar.qml" line="904"/>
         <source>Puissance de charge</source>
         <translation>Charging power</translation>
     </message>
     <message>
-        <location filename="../StatusBar.qml" line="907"/>
+        <location filename="../StatusBar.qml" line="904"/>
         <source>Consommation</source>
         <translation>Power draw</translation>
     </message>
     <message>
-        <location filename="../StatusBar.qml" line="908"/>
+        <location filename="../StatusBar.qml" line="905"/>
         <source>%1 W</source>
         <translation>%1 W</translation>
     </message>
     <message>
-        <location filename="../StatusBar.qml" line="909"/>
-        <source>État de la batterie</source>
-        <translation>Battery health</translation>
-    </message>
-    <message>
-        <location filename="../StatusBar.qml" line="919"/>
+        <location filename="../StatusBar.qml" line="915"/>
         <source>Paramètres</source>
         <translation>Settings</translation>
     </message>
     <message>
-        <location filename="../StatusBar.qml" line="920"/>
-        <source>Écran, son, Wi-Fi, flux…</source>
-        <translation>Display, sound, Wi-Fi, streaming…</translation>
-    </message>
-    <message>
-        <location filename="../StatusBar.qml" line="921"/>
+        <location filename="../StatusBar.qml" line="916"/>
         <source>Ouvrir</source>
         <translation>Open</translation>
     </message>
     <message>
         <location filename="../StatusBar.qml" line="179"/>
         <location filename="../StatusBar.qml" line="660"/>
-        <location filename="../StatusBar.qml" line="889"/>
+        <location filename="../StatusBar.qml" line="886"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>

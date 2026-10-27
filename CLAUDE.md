@@ -510,13 +510,12 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   rendent la manette ; au clavier pareil ; à la souris, survol et clic. Pastille éclairée et
   anneau de focus (`FocusRing.qml`, sorti de `HeroBlock`) ; l'icône choisie ou survolée ouvre
   sa **fiche** sous la barre (style de l'île, ombre étirée) : Wi-Fi (nom, sécurité, signal,
-  bande, débit de la liaison, adresse IP, latence vers le PC ; A « Changer de réseau » → la
-  liste des réseaux), batterie (état, **autonomie restante** ou « pleine dans », consommation
-  ou puissance de charge, état de la batterie), Réglages (A → le panneau d'options sur
-  l'onglet **Console**). Données : `SystemStatus.batteryDetails` (sysfs : `time_to_*_now`,
+  latence vers le PC ; A « Changer de réseau » → la liste des réseaux), batterie (état,
+  **autonomie restante** ou « pleine dans », consommation ou puissance de charge), Réglages
+  (A → le panneau d'options sur l'onglet **Console**). Bande, IP, débit de la liaison, usure
+  de la batterie et sous-titre des Réglages retirés à la demande de Marco (2026-10-27). Données : `SystemStatus.batteryDetails` (sysfs : `time_to_*_now`,
   sinon énergie / puissance ou charge / courant ; temps lissé d'un relevé à l'autre) et
-  `SystemStatus.wifi` (NetworkManager + `QNetworkInterface`). Vérifié sur le laptop
-  (38 %, 13,4 W → 86 min ; 5 GHz, 1633 Mb/s), dans le harnais (`do=sys,sysleft`) et par
+  `SystemStatus.wifi` (NetworkManager). Vérifié sur le laptop (38 %, 13,4 W → 86 min), dans le harnais (`do=sys,sysleft`) et par
   `tst_ConsoleHome::test_9y_statusBarIcons`. ⚠️ Pas vu à la manette.
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
   télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
