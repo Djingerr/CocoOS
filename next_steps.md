@@ -57,3 +57,26 @@ déjà imposée par la console ; la version de l'image sera relevée au transfer
 ### Décisions de Marco
 - La nouvelle veille **remplace** `SleepScreen` (phase 5).
 - L'Orange Pi n'est pas un sujet pour le moment (transfert quand le projet sera plus avancé).
+
+## Écran de veille — phase 1, fondations (2026-10-27)
+
+Fichiers (`app/gui/console/idle/`, déclarés dans `app/qml.qrc`) : `IdleTheme.qml` (singleton, `qmldir` ;
+accent et police repris de `Theme.qml`), `IdleStatus.qml` (interface du brief, `state` dérivé, `fixedNow`
+pour les captures), `IdleStatusMock.qml`, `IdleFormat.js` (SPEC §5, textes en `qsTr`), `mock/IdleMockData.js`,
+`assets/` (copie de `docs/design/idle/assets/`), `tests/tst_format.qml`.
+
+Écarts au brief :
+- `Format.js` → `IdleFormat.js` (la console a déjà un `Format.js`, un dossier plus haut).
+- Mock copié en module JS (`mock/IdleMockData.js`, mêmes données) : QML refuse de lire un `.json` local
+  sans `QML_XHR_ALLOW_FILE_READ=1`, ce qui casserait l'aperçu et les tests lancés depuis le disque.
+- Formats que la spec ne fixe pas : autonomie au-delà d'1 h arrondie à 10 min (« Environ 3 h 20 ») ;
+  débit en Mo/s sans décimale (« 850 Mo/s »), en ko/s en dessous ; « Il y a N h » seulement le même jour.
+- Libellé d'un téléchargement `install` (absent des maquettes) : à décider quand il servira.
+
+Outils : `qmllint` à prendre dans `/usr/lib64/qt6/bin/qmllint` (celui de `/usr/bin` est un autre outil,
+« qmllint 1.0 », muet).
+
+### Porte de la phase 1
+✅ **Passée** : build `embedded` sans erreur ; `/usr/lib64/qt6/bin/qmllint -I .. --max-warnings 0
+*.qml tests/*.qml` (depuis `idle/`) sans avertissement ; `tst_format.qml` 14/14
+(`QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -input app/gui/console/idle/tests/tst_format.qml`).

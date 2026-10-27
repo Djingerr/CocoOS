@@ -53,6 +53,21 @@
         <file>gui/console/Pressable.qml</file>
         <file>gui/console/HoverArea.qml</file>
         <file>gui/console/FocusRing.qml</file>
+        <file>gui/console/idle/qmldir</file>
+        <file>gui/console/idle/IdleTheme.qml</file>
+        <file>gui/console/idle/IdleStatus.qml</file>
+        <file>gui/console/idle/IdleStatusMock.qml</file>
+        <file>gui/console/idle/IdleFormat.js</file>
+        <file>gui/console/idle/mock/IdleMockData.js</file>
+        <file>gui/console/idle/assets/grain_256.png</file>
+        <file>gui/console/idle/assets/cover_shadow_626x760.png</file>
+        <file>gui/console/idle/assets/placeholder_cover_600x848.png</file>
+        <file>gui/console/idle/assets/icons/battery_frame.svg</file>
+        <file>gui/console/idle/assets/icons/download_arrow.svg</file>
+        <file>gui/console/idle/assets/icons/download_tray.svg</file>
+        <file>gui/console/idle/assets/icons/monitor.svg</file>
+        <file>gui/console/idle/assets/icons/signal.svg</file>
+        <file>gui/console/idle/assets/icons/wifi.svg</file>
         <file>gui/console/Pointer.js</file>
         <file>gui/console/RollingNumber.qml</file>
         <file>gui/console/Spring.js</file>
