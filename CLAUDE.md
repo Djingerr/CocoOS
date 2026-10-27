@@ -504,6 +504,20 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   ⚠️ Libellés et paliers à valider par Marco à la manette (le doc le demande) ; le choix du palier
   n'est qu'une première version de la phase 4 (pas de sonde avant lancement ni de mémoire par
   réseau) ; anti-gigue (phase 3) et FSR (phase 5) restent à faire.
+- ✅ **Barre haute : Réglages, Wi-Fi, batterie (2026-10-27, demande de Marco)** : un engrenage
+  (`icons/settings.svg`) à droite de la batterie. Wi-Fi, batterie et engrenage se choisissent :
+  haut depuis l'étagère (ou depuis les boutons du héros pendant une partie), ← / →, bas ou B
+  rendent la manette ; au clavier pareil ; à la souris, survol et clic. Pastille éclairée et
+  anneau de focus (`FocusRing.qml`, sorti de `HeroBlock`) ; l'icône choisie ou survolée ouvre
+  sa **fiche** sous la barre (style de l'île, ombre étirée) : Wi-Fi (nom, sécurité, signal,
+  bande, débit de la liaison, adresse IP, latence vers le PC ; A « Changer de réseau » → la
+  liste des réseaux), batterie (état, **autonomie restante** ou « pleine dans », consommation
+  ou puissance de charge, état de la batterie), Réglages (A → le panneau d'options sur
+  l'onglet **Console**). Données : `SystemStatus.batteryDetails` (sysfs : `time_to_*_now`,
+  sinon énergie / puissance ou charge / courant ; temps lissé d'un relevé à l'autre) et
+  `SystemStatus.wifi` (NetworkManager + `QNetworkInterface`). Vérifié sur le laptop
+  (38 %, 13,4 W → 86 min ; 5 GHz, 1633 Mb/s), dans le harnais (`do=sys,sysleft`) et par
+  `tst_ConsoleHome::test_9y_statusBarIcons`. ⚠️ Pas vu à la manette.
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
   télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
   Côté console uniquement (Apollo reste non modifié).
@@ -664,14 +678,17 @@ Fichiers (dans `app/gui/console/`) :
   SPIR-V + GLSL 100 es / 120 / 150 / 300 es, ces deux derniers pour la Mali)
 - `Logotype.qml` — le logotype « CocoOS » lettre par lettre (Sora Bold), géométrie du prototype
   de `docs/boot-animation/` ; sert à la barre haute (réduit) et à l'animation de démarrage
-- `icons/` — icônes SVG (punaise des favoris)
+- `icons/` — icônes SVG (punaise des favoris, engrenage des réglages)
 - `shadows/` — ombres portées pré-calculées (vignette active, île), régénérées par
   `harness/make-shadows.py` si une taille change (les tests vérifient leurs dimensions)
 - `languages/qml_en.ts` (+ `.qm` compilé, embarqué) — traduction anglaise de tous les textes
   console, QML et C++ (cf §11 pour la mettre à jour)
 - `StatusBar.qml` — barre haute : logotype, pastille de l'hôte + horloge / Wi-Fi / batterie (éclair en
-  charge, orange sous `Theme.batteryLow`) ; la pastille s'ouvre en île de notification (`notify`,
-  `dismiss`) sur les événements système qu'elle détecte elle-même
+  charge, orange sous `Theme.batteryLow`) / réglages ; la pastille s'ouvre en île de notification
+  (`notify`, `dismiss`) sur les événements système qu'elle détecte elle-même. Wi-Fi, batterie et
+  réglages se choisissent (focus `HomeScreen.statusFocused`, souris) et ouvrent leur fiche
+  (`SysCard`) ; A → `activated(key)`
+- `FocusRing.qml` — anneau de focus d'un bouton (héros, icônes de la barre haute)
 - `ControllerLegend.qml` — légende des boutons (glyphe + libellé), panneaux et écrans de message
 - `GamePage.qml` — fiche du jeu sélectionné (bas du pad sur l'étagère), posée dans `stage` comme
   un écran de message, sur le fond du jeu : logo ou titre, faits (`Format.facts` : genres, année,
@@ -688,8 +705,8 @@ Fichiers (dans `app/gui/console/`) :
   `embedded` uniquement. Découverte mDNS, appairage 6 chiffres, bibliothèque (copie disque),
   images de fond 16:9 en cache disque (`games()[i].background`, URL `file://` : l'`Image` QML
   ne sait pas poser le Bearer), WebSocket events (cf §2). Nécessite `QT += websockets`.
-- `backend/systemstatus.{h,cpp}` — batterie et charge (`/sys/class/power_supply`) et force du
-  signal Wi-Fi (NetworkManager par D-Bus) pour la barre haute ; veille / redémarrage /
+- `backend/systemstatus.{h,cpp}` — batterie, charge et autonomie (`/sys/class/power_supply`), signal
+  et détails du réseau Wi-Fi (NetworkManager par D-Bus) pour la barre haute et ses fiches ; veille / redémarrage /
   extinction par systemd-logind (D-Bus, `powerActions` + `power()`). Build `embedded`
   uniquement ; `QT += dbus`.
 - `backend/wifisetup.{h,cpp}` — réseaux Wi-Fi visibles, connexion (profil NetworkManager créé

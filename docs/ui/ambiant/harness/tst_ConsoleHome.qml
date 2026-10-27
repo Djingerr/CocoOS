@@ -1157,8 +1157,10 @@ Item {
         // Quitter se tient jusqu'au bout ; bas la rend à l'étagère, la fin de la partie aussi.
         function test_9y_resumeAndQuitButtons() {
             var apps = home.appModel, tile = home.currentTile(), hero = screen.hero
-            keyClick(Qt.Key_Up)                             // pas de partie : rien au-dessus
-            verify(!screen.heroFocused)
+            keyClick(Qt.Key_Up)                             // pas de partie : la barre haute
+            verify(!screen.heroFocused && screen.statusBar.activeFocus)
+            keyClick(Qt.Key_Down)
+            verify(!screen.statusFocused && screen.shelf.activeFocus)
             apps.setProperty(tile.appIndex, "running", true)
             apps.runningName = tile.name
             verify(screen.running)
@@ -1181,6 +1183,40 @@ Item {
             keyClick(Qt.Key_Right)                          // l'étagère a bien la manette
             compare(screen.currentIndex, 1)
             apps.runningName = ""
+        }
+
+        // Barre haute : haut depuis l'étagère (ou le héros) donne la manette à ses icônes
+        // (Wi-Fi, batterie, réglages) ; l'icône choisie ouvre sa fiche, A agit : réglages →
+        // options sur l'onglet Console, Wi-Fi → liste des réseaux ; bas ou B la rendent.
+        function test_9y_statusBarIcons() {
+            var bar = screen.statusBar
+            keyClick(Qt.Key_Up)
+            verify(bar.activeFocus)
+            compare(bar.selected, "settings")
+            compare(bar.cardKey, "settings")
+            keyClick(Qt.Key_Right)                          // déjà au bout
+            compare(bar.selected, "settings")
+            keyClick(Qt.Key_Return)
+            verify(screen.options.opened)
+            compare(screen.options.tab, 1)                  // Console
+            keyClick(Qt.Key_Escape)
+            tryVerify(function() { return bar.activeFocus }) // la manette revient à la barre
+            keyClick(Qt.Key_Left)
+            compare(bar.cardKey, "battery")
+            keyClick(Qt.Key_Return)                         // la batterie n'a rien à faire
+            verify(!screen.options.opened && !screen.panelOpen)
+            keyClick(Qt.Key_Left)
+            compare(bar.cardKey, "wifi")
+            var scans = WifiSetup.scans
+            keyClick(Qt.Key_Return)                         // la liste des réseaux
+            compare(WifiSetup.scans, scans + 1)
+            verify(screen.panelOpen)
+            compare(bar.cardKey, "")                        // fiches masquées sous un panneau
+            keyClick(Qt.Key_Escape)
+            tryVerify(function() { return !screen.panelOpen && bar.activeFocus })
+            keyClick(Qt.Key_Escape)                         // B rend la manette à l'étagère
+            verify(screen.shelf.activeFocus)
+            compare(bar.cardKey, "")
         }
 
         // En dernier : l'hôte du faux modèle est supprimé.

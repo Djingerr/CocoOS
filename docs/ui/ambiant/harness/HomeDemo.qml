@@ -18,7 +18,8 @@ import "../../../../app/gui/console/StreamProfiles.js" as Profiles
 //          partie en cours (running=…) : hero (haut : les boutons du héros), heroright (Quitter),
 //          holdquit / releasequit (A tenu / lâché sur Quitter),
 //          île de notification : pad (une manette arrive), lost / back (PC perdu / retrouvé),
-//          lowbattery (batterie sous le seuil), b (B la referme)
+//          lowbattery (batterie sous le seuil), b (B la referme),
+//          icônes de droite : sys (haut : la barre haute a la manette), sysleft / sysright, sysa (A)
 //   at     instant de `goto` / `do`, en ms (300 par défaut)
 //   drift  0 pour figer la dérive du fond (captures comparables aux références)
 //   sound  0 pour couper les sons (coupés d'office pendant une capture)
@@ -80,6 +81,11 @@ HomeScreen {
     signalStrength: Number(args.signal || 4)
     batteryPercent: Number(args.battery || 82)
     charging: args.charging === "1"
+    batteryDetails: charging ? { minutes: 48, watts: 18.2, health: 93, status: "Charging" }
+                             : { minutes: 194, watts: 6.8, health: 93, status: "Discharging" }
+    wifi: ({ ssid: "Maison-5G", strength: 86, frequency: 5180, bitrate: 866, ip: "192.168.1.42", secured: true })
+    wifiChangeable: true
+    onSystemRequested: function(key) { console.info("[demo] " + key) }
     controllerBattery: args.padbattery !== undefined ? Number(args.padbattery) : -1
     timeText: "21:30"
 
@@ -214,6 +220,10 @@ HomeScreen {
             else if (action === "b") demo.dismissNotification()
             else if (action === "hero") demo.shelf.upRequested()
             else if (action === "heroright") demo.hero.choose(1)
+            else if (action === "sys") demo.shelf.upRequested()
+            else if (action === "sysleft") demo.statusBar.move(-1)
+            else if (action === "sysright") demo.statusBar.move(1)
+            else if (action === "sysa") demo.statusBar.activate(demo.statusBar.selected)
             else if (action === "holdquit") demo.hero.quitHeld = true
             else if (action === "releasequit") demo.hero.releaseQuit()
             else if (action === "hold" || action === "release") {

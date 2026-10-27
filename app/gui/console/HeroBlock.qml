@@ -33,6 +33,7 @@ Item {
     signal playRequested()
     signal quitRequested()           // Quitter tenu jusqu'au bout
     signal leaveRequested()          // bas ou B : la manette retourne à l'étagère
+    signal upRequested()             // haut : les icônes de la barre haute
     signal holdHintRequested()       // Quitter lâché avant la fin
 
     // Boutons à la manette : 0 Reprendre, 1 Quitter ; A tenu sur l'un ou l'autre.
@@ -63,7 +64,7 @@ Item {
     }
     Keys.onLeftPressed: choose(0)
     Keys.onRightPressed: choose(running ? 1 : 0)
-    Keys.onUpPressed: Sounds.play("edge")
+    Keys.onUpPressed: upRequested()
     Keys.onDownPressed: leaveRequested()
     Keys.onEscapePressed: leaveRequested()
     function pressA(event) {
@@ -270,29 +271,6 @@ Item {
     }
 
     // --- Actions ---
-    // Anneau de focus du bouton qui a la manette (il s'écrase avec lui).
-    component FocusRing: Rectangle {
-        property bool shown: false
-        anchors.fill: parent
-        anchors.margins: -(Theme.focusRingInset + Theme.focusRingWidth)
-        radius: height / 2
-        color: "transparent"
-        border.width: Theme.focusRingWidth; border.color: Theme.ink
-        opacity: shown ? 1 : 0
-        scale: shown ? 1 : Theme.focusRingFrom
-        Behavior on opacity {
-            NumberAnimation {
-                duration: Theme.focusRingFade
-                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
-            }
-        }
-        Behavior on scale {
-            NumberAnimation {
-                duration: Theme.springSnappy.duration
-                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
-            }
-        }
-    }
     // Options, Épingler : un glyphe et un libellé, qui s'éclairent et grandissent au survol.
     component TextButton: Pressable {
         id: textButton

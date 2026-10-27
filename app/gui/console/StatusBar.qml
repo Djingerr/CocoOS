@@ -5,6 +5,8 @@ import "Format.js" as Format
 // batterie (droite). Occupe toute la largeur en haut de l'écran ; aucune dépendance
 // Moonlight. La pastille s'ouvre en île de notification pour un événement système
 // (manette, batterie, PC perdu ou retrouvé, réseau mauvais), puis se referme seule.
+// Wi-Fi, batterie et réglages se choisissent (focus : ← / →, A, bas ou B pour rendre la
+// manette ; ou la souris) : l'icône choisie ouvre sa fiche sous la barre.
 Item {
     id: root
 
@@ -34,6 +36,67 @@ Item {
     property bool systemShown: true
     // Heure affichée : l'horloge système, sauf si on lui assigne un texte fixe.
     property string timeText: Qt.formatTime(clock.now, "HH:mm")
+
+    // --- Icônes de droite : Wi-Fi, batterie, réglages ---
+    property var wifi: ({})              // { ssid, strength, frequency, bitrate, ip, secured }
+    property var batteryDetails: ({})    // { minutes, watts, health, status }
+    property bool wifiChangeable: false  // A sur le Wi-Fi : la liste des réseaux
+    signal activated(string key)         // A ou clic : "wifi", "settings" (la batterie n'a rien à faire)
+    signal leaveRequested()              // bas ou B
+    readonly property var keys: {
+        var k = []
+        if (signalStrength >= 0) k.push("wifi")
+        if (batteryPercent >= 0) k.push("battery")
+        k.push("settings")
+        return k
+    }
+    property string selected: "settings"
+    property bool aHeld: false
+    property string hoveredKey: ""
+    // La fiche ouverte : l'icône survolée, sinon celle qui a la manette.
+    readonly property string cardKey: !systemShown || !contentShown ? ""
+                                    : hoveredKey !== "" ? hoveredKey : activeFocus ? selected : ""
+    onActiveFocusChanged: {
+        aHeld = false
+        if (keys.indexOf(selected) < 0) selected = "settings"
+    }
+    function move(dir) {
+        var next = keys.indexOf(selected) + dir
+        if (next < 0 || next >= keys.length) {
+            Sounds.play("edge")
+            return
+        }
+        aHeld = false
+        selected = keys[next]
+        Sounds.play("move")
+    }
+    function activate(key) {
+        if (key === "battery" || key === "wifi" && !wifiChangeable) Sounds.play("edge")
+        else activated(key)
+    }
+    // La souris entre (ou sort) d'une icône ou de sa fiche ; en sortant, elle a un instant
+    // pour passer de l'une à l'autre.
+    function hover(key, inside) {
+        if (inside) {
+            hoverOut.stop()
+            hoveredKey = key
+        } else if (hoveredKey === key) {
+            hoverOut.restart()
+        }
+    }
+    Timer { id: hoverOut; interval: Theme.sysCardHoverGrace; onTriggered: root.hoveredKey = "" }
+    Keys.onLeftPressed: move(-1)
+    Keys.onRightPressed: move(1)
+    Keys.onUpPressed: Sounds.play("edge")
+    Keys.onDownPressed: leaveRequested()
+    Keys.onEscapePressed: leaveRequested()
+    Keys.onReturnPressed: function(event) { if (!event.isAutoRepeat) aHeld = true }
+    Keys.onEnterPressed: function(event) { if (!event.isAutoRepeat) aHeld = true }
+    Keys.onReleased: function(event) {
+        if (event.isAutoRepeat || event.key !== Qt.Key_Return && event.key !== Qt.Key_Enter || !aHeld) return
+        aHeld = false
+        activate(selected)
+    }
 
     // --- Île de notification ---
     property int controllerCount: 0      // manettes branchées
@@ -211,6 +274,228 @@ Item {
                 x: 3.5; y: 3.5; height: 9; radius: 1.6
                 width: 19.5 * Math.max(0, Math.min(100, batteryShape.percent)) / 100
                 color: batteryShape.ink
+            }
+        }
+    }
+
+    // Wi-Fi : un point et trois arcs, allumés selon `strength` (1 à 4). Tracé sur la grille
+    // 24 × 24 de l'icône du prototype : arcs de centre (12, 19.2), trait de 2, soit des
+    // anneaux dont on ne garde que le haut.
+    component WifiShape: Item {
+        id: wifiShape
+        property int strength: 0
+        width: Theme.wifiSize; height: Theme.wifiSize
+        Item {
+            width: 24; height: 24
+            scale: Theme.wifiSize / 24
+            transformOrigin: Item.TopLeft
+
+            Rectangle {
+                x: 10.7; y: 18; width: 2.6; height: 2.6; radius: 1.3
+                color: wifiShape.strength >= 1 ? Theme.ink : Theme.inkOff
+            }
+            Repeater {
+                // r : rayon de l'arc ; end : ordonnée de ses extrémités
+                model: [ { r: 4.4, end: 16 }, { r: 9, end: 12.6 }, { r: 13.5, end: 9.2 } ]
+                Item {
+                    x: 11 - modelData.r; y: 18.2 - modelData.r
+                    width: 2 * modelData.r + 2; height: modelData.end + 0.7 - y
+                    clip: true
+                    Rectangle {
+                        width: parent.width; height: width; radius: width / 2
+                        color: "transparent"
+                        border.width: 2
+                        border.color: wifiShape.strength >= index + 2 ? Theme.ink : Theme.inkOff
+                    }
+                }
+            }
+        }
+    }
+
+    // Icône de droite qu'on peut choisir : sa pastille déborde de l'icône (la barre garde
+    // sa géométrie), éclairée au survol et sous la manette, avec l'anneau de focus.
+    component SysButton: Pressable {
+        id: sysButton
+        property string key
+        readonly property bool focused: root.activeFocus && root.selected === key
+        anchors.verticalCenter: parent.verticalCenter
+        down: focused && root.aHeld || sysMouse.pressed
+        hovered: sysMouse.containsMouse
+        hoverScale: Theme.hoverScale
+        Item {
+            id: plate
+            anchors.centerIn: parent
+            width: parent.width + 2 * Theme.sysButtonPad; height: Theme.sysButtonHeight
+            Rectangle {
+                anchors.fill: parent
+                radius: height / 2
+                color: Theme.hoverFill
+                opacity: sysMouse.containsMouse || sysButton.focused ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: Theme.hoverFade } }
+            }
+            FocusRing { inset: 0; shown: sysButton.focused }
+        }
+        HoverArea {
+            id: sysMouse
+            anchors.fill: plate
+            onContainsMouseChanged: root.hover(sysButton.key, containsMouse)
+            onClicked: root.activate(sysButton.key)
+        }
+    }
+
+    // Fiche d'une icône : icône, titre, sous-titre, puis ses lignes (libellé, valeur ; une
+    // valeur vide masque la ligne) et ce que fait A. Sous la barre, calée à droite.
+    component SysCard: Item {
+        id: card
+        property string key
+        property string title
+        property string subtitle
+        property bool accent: false
+        property var lines: []
+        property string action: ""
+        default property alias icon: iconBox.data
+        readonly property var shownLines: lines.filter(function(l) { return l.value !== "" })
+
+        x: root.width - Theme.margin + Theme.sysButtonPad - width
+        y: Theme.topBarY + Theme.topBarHeight + Theme.sysCardGap
+        width: Theme.sysCardWidth
+        height: body.height + 2 * Theme.sysCardPad
+        transformOrigin: Item.TopRight
+        visible: opacity > 0
+        opacity: 0
+        scale: Theme.islandContentScale
+        property real shift: Theme.sysCardShift
+        transform: Translate { y: card.shift }
+        states: State {
+            name: "in"; when: root.cardKey === card.key
+            PropertyChanges { target: card; opacity: 1; scale: 1; shift: 0 }
+        }
+        transitions: [
+            Transition {
+                to: "in"
+                NumberAnimation {
+                    property: "opacity"; duration: Theme.islandFade
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                }
+                NumberAnimation {
+                    properties: "scale,shift"; duration: Theme.springGentle.duration
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springGentle.curve
+                }
+            },
+            Transition {
+                from: "in"
+                SequentialAnimation {
+                    NumberAnimation {
+                        property: "opacity"; duration: Theme.islandOut
+                        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveOut
+                    }
+                    PropertyAction { properties: "scale,shift" }
+                }
+            }
+        ]
+
+        // L'ombre de l'île (pré-calculée), étirée à la taille de la fiche.
+        BorderImage {
+            anchors.fill: parent
+            anchors.margins: -Theme.islandShadowPad
+            source: "shadows/island.png"
+            border { left: shadowBorder; right: shadowBorder; top: shadowBorder; bottom: shadowBorder }
+            readonly property int shadowBorder: Theme.islandShadowPad + Theme.islandRadius
+            visible: !Theme.reducedMotion
+        }
+        Rectangle { anchors.fill: parent; radius: Theme.sysCardRadius; color: Theme.islandFill }
+        // Filet posé PAR-DESSUS le fond (une bordure de Rectangle le remplacerait).
+        Rectangle {
+            anchors.fill: parent
+            radius: Theme.sysCardRadius
+            color: "transparent"
+            border.width: 1
+            border.color: Theme.hostPillStroke
+        }
+        // Survolée, la fiche reste ouverte ; les clics passent à la légende.
+        MouseArea {
+            anchors.fill: parent
+            hoverEnabled: true
+            acceptedButtons: Qt.NoButton
+            enabled: card.visible
+            onContainsMouseChanged: root.hover(card.key, containsMouse)
+
+            Column {
+                id: body
+                x: Theme.sysCardPad; y: Theme.sysCardPad
+                width: parent.width - 2 * Theme.sysCardPad
+                spacing: Theme.sysCardSectionGap
+
+                Row {
+                    spacing: Theme.islandGap
+                    Item {
+                        id: iconBox
+                        width: Theme.islandIconSize; height: width
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: width / 2
+                            color: card.accent ? Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, Theme.islandIconAccent)
+                                               : Theme.islandIconFill
+                        }
+                    }
+                    Column {
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: body.width - Theme.islandIconSize - Theme.islandGap
+                        spacing: Theme.islandTextGap
+                        Text {
+                            width: parent.width
+                            text: card.title
+                            color: card.accent ? Theme.accent : Theme.ink
+                            elide: Text.ElideRight
+                            font.family: Theme.fontUi; font.pixelSize: Theme.islandTitleSize; font.weight: Font.DemiBold
+                            font.features: { "tnum": 1 }
+                        }
+                        Text {
+                            width: parent.width
+                            visible: text !== ""
+                            text: card.subtitle
+                            color: Theme.ink2
+                            elide: Text.ElideRight
+                            font.family: Theme.fontUi; font.pixelSize: Theme.islandTextSize
+                        }
+                    }
+                }
+                Rectangle {
+                    visible: card.shownLines.length > 0
+                    width: parent.width; height: 1
+                    color: Theme.hostPillStroke
+                }
+                Column {
+                    visible: card.shownLines.length > 0
+                    width: parent.width
+                    spacing: Theme.sysCardLineGap
+                    Repeater {
+                        model: card.shownLines
+                        Item {
+                            width: parent.width; height: lineValue.height
+                            Text {
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: modelData.label
+                                color: Theme.ink3
+                                font.family: Theme.fontUi; font.pixelSize: Theme.sysCardLabelSize
+                            }
+                            Text {
+                                id: lineValue
+                                anchors.right: parent.right
+                                text: modelData.value
+                                color: Theme.ink
+                                font.family: Theme.fontUi; font.pixelSize: Theme.sysCardValueSize
+                                font.features: { "tnum": 1 }
+                            }
+                        }
+                    }
+                }
+                ControllerLegend {
+                    visible: card.action !== ""
+                    hints: [ { glyph: "A", label: card.action } ]
+                    pressing: root.aHeld && root.selected === card.key
+                    onTriggered: root.activate(card.key)
+                }
             }
         }
     }
@@ -516,46 +801,20 @@ Item {
                 }
             }
 
-            // Wi-Fi : un point et trois arcs, allumés selon signalStrength (1 à 4).
-            // Tracé sur la grille 24 × 24 de l'icône du prototype : arcs de centre
-            // (12, 19.2), trait de 2, soit des anneaux dont on ne garde que le haut.
-            Item {
-                anchors.verticalCenter: parent.verticalCenter
+            SysButton {
+                key: "wifi"
                 visible: root.signalStrength >= 0
                 width: Theme.wifiSize; height: Theme.wifiSize
-
-                Item {
-                    width: 24; height: 24
-                    scale: Theme.wifiSize / 24
-                    transformOrigin: Item.TopLeft
-
-                    Rectangle {
-                        x: 10.7; y: 18; width: 2.6; height: 2.6; radius: 1.3
-                        color: root.signalStrength >= 1 ? Theme.ink : Theme.inkOff
-                    }
-                    Repeater {
-                        // r : rayon de l'arc ; end : ordonnée de ses extrémités
-                        model: [ { r: 4.4, end: 16 }, { r: 9, end: 12.6 }, { r: 13.5, end: 9.2 } ]
-                        Item {
-                            x: 11 - modelData.r; y: 18.2 - modelData.r
-                            width: 2 * modelData.r + 2; height: modelData.end + 0.7 - y
-                            clip: true
-                            Rectangle {
-                                width: parent.width; height: width; radius: width / 2
-                                color: "transparent"
-                                border.width: 2
-                                border.color: root.signalStrength >= index + 2 ? Theme.ink : Theme.inkOff
-                            }
-                        }
-                    }
-                }
+                WifiShape { strength: root.signalStrength }
             }
 
             // Batterie : éclair pendant la charge ; orange quand elle est faible.
+            SysButton {
+                key: "battery"
+                visible: root.batteryPercent >= 0
+                width: battery.width; height: battery.height
             Row {
                 id: battery
-                anchors.verticalCenter: parent.verticalCenter
-                visible: root.batteryPercent >= 0
                 spacing: Theme.boltGap
                 readonly property color ink: !root.charging && root.batteryPercent < Theme.batteryLow
                                              ? Theme.accent : Theme.ink
@@ -598,7 +857,73 @@ Item {
                     percent: root.batteryPercent; ink: battery.ink
                 }
             }
+            }
+
+            SysButton {
+                key: "settings"
+                width: Theme.settingsIconSize; height: width
+                Image {
+                    anchors.fill: parent
+                    source: "icons/settings.svg"
+                    sourceSize: Qt.size(width * Theme.scale, height * Theme.scale)
+                }
+            }
         }
+        }
+    }
+
+    // --- Fiches des icônes de droite ---
+    SysCard {
+        key: "wifi"
+        readonly property var w: root.wifi || ({})
+        title: w.ssid || qsTr("Wi-Fi")
+        subtitle: w.secured === false ? qsTr("Connecté · réseau ouvert") : qsTr("Connecté · sécurisé")
+        lines: [
+            { label: qsTr("Signal"), value: w.strength !== undefined ? qsTr("%1 %").arg(w.strength) : "" },
+            { label: qsTr("Bande"), value: Format.wifiBand(w.frequency) },
+            { label: qsTr("Débit de la liaison"), value: w.bitrate > 0 ? qsTr("%1 Mb/s").arg(w.bitrate) : "" },
+            { label: qsTr("Adresse IP"), value: w.ip || "" },
+            { label: qsTr("Latence vers %1").arg(root.hostName),
+              value: !root.connected || root.latencyMs < 0 ? ""
+                   : root.jitterMs >= 0 ? qsTr("%1 ms · gigue %2 ms").arg(root.latencyMs).arg(root.jitterMs)
+                   : qsTr("%1 ms").arg(root.latencyMs) }
+        ]
+        action: root.wifiChangeable ? qsTr("Changer de réseau") : ""
+        WifiShape { anchors.centerIn: parent; strength: root.signalStrength }
+    }
+    SysCard {
+        id: batteryCard
+        key: "battery"
+        readonly property var d: root.batteryDetails || ({})
+        title: qsTr("%1 %").arg(root.batteryPercent)
+        subtitle: root.charging ? qsTr("En charge")
+                : d.status === "Full" ? qsTr("Chargée")
+                : d.status === "Not charging" ? qsTr("Branchée, sans charger")
+                : qsTr("Sur batterie")
+        accent: !root.charging && root.batteryPercent < Theme.batteryLow
+        lines: [
+            { label: root.charging ? qsTr("Pleine dans") : qsTr("Autonomie restante"),
+              value: Format.duration(d.minutes) },
+            { label: root.charging ? qsTr("Puissance de charge") : qsTr("Consommation"),
+              value: d.watts > 0 ? qsTr("%1 W").arg(Format.decimal(d.watts)) : "" },
+            { label: qsTr("État de la batterie"), value: d.health > 0 ? qsTr("%1 %").arg(d.health) : "" }
+        ]
+        BatteryShape {
+            anchors.centerIn: parent
+            percent: root.batteryPercent
+            ink: batteryCard.accent ? Theme.accent : Theme.ink
+        }
+    }
+    SysCard {
+        key: "settings"
+        title: qsTr("Paramètres")
+        subtitle: qsTr("Écran, son, Wi-Fi, flux…")
+        action: qsTr("Ouvrir")
+        Image {
+            anchors.centerIn: parent
+            width: Theme.settingsIconSize; height: width
+            source: "icons/settings.svg"
+            sourceSize: Qt.size(width * Theme.scale, height * Theme.scale)
         }
     }
 }

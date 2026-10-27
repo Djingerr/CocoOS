@@ -6,6 +6,7 @@
 
 #include <QDir>
 #include <QFile>
+#include <QNetworkInterface>
 #include <QDBusConnection>
 #include <QDBusConnectionInterface>
 #include <QDBusInterface>
@@ -27,6 +28,7 @@ const int DBUS_TIMEOUT_MS = 300;
 const QString NM_SERVICE = QStringLiteral("org.freedesktop.NetworkManager");
 const QString NM_PATH = QStringLiteral("/org/freedesktop/NetworkManager");
 const uint NM_DEVICE_TYPE_WIFI = 2;
+const uint NM_AP_FLAGS_PRIVACY = 0x1;
 
 const QString LOGIN_SERVICE = QStringLiteral("org.freedesktop.login1");
 const QString LOGIN_PATH = QStringLiteral("/org/freedesktop/login1");
@@ -67,8 +69,10 @@ void SystemStatus::start()
     refresh();
     emit changed();
 
-    qInfo("SystemStatus: battery %d %%%s, Wi-Fi %d/4 (-1 = none), power: %s",
-          m_batteryPercent, m_charging ? " (charging)" : "", m_signalStrength,
+    qInfo("SystemStatus: battery %d %%%s (%d min, %.1f W), Wi-Fi %d/4 (-1 = none, %u MHz, %u Mb/s), power: %s",
+          m_batteryPercent, m_charging ? " (charging)" : "",
+          m_batteryDetails.value(QStringLiteral("minutes")).toInt(), m_batteryDetails.value(QStringLiteral("watts")).toDouble(),
+          m_signalStrength, m_wifi.value(QStringLiteral("frequency")).toUInt(), m_wifi.value(QStringLiteral("bitrate")).toUInt(),
           qPrintable(m_powerActions.join(QLatin1Char(' '))));
 }
 
@@ -107,8 +111,17 @@ void SystemStatus::power(const QString& action)
 void SystemStatus::refresh()
 {
     bool charging = false;
-    int battery = readBattery(QStringLiteral("/sys/class/power_supply"), &charging);
-    int wifi = readWifi();
+    QVariantMap details;
+    int battery = readBattery(QStringLiteral("/sys/class/power_supply"), &charging, &details);
+    // Le temps restant suit la puissance instantanée, qui saute d'un relevé à l'autre :
+    // lissé tant qu'on reste en charge (ou sur batterie).
+    int minutes = details.value(QStringLiteral("minutes")).toInt();
+    int previous = m_batteryDetails.value(QStringLiteral("minutes"), -1).toInt();
+    if (minutes >= 0 && previous >= 0 && charging == m_charging) {
+        details[QStringLiteral("minutes")] = qRound(0.7 * previous + 0.3 * minutes);
+    }
+    const QVariantMap wifiInfo = readWifi();
+    int wifi = wifiInfo.isEmpty() ? -1 : barsForStrength(wifiInfo.value(QStringLiteral("strength")).toInt());
     int brightness = -1;
     const QString backlight = backlightDir();
     if (!backlight.isEmpty()) {
@@ -118,10 +131,12 @@ void SystemStatus::refresh()
         }
     }
     if (battery != m_batteryPercent || charging != m_charging || wifi != m_signalStrength ||
-            brightness != m_brightness) {
+            brightness != m_brightness || details != m_batteryDetails || wifiInfo != m_wifi) {
         m_batteryPercent = battery;
         m_charging = charging;
+        m_batteryDetails = details;
         m_signalStrength = wifi;
+        m_wifi = wifiInfo;
         m_brightness = brightness;
         emit changed();
     }
@@ -186,9 +201,10 @@ void SystemStatus::setVolume(int percent)
     }
 }
 
-int SystemStatus::readBattery(const QString& powerSupplyDir, bool* charging)
+int SystemStatus::readBattery(const QString& powerSupplyDir, bool* charging, QVariantMap* details)
 {
     *charging = false;
+    *details = { { QStringLiteral("minutes"), -1 }, { QStringLiteral("watts"), -1.0 }, { QStringLiteral("health"), -1 } };
     const QStringList supplies = QDir(powerSupplyDir).entryList(QDir::Dirs | QDir::NoDotAndDotDot, QDir::Name);
     for (const QString& name : supplies) {
         const QString dir = powerSupplyDir + QLatin1Char('/') + name;
@@ -200,10 +216,44 @@ int SystemStatus::readBattery(const QString& powerSupplyDir, bool* charging)
 
         bool ok = false;
         int percent = readLine(dir + QStringLiteral("/capacity")).toInt(&ok);
-        if (ok) {
-            *charging = readLine(dir + QStringLiteral("/status")) == QLatin1String("Charging");
-            return qBound(0, percent, 100);
+        if (!ok) {
+            continue;
         }
+        const QString status = readLine(dir + QStringLiteral("/status"));
+        *charging = status == QLatin1String("Charging");
+        (*details)[QStringLiteral("status")] = status;   // "Charging", "Discharging", "Full", "Not charging"
+
+        // Deux familles de pilotes : en énergie (µWh, µW) ou en charge (µAh, µA).
+        auto value = [&dir](const char* file) {
+            bool found = false;
+            double v = readLine(dir + QLatin1Char('/') + QLatin1String(file)).toDouble(&found);
+            return found ? v : -1.0;
+        };
+        double now = value("energy_now"), full = value("energy_full"), design = value("energy_full_design");
+        double rate = value("power_now"), watts = rate / 1e6;
+        if (now < 0) {
+            now = value("charge_now"); full = value("charge_full"); design = value("charge_full_design");
+            rate = value("current_now");
+            double volts = value("voltage_now");
+            watts = volts > 0 ? qAbs(rate) * volts / 1e12 : -1;
+        }
+        rate = qAbs(rate);           // certains pilotes comptent le courant négatif en décharge
+        if (rate > 0) {
+            (*details)[QStringLiteral("watts")] = qRound(watts * 10) / 10.0;
+        }
+        // Le pilote donne parfois le temps lui-même (secondes).
+        double seconds = value(*charging ? "time_to_full_now" : "time_to_empty_now");
+        if (seconds < 0 && rate > 0 && now >= 0) {
+            if (*charging && full > now) seconds = 3600 * (full - now) / rate;
+            else if (status == QLatin1String("Discharging")) seconds = 3600 * now / rate;
+        }
+        if (seconds >= 0 && (*charging || status == QLatin1String("Discharging"))) {
+            (*details)[QStringLiteral("minutes")] = qRound(seconds / 60);
+        }
+        if (full > 0 && design > 0) {
+            (*details)[QStringLiteral("health")] = qMin(100, qRound(100 * full / design));
+        }
+        return qBound(0, percent, 100);
     }
     return -1;
 }
@@ -218,18 +268,18 @@ int SystemStatus::barsForStrength(int percent)
     return 0;
 }
 
-int SystemStatus::readWifi()
+QVariantMap SystemStatus::readWifi()
 {
     QDBusConnection bus = QDBusConnection::systemBus();
     if (!bus.isConnected() || !bus.interface()->isServiceRegistered(NM_SERVICE)) {
-        return -1;
+        return {};
     }
 
     QDBusInterface manager(NM_SERVICE, NM_PATH, NM_SERVICE, bus);
     manager.setTimeout(DBUS_TIMEOUT_MS);
     QDBusReply<QList<QDBusObjectPath>> devices = manager.call(QStringLiteral("GetDevices"));
     if (!devices.isValid()) {
-        return -1;
+        return {};
     }
 
     for (const QDBusObjectPath& device : devices.value()) {
@@ -249,11 +299,28 @@ int SystemStatus::readWifi()
         QDBusInterface apIface(NM_SERVICE, accessPoint, NM_SERVICE + QStringLiteral(".AccessPoint"), bus);
         apIface.setTimeout(DBUS_TIMEOUT_MS);
         QVariant strength = apIface.property("Strength");
-        if (strength.isValid()) {
-            return barsForStrength(strength.toInt());
+        if (!strength.isValid()) {
+            continue;
         }
+        QVariantMap info = {
+            { QStringLiteral("ssid"), QString::fromUtf8(apIface.property("Ssid").toByteArray()) },
+            { QStringLiteral("strength"), strength.toInt() },
+            { QStringLiteral("frequency"), apIface.property("Frequency").toUInt() },
+            { QStringLiteral("bitrate"), wireless.property("Bitrate").toUInt() / 1000 },   // kb/s → Mb/s
+            { QStringLiteral("secured"), (apIface.property("Flags").toUInt() & NM_AP_FLAGS_PRIVACY) ||
+                                         apIface.property("WpaFlags").toUInt() || apIface.property("RsnFlags").toUInt() },
+            { QStringLiteral("ip"), QString() },
+        };
+        const QNetworkInterface iface = QNetworkInterface::interfaceFromName(deviceIface.property("Interface").toString());
+        for (const QNetworkAddressEntry& entry : iface.addressEntries()) {
+            if (entry.ip().protocol() == QAbstractSocket::IPv4Protocol) {
+                info[QStringLiteral("ip")] = entry.ip().toString();
+                break;
+            }
+        }
+        return info;
     }
-    return -1;
+    return {};
 }
 
 void SystemStatus::probeHost(QObject* computerManager, const QString& hostName)

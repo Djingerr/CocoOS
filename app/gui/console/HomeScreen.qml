@@ -45,6 +45,12 @@ FocusScope {
     property alias controllerBattery: status.controllerBattery
     property alias controllerCount: status.controllerCount
     property alias controllerFamily: status.controllerFamily
+    // Icônes de droite de la barre haute (haut depuis l'étagère ou le héros) : leurs fiches,
+    // et ce que fait A. Les réglages ouvrent le panneau d'options sur l'onglet Console.
+    property alias wifi: status.wifi
+    property alias batteryDetails: status.batteryDetails
+    property alias wifiChangeable: status.wifiChangeable
+    signal systemRequested(string key)               // "wifi"
     // Île de notification de la barre haute : permise une fois l'accueil entré (le logo de
     // démarrage a atterri), sans panneau ni lancement ; l'appelant y ajoute la veille.
     property bool notificationsAllowed: true
@@ -88,6 +94,7 @@ FocusScope {
     readonly property alias options: sheet           // options.open(), options.opened…
     readonly property alias shelf: shelf             // l'étagère (shelf.pressing : A tenu)
     readonly property alias hero: hero               // le héros (ses boutons, partie en cours)
+    readonly property alias statusBar: status        // la barre haute (ses icônes de droite)
     // Partie en cours : haut depuis l'étagère donne la manette aux boutons du héros
     // (Reprendre, Quitter) ; bas ou B la rendent. Elle revient d'elle-même à l'étagère quand
     // la partie s'arrête ou qu'un lancement commence.
@@ -119,8 +126,9 @@ FocusScope {
     function wake() { idle.restart() }
 
     property bool heroFocused: false
+    property bool statusFocused: false               // la barre haute a la manette
     onRunningChanged: if (!running) heroFocused = false
-    onLaunchingChanged: if (launching) heroFocused = false
+    onLaunchingChanged: if (launching) heroFocused = statusFocused = false
 
     readonly property bool entered: ready && entryAllowed   // héros et étagère sont entrés
     property bool settled: false     // …et c'est fini : plus aucun délai par rang
@@ -181,6 +189,15 @@ FocusScope {
             StatusBar {
                 id: status
                 anchors.fill: parent
+                focus: root.statusFocused && !root.staged && !sheet.opened
+                onLeaveRequested: {
+                    root.statusFocused = false
+                    Sounds.play("move")
+                }
+                onActivated: function(key) {
+                    if (key === "settings") sheet.open(1)
+                    else root.systemRequested(key)
+                }
                 systemShown: !sheet.opened && !root.panelOpen
                 contentShown: root.entryAllowed
                 notificationsAllowed: root.notificationsAllowed && root.settled && root.statusLogoShown
@@ -209,7 +226,7 @@ FocusScope {
                 HeroBlock {
                     id: hero
                     anchors.bottom: parent.bottom
-                    focus: root.heroFocused && !root.staged && !sheet.opened
+                    focus: root.heroFocused && !root.statusFocused && !root.staged && !sheet.opened
                     direction: shelf.direction
                     held: shelf.pressing
                     animated: root.entered
@@ -218,6 +235,10 @@ FocusScope {
                     onQuitRequested: root.quitRequested()
                     onLeaveRequested: {
                         root.heroFocused = false
+                        Sounds.play("move")
+                    }
+                    onUpRequested: {
+                        root.statusFocused = true
                         Sounds.play("move")
                     }
                     onHoldHintRequested: root.toast(qsTr("Maintenez A pour quitter la partie"))
@@ -240,18 +261,15 @@ FocusScope {
                 anchors.fill: parent
                 // La manette va à l'étagère, à l'écran de message ou au panneau
                 // ouvert : le focus suit ces liaisons, il revient seul à la fermeture.
-                focus: !root.staged && !sheet.opened && !root.heroFocused
+                focus: !root.staged && !sheet.opened && !root.heroFocused && !root.statusFocused
                 shown: root.entered
                 enterStep: root.settled ? 0 : Theme.entryCardStagger
                 onLaunchRequested: function(index) { root.launchRequested(index) }
                 onDetailsRequested: root.detailsRequested()
                 onUpRequested: {
-                    if (hero.running) {
-                        root.heroFocused = true
-                        Sounds.play("move")
-                    } else {
-                        Sounds.play("edge")
-                    }
+                    if (hero.running) root.heroFocused = true
+                    else root.statusFocused = true
+                    Sounds.play("move")
                 }
                 Keys.onMenuPressed: root.favoriteRequested()      // bouton X
                 onCollectionRequested: function(direction) { root.collectionRequested(direction) }

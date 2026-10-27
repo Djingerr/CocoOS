@@ -240,6 +240,26 @@ QtObject {
     readonly property int wifiSize: 18
     readonly property size batterySize: Qt.size(27, 14)
     readonly property int batteryLow: 20             // en dessous (hors charge), l'icône passe en orange
+    // Icônes de droite (Wi-Fi, batterie, réglages), qu'on choisit à la manette (haut depuis
+    // l'étagère ou le héros), au clavier ou à la souris : une pastille de sysButtonHeight qui
+    // déborde de sysButtonPad de part et d'autre de l'icône (fond hoverFill, anneau de focus
+    // collé). L'icône choisie ou survolée ouvre sa fiche sous la barre (sysCardGap plus bas,
+    // calée à droite) : fondu islandFade (curveOut) en descendant de sysCardShift depuis
+    // l'échelle islandContentScale (ressort « souple »), sortie en islandOut. La souris a
+    // sysCardHoverGrace pour passer de l'icône à la fiche.
+    readonly property int sysButtonHeight: 32
+    readonly property int sysButtonPad: 7
+    readonly property int settingsIconSize: 20
+    readonly property int sysCardWidth: 300
+    readonly property int sysCardGap: 12
+    readonly property int sysCardRadius: 22
+    readonly property int sysCardPad: 18
+    readonly property int sysCardShift: -8
+    readonly property int sysCardHoverGrace: 220
+    readonly property int sysCardSectionGap: 14      // entre l'en-tête, les lignes et la légende
+    readonly property int sysCardLineGap: 9
+    readonly property int sysCardLabelSize: 12       // ink3
+    readonly property int sysCardValueSize: 13       // ink, chiffres tabulaires
     // Manette sans fil : silhouette, puis trois barres de charge (orange à une barre).
     readonly property size padIconSize: Qt.size(24, 16)
     readonly property int padBarsGap: 3

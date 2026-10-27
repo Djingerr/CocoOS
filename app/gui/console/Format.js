@@ -105,3 +105,26 @@ function networkQuality(latencyMs, jitterMs) {
     if (latencyMs <= 50 && jitter <= 15) return "fair"
     return "poor"
 }
+
+// Temps restant de la batterie : « 3 h 05 », « 45 min » ; vide sans estimation.
+function duration(minutes) {
+    if (minutes === undefined || minutes < 0) return ""
+    minutes = Math.round(minutes)
+    if (minutes < 60) return qsTr("%1 min").arg(Math.max(1, minutes))
+    var m = minutes % 60
+    return m === 0 ? qsTr("%1 h").arg(Math.floor(minutes / 60))
+                   : qsTr("%1 h %2").arg(Math.floor(minutes / 60)).arg(pad(m))
+}
+
+// Bande Wi-Fi d'après la fréquence du point d'accès (MHz) ; vide si inconnue.
+function wifiBand(mhz) {
+    if (!mhz) return ""
+    return mhz < 3000 ? qsTr("2,4 GHz") : mhz < 5925 ? "5 GHz" : "6 GHz"
+}
+
+// Nombre à une décimale, au séparateur de la langue (« 8,4 », « 8.4 » en anglais) ; « 12 » rond.
+function decimal(value) {
+    var rounded = Math.round(value * 10) / 10
+    // Séparateur décimal (anglais : un point).
+    return String(rounded).replace(".", qsTr(","))
+}

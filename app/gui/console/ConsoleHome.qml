@@ -1501,6 +1501,10 @@ FocusScope {
         signalStrength: SystemStatus.signalStrength
         batteryPercent: SystemStatus.batteryPercent
         charging: SystemStatus.charging
+        batteryDetails: SystemStatus.batteryDetails
+        wifi: SystemStatus.wifi
+        wifiChangeable: WifiSetup.available
+        onSystemRequested: function(key) { if (key === "wifi") home.openWifi() }
         controllerBattery: InputStatus.controllerBattery
         controllerCount: InputStatus.controllerCount
         controllerFamily: InputStatus.layout

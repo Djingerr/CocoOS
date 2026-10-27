@@ -164,8 +164,9 @@ FocusScope {
 
     visible: reveal > 0 || dim.opacity > 0
 
-    function open() {
-        tab = 0
+    // Ouvre le panneau sur l'onglet `startTab` (le premier par défaut).
+    function open(startTab) {
+        tab = Math.min(startTab || 0, Math.max(0, tabs.length - 1))
         current = 0
         scroll = 0
         pressing = false

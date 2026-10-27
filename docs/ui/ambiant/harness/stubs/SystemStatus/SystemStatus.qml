@@ -7,6 +7,8 @@ QtObject {
     property int batteryPercent: 82
     property bool charging: false
     property int signalStrength: 4
+    property var batteryDetails: ({ minutes: 194, watts: 6.8, health: 93, status: "Discharging" })
+    property var wifi: ({ ssid: "Maison-5G", strength: 86, frequency: 5180, bitrate: 866, ip: "192.168.1.42", secured: true })
     property var powerActions: ["suspend", "reboot", "poweroff"]
     property string lastPower: ""
     // Réseau vers le PC : sondé quand ConsoleHome le demande (`probed`).

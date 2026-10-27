@@ -22,6 +22,7 @@
 #include <QString>
 #include <QStringList>
 #include <QTimer>
+#include <QVariantMap>
 
 class ComputerManager;
 class QTcpSocket;
@@ -33,6 +34,14 @@ class SystemStatus : public QObject
     Q_PROPERTY(int batteryPercent READ batteryPercent NOTIFY changed)   // 0 à 100, -1 sans batterie
     Q_PROPERTY(bool charging READ charging NOTIFY changed)              // la batterie est en charge
     Q_PROPERTY(int signalStrength READ signalStrength NOTIFY changed)   // 0 à 4, -1 sans Wi-Fi
+    // Détails de la batterie, -1 quand le pilote ne les donne pas : { minutes (avant d'être
+    // vide, ou pleine en charge), watts (puissance qui sort ou entre), health (capacité
+    // restante par rapport à celle d'origine, en %), status (celui du noyau : "Charging",
+    // "Discharging", "Full", "Not charging") }.
+    Q_PROPERTY(QVariantMap batteryDetails READ batteryDetails NOTIFY changed)
+    // Réseau Wi-Fi associé : { ssid, strength (0 à 100), frequency (MHz), bitrate (Mb/s),
+    // ip, secured } ; vide sans Wi-Fi.
+    Q_PROPERTY(QVariantMap wifi READ wifi NOTIFY changed)
     // Actions d'alimentation que logind autorise sans mot de passe, parmi
     // "suspend", "reboot", "poweroff" (lues une fois, par start()).
     Q_PROPERTY(QStringList powerActions READ powerActions NOTIFY changed)
@@ -53,6 +62,8 @@ public:
     int batteryPercent() const { return m_batteryPercent; }
     bool charging() const { return m_charging; }
     int signalStrength() const { return m_signalStrength; }
+    QVariantMap batteryDetails() const { return m_batteryDetails; }
+    QVariantMap wifi() const { return m_wifi; }
     QStringList powerActions() const { return m_powerActions; }
     int latencyMs() const { return m_latencyMs; }
     int jitterMs() const { return m_jitterMs; }
@@ -78,8 +89,8 @@ public:
     Q_INVOKABLE void power(const QString& action);
 
     // Niveau de la première batterie système sous `powerSupplyDir`, -1 s'il n'y en a
-    // pas ; `charging` dit si elle est en charge.
-    static int readBattery(const QString& powerSupplyDir, bool* charging);
+    // pas ; `charging` dit si elle est en charge, `details` reçoit batteryDetails.
+    static int readBattery(const QString& powerSupplyDir, bool* charging, QVariantMap* details);
     // Force du signal NetworkManager (0 à 100) convertie en 0 à 4 barres.
     static int barsForStrength(int percent);
 
@@ -94,7 +105,7 @@ private slots:
     void onPrepareForSleep(bool start);
 
 private:
-    static int readWifi();
+    static QVariantMap readWifi();
     static QStringList readPowerActions();
     static QString backlightDir();
     void readVolume();
@@ -103,6 +114,8 @@ private:
     int m_batteryPercent = -1;
     bool m_charging = false;
     int m_signalStrength = -1;
+    QVariantMap m_batteryDetails;
+    QVariantMap m_wifi;
     QStringList m_powerActions;
     bool m_started = false;
     int m_brightness = -1;

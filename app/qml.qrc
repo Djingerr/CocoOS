@@ -36,6 +36,7 @@
         <file>gui/console/OnScreenKeyboard.qml</file>
         <file>gui/console/BootSplash.qml</file>
         <file>gui/console/icons/pin.svg</file>
+        <file>gui/console/icons/settings.svg</file>
         <file>gui/console/shadows/thumb.png</file>
         <file>gui/console/shadows/island.png</file>
         <file>gui/console/Appear.qml</file>
@@ -51,6 +52,7 @@
         <file>gui/console/HoldFill.qml</file>
         <file>gui/console/Pressable.qml</file>
         <file>gui/console/HoverArea.qml</file>
+        <file>gui/console/FocusRing.qml</file>
         <file>gui/console/Pointer.js</file>
         <file>gui/console/RollingNumber.qml</file>
         <file>gui/console/Spring.js</file>
