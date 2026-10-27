@@ -80,3 +80,30 @@ Outils : `qmllint` à prendre dans `/usr/lib64/qt6/bin/qmllint` (celui de `/usr/
 ✅ **Passée** : build `embedded` sans erreur ; `/usr/lib64/qt6/bin/qmllint -I .. --max-warnings 0
 *.qml tests/*.qml` (depuis `idle/`) sans avertissement ; `tst_format.qml` 14/14
 (`QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -input app/gui/console/idle/tests/tst_format.qml`).
+
+## Écran de veille — phase 2, composants (2026-10-27)
+
+`idle/components/` : `EntryReveal`, `GaussianBlur`, `BlurredBackdrop` (aussi la lueur de l'écran 12),
+`CoverCard`, `StatusIcon`, `StatusLine`, `KeyHint`, `TopRightClock`, `DurationText`, `ProgressRing`,
+`HairlineProgress`, `GlassCapsule`, `GradientText`. `idle/shaders/` (`build-shaders.sh`, `.qsb` versionnés) :
+`blur` (gaussien séparable), `glowsource`, `backdrop` (pan + saturation + vignettage + grain overlay, un
+passage), `card` (coins arrondis, fondu du reflet au sol), `textgradient`. `idle/preview/IdlePreview.qml`
+(`--component X`, `--grab-after`, `--grab`) et `preview/grab.sh` (mutter headless : le rendu offscreen
+ne fait pas MultiEffect).
+
+Choix et pièges :
+- **Flou** : la source est dessinée une fois en basse résolution (12 px de toile par écart type du flou
+  CSS), entourée de 4 écarts types de vide (le `filter: blur()` CSS fond les bords vers le transparent),
+  floutée par deux passages gaussiens exacts ; seule sa place (pan, pulsation) change ensuite, dans le
+  passage de composition.
+- **Inclinaison** : `Matrix4x4` = T(c)·P(1400)·Ry·Rx·T(−c), **ligne z mise à zéro** : Qt Quick rogne en
+  profondeur tout ce qui sort de z ∈ [−1, 1] (la carte se réduisait à une bande de 30 px).
+- Les uniformes d'un `ShaderEffect` ne peuvent pas s'appeler `top` / `bottom` (propriétés de `Item`).
+- `grabToImage` du `contentItem` ne contient pas la couleur de la fenêtre : l'aperçu pose un fond noir.
+- Le liseré de la jaquette est **extérieur** (`box-shadow 0 0 0 1px` de la maquette) ; la spec dit
+  « intérieur », la maquette fait foi.
+
+### Porte de la phase 2
+✅ **Passée** : les 12 composants (et la lueur) s'affichent seuls dans `IdlePreview`, journal QML vide
+(`grab.sh --component X --grab-after 3000 --grab …`) ; `qmllint --max-warnings 0` sans avertissement ;
+build `embedded` OK.

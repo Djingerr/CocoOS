@@ -58,6 +58,24 @@
         <file>gui/console/idle/IdleStatus.qml</file>
         <file>gui/console/idle/IdleStatusMock.qml</file>
         <file>gui/console/idle/IdleFormat.js</file>
+        <file>gui/console/idle/components/BlurredBackdrop.qml</file>
+        <file>gui/console/idle/components/CoverCard.qml</file>
+        <file>gui/console/idle/components/DurationText.qml</file>
+        <file>gui/console/idle/components/EntryReveal.qml</file>
+        <file>gui/console/idle/components/GaussianBlur.qml</file>
+        <file>gui/console/idle/components/GlassCapsule.qml</file>
+        <file>gui/console/idle/components/GradientText.qml</file>
+        <file>gui/console/idle/components/HairlineProgress.qml</file>
+        <file>gui/console/idle/components/KeyHint.qml</file>
+        <file>gui/console/idle/components/ProgressRing.qml</file>
+        <file>gui/console/idle/components/StatusIcon.qml</file>
+        <file>gui/console/idle/components/StatusLine.qml</file>
+        <file>gui/console/idle/components/TopRightClock.qml</file>
+        <file>gui/console/idle/shaders/backdrop.frag.qsb</file>
+        <file>gui/console/idle/shaders/blur.frag.qsb</file>
+        <file>gui/console/idle/shaders/card.frag.qsb</file>
+        <file>gui/console/idle/shaders/glowsource.frag.qsb</file>
+        <file>gui/console/idle/shaders/textgradient.frag.qsb</file>
         <file>gui/console/idle/mock/IdleMockData.js</file>
         <file>gui/console/idle/assets/grain_256.png</file>
         <file>gui/console/idle/assets/cover_shadow_626x760.png</file>
