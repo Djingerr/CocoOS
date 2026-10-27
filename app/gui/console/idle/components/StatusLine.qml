@@ -21,14 +21,12 @@ Row {
                 anchors.verticalCenter: parent.verticalCenter
                 name: entry.modelData.icon
             }
-            Text {
+            IdleText {
                 anchors.verticalCenter: parent.verticalCenter
                 text: entry.modelData.text
                 color: IdleTheme.textStatus
-                font.family: IdleTheme.fontFamily
-                font.pixelSize: IdleTheme.status.size
-                font.weight: IdleTheme.status.weight
-                font.features: { "tnum": 1 }
+                textStyle: IdleTheme.status
+                tabular: true
             }
         }
     }

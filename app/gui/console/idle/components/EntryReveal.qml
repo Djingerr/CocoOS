@@ -5,10 +5,15 @@ import ".."
 
 // Animation d'entrée d'un élément (SPEC §4) : il part d'une opacité nulle, 18 px plus bas
 // et flou (si IdleTheme.entryBlur), et se pose en `duration` ms (appleOut) après `delay` ms.
-// play() la rejoue. Le contenu va dans l'enveloppe, qui doit couvrir tout ce qu'il dessine
-// (le flou passe par une couche à sa taille).
+// Elle part à la création, ou quand `started` passe à vrai ; play() la rejoue. Le contenu va
+// dans l'enveloppe, qui doit couvrir tout ce qu'il dessine (le flou passe par une couche à sa
+// taille).
 Item {
     id: root
+
+    property bool started: true
+    onStartedChanged: if (started) play()
+    Component.onCompleted: if (started) play()
 
     property int delay: 0
     property int duration: IdleTheme.entryDuration

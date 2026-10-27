@@ -10,12 +10,10 @@ Row {
 
     spacing: 8
 
-    component HintText: Text {
+    component HintText: IdleText {
         anchors.verticalCenter: parent.verticalCenter
         color: IdleTheme.textHint
-        font.family: IdleTheme.fontFamily
-        font.pixelSize: IdleTheme.hint.size
-        font.weight: IdleTheme.hint.weight
+        textStyle: IdleTheme.hint
     }
 
     HintText { text: qsTr("Appuyez sur") }
@@ -26,13 +24,10 @@ Row {
         color: "transparent"
         border.width: 1
         border.color: IdleTheme.keyHintStroke
-        Text {
+        IdleText {
             anchors.centerIn: parent
             text: root.glyph
-            color: IdleTheme.textPrimary
-            font.family: IdleTheme.fontFamily
-            font.pixelSize: IdleTheme.keyGlyph.size
-            font.weight: IdleTheme.keyGlyph.weight
+            textStyle: IdleTheme.keyGlyph
         }
     }
     HintText { text: root.action }

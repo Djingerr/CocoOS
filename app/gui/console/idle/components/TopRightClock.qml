@@ -12,14 +12,11 @@ Row {
 
     spacing: 12
 
-    Text {
+    IdleText {
         anchors.verticalCenter: parent.verticalCenter
         text: F.clock(root.now)
-        color: IdleTheme.textPrimary
-        font.family: IdleTheme.fontFamily
-        font.pixelSize: IdleTheme.topClock.size
-        font.weight: IdleTheme.topClock.weight
-        font.features: { "tnum": 1 }
+        textStyle: IdleTheme.topClock
+        tabular: true
     }
     // Cadre 27 × 13 (viewBox du SVG) ramené à 25 × 12 : échelle uniforme 12/13, centré.
     Item {

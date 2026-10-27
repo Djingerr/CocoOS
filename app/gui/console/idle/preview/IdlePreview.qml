@@ -6,13 +6,16 @@ import "../IdleFormat.js" as F
 
 // Lanceur autonome de l'écran de veille, pour le développement et les captures :
 //
+//   qml app/gui/console/idle/preview/IdlePreview.qml -- --state game|gameDownload|download|rest
+//       [--now 2026-10-27T21:46:00] [--no-drift] [--grab-after 3000 --grab captures/09_jeu.png]
 //   qml app/gui/console/idle/preview/IdlePreview.qml -- --component CoverCard
-//       [--now 2026-10-27T21:46:00] [--grab-after 3000 --grab captures/x.png]
 //
-// --component : un composant seul (EntryReveal, BlurredBackdrop, CoverCard, StatusLine,
-// KeyHint, TopRightClock, DurationText, ProgressRing, HairlineProgress, GlassCapsule,
-// GradientText, Glow). --grab-after : capture la fenêtre 1280 × 720 tant de ms après le
-// démarrage, puis quitte. R rejoue les entrées, B bascule IdleTheme.entryBlur.
+// --state : l'écran de veille complet sur le mock (par défaut). --component : un composant
+// seul (EntryReveal, BlurredBackdrop, CoverCard, StatusLine, KeyHint, TopRightClock,
+// DurationText, ProgressRing, HairlineProgress, GlassCapsule, GradientText, Glow).
+// --grab-after : capture la fenêtre 1280 × 720 tant de ms après le démarrage, puis quitte.
+// Touches : 1 à 4 changent l'état, R rejoue l'entrée, B bascule IdleTheme.entryBlur ; toute
+// autre touche fait sortir l'écran de veille (wakeRequested, puis il revient après 1 s).
 Window {
     id: win
 
@@ -26,7 +29,7 @@ Window {
         }
         return out
     }
-    readonly property string component: args.component || "CoverCard"
+    readonly property string component: args.component || "IdleScreen"
 
     width: 1280; height: 720
     visible: true
@@ -46,14 +49,21 @@ Window {
         anchors.fill: parent
         focus: true
         Keys.onPressed: function(event) {
-            if (event.key === Qt.Key_R) win.replay()
-            else if (event.key === Qt.Key_B) IdleTheme.entryBlur = !IdleTheme.entryBlur
+            var states = { "1": "game", "2": "gameDownload", "3": "download", "4": "rest" }
+            if (states[event.text]) status.scenario = states[event.text]
+            else if (event.key === Qt.Key_R) win.replay()
+            else if (event.key === Qt.Key_B) {
+                IdleTheme.entryBlur = !IdleTheme.entryBlur
+                console.info("IdlePreview : entryBlur", IdleTheme.entryBlur)
+            }
+            else if (loader.item as IdleScreen) (loader.item as IdleScreen).exit()
         }
         Loader {
             id: loader
             anchors.fill: parent
             sourceComponent: {
                 switch (win.component) {
+                case "IdleScreen": return idleScreen
                 case "EntryReveal": return entryReveal
                 case "BlurredBackdrop": return backdrop
                 case "CoverCard": return coverCard
@@ -80,13 +90,25 @@ Window {
     readonly property var game: status.session.active ? status.session.game : status.download.game
 
     Component {
+        id: idleScreen
+        IdleScreen {
+            status: status
+            drift: win.args["no-drift"] === undefined
+            onWakeRequested: {
+                console.info("IdlePreview : wakeRequested")
+                if (win.args["grab-after"] === undefined) comeBack.start()
+            }
+        }
+    }
+    Timer { id: comeBack; interval: 1000; onTriggered: win.replay() }
+
+    Component {
         id: entryReveal
         Item {
             EntryReveal {
                 id: reveal
                 x: 520; y: 199
                 width: 660; height: 72
-                Component.onCompleted: play()
                 Text {
                     text: "Minecraft"
                     color: IdleTheme.textPrimary
@@ -205,12 +227,6 @@ Window {
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: 147
                 text: F.clock(status.now)
-                boxHeight: IdleTheme.restClock.size * IdleTheme.restClock.lineHeight
-                font.family: IdleTheme.fontFamily
-                font.pixelSize: IdleTheme.restClock.size
-                font.weight: IdleTheme.restClock.weight
-                font.letterSpacing: IdleTheme.restClock.letterSpacing
-                font.features: { "tnum": 1 }
             }
         }
     }

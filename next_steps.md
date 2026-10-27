@@ -107,3 +107,28 @@ Choix et pièges :
 ✅ **Passée** : les 12 composants (et la lueur) s'affichent seuls dans `IdlePreview`, journal QML vide
 (`grab.sh --component X --grab-after 3000 --grab …`) ; `qmllint --max-warnings 0` sans avertissement ;
 build `embedded` OK.
+
+## Écran de veille — phase 3, écrans et machine d'état (2026-10-27)
+
+`idle/IdleScreen.qml` (état → écran, fondu enchaîné 600 ms puis entrée du nouvel écran, grille
+1280 × 720 mise à l'échelle avec bandes noires, `IdleTheme.scale`, sortie 320 ms sur toute touche ou un
+clic puis `wakeRequested()`). `idle/screens/` : `CoverScreen` (structure commune de 09 à 11 : fond, dérive,
+heure, jaquette, colonne, indication), `IdleGameScreen` (09, 10 avec `showDownload`), `IdleDownloadScreen`
+(11), `IdleRestScreen` (12), `Eyebrow`, `GameInfo`. `components/IdleText` (texte posé par sa ligne de base
+comme Chromium : ascendante et descendante de Sora arrondies au pixel, demi-interligne CSS) et
+`components/DriftGroup`. L'aperçu montre l'écran complet par défaut (`--state`, `--no-drift`, touches 1 à 4,
+R, B ; toute autre touche fait sortir).
+
+Écarts / décisions :
+- Le titre passe sur deux lignes au plus (élision) : un vrai titre long ne doit pas déborder.
+- Réseau autre que Wi-Fi (`lte`) : l'item de qualité Wi-Fi (09 à 11) et le segment Wi-Fi de la capsule
+  (12) sont masqués (pas de maquette pour la 4G/5G). Batterie absente, ou pas de dernier jeu : leur segment
+  de capsule est masqué.
+- Libellés `install` provisoires (« Installation de … », « Installation »), pas dans les maquettes.
+- Piège : `baseline`, `top`, `bottom` sont des propriétés finales d'`Item` (« Cannot override FINAL
+  property ») ; `qmllint` ne le signale pas.
+
+### Porte de la phase 3
+✅ **Passée** : les quatre états s'affichent depuis le mock (captures `grab.sh --state …`, journal vide) ;
+`tests/tst_idlescreen.qml` 6/6 (écran par état, fondu puis entrée, échelle, sortie au clavier et au clic,
+une seule sortie) ; `qmllint` sans avertissement ; build `embedded` OK.

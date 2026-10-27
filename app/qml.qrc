@@ -58,6 +58,15 @@
         <file>gui/console/idle/IdleStatus.qml</file>
         <file>gui/console/idle/IdleStatusMock.qml</file>
         <file>gui/console/idle/IdleFormat.js</file>
+        <file>gui/console/idle/screens/CoverScreen.qml</file>
+        <file>gui/console/idle/screens/Eyebrow.qml</file>
+        <file>gui/console/idle/screens/GameInfo.qml</file>
+        <file>gui/console/idle/screens/IdleDownloadScreen.qml</file>
+        <file>gui/console/idle/screens/IdleGameScreen.qml</file>
+        <file>gui/console/idle/screens/IdleRestScreen.qml</file>
+        <file>gui/console/idle/IdleScreen.qml</file>
+        <file>gui/console/idle/components/IdleText.qml</file>
+        <file>gui/console/idle/components/DriftGroup.qml</file>
         <file>gui/console/idle/components/BlurredBackdrop.qml</file>
         <file>gui/console/idle/components/CoverCard.qml</file>
         <file>gui/console/idle/components/DurationText.qml</file>

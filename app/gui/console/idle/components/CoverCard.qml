@@ -173,17 +173,14 @@ Item {
                                          0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1)
                 }
             }
-            Text {
+            IdleText {
                 visible: root.label !== ""
                 anchors.horizontalCenter: parent.horizontalCenter
                 anchors.bottom: parent.bottom
                 anchors.bottomMargin: 18
                 text: root.label
                 color: IdleTheme.textTertiary
-                font.family: IdleTheme.fontFamily
-                font.pixelSize: IdleTheme.coverLabel.size
-                font.weight: IdleTheme.coverLabel.weight
-                font.letterSpacing: IdleTheme.coverLabel.letterSpacing
+                textStyle: IdleTheme.coverLabel
             }
         }
     }
