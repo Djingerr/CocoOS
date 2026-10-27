@@ -532,9 +532,12 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   TODO(HostCompanion) : téléchargements, jaquettes Playnite. `COCOOS_IDLE_MOCK=1`
   (+ `COCOOS_IDLE_STATE=game|gameDownload|download|rest`, `COCOOS_IDLE_NETWORK=4g|5g`) montre les
   données des maquettes sur la console.
-  Parité avec les maquettes (phase 4) : écart moyen ≤ 3,4/255, tous les textes à ±2 px. Aperçu :
-  `app/gui/console/idle/preview/IdlePreview.qml` (`grab.sh`, `parity.sh` ; `--network 5g`,
-  `--pad playstation`). Journal : « [console-ui] Veille après N s d'inactivité (état) ». ⚠️ Pas vu à la
+  Parité avec les maquettes (phase 4) : écart moyen ≤ 3,4/255, tous les textes à ±2 px. **Format** : la
+  grille 1280 × 720 des maquettes s'étire au format de l'écran (1280 × 800 en 16:10, plus large en 21:9),
+  bloc central au milieu, heure et indication aux bords, fond et lueur sur tout l'écran ; les couches
+  (heure en dégradé, jaquette, vignette) et les SVG sont rendus à la résolution de l'écran
+  (`IdleTheme.textureScale`). Aperçu : `app/gui/console/idle/preview/IdlePreview.qml` (`grab.sh`,
+  `parity.sh` ; `--network 5g`, `--pad playstation`, `--size 2560x1600`). Journal : « [console-ui] Veille après N s d'inactivité (état) ». ⚠️ Pas vu à la
   manette ni sur l'écran de la carte ; performance (flou d'entrée, `IdleTheme.entryBlur`) à mesurer sur
   l'Orange Pi (phase 6 du brief).
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
@@ -1057,6 +1060,10 @@ XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import
 - `ListView.count` n'est mis à jour qu'à la mise en page suivante ; et il vaut 0 tant que le
   modèle charge : ne jamais y borner la sélection sans tester `count > 0`.
 - Un composant en ligne (`component X: …`) voit les `id` du fichier tant qu'il y est instancié.
+- Une couche (`layer.enabled`) est rendue à la taille de l'élément × le rapport de pixels, **sans tenir
+  compte d'un `scale` d'un parent** : sous une grille agrandie, son texte est pixellisé. Poser
+  `layer.textureSize` (taille × échelle × rapport de pixels) et `layer.smooth: true` (cf. `idle/`,
+  `IdleTheme.textureScale`) ; même chose pour le `sourceSize` des SVG.
 - Un `State` à `when:` joue sa transition **dès la création** de l'élément s'il est déjà vrai :
   les vignettes créées en défilant rejouaient leur entrée (cf. `Appear.animateInitially`).
 - Relancer une animation depuis un `onXChanged` alors que sa cible (`to:`) est liée à la même

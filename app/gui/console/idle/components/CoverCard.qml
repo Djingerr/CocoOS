@@ -92,12 +92,14 @@ Item {
             y: root.height + IdleTheme.reflectionGap
             width: root.width; height: root.height
             layer.enabled: true
+            layer.smooth: true
+            layer.textureSize: Qt.size(Math.ceil(width * IdleTheme.textureScale), Math.ceil(height * IdleTheme.textureScale))
             layer.effect: ShaderEffect {
                 property size itemSize: Qt.size(root.width, root.height)
                 property real radius: IdleTheme.radiusCover
                 property real fadeAlpha: IdleTheme.reflectionStartAlpha
                 property real fadeEnd: IdleTheme.reflectionFadeAt
-                property real pixel: 1 / IdleTheme.scale
+                property real pixel: 1 / IdleTheme.textureScale
                 fragmentShader: "../shaders/card.frag.qsb"
             }
             Image {
@@ -122,12 +124,14 @@ Item {
         Item {
             anchors.fill: parent
             layer.enabled: true
+            layer.smooth: true
+            layer.textureSize: Qt.size(Math.ceil(width * IdleTheme.textureScale), Math.ceil(height * IdleTheme.textureScale))
             layer.effect: ShaderEffect {
                 property size itemSize: Qt.size(root.width, root.height)
                 property real radius: IdleTheme.radiusCover
                 property real fadeAlpha: 1
                 property real fadeEnd: 0
-                property real pixel: 1 / IdleTheme.scale
+                property real pixel: 1 / IdleTheme.textureScale
                 fragmentShader: "../shaders/card.frag.qsb"
             }
             Image {

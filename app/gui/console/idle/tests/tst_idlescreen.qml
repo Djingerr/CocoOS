@@ -63,6 +63,9 @@ Item {
             var screen = createTemporaryObject(screenComponent, window)
             var idle = createTemporaryObject(idleComponent, screen)
             compare(IdleTheme.scale, 1.5)                      // min(1920/1280, 1200/720)
+            tryVerify(function() { return idle.current !== null })
+            compare(idle.current.width, 1280)                  // 16:10 : la grille s'étire en hauteur…
+            compare(idle.current.height, 800)
             idle.destroy()
             wait(0)
         }

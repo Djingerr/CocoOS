@@ -19,8 +19,7 @@ Item {
     property real columnTop: 170
     default property alias column: column.data
 
-    width: IdleTheme.reference.width
-    height: IdleTheme.reference.height
+    anchors.fill: parent
 
     // --- Fond ---
     BlurredBackdrop {
@@ -68,25 +67,34 @@ Item {
             }
         }
 
-        // --- Jaquette : l'enveloppe couvre l'ombre et le reflet au sol (flou d'entrée) ---
-        EntryReveal {
-            id: coverReveal
-            readonly property int margin: 170
-            started: root.entryStarted
-            delay: IdleTheme.entryDelays.cover
-            duration: IdleTheme.entryDurations.cover
-            x: 112 - margin; y: 104 - margin
-            width: card.width + 2 * margin
-            height: 2 * card.height + IdleTheme.reflectionGap + 2 * margin
-            CoverCard {
-                id: card
-                x: coverReveal.margin; y: coverReveal.margin
-                animated: root.animated
-                source: root.game && root.game.coverUrl ? root.game.coverUrl : ""
-                // Libellé seulement sur la jaquette de test (TODO(HostCompanion) : vraies jaquettes).
-                label: source.toString().indexOf("placeholder_cover_600x848.png") >= 0
-                       ? qsTr("Jaquette %1 · 600 × 848").arg(root.game.title) : ""
-            }
+        // Bloc central (jaquette et colonne) : la grille 1280 × 720 des maquettes, au milieu de
+        // l'écran quel que soit son format.
+        Item {
+            id: stage
+            x: (parent.width - width) / 2
+            y: (parent.height - height) / 2
+            width: IdleTheme.reference.width
+            height: IdleTheme.reference.height
+
+            // --- Jaquette : l'enveloppe couvre l'ombre et le reflet au sol (flou d'entrée) ---
+            EntryReveal {
+                id: coverReveal
+                readonly property int margin: 170
+                started: root.entryStarted
+                delay: IdleTheme.entryDelays.cover
+                duration: IdleTheme.entryDurations.cover
+                x: 112 - margin; y: 104 - margin
+                width: card.width + 2 * margin
+                height: 2 * card.height + IdleTheme.reflectionGap + 2 * margin
+                CoverCard {
+                    id: card
+                    x: coverReveal.margin; y: coverReveal.margin
+                    animated: root.animated
+                    source: root.game && root.game.coverUrl ? root.game.coverUrl : ""
+                    // Libellé seulement sur la jaquette de test (TODO(HostCompanion) : vraies jaquettes).
+                    label: source.toString().indexOf("placeholder_cover_600x848.png") >= 0
+                           ? qsTr("Jaquette %1 · 600 × 848").arg(root.game.title) : ""
+                }
         }
 
         // --- Colonne de texte ---
@@ -94,6 +102,7 @@ Item {
             id: column
             x: 520; y: root.columnTop
             width: 660
+        }
         }
 
         // --- Indication du bas ---

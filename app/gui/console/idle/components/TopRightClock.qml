@@ -31,7 +31,7 @@ Row {
             Image {
                 anchors.fill: parent
                 source: "../assets/icons/battery_frame.svg"
-                sourceSize: Qt.size(27 * 2 * IdleTheme.scale, 13 * 2 * IdleTheme.scale)
+                sourceSize: Qt.size(Math.ceil(27 * IdleTheme.textureScale), Math.ceil(13 * IdleTheme.textureScale))
             }
             Rectangle {
                 x: 2; y: 2; height: 9

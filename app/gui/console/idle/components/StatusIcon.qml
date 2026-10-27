@@ -16,6 +16,6 @@ Image {
     width: iconSize.width; height: iconSize.height
     source: name !== "" ? "../assets/icons/" + name + ".svg" : ""
     fillMode: Image.PreserveAspectFit
-    sourceSize: Qt.size(width * 2 * IdleTheme.scale, height * 2 * IdleTheme.scale)
+    sourceSize: Qt.size(Math.ceil(width * IdleTheme.textureScale), Math.ceil(height * IdleTheme.textureScale))
     opacity: large ? 0.7 : IdleTheme.textStatus.a
 }

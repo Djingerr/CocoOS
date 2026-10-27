@@ -257,3 +257,17 @@ Rapporter ces chiffres avant toute optimisation.
   2 min, 5 min, 10 min, 30 min, jamais. Vérifié : binaire lancé avec une copie de la conf du laptop, veille
   à 120 s (« [console-ui] Veille après 120 s d'inactivité (rest) »).
 - Parité inchangée (09 à 12 : 3,31 / 3,37 / 3,33 / 0,89, 61/61 textes) ; `tst_ConsoleHome` 48/48.
+
+## Écran de veille — netteté et format de l'écran (2026-10-27, demande de Marco)
+
+- **Texte pixellisé** (l'heure de l'écran 12) : les couches étaient rendues à la taille de la grille
+  1280 × 720 puis agrandies par sa mise à l'échelle (× 2 sur le laptop). Toutes les couches de la veille
+  (heure en dégradé, jaquette et son libellé, reflet au sol, vignette du dernier jeu, entrée floue) ont
+  maintenant `layer.textureSize` = taille × `IdleTheme.textureScale` (échelle × `Screen.devicePixelRatio`)
+  et `layer.smooth` ; les SVG sont décodés à cette taille ; le grain garde un texel par pixel de l'écran.
+- **Format** : `IdleScreen` étire la grille au format de l'écran au lieu de poser des bandes noires
+  (1280 × 800 en 16:10, 2520 × 1080 → 2240 × 960 en 21:9). Bloc central (jaquette et colonne ; date, heure
+  et capsule) centré, heure / batterie et indication collées aux bords, fond flou et vignettage sur tout
+  l'écran, lueur de l'écran 12 à 250 px du bas comme dans la maquette. En 16:9 rien ne change : parité
+  3,30 / 3,36 / 3,32 / 0,88, 61/61 textes. Aperçu : `--size 2560x1600` ; test `test_scaleKeepsTheGrid`
+  (1920 × 1200 → grille 1280 × 800).

@@ -18,8 +18,7 @@ Item {
     readonly property var battery: status.battery
     readonly property var lastGame: status.lastGame
 
-    width: IdleTheme.reference.width
-    height: IdleTheme.reference.height
+    anchors.fill: parent
 
     // --- Lueur (14 s : opacité 0,7 ↔ 1, échelle 1 ↔ 1,08) ---
     // L'opacité de 0,22 de la spec ne s'applique pas : dans la maquette, l'animation CSS
@@ -27,7 +26,8 @@ Item {
     BlurredBackdrop {
         readonly property var g: IdleTheme.restGlow
         property real pulse: 0
-        box: Qt.rect(g.centerX - g.width / 2, g.top, g.width, g.height)
+        // Centrée, à la même distance du bas que dans la maquette (720 − 470 = 250 px).
+        box: Qt.rect(width / 2 - g.width / 2, height - (IdleTheme.reference.height - g.top), g.width, g.height)
         blurPx: g.blurCssPx
         layerOpacity: 0.7 + 0.3 * pulse
         layerScale: 1 + 0.08 * pulse
@@ -94,34 +94,42 @@ Item {
     DriftGroup {
         running: root.animated && root.drift
 
-        // --- Date et heure ---
-        Column {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: 120
-            spacing: 2
-            EntryReveal {
+        // Bloc central (date, heure, capsule) : la grille des maquettes au milieu de l'écran.
+        Item {
+            id: stage
+            x: (parent.width - width) / 2
+            y: (parent.height - height) / 2
+            width: IdleTheme.reference.width
+            height: IdleTheme.reference.height
+
+            // --- Date et heure ---
+            Column {
                 anchors.horizontalCenter: parent.horizontalCenter
-                started: root.entryStarted
-                delay: IdleTheme.entryDelays.restDate
-                width: date.implicitWidth; height: date.implicitHeight
-                IdleText {
-                    id: date
-                    text: F.longDate(root.status.now)
-                    textStyle: IdleTheme.restDate
-                    color: IdleTheme.textDate
+                y: 120
+                spacing: 2
+                EntryReveal {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    started: root.entryStarted
+                    delay: IdleTheme.entryDelays.restDate
+                    width: date.implicitWidth; height: date.implicitHeight
+                    IdleText {
+                        id: date
+                        text: F.longDate(root.status.now)
+                        textStyle: IdleTheme.restDate
+                        color: IdleTheme.textDate
+                    }
                 }
-            }
-            EntryReveal {
-                anchors.horizontalCenter: parent.horizontalCenter
-                started: root.entryStarted
-                delay: IdleTheme.entryDelays.restClock
-                duration: IdleTheme.entryDurations.restClock
-                width: clock.implicitWidth; height: clock.implicitHeight
-                GradientText {
-                    id: clock
-                    text: F.clock(root.status.now)
+                EntryReveal {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    started: root.entryStarted
+                    delay: IdleTheme.entryDelays.restClock
+                    duration: IdleTheme.entryDurations.restClock
+                    width: clock.implicitWidth; height: clock.implicitHeight
+                    GradientText {
+                        id: clock
+                        text: F.clock(root.status.now)
+                    }
                 }
-            }
         }
 
         // --- Capsule d'état ---
@@ -199,25 +207,29 @@ Item {
                         Item {
                             anchors.fill: parent
                             layer.enabled: true
+                            layer.smooth: true
+                            layer.textureSize: Qt.size(Math.ceil(width * IdleTheme.textureScale), Math.ceil(height * IdleTheme.textureScale))
                             layer.effect: ShaderEffect {
                                 property size itemSize: Qt.size(32, 45)
                                 property real radius: IdleTheme.radiusCoverThumb
                                 property real fadeAlpha: 1
                                 property real fadeEnd: 0
-                                property real pixel: 1 / IdleTheme.scale
+                                property real pixel: 1 / IdleTheme.textureScale
                                 fragmentShader: "../shaders/card.frag.qsb"
                             }
                             Image {
                                 anchors.fill: parent
                                 source: root.lastGame ? root.lastGame.coverUrl : ""
                                 fillMode: Image.PreserveAspectCrop
-                                sourceSize: Qt.size(64 * IdleTheme.scale, 90 * IdleTheme.scale)
+                                sourceSize: Qt.size(Math.ceil(32 * IdleTheme.textureScale), Math.ceil(45 * IdleTheme.textureScale))
                             }
                             Rectangle { anchors.fill: parent; color: "black"; opacity: 0.25 }   // brightness(0.75)
                         }
                     }
                 }
             }
+        }
+
         }
 
         // --- Indication du bas ---

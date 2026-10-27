@@ -24,6 +24,8 @@ Item {
         width: label.implicitWidth + 2 * root.margin
         height: label.boxHeight + 2 * root.margin
         layer.enabled: true
+        layer.smooth: true
+        layer.textureSize: Qt.size(Math.ceil(width * IdleTheme.textureScale), Math.ceil(height * IdleTheme.textureScale))
         layer.effect: ShaderEffect {
             property color topColor: root.topColor
             property color bottomColor: root.bottomColor

@@ -10,8 +10,7 @@ Item {
     id: root
 
     property rect box: Qt.rect(IdleTheme.backdropInset, IdleTheme.backdropInset,
-                               IdleTheme.reference.width - 2 * IdleTheme.backdropInset,
-                               IdleTheme.reference.height - 2 * IdleTheme.backdropInset)
+                               width - 2 * IdleTheme.backdropInset, height - 2 * IdleTheme.backdropInset)
     property real blurPx: IdleTheme.backdropBlurCssPx        // écart type du flou CSS
     property real saturation: 1
     property bool vignette: false
@@ -25,8 +24,8 @@ Item {
     readonly property real pad: 4 * blurPx
     readonly property size canvas: Qt.size(box.width + 2 * pad, box.height + 2 * pad)
 
-    width: IdleTheme.reference.width
-    height: IdleTheme.reference.height
+    width: parent ? parent.width : IdleTheme.reference.width
+    height: parent ? parent.height : IdleTheme.reference.height
 
     Item {
         id: canvasItem
@@ -71,7 +70,7 @@ Item {
         property real vignetteOuter: IdleTheme.vignetteOuter.a
         property real vignetteStop: 0.72
         property real grainOpacity: IdleTheme.grainOpacity
-        property real grainTile: 256
+        property real grainTile: 256 / IdleTheme.textureScale   // un texel du grain par pixel de l'écran
         fragmentShader: "../shaders/backdrop.frag.qsb"
     }
 }

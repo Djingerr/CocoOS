@@ -7,9 +7,12 @@ import ".."
 // propre à la veille (son blanc #F5F5F7 n'est pas l'encre de l'accueil).
 QtObject {
     readonly property size reference: Qt.size(1280, 720)
-    // Échelle de la grille de référence à l'écran (posée par IdleScreen) : la taille de
-    // rendu des SVG en dépend.
+    // Échelle de la grille de référence à l'écran (posée par IdleScreen), puis rapport des pixels
+    // logiques aux pixels de l'écran. Les couches (layer) et les SVG sont rendus à `textureScale`,
+    // sinon la mise à l'échelle de la grille les agrandirait comme des images (texte pixellisé).
     property real scale: 1
+    property real pixelRatio: 1
+    readonly property real textureScale: scale * pixelRatio
 
     // Couleurs
     readonly property color background: "#000000"

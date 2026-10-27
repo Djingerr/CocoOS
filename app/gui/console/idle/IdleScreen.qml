@@ -1,10 +1,12 @@
 pragma ComponentBehavior: Bound
 import QtQuick
+import QtQuick.Window
 import "screens"
 
 // Écran de veille (docs/design/idle/) : affiche l'état de `status` (jeu en cours, jeu +
-// téléchargement, téléchargement, repos) sur la grille 1280 × 720 mise à l'échelle de
-// l'écran (bandes noires si le format diffère). Quand l'état change : fondu enchaîné de
+// téléchargement, téléchargement, repos) sur la grille des maquettes (1280 × 720), mise à
+// l'échelle de l'écran et étirée à son format : 1280 × 800 en 16:10, plus large en 21:9. Les
+// écrans gardent leur bloc central au milieu et leurs éléments de bord collés aux bords. Quand l'état change : fondu enchaîné de
 // 600 ms, puis l'entrée du nouvel écran. Toute touche ou un clic : sortie (320 ms), puis
 // wakeRequested().
 FocusScope {
@@ -26,15 +28,18 @@ FocusScope {
 
     Rectangle { id: background; anchors.fill: parent; color: IdleTheme.background }
 
+    readonly property real fit: root.width > 0 && root.height > 0
+                                ? Math.min(root.width / IdleTheme.reference.width, root.height / IdleTheme.reference.height) : 1
     Item {
         id: canvas
         anchors.centerIn: parent
-        width: IdleTheme.reference.width
-        height: IdleTheme.reference.height
-        scale: Math.min(root.width / width, root.height / height)
+        width: root.width > 0 ? root.width / root.fit : IdleTheme.reference.width
+        height: root.height > 0 ? root.height / root.fit : IdleTheme.reference.height
+        scale: root.fit
         clip: true
     }
-    Binding { target: IdleTheme; property: "scale"; value: canvas.scale }
+    Binding { target: IdleTheme; property: "scale"; value: root.fit }
+    Binding { target: IdleTheme; property: "pixelRatio"; value: Screen.devicePixelRatio }
 
     Component { id: gameScreen; IdleGameScreen {} }
     Component { id: downloadScreen; IdleDownloadScreen {} }

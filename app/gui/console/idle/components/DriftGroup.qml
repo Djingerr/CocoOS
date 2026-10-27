@@ -12,8 +12,8 @@ Item {
     property real driftX: 0
     property real driftY: 0
 
-    width: IdleTheme.reference.width
-    height: IdleTheme.reference.height
+    width: parent ? parent.width : IdleTheme.reference.width
+    height: parent ? parent.height : IdleTheme.reference.height
     transform: Translate { x: root.driftX; y: root.driftY }
 
     component Leg: ParallelAnimation {

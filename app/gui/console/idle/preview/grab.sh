@@ -8,7 +8,7 @@
 set -euo pipefail
 here="$(cd "$(dirname "$0")" && pwd)"
 sock="cocoos-idle-$$"
-mutter --headless --wayland --no-x11 --virtual-monitor 1600x1000 \
+mutter --headless --wayland --no-x11 --virtual-monitor 2600x1700 \
        --wayland-display "$sock" >/dev/null 2>&1 &
 mutter_pid=$!
 cfg="$(mktemp -d)"

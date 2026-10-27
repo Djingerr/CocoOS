@@ -10,7 +10,8 @@ import "../IdleFormat.js" as F
 //   qml app/gui/console/idle/preview/IdlePreview.qml -- --state game|gameDownload|download|rest
 //       [--now 2026-10-27T21:46:00] [--no-drift] [--grab-after 3000 --grab captures/09_jeu.png]
 //   qml app/gui/console/idle/preview/IdlePreview.qml -- --component CoverCard
-//   … --network 4g|5g (réseau mobile au lieu du Wi-Fi), --pad playstation|nintendo (glyphe du bouton)
+//   … --network 4g|5g (réseau mobile au lieu du Wi-Fi), --pad playstation|nintendo (glyphe du bouton),
+//   --size 2560x1600 (taille de la fenêtre ; 1280 × 720 par défaut)
 //
 // --state : l'écran de veille complet sur le mock (par défaut). --component : un composant
 // seul (EntryReveal, BlurredBackdrop, CoverCard, StatusLine, KeyHint, TopRightClock,
@@ -35,7 +36,8 @@ Window {
     }
     readonly property string component: args.component || "IdleScreen"
 
-    width: 1280; height: 720
+    readonly property var size: (args.size || "1280x720").split("x").map(Number)
+    width: size[0]; height: size[1]
     visible: true
     color: "black"
     title: "IdlePreview — " + component
