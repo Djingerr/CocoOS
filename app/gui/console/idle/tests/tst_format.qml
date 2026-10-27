@@ -64,6 +64,7 @@ TestCase {
         compare(F.autonomy(184, false), "Environ 3 h")
         compare(F.autonomy(200, false), "Environ 3 h 20")
         compare(F.autonomy(180, true), "En charge")
+        compare(F.autonomy(-1, false), "")                          // pas d'estimation : rien
     }
 
     function test_lastSession() {

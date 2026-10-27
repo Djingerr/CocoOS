@@ -13,6 +13,7 @@ import InputStatus 1.0
 import WifiSetup 1.0
 import AmbientColor 1.0
 
+import "idle"
 import "Format.js" as Format
 import "Library.js" as Library
 import "StreamProfiles.js" as StreamProfiles
@@ -95,6 +96,7 @@ FocusScope {
     }
 
     Component.onCompleted: {
+        useIdleMock()
         hideUpstreamChrome()
         Sounds.enabled = consoleConfig.sounds
         Theme.reducedMotion = consoleConfig.reduceMotion
@@ -682,6 +684,7 @@ FocusScope {
         id: idleTimer
         interval: consoleConfig.sleepMinutes * 60000
         onTriggered: {
+            console.info("[console-ui] Veille après " + consoleConfig.sleepMinutes + " min d'inactivité (" + home.idleStatus.state + ")")
             home.focusBeforeSleep = home.Window.activeFocusItem
             sleepScreen.sleep()
         }
@@ -719,6 +722,53 @@ FocusScope {
     Connections {
         target: SystemStatus
         function onChanged() { if (homeScreen.options.opened) home.refreshOptions() }
+    }
+
+    // --- Données de l'écran de veille (idle/, docs/design/idle/) ---
+    // Ce que la console sait déjà : le PC, le réseau, la batterie, le jeu qui tourne sur le PC
+    // (sa jaquette Apollo, et l'heure de son lancement d'ici), le dernier jeu lancé.
+    // TODO(HostCompanion) : téléchargements, jaquettes Playnite, début réel de la partie.
+    // COCOOS_IDLE_MOCK=1 (+ COCOOS_IDLE_STATE=game|gameDownload|download|rest) : les données de
+    // test des maquettes, pour voir les quatre écrans sur la console.
+    function tileByName(name) {
+        for (var i = 0; i < shelfModel.count; i++)
+            if (shelfModel.get(i).name === name) return shelfModel.get(i)
+        return null
+    }
+    function idleGame(name) {
+        var tile = tileByName(name)
+        var info = companionGames[name.toLowerCase()]
+        return { title: name, coverUrl: tile ? tile.boxart : "",
+                 publisher: info && info.publishers && info.publishers.length ? info.publishers[0] : "",
+                 genre: info && info.genres && info.genres.length ? info.genres[0] : "" }
+    }
+    IdleStatus {
+        id: liveIdleStatus
+        readonly property var recent: Library.parse(consoleConfig.recentGames, {})
+        host: ({ name: home.activeHostName, reachable: home.activeHostOnline,
+                 inGame: home.runningGame !== "", sleeping: false })
+        network: SystemStatus.wifi.ssid !== undefined
+                 ? { kind: "wifi", latencyMs: SystemStatus.latencyMs,
+                     // Force NetworkManager (%) → dBm, à peu près : 2 × (dBm + 100).
+                     rssiDbm: SystemStatus.wifi.strength / 2 - 100 }
+                 : { kind: "ethernet", latencyMs: SystemStatus.latencyMs }
+        battery: ({ percent: SystemStatus.batteryPercent, charging: SystemStatus.charging,
+                    minutesLeft: SystemStatus.batteryDetails.minutes !== undefined ? SystemStatus.batteryDetails.minutes : -1 })
+        session: home.runningGame !== ""
+                 ? { active: true, game: home.idleGame(home.runningGame),
+                     connectedAt: recent[home.runningGame] ? new Date(recent[home.runningGame]) : null }
+                 : { active: false }
+        lastGame: consoleConfig.lastGame !== "" && recent[consoleConfig.lastGame]
+                  ? { title: consoleConfig.lastGame, coverUrl: home.idleGame(consoleConfig.lastGame).coverUrl,
+                      lastPlayedAt: new Date(recent[consoleConfig.lastGame]) }
+                  : null
+    }
+    property IdleStatus idleStatus: liveIdleStatus
+    function useIdleMock() {
+        if (SystemStatus.env("COCOOS_IDLE_MOCK") !== "1") return
+        var mock = Qt.createQmlObject('import "idle"; IdleStatusMock {}', home, "IdleStatusMock")
+        mock.scenario = SystemStatus.env("COCOOS_IDLE_STATE") || "game"
+        idleStatus = mock
     }
 
     function homeButton() {
@@ -1454,6 +1504,7 @@ FocusScope {
         id: homeScreen
         anchors.fill: parent
         focus: true
+        visible: !sleepScreen.covering                  // caché sous la veille : rien à dessiner
 
         readonly property var app: { home.shelfRevision; return home.currentApp() }
         // La vignette sélectionnée : une app du PC, ou un jeu pas encore installé.
@@ -1823,10 +1874,11 @@ FocusScope {
         }
 
         // Veille de l'écran : par-dessus tout le reste.
-        SleepScreen {
+        IdleOverlay {
             id: sleepScreen
             anchors.fill: parent
             z: 1
+            status: home.idleStatus
             onWoke: {
                 var item = home.focusBeforeSleep
                 home.focusBeforeSleep = null

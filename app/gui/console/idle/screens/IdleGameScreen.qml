@@ -44,10 +44,11 @@ CoverScreen {
     }
     Item { width: 1; height: 14 }
     GameInfo { game: root.game; entryStarted: root.entryStarted }
-    Item { width: 1; height: root.showDownload ? 52 : 56 }
-
-    // Durée de session.
+    // Durée de session (masquée si l'heure de connexion est inconnue : partie lancée sur le PC).
+    readonly property bool knowsDuration: !!root.status.session.connectedAt
+    Item { visible: root.knowsDuration; width: 1; height: root.showDownload ? 52 : 56 }
     EntryReveal {
+        visible: root.knowsDuration
         started: root.entryStarted
         delay: IdleTheme.entryDelays.bigBlock
         width: 660; height: bigBlock.implicitHeight
@@ -55,8 +56,7 @@ CoverScreen {
             id: bigBlock
             spacing: 8
             DurationText {
-                parts: F.sessionParts(root.status.session.connectedAt
-                                      ? (root.status.now - root.status.session.connectedAt) / 1000 : 0)
+                parts: F.sessionParts(root.knowsDuration ? (root.status.now - root.status.session.connectedAt) / 1000 : 0)
             }
             IdleText {
                 text: qsTr("de jeu depuis la connexion")
@@ -74,7 +74,8 @@ CoverScreen {
         StatusLine {
             id: statusLine
             items: [ { icon: "monitor", text: root.status.host.name },
-                     { icon: "signal", text: F.latency(root.network.latencyMs) } ]
+]
+                   .concat(root.network.latencyMs >= 0 ? [{ icon: "signal", text: F.latency(root.network.latencyMs) }] : [])
                    .concat(root.network.kind === "wifi"
                            ? [{ icon: "wifi", text: F.wifiQuality(root.network.quality
                                     || F.wifiQualityKey(root.network.rssiDbm), false) }] : [])

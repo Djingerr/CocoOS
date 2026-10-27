@@ -24,7 +24,7 @@ FocusScope {
         exitAnim.start()
     }
 
-    Rectangle { anchors.fill: parent; color: IdleTheme.background }
+    Rectangle { id: background; anchors.fill: parent; color: IdleTheme.background }
 
     Item {
         id: canvas
@@ -99,6 +99,10 @@ FocusScope {
     SequentialAnimation {
         id: exitAnim
         ParallelAnimation {
+            NumberAnimation {
+                target: background; property: "opacity"; to: 0; duration: IdleTheme.exitDuration
+                easing.type: Easing.BezierSpline; easing.bezierCurve: IdleTheme.appleOut
+            }
             NumberAnimation {
                 target: canvas; property: "opacity"; to: 0; duration: IdleTheme.exitDuration
                 easing.type: Easing.BezierSpline; easing.bezierCurve: IdleTheme.appleOut

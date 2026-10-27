@@ -152,8 +152,7 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     « Réveil de … » en tête de l'écran de lancement, qui reprend seul quand le PC répond (en
     laissant 8 s au Companion pour se reconnecter) ; écran de recherche → A Réveiller / Réessayer.
     Abandon au bout de 90 s avec un message (Wake-on-LAN à activer dans le BIOS).
-  - **Veille de l'écran** (`SleepScreen`) après `ConsoleUi/sleepMinutes` (5 par défaut) sans
-    action à l'accueil ; jamais pendant un lancement ni un flux.
+  - **Veille de l'écran** : remplacée le 2026-10-27 par l'écran de veille « Premium » (cf. plus bas).
   - **Bouton Home** (`InputStatus`) : à l'accueil, ouvre le menu Home (`ConsoleDialog` en mode
     `actions`) : reprendre / quitter le jeu en cours (quitter sans `QuitSegue`, pas de page
     upstream), mettre en veille, redémarrer, éteindre (ces deux derniers confirmés, A maintenu). En jeu,
@@ -517,6 +516,21 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   sinon énergie / puissance ou charge / courant ; temps lissé d'un relevé à l'autre) et
   `SystemStatus.wifi` (NetworkManager). Vérifié sur le laptop (38 %, 13,4 W → 86 min), dans le harnais (`do=sys,sysleft`) et par
   `tst_ConsoleHome::test_9y_statusBarIcons`. ⚠️ Pas vu à la manette.
+- ✅ **Écran de veille « Premium » (2026-10-27, branche `feat/idle-screen`)** — cible :
+  `docs/design/idle/` (brief, spec, maquettes 09 à 12, références) ; suivi détaillé dans `next_steps.md`.
+  Remplace `SleepScreen` (décision de Marco) : après `ConsoleUi/sleepMinutes` (**2 min** par défaut,
+  Options › Console › Veille de l'écran), `idle/IdleOverlay` monte au-dessus de l'accueil en fondu ;
+  quatre écrans selon l'état : jeu en cours sur le PC (09), jeu + téléchargement (10), téléchargement
+  (11), repos (12 : date, heure en dégradé, capsule PC / Wi-Fi / batterie / dernier jeu). Une touche ou
+  un clic : sortie en 320 ms, l'accueil reprend la main tout de suite. Données réelles (`ConsoleHome`,
+  `liveIdleStatus`) : PC, Wi-Fi et latence, batterie et autonomie, jeu qui tourne (jaquette Apollo,
+  durée depuis son lancement d'ici), dernier jeu ; un élément sans donnée est masqué.
+  TODO(HostCompanion) : téléchargements, jaquettes Playnite. `COCOOS_IDLE_MOCK=1`
+  (+ `COCOOS_IDLE_STATE=game|gameDownload|download|rest`) montre les données des maquettes sur la console.
+  Parité avec les maquettes (phase 4) : écart moyen ≤ 3,4/255, tous les textes à ±2 px. Aperçu :
+  `app/gui/console/idle/preview/IdlePreview.qml` (`grab.sh`, `parity.sh`). Journal : « [console-ui] Veille
+  après N min d'inactivité (état) ». ⚠️ Pas vu à la manette ni sur l'écran de la carte ; performance
+  (flou d'entrée, `IdleTheme.entryBlur`) à mesurer sur l'Orange Pi (phase 6 du brief).
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
   télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
   Côté console uniquement (Apollo reste non modifié).
@@ -659,8 +673,12 @@ Fichiers (dans `app/gui/console/`) :
 - `Toast.qml` — message bref au-dessus de l'étagère (`homeScreen.toast(texte)`)
 - `StreamCurtain.qml` — rideau CocoOS (logo de démarrage, ligne d'état) entre un jeu et
   l'accueil : posé au début du flux, levé au retour (cf §2)
-- `SleepScreen.qml` — veille de l'écran : noir, une phrase qui s'efface à son tour (OLED) ; la
-  touche qui réveille n'atteint pas l'accueil
+- `idle/` — écran de veille (`docs/design/idle/`) : `IdleOverlay` (la veille au-dessus de l'accueil ; la
+  touche qui réveille n'atteint pas l'accueil), `IdleScreen` (état → écran, fondu enchaîné, échelle de la
+  grille 1280 × 720, sortie), `IdleStatus` (données ; `IdleStatusMock` + `mock/`), `IdleTheme` (jetons),
+  `IdleFormat.js` (textes), `screens/` (09 à 12), `components/` (fond flou, jaquette inclinée, textes posés
+  comme Chromium : `IdleText`…), `shaders/` (`build-shaders.sh`), `preview/` (aperçu, captures, parité),
+  `tests/`
 - `OnScreenKeyboard.qml` — clavier à l'écran, à la manette (mot de passe Wi-Fi)
 - `BootSplash.qml` — animation de démarrage « le O » (`docs/boot-animation/BOOT_ANIMATION.md`,
   le prototype fait foi), pilotée par un temps `t` avancé par `FrameAnimation` ; A accélère ×4.

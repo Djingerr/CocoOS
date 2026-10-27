@@ -496,13 +496,8 @@ QtObject {
     readonly property int toastShift: 10             // il monte de cette distance en apparaissant
     readonly property int toastDuration: 2600
 
-    // --- Veille de l'écran (SleepScreen, « .sleep » du prototype) ---
-    readonly property int sleepMinutes: 5            // inactivité avant la veille, par défaut
-    readonly property int sleepFade: 520             // linéaire (le réveil est instantané : BootSplash, mode « wake »)
-    readonly property int sleepTextDelay: 900        // la phrase apparaît…
-    readonly property int sleepTextFade: 400
-    readonly property int sleepTextHold: 8000        // …puis s'efface : noir complet (OLED)
-    readonly property int sleepTextSize: 14          // Sora 400, ink3
+    // --- Veille de l'écran (idle/, docs/design/idle/) ---
+    readonly property int sleepMinutes: 2            // inactivité avant la veille (120 s), par défaut
     // Bouton Home ignoré juste après le retour d'un jeu : il peut être encore enfoncé.
     readonly property int homeGuard: 1500
 

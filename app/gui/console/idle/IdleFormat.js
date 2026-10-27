@@ -73,9 +73,10 @@ function latency(ms) {
 }
 
 // Autonomie de la batterie : « Environ 3 h », « Environ 45 min », « Environ 3 h 20 »
-// (au-delà d'une heure, arrondie à 10 min) ; en charge : « En charge ».
+// (au-delà d'une heure, arrondie à 10 min) ; en charge : « En charge » ; vide sans estimation.
 function autonomy(minutesLeft, charging) {
     if (charging) return qsTr("En charge")
+    if (minutesLeft === undefined || minutesLeft < 0) return ""
     if (minutesLeft < 60) return qsTr("Environ %1 min").arg(Math.max(1, Math.round(minutesLeft)))
     var rounded = Math.round(minutesLeft / 10) * 10
     var h = Math.floor(rounded / 60), m = rounded % 60

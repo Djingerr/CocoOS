@@ -168,3 +168,73 @@ Corrections faites pendant la boucle :
 ### Porte de la phase 4
 ✅ **Passée** : écart global ≤ 6/255 sur chaque écran à t = 3 s, aucune zone au-dessus de 15, tous les
 textes à ±2 px de `layout/*.json` (même taille, même graisse).
+
+## Écran de veille — phase 5, intégration (2026-10-27)
+
+- **Remplace `SleepScreen`** (supprimé, ainsi que ses jetons de `Theme.qml`) : `idle/IdleOverlay.qml` garde son
+  interface (`asleep`, `sleep()`, `wake()`, `woke`), d'où une seule ligne changée dans `ConsoleHome` et ses
+  tests intacts. Fondu d'entrée de 600 ms au-dessus de l'accueil ; la touche qui réveille n'atteint pas
+  l'accueil, qui reprend la main tout de suite pendant la sortie (320 ms). Une fois la veille opaque,
+  l'accueil est caché (`covering`) : rien à dessiner dessous.
+- **Minuterie** : celle de `ConsoleHome` (réarmée par toute entrée, `InputStatus.activity`), délai
+  `ConsoleUi/sleepMinutes`, **2 min par défaut** (`Theme.sleepMinutes`, avant 5), réglable dans
+  Options › Console › Veille de l'écran (2, 5, 10, 30 min, jamais).
+- **Données réelles** (`ConsoleHome`, `liveIdleStatus`) : PC (nom, en ligne, jeu en cours), réseau
+  (Wi-Fi de `SystemStatus.wifi`, force NetworkManager convertie en dBm ≈ % / 2 − 100 ; latence de
+  `SystemStatus`), batterie (niveau, charge, autonomie de `batteryDetails`), jeu qui tourne sur le PC (nom,
+  jaquette Apollo de l'étagère, éditeur et genre du Companion, durée depuis son dernier lancement d'ici),
+  dernier jeu (`ConsoleUi/lastGame` + `recentGames`). Sans donnée, l'élément est masqué : latence inconnue,
+  autonomie inconnue, durée inconnue (partie lancée sur le PC), pas de dernier jeu.
+- **TODO(HostCompanion)** : téléchargements (toujours inactifs en réel), jaquettes Playnite, début réel de
+  la partie. `COCOOS_IDLE_MOCK=1` (+ `COCOOS_IDLE_STATE=game|gameDownload|download|rest`) remplace les données
+  par celles des maquettes, pour voir les quatre écrans sur la console. Je n'ai pas branché le mock par
+  défaut en réel, contrairement à la lettre du brief : il afficherait « Minecraft, 1 h 24, [Autre jeu] » sur
+  la vraie console.
+- Journal : `[console-ui] Veille après 2 min d'inactivité (rest)`.
+- Textes en anglais : `languages/qml_en.ts` (dates « Tuesday, October 27 », « Press (A) to resume »…).
+
+### Porte de la phase 5
+✅ **Passée** : build `embedded` (`qmake6 "CONFIG+=embedded"`) OK ; le binaire, lancé hors écran sans
+réseau et sur une configuration vierge, passe en veille à 2 min pile (journal ci-dessus), sans erreur QML ;
+`tst_ConsoleHome` 47/47 (le test des options attend 2 → 5 min au lieu de 5 → 10), autres suites du harnais
+et de la veille vertes. `git diff --stat console-ui` : hors `app/gui/console/`, seulement `app/qml.qrc`
+(couture admise) et de la documentation (`docs/`, `next_steps.md`) ; aucun fichier upstream touché.
+
+## Écran de veille — phase 6, validation sur l'appareil (à faire au transfert sur l'Orange Pi)
+
+Marco a repoussé l'Orange Pi : cette phase attend la carte. Procédure, une fois CocoOS lancé en kiosk :
+
+1. **Lancer la veille** sans attendre : régler Options › Console › Veille de l'écran sur 2 min, ou, pour voir
+   chaque écran, lancer avec `COCOOS_IDLE_MOCK=1 COCOOS_IDLE_STATE=game` (puis `gameDownload`, `download`,
+   `rest`). Le journal note « [console-ui] Veille après … ».
+2. **Temps de rendu** : lancer avec `QSG_RENDER_TIMING=1` et relever, pendant l'entrée (les 2 premières
+   secondes) puis au repos (dérive, inclinaison, reflet), les lignes « Frame rendered … » : aucune au-dessus
+   de 16,6 ms (60 i/s).
+3. **Flou d'entrée** : refaire la mesure avec le flou d'entrée coupé. Il n'y a pas encore de réglage dans
+   l'interface : passer `property bool entryBlur: true` à `false` dans `idle/IdleTheme.qml` (ou, sur le laptop,
+   touche B dans l'aperçu). Comparer les deux relevés et l'effet à l'œil.
+4. **Charge GPU** : pendant la veille, `cat /sys/class/devfreq/*gpu*/load` (ou `…/cur_freq`) toutes les
+   secondes, et `top` pour le processus `moonlight`.
+5. **À l'œil** : luminosité d'une vraie jaquette (0,92, `IdleTheme.coverBrightnessReal`), noirs de l'OLED
+   (le grain ne doit jamais les lever), sortie à la manette.
+
+Rapporter ces chiffres avant toute optimisation.
+
+## Écran de veille — compte rendu (livrable du brief)
+
+- **Fichiers créés** : `app/gui/console/idle/` (`IdleScreen`, `IdleOverlay`, `IdleTheme`, `IdleStatus`,
+  `IdleStatusMock`, `IdleFormat.js`, `mock/`, `screens/` ×6, `components/` ×16, `shaders/` ×5 + `.qsb`,
+  `assets/`, `preview/` (aperçu, `grab.sh`, `parity.sh`, `layout_check.py`), `tests/` ×2) ;
+  `docs/design/idle/captures/` (captures, cartes d'écart, boîtes des textes).
+- **Coutures touchées** : `app/qml.qrc` seulement (déclaration des fichiers, retrait de `SleepScreen.qml`).
+  Côté console (pas upstream) : `ConsoleHome.qml` (données de la veille, `IdleOverlay` à la place de
+  `SleepScreen`, accueil caché sous la veille), `Theme.qml` (2 min par défaut, jetons de l'ancienne veille
+  retirés).
+- **compare.py** : cf. tableau de la phase 4 (≤ 3,37/255, zone max 6,8, 61/61 textes à ±2 px).
+- **Écarts connus** : lissage des glyphes Chromium ≠ Qt ; fond de 09 à 11 dessiné par la maquette en dégradés
+  CSS, recadré depuis la jaquette ici ; capture d'entrée en avance d'environ une image ; liseré de jaquette
+  extérieur (maquette) et non intérieur (spec) ; opacité de la lueur 0,7 ↔ 1 (maquette) et non 0,22 × (spec).
+- **Questions pour Marco** : « Appuyez sur A pour reprendre » réveille la console sur l'accueil, il ne
+  reprend pas la partie (le brief ne prévoit que `wakeRequested()`). Faut-il qu'A relance directement le jeu
+  en cours ? Libellés d'une installation (absente des maquettes) ; cas 4G/5G (pas de maquette) ; le glyphe
+  « A » ne suit pas encore la manette (✕ sur PlayStation) comme le reste de l'interface.

@@ -142,7 +142,7 @@ Item {
                 Hairline { visible: wifiSegment.visible }
                 Segment {
                     id: wifiSegment
-                    visible: root.network.kind === "wifi"
+                    visible: root.network.kind === "wifi" && root.network.latencyMs >= 0
                     title: F.latency(root.network.latencyMs)
                     subtitle: F.wifiQuality(root.network.quality || F.wifiQualityKey(root.network.rssiDbm), true)
                     tabular: true

@@ -31,7 +31,6 @@
         <file>gui/console/Format.js</file>
         <file>gui/console/Library.js</file>
         <file>gui/console/Toast.qml</file>
-        <file>gui/console/SleepScreen.qml</file>
         <file>gui/console/StreamCurtain.qml</file>
         <file>gui/console/OnScreenKeyboard.qml</file>
         <file>gui/console/BootSplash.qml</file>
@@ -65,6 +64,7 @@
         <file>gui/console/idle/screens/IdleGameScreen.qml</file>
         <file>gui/console/idle/screens/IdleRestScreen.qml</file>
         <file>gui/console/idle/IdleScreen.qml</file>
+        <file>gui/console/idle/IdleOverlay.qml</file>
         <file>gui/console/idle/components/IdleText.qml</file>
         <file>gui/console/idle/components/DriftGroup.qml</file>
         <file>gui/console/idle/components/BlurredBackdrop.qml</file>
