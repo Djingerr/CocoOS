@@ -86,7 +86,7 @@ FocusScope {
             return
         }
         currentIndex = next
-        Sounds.play(fast ? "nav_move_fast" : "nav_move")
+        Sounds.play(fast ? "nav_move_fast" : "nav_move", "nav_move")   // même vibration (cues.json)
     }
     SequentialAnimation {
         id: bumpAnim
@@ -262,8 +262,11 @@ FocusScope {
         x: root.slideX
         opacity: (root.shown ? 1 : 0) * root.slideOpacity
         Behavior on opacity { enabled: !categoryAnim.running; NumberAnimation { duration: Theme.entryCardFade } }
-        // Flou d'ensemble seulement le temps d'un saut de lettre ou d'un changement de catégorie.
-        readonly property real blurPx: Math.max(root.slideBlur, letterBox.shown ? Theme.letterBlur : 0)
+        // Flou d'ensemble seulement le temps d'un saut de lettre, d'un changement de catégorie ou
+        // d'un défilement rapide (flèche maintenue : « jaquettes floutées en mouvement »).
+        property real fastBlur: root.fast && !Theme.reducedMotion ? Theme.coverFastBlur : 0
+        Behavior on fastBlur { NumberAnimation { duration: Theme.coverFastBlurFade } }
+        readonly property real blurPx: Math.max(root.slideBlur, letterBox.shown ? Theme.letterBlur : 0, fastBlur)
         layer.enabled: blurPx > 0 && GraphicsInfo.api !== GraphicsInfo.Software
         layer.effect: MultiEffect { blurEnabled: true; blurMax: 16; blur: strip.blurPx / 16 }
 

@@ -527,6 +527,9 @@ FocusScope {
         var games = CompanionClient.games()
         for (var i = 0; i < games.length; i++)
             byName[(games[i].name || "").toLowerCase()] = games[i]
+        // La bibliothèque arrive alors que l'accueil est déjà là (MotionJaquettes) : son signal.
+        if (games.length > 0 && companionList.length === 0 && homeScreen.entered)
+            Sounds.play("library_ready")
         companionList = games
         companionGames = byName
         Qt.callLater(rebuildShelf)          // l'ordre suit aussi les parties jouées sur le PC

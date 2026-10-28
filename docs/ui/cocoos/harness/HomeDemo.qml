@@ -21,6 +21,11 @@ import "Mock.js" as Mock
 //   do        actions jouées à `at` ms, espacées de 150 ms : left, right, holdright (maintenue
 //             jusqu'à `release`), release, lb, rb, jump, jumpback, x
 //   at        instant de `do` (300 ms par défaut)
+//   script    actions à des instants absolus, « t:action » séparés par des virgules (le
+//             minutage des renderVals des maquettes) ; actions : right, left, fastright,
+//             fastleft (pas rapide, flèche maintenue), release, rb, lb, jump, jumpback
+//   start     décalage du script, en ms (laisser l'accueil finir son entrée)
+//   loading   1 : jaquettes et fond arrivent comme dans MotionJaquettes (squelettes d'abord)
 //   time      heure affichée (21:42 par défaut)
 HomeScreen {
     id: demo
@@ -43,11 +48,18 @@ HomeScreen {
         return g && g.lastPlayed ? Date.parse(g.lastPlayed) : 0
     })
     readonly property var game: currentIndex < items.length ? items[currentIndex] : null
+    // MotionJaquettes : instant d'arrivée de chaque jaquette (ms), le fond à 1300.
+    readonly property var arrivals: ({ ha: 2600, ce: 2150, hk: 1600, mc: 1200, fh: 1750, sv: 2000, er: 2400 })
+    property var arrived: ({})
+    property bool backdropArrived: args.loading !== "1"
+    function cover(g) {
+        return args.loading === "1" && !arrived[g.id] ? Qt.resolvedUrl("art/pas-encore-" + g.id + ".png") : (g.cover || "")
+    }
 
     ListModel { id: games }
     function fill() {
         Library.sync(games, items.map(function(g) {
-            return { name: g.name, boxart: "", cover: g.cover || "", publisher: Format.publisher(g), favorite: !!g.favorite }
+            return { name: g.name, boxart: "", cover: cover(g), publisher: Format.publisher(g), favorite: !!g.favorite }
         }))
     }
     onItemsChanged: fill()
@@ -68,7 +80,7 @@ HomeScreen {
           : Format.meta(game)
     pegi: game ? Format.pegi(game.ageRatings) : ""
     playLabel: game && Library.isUtility(game.name) ? "Ouvrir" : ""
-    backdrop: game && game.background ? game.background : ""
+    backdrop: game && game.background && backdropArrived ? game.background : ""
 
     hostName: "PC-Salon"
     connected: true
@@ -99,6 +111,17 @@ HomeScreen {
         currentIndex = Number(args.focus !== undefined ? args.focus : 3)
         Sounds.enabled = args.out === undefined && args.sound !== "0"
         if (args.do) actions.start()
+        var start = Number(args.start || 0)
+        var steps = args.script ? args.script.split(",").map(function(x) {
+            var p = x.split(":"); return { t: start + Number(p[0]), action: p[1] } }) : []
+        if (args.loading === "1") {
+            Object.keys(arrivals).forEach(function(id) { steps.push({ t: start + arrivals[id], action: "arrive:" + id }) })
+            steps.push({ t: start + 1300, action: "backdrop" })
+            steps.push({ t: start + 1350, action: "ready" })
+        }
+        timeline.steps = steps.sort(function(a, b) { return a.t - b.t })
+        // L'horloge part avec celle de la capture du harnais (une fois la fenêtre créée).
+        Qt.callLater(function() { timeline.t0 = Date.now(); timeline.next() })
     }
     Keys.onPressed: function(event) {
         if (event.key === Qt.Key_Y) options.open()
@@ -124,4 +147,39 @@ HomeScreen {
         }
     }
     Timer { id: holdTimer; interval: Theme.navFastStep; repeat: true; onTriggered: demo.shelf.move(1) }
+
+    // Minutage absolu (`script`, `loading`).
+    function act(action) {
+        if (action === "right" || action === "left") { shelf.fast = false; shelf.move(action === "right" ? 1 : -1) }
+        else if (action === "fastright" || action === "fastleft") { shelf.fast = true; shelf.move(action === "fastright" ? 1 : -1) }
+        else if (action === "release") shelf.fast = false
+        else if (action === "rb") switchCategory(1)
+        else if (action === "lb") switchCategory(-1)
+        else if (action === "jump") shelf.jump(1)
+        else if (action === "jumpback") shelf.jump(-1)
+        else if (action === "backdrop") backdropArrived = true
+        else if (action === "ready") Sounds.play("library_ready")
+        else if (action.indexOf("arrive:") === 0) {
+            var next = Object.assign({}, arrived)
+            next[action.slice(7)] = true
+            arrived = next
+            fill()
+        }
+    }
+    Timer {
+        id: timeline
+        property var steps: []
+        property int i: 0
+        property double t0: Date.now()
+        function next() {
+            if (i >= steps.length) return
+            interval = Math.max(0, t0 + steps[i].t - Date.now())
+            restart()
+        }
+        onTriggered: {
+            while (i < steps.length && t0 + steps[i].t <= Date.now() + 1)
+                demo.act(steps[i++].action)
+            next()
+        }
+    }
 }

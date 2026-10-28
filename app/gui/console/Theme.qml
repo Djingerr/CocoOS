@@ -252,6 +252,8 @@ QtObject {
     readonly property int coverMoveFast: 230
     readonly property var curveCoverFast: [0.25, 0.1, 0.25, 1, 1, 1]
     readonly property int navFastStep: 190           // flèche maintenue : une jaquette toutes les 190 ms
+    readonly property real coverFastBlur: 3          // …les jaquettes floutées pendant ce défilement
+    readonly property int coverFastBlurFade: 160
     readonly property int coverBump: 34              // butée : tout le carrousel recule de 34 px…
     readonly property int coverBumpOut: 200
     readonly property int coverBumpBack: 170         // …puis revient

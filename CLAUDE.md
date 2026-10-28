@@ -551,6 +551,12 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   vibrations par motifs (`backend/haptics`, réglage Off / Légères / Fortes), harnais
   `docs/ui/cocoos/harness/`. Décisions : veille après 5 min ; quitter le jeu reste à l'appui
   maintenu ; menu d'alimentation : A suffit ; pas de changement de qualité en cours de partie.
+  Phase 2 (accueil) : carrousel 3D `CoverFlow` (remplace `GameShelf`), fond flouté
+  (`Backdrop.frag`), barre haute CocoOS et onglets `CategoryTabs` (Tout / Favoris / Récents / Apps,
+  les utilitaires d'Apollo dans Apps), bloc titre centré (`HeroBlock`), aide `HomeHelp`, état
+  `EmptyFavorites`, saut de lettre RT / LT (> 30 jeux). Jaquette Playnite d'abord. Harnais :
+  écart 3,2 / 255 avec AccueilCarrousel ; séquences filmées par `filmstrip.sh`. ⚠️ Porte : à
+  valider à l'œil et à la manette par Marco (next_steps.md).
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
   télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
   Côté console uniquement (Apollo reste non modifié).
@@ -682,11 +688,16 @@ Fichiers (dans `app/gui/console/`) :
 - `Theme.qml` (+ `qmldir`) — singleton des jetons de design : couleurs, tailles, durées, ressort
 - `fonts/` — Sora embarquée (OFL, instances statiques de Google Fonts, 400 à 700), chargée par
   `Theme.qml` (`Theme.fontsReady`) ; seule famille de l'interface (pas de mono)
-- `BackdropLayer.qml` — fond en fondu croisé (deux calques) + voile + dérive lente
-- `HeroBlock.qml` — méta, titre, sous-titre, boutons Jouer / Options ; partie en cours, Reprendre /
-  Quitter la partie à la manette (haut depuis l'étagère)
-- `GameShelf.qml` — l'étagère de vignettes en carrousel : anneau fixe, piste qui défile, focus,
-  répétition manette
+- `BackdropLayer.qml` — fond CocoOS : l'art du jeu flouté une fois en petit, puis un passage de
+  `shaders/Backdrop.frag` (dérive lente, vignettage, grain) ; deux calques en fondu croisé
+- `HeroBlock.qml` — bloc titre centré sous le carrousel : titre (deux lignes équilibrées, puis
+  36 px), méta studio · année · genre + PEGI, A Jouer / Y Options ; partie en cours, Reprendre /
+  Quitter la partie à la manette (haut depuis le carrousel)
+- `CoverFlow.qml` — carrousel 3D (perspective par `Matrix4x4`, jaquettes et reflets par
+  `shaders/Cover.frag`, ombres pré-rendues) : `position` animée et interruptible, butée, saut de
+  lettre, jaquette composée, squelettes de chargement
+- `CategoryTabs.qml`, `HomeHelp.qml`, `EmptyFavorites.qml` — onglets de catégories de la barre
+  haute, aide en bas de l'accueil, état « Aucun favori »
 - `SwapBox.qml`, `Appear.qml`, `ButtonGlyph.qml` — remplacement de texte en glissant (et en se
   floutant, `blur`, rendu GPU seulement), apparition en fondu-glissé, glyphe de bouton
 - `Format.js` — mise en forme des données Companion (source, dernière session, temps de jeu)
@@ -722,8 +733,9 @@ Fichiers (dans `app/gui/console/`) :
   `harness/make-shadows.py` si une taille change (les tests vérifient leurs dimensions)
 - `languages/qml_en.ts` (+ `.qm` compilé, embarqué) — traduction anglaise de tous les textes
   console, QML et C++ (cf §11 pour la mettre à jour)
-- `StatusBar.qml` — barre haute : logotype, pastille de l'hôte + horloge / Wi-Fi / batterie (éclair en
-  charge, orange sous `Theme.batteryLow`) / réglages ; la pastille s'ouvre en île de notification
+- `StatusBar.qml` — barre haute : logotype, pastille de l'hôte (à droite, point accent qui respire)
+  + horloge / Wi-Fi / batterie (éclair en charge, orange sous `Theme.batteryLow`) / réglages
+  (engrenage masqué en CocoOS, `settingsShown`) ; la pastille s'ouvre en île de notification
   (`notify`, `dismiss`) sur les événements système qu'elle détecte elle-même. Wi-Fi, batterie et
   réglages se choisissent (focus `HomeScreen.statusFocused`, souris) et ouvrent leur fiche
   (`SysCard`) ; A → `activated(key)`
@@ -1063,6 +1075,10 @@ g++ -std=c++17 -fPIC -I../../../../app/gui/console/backend tst_haptics.cpp \
 - Les vues lisent `../mock/` en local : `QML_XHR_ALLOW_FILE_READ=1` (posé par `shot.sh`).
 - `app/gui/console/haptics.json` est une copie de `motion/haptics.json` : `tst_haptics` vérifie
   qu'ils ne divergent pas.
+
+Séquences animées (phase 2) : `./filmstrip.sh /tmp/nav.png 10200 view=HomeDemo
+order=ha,ce,hk,mc,fh,sv,er,zl,p2 start=1500 script=1600:right,3160:right,4520:fastright,…` donne la
+grille 4 × 3 de `../reference/filmstrip/` ; `loading=1` rejoue `MotionJaquettes`.
 
 ### Build vanilla hors source (vérifier qu'il reste intact)
 

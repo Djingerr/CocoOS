@@ -215,6 +215,75 @@ Un commit par sous-étape :
 - ⚠️ **À écouter / sentir par Coco** : le niveau du nouveau pack (0,8) à l'accueil et dans le menu en
   jeu, et les vibrations Légères / Fortes à la manette (aucune n'a été ressentie).
 
+## Refonte CocoOS — phase 2, accueil (2026-10-28)
+
+Décision de Coco : jaquette Playnite (Companion) d'abord, celle d'Apollo à défaut ; à revoir
+dans les phases suivantes si besoin.
+
+Commits : fond flouté et carrousel (`8972077c`), accueil assemblé (`15d5deac`), puis séquences,
+traduction et notes.
+- **Fond** (`BackdropLayer`, `shaders/Backdrop.frag`) : l'image floutée une fois en 148 × 100
+  (MultiEffect), puis un seul passage de shader : cadrage `inset: -100px`, dérive cocoBgPan
+  (1,25 → 1,34, 60 s), saturation 1,1, vignettage radial 0,25 → 0,85, grain 7 % en overlay
+  (`images/grain.png`). Fondu croisé de 900 ms.
+- **Carrousel** (`CoverFlow`, `shaders/Cover.frag`) : emplacements et rotations de
+  `AccueilCarrousel` interpolés par une seule valeur `position` (animée, interruptible) ;
+  perspective 900 px par `Matrix4x4` ; chaque jaquette en un passage (coins, reflet en biais,
+  dégradé des latérales, assombrissement, balayage toutes les 10 s, squelette de chargement) et son
+  reflet au sol ; ombres pré-rendues (`shadows/cover*.png`, `make-shadows.py`) ; titre des
+  latérales ; déplacement 640 ms à léger rebond, maintenu 190 ms par pas (230 ms) avec flou ;
+  butée de 34 px ; saut de lettre RT / LT au-delà de 30 jeux (lettre dans un carré de verre,
+  carrousel flouté, `tab_switch` + vibration « category ») ; jaquette composée (dégradé d'une des
+  six teintes, éditeur, titre) ; apparition des jaquettes (500 / 700 ms). `GameShelf` retirée
+  (et `tst_GameShelf`, 54 jetons morts, `shadows/thumb.png`).
+- **Barre haute** : logo 20 px, onglets `CategoryTabs` au centre (pastille blanche 520 ms à léger
+  rebond, écrasement, LB / RB allumés), pastille du PC à droite (point accent qui respire),
+  heure 15 px tabulaire, Wi-Fi, batterie. **Engrenage masqué** (absent de la maquette).
+- **Bloc titre** (`HeroBlock` réécrit, même interface) : titre 48 px centré, deux lignes
+  équilibrées, puis 36 px, puis points de suspension ; méta « studio · année · genre » (Récents :
+  dernière partie · temps de jeu) et pastille PEGI ; A Jouer (blanc) et Y Options (verre) ;
+  Reprendre / Quitter maintenu inchangés. Changement de jeu : fondu flou de 12 px vers le haut ou
+  le bas (520 ms, 200 maintenu) ; de catégorie : de côté.
+- **Catégories** (`Library.js`) : Tout et Favoris toujours, Récents et Apps s'ils ont quelque
+  chose ; les utilitaires d'Apollo (Desktop, Steam Big Picture…) vont dans Apps (« A Ouvrir »).
+- **Aide** (`HomeHelp`) : flèches au trait, allumées à l'appui, ↓ qui oscille.
+- **Favoris vide** (`EmptyFavorites`) : cadres en pointillés en perspective, étoile, message,
+  « RB Voir les jeux récents », aide LB / RB / Y.
+- **Sons et vibrations** : `category_next` / `category_prev`, `nav_move_fast` vibre comme
+  `nav_move` (cues.json), `library_ready` quand la bibliothèque du Companion arrive accueil
+  affiché, `Sounds.play(nom, vibration)`.
+- Harnais : `HomeDemo` (mock, `script=t:action`, `loading=1`), `filmstrip.sh` (12 images),
+  `tst_CoverFlow` (7 tests). `Format.meta / publisher / pegi` (+ test).
+
+### Porte de la phase 2
+- **Écrans fixes** (`tools/compare.py`) : `AccueilCarrousel` **3,2 / 255** (aucune zone > 7,3),
+  `EtatFavorisVide` **3,8 / 255** (le gros de l'écart : la phrase retirée, cf. écarts).
+  `CasLimites` (planche d'explication, pas un écran) : les quatre cas vérifiés en capture (titre
+  long, jaquette composée, méta incomplète, saut de lettre).
+- **Séquences** : `MotionNavigation` capturée aux 12 instants de son filmstrip, calée sur
+  la maquette pour les déplacements simples (1,7 s et 3,4 s : mêmes titres en plein fondu).
+  `MotionCategories` et `MotionJaquettes` : même comportement ; leurs filmstrips de référence ne
+  suivent pas le minutage de leur propre source (cycle de 10 s au lieu de 8 ou 7), la comparaison
+  se fait au comportement, pas image par image. Commandes dans `CLAUDE.md` §11.
+- **Tests** : 19 suites vertes (dont `tst_ConsoleHome` 48, `tst_CoverFlow` 7). Build `embedded` :
+  démarre sans avertissement de la console.
+- Sons et vibrations aux instants de `cues.json` : les déclencheurs sont à leur place (mêmes
+  événements) ; pas de journal horodaté comparé à 30 ms près (le harnais coupe les sons en capture).
+- **Écarts restants** (à accepter ou trancher) :
+  1. Engrenage de la barre haute masqué (`StatusBar.settingsShown`) : on le garde caché ?
+  2. « Vos favoris sont aussi enregistrés dans Playnite. » retiré du message des favoris vides :
+     faux tant que le Companion n'écrit pas les favoris (Q11).
+  3. Squelette du titre de `MotionJaquettes` non fait : chez nous le titre (Apollo) est toujours
+     connu avant l'entrée de l'accueil.
+  4. Images noires de `MotionNavigation` à 5,1 s et 7,65 s (fonds à mi-fondu dans la capture de
+     la maquette) : non reproduites.
+  5. Accueil : plus de logo du jeu à la place du titre, plus de point « en cours » sur la jaquette
+     (absents des maquettes) ; Reprendre / Quitter restent dans le bloc titre.
+  6. Apps : pas de méta (la maquette écrit « Bureau virtuel sur PC-Salon », sans source de donnée).
+- ⚠️ **À valider à la manette par Coco** : parcourir (appui, maintien, butée), LB / RB, saut de
+  lettre (bibliothèque de plus de 30 jeux), Favoris vide puis RB, A Jouer / Ouvrir, les sons et
+  vibrations ; la fluidité (perspective, flou maintenu) sur l'Orange Pi, plus tard.
+
 ## Écran de veille — reconnaissance (phase 0, 2026-10-27)
 
 Brief : `docs/design/idle/CLAUDE_BRIEF.md`. Branche : `feat/idle-screen` (depuis `console-ui`).

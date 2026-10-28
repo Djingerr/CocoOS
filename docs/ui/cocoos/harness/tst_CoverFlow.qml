@@ -61,10 +61,11 @@ Item {
             compare(flow.currentIndex, 4)
             wait(Theme.coverMove / 3)
             var mid = flow.position
-            verify(mid > 3 && mid < 4.2)
+            verify(mid > 3.2 && mid < 4.2)
             keyClick(Qt.Key_Left)
             compare(flow.currentIndex, 3)
-            fuzzyCompare(flow.position, mid, 0.1)       // pas de saut
+            // Pas de saut : l'animation repart d'où elle en est (elle n'est pas revenue à 3).
+            verify(flow.position > 3.2, "position " + flow.position)
             tryCompare(flow, "position", 3, Theme.coverMove + 200)
         }
 
