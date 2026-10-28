@@ -36,15 +36,16 @@
         <file>gui/console/BootSplash.qml</file>
         <file>gui/console/icons/pin.svg</file>
         <file>gui/console/icons/settings.svg</file>
-        <file>gui/console/shadows/thumb.png</file>
         <file>gui/console/shadows/island.png</file>
         <file>gui/console/Appear.qml</file>
         <file>gui/console/SwapBox.qml</file>
         <file>gui/console/ButtonGlyph.qml</file>
         <file>gui/console/BackdropLayer.qml</file>
         <file>gui/console/CoverFlow.qml</file>
+        <file>gui/console/CategoryTabs.qml</file>
+        <file>gui/console/HomeHelp.qml</file>
+        <file>gui/console/EmptyFavorites.qml</file>
         <file>gui/console/HeroBlock.qml</file>
-        <file>gui/console/GameShelf.qml</file>
         <file>gui/console/HomeScreen.qml</file>
         <file>gui/console/PadRepeat.qml</file>
         <file>gui/console/CheckMark.qml</file>

@@ -1,29 +1,35 @@
 import QtQuick
 
-// Bloc héros de l'accueil : méta (source | dernière session), titre du jeu,
-// sous-titre (temps de jeu, mise à jour) et actions (Jouer, Options, Épingler).
-// Partie en cours : « Reprendre la partie » et « Quitter la partie » (appui maintenu),
-// les boutons du prototype des micro-interactions ; avec la manette (`focus`, haut depuis
-// l'étagère), ← / → choisissent, A agit, bas ou B la rendent (leaveRequested).
-// Tout est posé à partir du BAS du bloc : un titre sur deux lignes le fait
-// grandir vers le haut, sans déplacer les actions. Quand le jeu change, chaque
-// champ se remplace en glissant et en se floutant (SwapBox, swapText du prototype).
-// Aucune dépendance Moonlight.
+// Bloc titre de l'accueil CocoOS, centré sous le carrousel (AccueilCarrousel) : titre du
+// jeu, méta « Éditeur · Année · Genre » et PEGI, boutons « A Jouer » et « Y Options ».
+// Partie en cours : « Reprendre la partie » et « Quitter la partie » (appui maintenu) ;
+// avec la manette (`focus`, haut depuis le carrousel), ← / → choisissent, A agit, bas ou B
+// la rendent (leaveRequested).
+// Quand le jeu change, titre et méta se remplacent ensemble en fondu flou, en montant ou
+// en descendant selon le sens (MotionNavigation) ; d'une catégorie à l'autre, de côté
+// (`axis` "x", MotionCategories). Un titre trop long passe sur deux lignes équilibrées,
+// puis en plus petit, puis en points de suspension (CasLimites). Aucune dépendance Moonlight.
 Item {
     id: root
 
     property string title
-    property url logo                // logo du jeu (Companion) ; vide = le titre en texte
-    property string source           // « Steam », « GOG »… ; vide = masqué
-    property string lastPlayed       // « Hier, 23:40 » ; vide = masqué
-    property string playtime         // « 412 h de jeu » ; vide = masqué
-    property string updateNote       // mise à jour en attente côté PC ; vide = masqué
+    property url logo                // (logo du jeu : plus affiché sur l'accueil CocoOS)
+    property string source           // (Ambiant)
+    property string lastPlayed       // (Ambiant)
+    property string playtime         // (Ambiant)
+    // Méta sous le titre : ses morceaux (un absent disparaît avec son séparateur) et le PEGI.
+    property var meta: []
+    property string pegi: ""         // « PEGI 7 » ; vide = pas de pastille
+    property string updateNote       // mise à jour ou téléchargement en cours : remplace la méta
     property bool running: false     // le jeu tourne déjà : « Reprendre »
     property string playLabel: ""    // autre libellé du bouton A (jeu à télécharger) ; vide = Jouer
     property bool favorite: false    // épinglé en tête de l'étagère : X le détache
-    // Sens du dernier déplacement dans la liste (+1 vers la droite) : les textes
-    // glissent dans ce sens. `animated` à false : ils changent sans transition.
+    // Sens du dernier déplacement dans la liste (+1 vers la droite) : le nouveau titre
+    // arrive par le bas. `axis` "x" : changement de catégorie, il arrive de côté.
+    // `fast` : flèche maintenue, transitions courtes. `animated` à false : sans transition.
     property int direction: 1
+    property string axis: "y"
+    property bool fast: false
     property bool animated: true
     property bool pressed: false     // le bouton Jouer reste enfoncé (lancement)
     property bool held: false        // A enfoncé : le bouton Jouer s'écrase (le jeu part au relâché)
@@ -89,239 +95,151 @@ Item {
     signal optionsRequested()
     signal favoriteRequested()
 
-    // Hauteur de la boîte du titre pour `lines` lignes.
-    function titleHeight(lines) {
-        return Math.round(lines * Theme.heroTitleLineHeight + Theme.heroTitlePadBottom)
+    width: parent ? parent.width : Theme.canvasWidth
+    implicitHeight: column.height
+
+    // --- Titre et méta, remplacés ensemble ---
+    TextMetrics { id: measure; font.family: Theme.fontUi; font.weight: Font.DemiBold }
+    // Le titre à `size` px, interlettrage compris.
+    function advance(text, size) {
+        measure.font.pixelSize = size
+        measure.font.letterSpacing = Theme.homeTitleSpacing * size
+        measure.text = text
+        return measure.advanceWidth
+    }
+    // { size, text } : sur une ligne à 48 px ; sinon deux lignes coupées au mot, le plus
+    // équilibrées possible ; sinon pareil à 36 px ; sinon deux lignes à 36 px, la seconde
+    // coupée par des points de suspension (le Text s'en charge).
+    function fitTitle(text) {
+        var sizes = [Theme.homeTitleSize, Theme.homeTitleSmallSize]
+        var words = text.split(" ")
+        for (var s = 0; s < sizes.length; s++) {
+            var size = sizes[s]
+            if (advance(text, size) <= Theme.homeTitleWidth)
+                return { size: size, text: text }
+            var best = null
+            for (var i = 1; i < words.length; i++) {
+                var a = words.slice(0, i).join(" "), b = words.slice(i).join(" ")
+                var widest = Math.max(advance(a, size), advance(b, size))
+                if (widest <= Theme.homeTitleWidth && (best === null || widest < best.widest))
+                    best = { widest: widest, text: a + "\n" + b }
+            }
+            if (best !== null)
+                return { size: size, text: best.text }
+        }
+        var half = Math.max(1, Math.ceil(words.length / 2))
+        return { size: sizes[1], text: words.slice(0, half).join(" ") + "\n" + words.slice(half).join(" ") }
     }
 
-    width: Theme.heroWidth
-    // Hauteur du bloc avec un titre sur une ligne (le titre peut dépasser en haut).
-    implicitHeight: metaBox.height + Theme.heroTitleTopMargin + titleHeight(1)
-                    + Theme.heroSubTopMargin + subBox.height
-                    + Theme.heroActionsTopMargin + Theme.playHeight
-
-    // --- Méta ---
-    component MetaLine: Row {
-        id: meta
+    component TitleAndMeta: Column {
+        id: block
         property var value: ({})
-        readonly property string source: value.source || ""
-        readonly property string lastPlayed: value.lastPlayed || ""
-
-        spacing: Theme.heroMetaGap
-        Text {
-            visible: text !== ""
-            text: meta.source
-            color: Theme.heroMetaColor
-            font.family: Theme.fontUi; font.pixelSize: Theme.heroMetaSize; font.weight: Font.Medium
-        }
-        Rectangle {
-            anchors.verticalCenter: parent.verticalCenter
-            visible: meta.source !== "" && meta.lastPlayed !== ""
-            width: 1; height: Theme.heroSeparatorHeight
-            color: Theme.heroSeparatorColor
-        }
-        Text {
-            visible: text !== ""
-            text: meta.lastPlayed
-            color: Theme.heroMetaColor
-            font.family: Theme.fontUi; font.pixelSize: Theme.heroMetaSize; font.weight: Font.Medium
-        }
-    }
-
-    SwapBox {
-        id: metaBox
-        y: titleBox.y - Theme.heroTitleTopMargin - height
-        width: parent.width; height: Theme.heroMetaHeight
-        key: root.source + "\n" + root.lastPlayed
-        value: ({ source: root.source, lastPlayed: root.lastPlayed })
-        direction: root.direction
-        animated: root.animated
-        axis: "x"; distance: Theme.heroSwapTravel
-        duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
-        enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
-        blur: Theme.swapBlur
-
-        MetaLine {}
-        MetaLine {}
-    }
-
-    // --- Titre : le logo du jeu s'il en a un (une fois chargé), sinon son nom ---
-    component TitleLines: Item {
-        id: lines
-        property var value: ({})
-        readonly property bool showLogo: logoImage.status === Image.Ready
-        readonly property int lineCount: showLogo ? Theme.heroLogoLines : Math.max(1, label.lineCount)
-
-        width: Theme.heroWidth
-        height: root.titleHeight(lineCount)
-
-        Image {
-            id: logoImage
-            anchors.left: parent.left
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: Theme.heroTitlePadBottom
-            width: Theme.heroLogoMaxWidth
-            height: root.titleHeight(Theme.heroLogoLines) - Theme.heroTitlePadBottom
-            source: lines.value.logo || ""
-            fillMode: Image.PreserveAspectFit
-            horizontalAlignment: Image.AlignLeft
-            verticalAlignment: Image.AlignBottom
-            asynchronous: true
-            sourceSize.width: Math.ceil(width * Theme.scale)
-            opacity: lines.showLogo ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: Theme.heroLogoFade } }
-        }
-
-        FontMetrics { id: metrics; font: label.font }
-        Text {
-            id: label
-            opacity: lines.showLogo ? 0 : 1
-            Behavior on opacity { NumberAnimation { duration: Theme.heroLogoFade } }
-            // L'interligne (1.04) est plus serré que la hauteur naturelle de la
-            // police : on remonte le texte de la moitié de l'écart, comme en CSS.
-            y: (Theme.heroTitleLineHeight - metrics.height) / 2
+        // Calculé à chaque nouveau titre (pas en liaison : la mesure modifie TextMetrics).
+        property var fitted: ({ size: Theme.homeTitleSize, text: "" })
+        onValueChanged: fitted = root.fitTitle(value.title || "")
+        width: root.width
+        spacing: Theme.homeMetaTop
+        // Interligne de 1,05 × la taille, comme en CSS (Qt l'appliquerait à la hauteur
+        // naturelle de la police) ; le texte remonte de la moitié de l'écart.
+        Item {
             width: parent.width
-            text: lines.value.title || ""
-            color: Theme.ink
-            wrapMode: Text.WordWrap
-            maximumLineCount: Theme.heroTitleMaxLines
-            elide: Text.ElideRight
-            lineHeightMode: Text.FixedHeight
-            lineHeight: Theme.heroTitleLineHeight
-            font.family: Theme.fontUi; font.pixelSize: Theme.heroTitleSize; font.weight: Font.DemiBold
-            font.letterSpacing: Theme.heroTitleSpacing
-        }
-    }
-
-    SwapBox {
-        id: titleBox
-        y: subBox.y - Theme.heroSubTopMargin - height
-        width: parent.width
-        // La boîte s'ajuste au titre courant ; la méta suit, au-dessus.
-        height: root.titleHeight(currentItem ? currentItem.lineCount : 1)
-        Behavior on height {
-            enabled: root.animated
-            NumberAnimation { duration: Theme.heroTitleResize; easing.type: Theme.easeQuint }
-        }
-        key: root.title
-        value: ({ title: root.title, logo: root.logo.toString() })
-        direction: root.direction
-        animated: root.animated
-        axis: "x"; distance: Theme.heroSwapTravel
-        duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
-        enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
-        blur: Theme.swapBlur
-
-        TitleLines {}
-        TitleLines {}
-    }
-
-    // --- Sous-titre ---
-    component SubLine: Row {
-        id: sub
-        property var value: ({})
-        readonly property string playtime: value.playtime || ""
-        readonly property string updateNote: value.updateNote || ""
-
-        height: Theme.heroSubHeight
-        spacing: Theme.heroSubGap
-        Text {
-            height: parent.height
-            verticalAlignment: Text.AlignVCenter
-            visible: text !== ""
-            text: sub.playtime
-            color: Theme.heroSubColor
-            font.family: Theme.fontUi; font.pixelSize: Theme.heroSubSize
+            height: titleText.lineCount * titleText.lineHeight
+            FontMetrics { id: titleMetrics; font: titleText.font }
+            Text {
+                id: titleText
+                y: (lineHeight - titleMetrics.height) / 2
+                width: parent.width
+                horizontalAlignment: Text.AlignHCenter
+                text: block.fitted.text
+                color: Theme.ink
+                elide: Text.ElideRight
+                maximumLineCount: 2
+                lineHeightMode: Text.FixedHeight
+                lineHeight: block.fitted.size * Theme.homeTitleLineHeight
+                font.family: Theme.fontUi; font.pixelSize: block.fitted.size; font.weight: Font.DemiBold
+                font.letterSpacing: Theme.homeTitleSpacing * block.fitted.size
+            }
         }
         Row {
-            height: parent.height
-            visible: sub.updateNote !== ""
-            spacing: Theme.heroUpdateDotGap
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: Theme.homeMetaGap
+            Repeater {
+                // [« Mojang Studios », « · », « 2011 »…] : les séparateurs entre morceaux présents.
+                model: (block.value.meta || []).reduce(function(all, part, i) {
+                    return i === 0 ? [part] : all.concat(["·", part])
+                }, [])
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: modelData
+                    color: Theme.homeMetaInk
+                    font.family: Theme.fontUi; font.pixelSize: Theme.homeMetaSize; font.weight: Font.Medium
+                }
+            }
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
-                width: Theme.heroUpdateDotSize; height: width; radius: 1
-                color: Theme.accent
-            }
-            Text {
-                height: parent.height
-                verticalAlignment: Text.AlignVCenter
-                text: sub.updateNote
-                color: Theme.heroSubColor
-                font.family: Theme.fontUi; font.pixelSize: Theme.heroSubSize
-            }
-        }
-    }
-
-    SwapBox {
-        id: subBox
-        y: actions.y - Theme.heroActionsTopMargin - height
-        width: parent.width; height: Theme.heroSubHeight
-        key: root.playtime + "\n" + root.updateNote
-        value: ({ playtime: root.playtime, updateNote: root.updateNote })
-        direction: root.direction
-        animated: root.animated
-        axis: "x"; distance: Theme.heroSwapTravel
-        duration: Theme.heroSwapIn; exitDuration: Theme.heroSwapOut
-        enterCurve: Theme.curveOut; exitCurve: Theme.curveExit
-        blur: Theme.swapBlur
-        delay: Theme.heroSubSwapDelay
-
-        SubLine {}
-        SubLine {}
-    }
-
-    // --- Actions ---
-    // Options, Épingler : un glyphe et un libellé, qui s'éclairent et grandissent au survol.
-    component TextButton: Pressable {
-        id: textButton
-        property string glyph
-        property string label
-        signal clicked()
-        readonly property color ink: textMouse.containsMouse ? Theme.ink : Theme.optionsColor
-        anchors.verticalCenter: parent.verticalCenter
-        width: textRow.width; height: textRow.height
-        down: textMouse.pressed
-        hovered: textMouse.containsMouse
-        hoverScale: Theme.hoverScale
-        Row {
-            id: textRow
-            spacing: Theme.optionsGap
-            ButtonGlyph {
-                anchors.verticalCenter: parent.verticalCenter
-                label: textButton.glyph
-                ink: textButton.ink
-                Behavior on ink { ColorAnimation { duration: Theme.hoverFade } }
-            }
-            Text {
-                anchors.verticalCenter: parent.verticalCenter
-                text: textButton.label
-                color: textButton.ink
-                font.family: Theme.fontUi; font.pixelSize: Theme.optionsLabelSize; font.weight: Font.Medium
-                Behavior on color { ColorAnimation { duration: Theme.hoverFade } }
+                visible: (block.value.pegi || "") !== ""
+                width: pegiText.implicitWidth + 2 * Theme.pegiPad
+                height: Theme.pegiHeight
+                radius: Theme.pegiRadius
+                color: "transparent"
+                border.color: Theme.pegiStroke
+                Text {
+                    id: pegiText
+                    anchors.centerIn: parent
+                    text: block.value.pegi || ""
+                    color: Theme.ink
+                    font.family: Theme.fontUi; font.pixelSize: Theme.pegiSize; font.weight: Font.DemiBold
+                }
             }
         }
-        HoverArea { id: textMouse; anchors.fill: parent; onClicked: textButton.clicked() }
     }
+
     component PlayText: Text {
         property var value
         height: Theme.playHeight
         verticalAlignment: Text.AlignVCenter
         text: value || ""
-        color: Theme.inkOnAccent
+        color: Theme.inkOnLight
         font.family: Theme.fontUi; font.pixelSize: Theme.playLabelSize; font.weight: Font.DemiBold
     }
-    Row {
-        id: actions
-        anchors.bottom: parent.bottom
-        spacing: Theme.heroActionsGap
-        opacity: root.actionsShown ? 1 : 0
-        Behavior on opacity {
-            enabled: root.actionsShown
-            SequentialAnimation {
-                PauseAnimation { duration: Theme.entryLegendDelay }
-                NumberAnimation { duration: Theme.entryTextFade; easing.type: Easing.OutCubic }
-            }
+
+    Column {
+        id: column
+        width: parent.width
+        spacing: Theme.homeActionsTop
+
+        SwapBox {
+            id: titleBox
+            width: parent.width
+            height: currentItem ? currentItem.height : 0
+            key: root.title + "\n" + root.meta.join("·") + root.pegi + root.updateNote
+            value: ({ title: root.title, meta: root.updateNote !== "" ? [root.updateNote] : root.meta, pegi: root.pegi })
+            direction: root.direction
+            axis: root.axis
+            animated: root.animated
+            distance: root.axis === "x" ? Theme.categorySlide : Theme.homeTitleTravel
+            duration: root.fast ? Theme.homeTitleFast : Theme.homeTitleMove
+            exitDuration: root.fast ? Theme.homeTitleFast : Theme.homeTitleMove
+            enterCurve: Theme.curveMain; exitCurve: Theme.curveMain
+            blur: Theme.homeTitleBlur
+
+            TitleAndMeta {}
+            TitleAndMeta {}
         }
+
+        // --- Boutons ---
+        Row {
+            id: actions
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: Theme.homeButtonsGap
+            opacity: root.actionsShown ? 1 : 0
+            Behavior on opacity {
+                enabled: root.actionsShown
+                SequentialAnimation {
+                    PauseAnimation { duration: Theme.entryLegendDelay }
+                    NumberAnimation { duration: Theme.entryTextFade; easing.type: Easing.OutCubic }
+                }
+            }
 
         Pressable {
             id: playButton
@@ -331,7 +249,7 @@ Item {
             hovered: playMouse.containsMouse
             hoverScale: Theme.hoverScale
 
-            Rectangle { anchors.fill: parent; radius: height / 2; color: Theme.accent }
+            Rectangle { anchors.fill: parent; radius: height / 2; color: Theme.ink }
             Row {
                 id: playRow
                 x: Theme.playPadLeft
@@ -341,12 +259,12 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     label: "A"
                     size: Theme.playGlyphSize
-                    color: Theme.inkOnAccent
-                    ink: Theme.accent
+                    color: Theme.inkOnLight
+                    ink: Theme.ink
                     fontSize: Theme.playGlyphFontSize
                 }
-                // Le libellé : au lancement, il cède la place à « Lancement… » en glissant
-                // (swapText du prototype), et le bouton s'élargit pour le contenir.
+                // Le libellé : au lancement, il cède la place à « Lancement… » en glissant,
+                // et le bouton s'élargit pour le contenir.
                 SwapBox {
                     id: playText
                     readonly property string text: root.playLabel !== "" ? root.playLabel
@@ -447,15 +365,42 @@ Item {
             }
         }
 
-        TextButton {
-            glyph: "Y"
-            label: qsTr("Options")
-            onClicked: root.optionsRequested()
+        // Options : bouton de verre, glyphe cerclé.
+        Pressable {
+            id: optionsButton
+            visible: !root.running
+            width: Theme.playPadLeft + optionsRow.width + Theme.optionsPadRight
+            height: Theme.playHeight
+            down: optionsMouse.pressed
+            hovered: optionsMouse.containsMouse
+            hoverScale: Theme.hoverScale
+            Rectangle {
+                anchors.fill: parent
+                radius: height / 2
+                color: Theme.glassRaised
+                border.color: Theme.hairlineStrong
+            }
+            Row {
+                id: optionsRow
+                x: Theme.playPadLeft
+                anchors.verticalCenter: parent.verticalCenter
+                spacing: Theme.playGap
+                ButtonGlyph {
+                    anchors.verticalCenter: parent.verticalCenter
+                    label: "Y"
+                    size: Theme.optionsGlyphSize
+                    ink: Theme.optionsGlyphInk
+                    fontSize: Theme.optionsGlyphFontSize
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("Options")
+                    color: Theme.ink
+                    font.family: Theme.fontUi; font.pixelSize: Theme.optionsLabelSize; font.weight: Font.DemiBold
+                }
+            }
+            HoverArea { id: optionsMouse; anchors.fill: parent; onClicked: root.optionsRequested() }
         }
-        TextButton {
-            glyph: "X"
-            label: root.favorite ? qsTr("Désépingler") : qsTr("Épingler")
-            onClicked: root.favoriteRequested()
         }
     }
 }

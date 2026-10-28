@@ -1,10 +1,11 @@
 import QtQuick
 
-// Écran d'accueil « Ambiant » : assemble le fond, la barre haute, le bloc héros,
-// l'étagère et le panneau d'options, et règle leur mouvement d'ensemble (entrée
-// en cascade, dérive du fond, effacement au lancement d'un jeu).
-// Présentation pure : les données viennent de ConsoleHome (ou du harnais de
-// docs/ui/ambiant/harness/). Aucune dépendance Moonlight.
+// Écran d'accueil CocoOS (AccueilCarrousel) : assemble le fond flouté, la barre haute et
+// ses onglets de catégories, le carrousel 3D, le bloc titre, l'aide en bas et le panneau
+// d'options, et règle leur mouvement d'ensemble (entrée, dérive du fond, effacement au
+// lancement d'un jeu).
+// Présentation pure : les données viennent de ConsoleHome (ou des harnais de
+// docs/ui/ambiant/harness/ et docs/ui/cocoos/harness/). Aucune dépendance Moonlight.
 //
 // Remplit son parent. Tout le contenu est dessiné sur un canevas de 800 de haut
 // (Theme.canvasHeight), mis à l'échelle de l'écran en une seule transformation ;
@@ -28,6 +29,10 @@ FocusScope {
     property alias runningGame: shelf.runningName   // son point sur l'étagère
     property alias playLabel: hero.playLabel        // « Télécharger »… ; vide = Jouer
     property alias favorite: hero.favorite          // épinglé : X le détache
+    // Méta sous le titre (« Mojang Studios », « 2011 », « Bac à sable » : un absent n'y est
+    // pas) et le PEGI (« PEGI 7 » ; vide : pas de pastille).
+    property var meta: []
+    property string pegi: ""
     property alias backdrop: backdropLayer.source    // image de fond du jeu sélectionné
     // Teinte ambiante (couleur dominante du fond) : le bas du voile. Par défaut
     // l'accent, sans teinte du voile.
@@ -86,9 +91,7 @@ FocusScope {
     property bool launching: false
     // Place de la vignette du jeu sélectionné sur le canevas (agrandie) : l'écran de
     // lancement en part.
-    readonly property rect activeThumbRect: Qt.rect(
-        shelf.activeRect.x, Theme.shelfBottom - Theme.shelfThumbSize.height + shelf.activeRect.y,
-        shelf.activeRect.width, shelf.activeRect.height)
+    readonly property rect activeThumbRect: shelf.activeRect
 
     // --- Options (bouton Y) : cf. OptionsSheet ---
     readonly property alias options: sheet           // options.open(), options.opened…
@@ -116,6 +119,19 @@ FocusScope {
     property var collectionLabels: []
     property int collectionIndex: 0
     signal collectionRequested(int direction)
+    // La catégorie affichée est « Favoris » et elle est vide : son état remplace le carrousel.
+    property bool favoritesEmpty: false
+    signal recentRequested()                         // le bouton « Voir les jeux récents »
+
+        // À appeler juste AVANT de changer la collection affichée : LB / RB s'allument, le titre
+    // suivant arrivera de côté (MotionCategories). Le carrousel, lui, entre par shelf.slideIn.
+    property int categoryDirection: 0
+    function categoryStart(direction) {
+        categoryDirection = direction
+        tabs.pressed(direction)
+        categoryEnd.restart()
+    }
+    Timer { id: categoryEnd; interval: Theme.categoryEnterMove; onTriggered: root.categoryDirection = 0 }
 
     // Message bref au-dessus de l'étagère.
     function toast(message) { toastItem.show(message) }
@@ -174,6 +190,15 @@ FocusScope {
             Behavior on zoom { NumberAnimation { duration: Theme.backdropZoomDuration; easing.type: Theme.easeOut } }
         }
 
+        // Favoris vide : son état (et son fond) à la place du carrousel, sous la barre haute.
+        EmptyFavorites {
+            anchors.fill: parent
+            visible: opacity > 0
+            opacity: root.favoritesEmpty && root.entered && !root.staged ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Theme.entryTextFade } }
+            onRecentRequested: root.recentRequested()
+        }
+
         // Chaque bloc est enveloppé deux fois : pour son entrée, puis pour son
         // effacement à chaque lancement d'un jeu. La barre haute fait entrer ses textes
         // elle-même (son logo arrive de l'animation de démarrage).
@@ -202,13 +227,53 @@ FocusScope {
                 notificationsAllowed: root.notificationsAllowed && root.settled && root.statusLogoShown
                                       && !sheet.opened && !root.panelOpen && !root.launching
             }
+
+            // Catégories, au centre de la barre haute.
+            CategoryTabs {
+                id: tabs
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: Theme.tabsTop
+                labels: root.collectionLabels
+                currentIndex: root.collectionIndex
+                visible: labels.length > 1
+                opacity: root.entryAllowed ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: Theme.entryTextFade } }
+                onRequested: function(delta) { root.collectionRequested(delta) }
+            }
+        }
+
+        // Le carrousel (fondus des bords compris) : il descend au lancement d'un jeu.
+        Appear {
+            width: parent.width; height: parent.height
+            shown: !root.launching && !root.staged
+            hiddenY: Theme.launchShelfShift
+            hideDuration: Theme.launchHide
+            animateInitially: false
+
+            CoverFlow {
+                id: shelf
+                anchors.fill: parent
+                // La manette va au carrousel, à l'écran de message ou au panneau ouvert :
+                // le focus suit ces liaisons, il revient seul à la fermeture.
+                focus: !root.staged && !sheet.opened && !root.heroFocused && !root.statusFocused
+                shown: root.entered
+                onLaunchRequested: function(index) { root.launchRequested(index) }
+                onDetailsRequested: root.detailsRequested()
+                onUpRequested: {
+                    if (hero.running) root.heroFocused = true
+                    else if (status.keys.length > 0) root.statusFocused = true
+                    else return
+                    Sounds.play("move")
+                }
+                Keys.onMenuPressed: root.favoriteRequested()      // bouton X
+                onCollectionRequested: function(direction) { root.collectionRequested(direction) }
+            }
         }
 
         Appear {
-            x: Theme.margin
-            y: Theme.heroBottom - height
-            width: hero.width; height: hero.implicitHeight
-            shown: root.entered
+            y: Theme.homeTitleTop
+            width: parent.width; height: hero.implicitHeight
+            shown: root.entered && !root.favoritesEmpty
             hiddenY: 0
             hideDuration: 0
             fadeDuration: Theme.entryTextFade
@@ -224,9 +289,13 @@ FocusScope {
 
                 HeroBlock {
                     id: hero
-                    anchors.bottom: parent.bottom
+                    width: parent.width
                     focus: root.heroFocused && !root.statusFocused && !root.staged && !sheet.opened
-                    direction: shelf.direction
+                    meta: root.meta
+                    pegi: root.pegi
+                    axis: root.categoryDirection !== 0 ? "x" : "y"
+                    direction: root.categoryDirection !== 0 ? root.categoryDirection : shelf.direction
+                    fast: shelf.fast
                     held: shelf.pressing
                     animated: root.entered
                     actionsShown: root.entered
@@ -247,83 +316,13 @@ FocusScope {
             }
         }
 
-        Appear {
-            y: Theme.shelfBottom - Theme.shelfThumbSize.height
-            width: parent.width; height: shelf.implicitHeight
-            shown: !root.launching && !root.staged
-            hiddenY: Theme.launchShelfShift
-            hideDuration: Theme.launchHide
-            animateInitially: false
-
-            GameShelf {
-                id: shelf
-                anchors.fill: parent
-                // La manette va à l'étagère, à l'écran de message ou au panneau
-                // ouvert : le focus suit ces liaisons, il revient seul à la fermeture.
-                focus: !root.staged && !sheet.opened && !root.heroFocused && !root.statusFocused
-                shown: root.entered
-                enterStep: root.settled ? 0 : Theme.entryCardStagger
-                onLaunchRequested: function(index) { root.launchRequested(index) }
-                onDetailsRequested: root.detailsRequested()
-                onUpRequested: {
-                    if (hero.running) root.heroFocused = true
-                    else root.statusFocused = true
-                    Sounds.play("move")
-                }
-                Keys.onMenuPressed: root.favoriteRequested()      // bouton X
-                onCollectionRequested: function(direction) { root.collectionRequested(direction) }
-            }
-
-            // Collections : [LB] Tous  Favoris  Récents [RB], à droite au-dessus de l'étagère.
-            Row {
-                id: collectionStrip
-                anchors.right: parent.right
-                anchors.rightMargin: Theme.margin
-                y: -Theme.collectionsBottom - Theme.collectionsHeight
-                height: Theme.collectionsHeight
-                spacing: Theme.collectionsGap
-                visible: root.collectionLabels.length > 1
-                opacity: shelf.focused || root.heroFocused ? 1 : Theme.shelfRestOpacity
-                Behavior on opacity { NumberAnimation { duration: Theme.shelfFocusFade } }
-
-                ButtonGlyph { anchors.verticalCenter: parent.verticalCenter; label: "LB"; ink: Theme.ink3 }
-                Repeater {
-                    id: collectionRepeater
-                    model: root.collectionLabels
-                    Item {
-                        readonly property bool active: index === root.collectionIndex
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: collectionLabel.width; height: Theme.collectionsHeight
-                        Text {
-                            id: collectionLabel
-                            anchors.verticalCenter: parent.verticalCenter
-                            text: modelData
-                            color: parent.active || collectionMouse.containsMouse ? Theme.ink : Theme.ink3
-                            Behavior on color { ColorAnimation { duration: Theme.hoverFade } }
-                            font.family: Theme.fontUi; font.pixelSize: Theme.collectionsSize
-                            font.weight: parent.active ? Font.DemiBold : Font.Medium
-                        }
-                        HoverArea {
-                            id: collectionMouse
-                            anchors.fill: parent
-                            onClicked: if (!parent.active) root.collectionRequested(index - root.collectionIndex)
-                        }
-                    }
-                }
-                ButtonGlyph { anchors.verticalCenter: parent.verticalCenter; label: "RB"; ink: Theme.ink3 }
-            }
-            ElasticIndicator {
-                readonly property Item activeTab: collectionRepeater.count > root.collectionIndex
-                                                  ? collectionRepeater.itemAt(root.collectionIndex) : null
-                visible: collectionStrip.visible
-                opacity: collectionStrip.opacity
-                y: collectionStrip.y + collectionStrip.height - Theme.underlineHeight
-                height: Theme.underlineHeight
-                targetLeft: activeTab ? collectionStrip.x + activeTab.x : 0
-                targetRight: activeTab ? collectionStrip.x + activeTab.x + activeTab.width : 0
-                animated: root.entered
-                Rectangle { anchors.fill: parent; radius: Theme.underlineRadius; color: Theme.accent }
-            }
+        // Aide en bas : « ◀ ▶ Parcourir   ↓ Plus d'infos ».
+        HomeHelp {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: Theme.canvasHeight - Theme.helpBottom - height
+            lit: shelf.heldDirection
+            opacity: root.entered && !root.launching && !root.staged && !root.favoritesEmpty ? 1 : 0
+            Behavior on opacity { NumberAnimation { duration: Theme.entryTextFade } }
         }
 
         Toast { id: toastItem }

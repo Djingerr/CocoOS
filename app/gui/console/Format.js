@@ -87,6 +87,24 @@ function facts(info) {
     return list
 }
 
+// Méta sous le titre de l'accueil CocoOS : « Mojang Studios · 2011 · Bac à sable » (le studio,
+// l'année de sortie, le premier genre). Un champ absent n'y est pas (CasLimites).
+function meta(info) {
+    var studio = (info.developers || [])[0] || (info.publishers || [])[0] || ""
+    var year = /^(\d{4})/.exec(info.releaseDate || "")
+    return [studio, year ? year[1] : "", (info.genres || [])[0] || ""].filter(Boolean)
+}
+
+// L'éditeur (libellé d'une jaquette composée), sinon le studio.
+function publisher(info) {
+    return (info.publishers || [])[0] || (info.developers || [])[0] || ""
+}
+
+// La pastille PEGI de l'accueil : seulement une classification PEGI ; aucune sinon.
+function pegi(ratings) {
+    return (ratings || []).filter(function(r) { return /^PEGI/i.test(r) })[0] || ""
+}
+
 // Développeurs puis éditeurs, sans doublon : « FromSoftware · Bandai Namco ».
 function credits(info) {
     var names = []

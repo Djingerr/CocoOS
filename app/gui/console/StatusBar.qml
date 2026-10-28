@@ -43,14 +43,17 @@ Item {
     property bool wifiChangeable: false  // A sur le Wi-Fi : la liste des réseaux
     signal activated(string key)         // A ou clic : "wifi", "settings" (la batterie n'a rien à faire)
     signal leaveRequested()              // bas ou B
+    // L'engrenage (Réglages) n'est pas dans la barre CocoOS (AccueilCarrousel) : masqué tant que
+    // Coco ne l'a pas redemandé ; les réglages s'ouvrent par Y (Options).
+    property bool settingsShown: false
     readonly property var keys: {
         var k = []
         if (signalStrength >= 0) k.push("wifi")
         if (batteryPercent >= 0) k.push("battery")
-        k.push("settings")
+        if (settingsShown) k.push("settings")
         return k
     }
-    property string selected: "settings"
+    property string selected: keys.length > 0 ? keys[keys.length - 1] : ""
     property bool aHeld: false
     property string hoveredKey: ""
     // La fiche ouverte : l'icône survolée, sinon celle qui a la manette.
@@ -58,7 +61,7 @@ Item {
                                     : hoveredKey !== "" ? hoveredKey : activeFocus ? selected : ""
     onActiveFocusChanged: {
         aHeld = false
-        if (keys.indexOf(selected) < 0) selected = "settings"
+        if (keys.indexOf(selected) < 0) selected = keys.length > 0 ? keys[keys.length - 1] : ""
     }
     function move(dir) {
         var next = keys.indexOf(selected) + dir
@@ -510,8 +513,8 @@ Item {
     }
 
     Item {
-        x: Theme.margin; y: Theme.topBarY
-        width: root.width - 2 * Theme.margin
+        x: Theme.marginScreen; y: Theme.topBarY
+        width: root.width - Theme.marginScreen - Theme.statusRight
         height: Theme.topBarHeight
 
         // --- Logotype ---
@@ -571,7 +574,9 @@ Item {
             }
 
             opacity: root.contentOpacity
-            x: logoBox.width + Theme.statusLogoGap
+            // À droite, devant l'heure (CocoOS) : l'île s'ouvre vers la gauche.
+            anchors.right: parent.right
+            anchors.rightMargin: sysRow.width + Theme.sysGap
             anchors.verticalCenter: parent.verticalCenter
             width: idleWidth + (Theme.islandSize.width - idleWidth) * open
             height: idleHeight + (Theme.islandSize.height - idleHeight) * open
@@ -628,22 +633,27 @@ Item {
                     }
                 ]
 
-                // Point d'état : orange clignotant pendant la connexion, puis fixe, de la
-                // couleur de la qualité du réseau (vert sans mesure).
+                // Point d'état, accent : il respire une fois connecté (cocoLive), clignote
+                // pendant la connexion. La qualité du réseau ne colore plus que les
+                // statistiques en jeu (SPEC §1).
                 Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     width: Theme.hostDotSize; height: width; radius: width / 2
-                    color: !root.connected ? Theme.accent
-                         : root.quality === "poor" ? Theme.poor
-                         : root.quality === "fair" ? Theme.fair : Theme.ok
-                    Behavior on color { ColorAnimation { duration: Theme.sheetFocusFade } }
-                    opacity: root.connected ? 1 : blink
+                    color: Theme.accent
+                    opacity: blink
                     property real blink: 1
                     SequentialAnimation on blink {
-                        running: !root.connected
+                        running: !Theme.reducedMotion
                         loops: Animation.Infinite
-                        NumberAnimation { to: Theme.hostDotBlinkMin; duration: Theme.hostDotBlink / 2; easing.type: Easing.InOutSine }
-                        NumberAnimation { to: 1; duration: Theme.hostDotBlink / 2; easing.type: Easing.InOutSine }
+                        NumberAnimation {
+                            to: root.connected ? Theme.hostDotBreathMin : Theme.hostDotBlinkMin
+                            duration: (root.connected ? Theme.hostDotBreath : Theme.hostDotBlink) / 2
+                            easing.type: Easing.InOutSine
+                        }
+                        NumberAnimation {
+                            to: 1; duration: (root.connected ? Theme.hostDotBreath : Theme.hostDotBlink) / 2
+                            easing.type: Easing.InOutSine
+                        }
                     }
                 }
                 Text {
@@ -651,15 +661,15 @@ Item {
                     anchors.verticalCenter: parent.verticalCenter
                     text: root.hostName
                     color: Theme.ink
-                    font.family: Theme.fontUi; font.pixelSize: Theme.hostNameSize; font.weight: Font.Medium
+                    font.family: Theme.fontUi; font.pixelSize: Theme.hostNameSize; font.weight: Font.DemiBold
                 }
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: text !== ""
                     text: !root.connected ? qsTr("connexion…")
                         : root.latencyMs >= 0 ? qsTr("%1 ms").arg(root.latencyMs) : ""
-                    color: Theme.ink2
-                    font.family: Theme.fontUi; font.pixelSize: Theme.hostDetailSize
+                    color: Theme.hostDetailInk
+                    font.family: Theme.fontUi; font.pixelSize: Theme.hostDetailSize; font.weight: Font.Medium
                     font.features: { "tnum": 1 }
                 }
             }
@@ -764,6 +774,7 @@ Item {
             opacity: root.contentOpacity
 
         Row {
+            id: sysRow
             anchors.right: parent.right
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.sysGap
@@ -774,7 +785,8 @@ Item {
                 anchors.verticalCenter: parent.verticalCenter
                 text: root.timeText
                 color: Theme.ink
-                font.family: Theme.fontUi; font.pixelSize: Theme.clockSize; font.weight: Font.Medium
+                font.family: Theme.fontUi; font.pixelSize: Theme.clockSize; font.weight: Font.DemiBold
+                font.features: { "tnum": 1 }
             }
 
             // Manette sans fil : sa silhouette et trois barres, sur une grille 24 × 16
@@ -861,6 +873,7 @@ Item {
 
             SysButton {
                 key: "settings"
+                visible: root.settingsShown
                 width: Theme.settingsIconSize; height: width
                 Image {
                     anchors.fill: parent

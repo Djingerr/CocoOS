@@ -195,7 +195,7 @@ QtObject {
     readonly property real bootRefHeight: 720
     readonly property real logoSize: 104             // Sora 700, « Coco » blanc, « OS » accent
     readonly property color logoBright: "#FFB076"    // le O, plus clair, pendant son tracé
-    readonly property real statusLogoScale: 0.2      // dans la barre haute
+    readonly property real statusLogoScale: 0.173    // dans la barre haute : « CocoOS » de 20 px (AccueilCarrousel)
     readonly property int statusLogoGap: 20          // entre le logo et la pastille de l'hôte
     // Animation de démarrage : étape en cours sous le logo pendant le chargeur
     // (repère 720), délai laissé à la découverte du PC avant de conclure « aucun PC »,
@@ -300,21 +300,108 @@ QtObject {
     readonly property int letterShow: 900            // la lettre reste, le carrousel flou
     readonly property real letterBlur: 3
 
+    // --- Onglets de catégories (CategoryTabs ; AccueilCarrousel, MotionCategories) ---
+    readonly property int tabsTop: 28                // haut de la rangée, px du canevas
+    readonly property int tabsPad: 4                 // marge de la pastille de verre
+    readonly property int tabsLabelPadH: 18
+    readonly property int tabsLabelPadV: 7
+    readonly property int tabsSize: 14               // 500 ; 600 sur l'onglet actif
+    readonly property color tabsInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.72)
+    readonly property int tabsInkFade: 260
+    readonly property int tabsMove: 520              // la pastille blanche glisse…
+    readonly property var curveTabs: [0.3, 1.2, 0.4, 1, 1, 1]   // …avec un léger rebond
+    readonly property int tabsSquashDelay: 100       // à l'appui de LB / RB, elle s'écrase…
+    readonly property real tabsSquash: 1.06
+    readonly property int tabsSquashMove: 40
+    readonly property int tabsSquashHold: 80
+    readonly property int tabsGlyphGap: 10           // LB / RB de part et d'autre
+    readonly property int tabsGlyphHeight: 22
+    readonly property int tabsGlyphPad: 7
+    readonly property int tabsGlyphSize: 10          // Sora 600
+    readonly property color tabsGlyphStroke: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.3)
+    readonly property int tabsGlyphFlash: 450        // glyphe allumé après l'appui
+    readonly property int tabsGlyphFade: 150
+
+    // --- Bloc titre de l'accueil (HeroBlock ; AccueilCarrousel, CasLimites) ---
+    readonly property int homeTitleTop: 516          // haut du titre, px du canevas
+    readonly property int homeTitleSize: 48          // Sora 600 (la planche ; tokens.json dit 40)
+    readonly property int homeTitleSmallSize: 36     // titre trop long même sur deux lignes
+    readonly property real homeTitleSpacing: -0.04   // em
+    readonly property real homeTitleLineHeight: 1.05
+    readonly property int homeTitleWidth: 640        // colonne centrale (DESIGN_SYSTEM : 560 à 640)
+    readonly property int homeTitleTravel: 12        // le nouveau titre monte (ou descend) de 12 px…
+    readonly property int homeTitleMove: 520         // …en 520 ms (curveMain), en fondu flou…
+    readonly property int homeTitleFast: 200         // …ou 200 ms, flèche maintenue
+    readonly property real homeTitleBlur: 6
+    readonly property int homeMetaTop: 10
+    readonly property int homeMetaGap: 10
+    readonly property int homeMetaSize: 15           // Sora 500
+    readonly property color homeMetaInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.62)
+    readonly property int pegiHeight: 20             // pastille « PEGI 7 »
+    readonly property int pegiPad: 7
+    readonly property int pegiRadius: 5
+    readonly property int pegiSize: 11               // Sora 600
+    readonly property color pegiStroke: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.35)
+    readonly property int homeActionsTop: 26         // des boutons sous la méta
+    readonly property int homeButtonsGap: 12
+    readonly property int optionsPadRight: 22        // bouton Options (verre)
+    readonly property int optionsGlyphSize: 28
+    readonly property int optionsGlyphFontSize: 12
+    readonly property color optionsGlyphInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.5)
+
+    // --- Aide en bas de l'accueil (HomeHelp) ---
+    readonly property int helpBottom: 40             // du bas du canevas au bas de la rangée
+    readonly property int helpGap: 28
+    readonly property int helpInnerGap: 8
+    readonly property int helpArrowGap: 8
+    readonly property int helpGlyphSize: 22
+    readonly property color helpGlyphStroke: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.45)
+    readonly property real helpArrowStroke: 1.5
+    readonly property int helpSize: 13               // Sora 500
+    readonly property color helpInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.55)
+    readonly property int helpNudge: 3               // ↓ oscille de 3 px (cocoNudge)…
+    readonly property int helpNudgePeriod: 1800      // …en 1,8 s
+
+    // --- État « Aucun favori » (EmptyFavorites ; EtatFavorisVide) ---
+    readonly property color emptyTop: "#3A2A50"      // fond : dégradé sourd…
+    readonly property color emptyBottom: "#0A0810"
+    // Emplacements vides : [bord gauche depuis le centre, haut, rotateY, opacité du trait].
+    readonly property var emptySlots: [[-550, 178, 60, 0.08], [-320, 164, 30, 0.12],
+                                       [140, 164, -30, 0.12], [370, 178, -60, 0.08]]
+    readonly property size emptySlotSize: Qt.size(180, 255)
+    readonly property real emptySlotStroke: 1.5
+    readonly property var emptySlotDash: [3, 3]      // en largeurs de trait
+    readonly property int emptyStarTop: 200
+    readonly property int emptyStarDisk: 110
+    readonly property int emptyStarSize: 40
+    readonly property int emptyTextTop: 344
+    readonly property int emptyTextWidth: 520
+    readonly property int emptyButtonTop: 2          // + deux espacements de homeMetaTop : 22 px
+    readonly property int emptyButtonPadRight: 24
+    readonly property int emptyButtonSize: 16        // Sora 600
+    readonly property int emptyHelpBottom: 34
+    readonly property int emptyHelpGap: 26
+    readonly property int emptyHelpGlyphSize: 11
+
     // --- Barre haute (StatusBar) ---
     readonly property int topBarY: 26
     readonly property int topBarHeight: 40
     // Pastille de l'hôte : point d'état, nom, puis détail (latence ou « connexion… »).
-    readonly property color hostPillFill: Qt.rgba(0, 0, 0, 0.42)
-    readonly property color hostPillStroke: Qt.rgba(1, 1, 1, 0.12)   // filet intérieur 1 px
-    readonly property int hostPillPadLeft: 12
+    readonly property color hostPillFill: glassPill
+    readonly property color hostPillStroke: Qt.rgba(1, 1, 1, 0.1)    // filet intérieur 1 px
+    readonly property int hostPillPadLeft: 14
     readonly property int hostPillPadRight: 14
     readonly property int hostPillPadV: 8
-    readonly property int hostPillGap: 10
-    readonly property int hostDotSize: 7
+    readonly property int hostPillGap: 8
+    readonly property int hostDotSize: 6
+    readonly property int hostDotBreath: 2400        // point « en ligne » qui respire (cocoLive)…
+    readonly property real hostDotBreathMin: 0.35    // …de 35 % à 100 %
     readonly property int hostDotBlink: 1100         // période du clignotement « connexion… »
     readonly property real hostDotBlinkMin: 0.2
-    readonly property int hostNameSize: 14           // Sora 500
-    readonly property int hostDetailSize: 12         // ink2, chiffres tabulaires
+    readonly property int hostNameSize: 13           // Sora 600
+    readonly property int hostDetailSize: 13         // Sora 500, chiffres tabulaires
+    readonly property color hostDetailInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.55)
+    readonly property int statusRight: marginStatus  // bord droit de la barre (pastille, heure, icônes)
     // Île de notification : la pastille de l'hôte s'ouvre pour un événement système (manette,
     // batterie, PC perdu ou retrouvé, réseau mauvais), puis se referme seule après islandHold.
     // Taille au ressort springGentle, rayon en islandRadiusMove (curveOut) ; contenu en fondu
@@ -358,10 +445,10 @@ QtObject {
     readonly property int islandHold: 2800
     readonly property int islandPoorDelay: 10000     // réseau mauvais tant de temps : notifié
     // Horloge, Wi-Fi, batterie
-    readonly property int clockSize: 17              // Sora 500
-    readonly property int sysGap: 14
-    readonly property int wifiSize: 18
-    readonly property size batterySize: Qt.size(27, 14)
+    readonly property int clockSize: 15              // Sora 600, chiffres tabulaires
+    readonly property int sysGap: 18
+    readonly property int wifiSize: 17
+    readonly property size batterySize: Qt.size(25, 12)
     readonly property int batteryLow: 20             // en dessous (hors charge), l'icône passe en orange
     // Icônes de droite (Wi-Fi, batterie, réglages), qu'on choisit à la manette (haut depuis
     // l'étagère ou le héros), au clavier ou à la souris : une pastille de sysButtonHeight qui
@@ -434,7 +521,7 @@ QtObject {
     readonly property int heroActionsTopMargin: 26
     readonly property int heroActionsGap: 26
     readonly property int playHeight: 52
-    readonly property int playPadLeft: 10
+    readonly property int playPadLeft: 11
     readonly property int playPadRight: 26
     // Partie en cours : à côté de « Reprendre la partie », « Quitter la partie » (prototype des
     // micro-interactions, bouton « Quitter le stream ») : contour de quitBorderWidth, s'écrase à
@@ -453,103 +540,19 @@ QtObject {
     readonly property int focusRingWidth: 2
     readonly property int focusRingFade: 140
     readonly property real focusRingFrom: 1.025
-    readonly property int playGap: 12
+    readonly property int playGap: 10
     readonly property int playLabelSize: 17          // Sora 600
-    readonly property int playGlyphSize: 32
-    readonly property int playGlyphFontSize: 12
+    readonly property int playGlyphSize: 30
+    readonly property int playGlyphFontSize: 13
     readonly property color optionsColor: Qt.rgba(1, 1, 1, 0.86)
-    readonly property int optionsLabelSize: 16       // Sora 500
+    readonly property int optionsLabelSize: 15       // Sora 600
     readonly property int optionsGap: 10
 
-    // --- Étagère de vignettes (GameShelf) ---
-    readonly property int shelfBottom: 736           // bord bas des vignettes
-    // Portrait 3:4 : le format des jaquettes d'Apollo / Sunshine (600 × 800), affichées entières.
+    // --- Vignette de l'étagère « Ambiant » : seule la taille de décodage de la jaquette de
+    //     LaunchScreen s'en sert encore (l'écran de lancement est refait en phase 5) ---
     readonly property size shelfThumbSize: Qt.size(108, 144)
-    readonly property int shelfGap: 14
-    readonly property int shelfThumbRadius: 10
-    readonly property color shelfThumbFill: "#111111"            // sous l'image, pendant son chargement
-    // Carrousel du prototype des micro-interactions : avec la manette, la vignette active grandit
-    // depuis son centre (ressort « vif »), les autres s'estompent (shelfFocusFade, curveOut) ;
-    // A tenu, elle redescend à shelfTapScale. Sans la manette (panneau, héros), toutes reviennent.
     readonly property real shelfActiveScale: 1.08
-    readonly property real shelfTapScale: 1.02
-    readonly property real shelfRestOpacity: 0.48    // vignettes non sélectionnées
-    readonly property int shelfFocusFade: 220        // opacité, ombre et filet
-    // Un seul anneau glisse d'une vignette à l'autre (ressort « vif ») : shelfRingGap autour de
-    // la vignette agrandie, un trait de shelfRingWidth puis un halo de shelfRingHalo
-    // (box-shadow 0 0 0 2px, 0 0 0 7px). Sans la manette, il s'efface (shelfRingFade) en
-    // rétrécissant à shelfRingHiddenScale.
-    readonly property int shelfRingGap: 6
-    readonly property int shelfRingRadius: 17
-    readonly property int shelfRingWidth: 2
-    readonly property int shelfRingHalo: 5
-    readonly property color shelfRingHaloColor: "#12F2F0EC"     // ink à 7 %
-    readonly property int shelfRingFade: 160
-    readonly property real shelfRingHiddenScale: 0.94
-    // Coins arrondis des vignettes : un masque GPU par vignette visible. Passer à
-    // false (coins droits) si la carte cible ne tient pas ses 60 images par seconde.
-    readonly property bool shelfRounded: true
-    // Ombre portée de la vignette active (prototype : 0 18px 40px -12px, noir à 90 %) : une
-    // image pré-calculée (shadows/thumb.png, harness/make-shadows.py, à relancer si la taille
-    // change), qui déborde de shelfShadowPad tout autour. Un filet clair intérieur borde
-    // chaque vignette (shelfEdge), plus net sur l'active (shelfEdgeActive).
-    readonly property int shelfShadowPad: 78
-    readonly property real shelfEdge: 0.06
-    readonly property real shelfEdgeActive: 0.10
-    readonly property int thumbFadeIn: 260           // la jaquette chargée apparaît en fondu
-    // Jaquette en cours de chargement : une bande claire (shimmerColor, shimmerSpan de la
-    // largeur) traverse la case vide en shimmerDuration, en boucle.
-    readonly property color shimmerColor: Qt.rgba(1, 1, 1, 0.07)
-    readonly property real shimmerSpan: 0.7
-    readonly property int shimmerDuration: 1300
-    // Jeu sans jaquette : dégradé teinté d'après son nom, le nom au centre.
-    readonly property real placeholderSaturation: 0.28
-    readonly property real placeholderLightTop: 0.22
-    readonly property real placeholderLightBottom: 0.10
-    readonly property int placeholderTextSize: 15    // Sora 600…
-    readonly property int placeholderLines: 3        // …sur tant de lignes au plus
-    readonly property int placeholderPad: 12
-    readonly property color placeholderInk: Qt.rgba(1, 1, 1, 0.82)
-    // Jeu épinglé : pastille orange (punaise) dans le coin haut droit de la vignette.
-    readonly property int pinBadgeSize: 20
-    readonly property int pinBadgeInset: 6
-    readonly property int pinIconSize: 13
-    // Collections (Tous, Favoris, Récents) : des onglets alignés à droite au-dessus de
-    // l'étagère (L1 / R1), soulignés d'orange comme ceux du panneau ; changer de collection
-    // fait glisser la piste de collectionSlide px en fondu (collectionSlideDuration). L2 / R2
-    // sautent de shelfJump vignettes.
-    readonly property int collectionsBottom: 30      // au-dessus des vignettes (l'anneau, son halo)
-    readonly property int collectionsHeight: 24
-    readonly property int collectionsGap: 18
-    readonly property int collectionsSize: 14        // Sora 600 (active) / 500
-    readonly property int collectionSlide: 28
-    readonly property int collectionSlideDuration: 280
-    readonly property int shelfJump: 10
-    // Jeu en cours sur le PC : un point orange en haut à gauche de sa vignette, cerclé de
-    // sombre, d'où part une onde (runningPulse ms, de 1 à runningRipple fois sa taille, en
-    // s'effaçant) ; immobile avec « Réduire les animations ».
-    readonly property int runningDotSize: 10
-    readonly property int runningDotRing: 2
-    readonly property color runningDotRingColor: Qt.rgba(0, 0, 0, 0.55)
-    readonly property int runningPulse: 1600
-    readonly property real runningRipple: 2.6
-    // Jeu pas encore installé (fin d'étagère) : vignette estompée ; en téléchargement, fine
-    // barre de progression en bas, dans les marges de la pastille.
-    readonly property real shelfPendingOpacity: 0.6
-    readonly property int shelfProgressHeight: 4
-    readonly property color shelfProgressTrack: Qt.rgba(0, 0, 0, 0.55)
-    // Reflet de la vignette active : une bande claire la balaie une fois, sheenDelay
-    // après chaque déplacement (sheenDuration, curveInOut). Géométrie du prototype
-    // (.tile::after) : une boîte qui déborde de 20 % de chaque côté (sheenOversize), un
-    // dégradé incliné de sheenAngle sur la verticale, clair sur sheenSpan de sa longueur,
-    // poussé de -sheenTravel à +sheenTravel de la largeur de la boîte.
-    readonly property int sheenDelay: 520
-    readonly property int sheenDuration: 950
-    readonly property color sheenColor: Qt.rgba(1, 1, 1, 0.16)
-    readonly property real sheenOversize: 1.4
-    readonly property real sheenAngle: 15
-    readonly property real sheenSpan: 0.16
-    readonly property real sheenTravel: 0.75
+    // Soulignement orange (onglets du panneau d'options, code de liaison).
     readonly property int underlineHeight: 3         // soulignement orange (onglets, code)
     readonly property int underlineRadius: 2
 

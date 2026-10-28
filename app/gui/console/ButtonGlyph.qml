@@ -14,6 +14,7 @@ Rectangle {
     property color ink: Theme.ink            // lettre et contour
     property real fontSize: Theme.glyphFontSize
     property real size: Theme.glyphSize      // diamètre (hauteur d'une pastille)
+    property int weight: Font.Medium
 
     readonly property var nintendo: ({ A: "B", B: "A", X: "Y", Y: "X", LB: "L", RB: "R" })
     readonly property var playstation: ({ A: "cross", B: "circle", X: "square", Y: "triangle", LB: "L1", RB: "R1" })
@@ -38,7 +39,7 @@ Rectangle {
         visible: !root.isSymbol
         text: root.face
         color: root.ink
-        font.family: Theme.fontUi; font.pixelSize: root.fontSize; font.weight: Font.Medium
+        font.family: Theme.fontUi; font.pixelSize: root.fontSize; font.weight: root.weight
     }
 
     // --- Symboles PlayStation ---

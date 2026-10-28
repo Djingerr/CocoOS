@@ -26,6 +26,8 @@ FocusScope {
     property int enterStep: 0            // (étagère Ambiant : cascade d'entrée)
     property bool pressing: false        // A enfoncé
     readonly property bool focused: activeFocus
+    // Flèche tenue (l'aide en bas l'allume) : -1 gauche, +1 droite, 0 aucune.
+    readonly property int heldDirection: pad.heldKey === Qt.Key_Left ? -1 : pad.heldKey === Qt.Key_Right ? 1 : 0
 
     signal launchRequested(int index)
     signal detailsRequested()
@@ -69,7 +71,9 @@ FocusScope {
         completed = true
     }
     // (count vaut 0 tant que le modèle n'est pas chargé : ne pas y perdre la sélection.)
-    onCountChanged: if (count > 0 && currentIndex >= count) currentIndex = count - 1
+    // Un Repeater compte ses éléments un à un pendant qu'on remplit le modèle : attendre la
+    // fin du remplissage avant de ramener la sélection dans la liste.
+    onCountChanged: Qt.callLater(function() { if (count > 0 && currentIndex >= count) currentIndex = count - 1 })
 
     // Déplace la sélection d'un cran ; en bout de liste, le carrousel bute.
     function move(dir) {
@@ -225,12 +229,12 @@ FocusScope {
     Keys.onReleased: function(event) {
         pad.release(event)
         if (pressing && !event.isAutoRepeat && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) {
-            root.launchRequested(currentIndex)   // (d'abord : un lancement garde le bouton enfoncé)
+            if (count > 0) root.launchRequested(currentIndex)   // (d'abord : un lancement garde le bouton enfoncé)
             pressing = false
         }
     }
     Keys.onUpPressed: root.upRequested()
-    Keys.onDownPressed: root.detailsRequested()
+    Keys.onDownPressed: if (count > 0) root.detailsRequested()
     Keys.onReturnPressed: function(event) { if (!event.isAutoRepeat) pressing = true }
     Keys.onEnterPressed: function(event) { if (!event.isAutoRepeat) pressing = true }
     onActiveFocusChanged: if (!activeFocus) { pad.stop(); pressing = false }
@@ -435,7 +439,7 @@ FocusScope {
                             font.family: Theme.fontUi
                             font.pixelSize: Theme.composedLabelSize * unit
                             font.weight: Font.DemiBold
-                            font.letterSpacing: 0.08 * font.pixelSize
+                            font.letterSpacing: 0.08 * Theme.composedLabelSize * unit
                             elide: Text.ElideRight
                         }
                         Text {
@@ -445,7 +449,7 @@ FocusScope {
                             font.family: Theme.fontUi
                             font.pixelSize: Theme.composedTitleSize * unit
                             font.weight: Font.DemiBold
-                            font.letterSpacing: -0.03 * font.pixelSize
+                            font.letterSpacing: -0.03 * Theme.composedTitleSize * unit
                             lineHeight: 1.05
                             wrapMode: Text.Wrap
                             maximumLineCount: 3
@@ -510,7 +514,7 @@ FocusScope {
             font.family: Theme.fontUi
             font.pixelSize: Theme.letterSize
             font.weight: Font.DemiBold
-            font.letterSpacing: -0.03 * font.pixelSize
+            font.letterSpacing: -0.03 * Theme.letterSize
         }
     }
 }

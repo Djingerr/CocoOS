@@ -107,30 +107,32 @@ Item {
         anchors.fill: parent
         opacity: 0
 
-        // La petite copie floutée, cadrée comme l'écran et son débord (inset : -100px).
-        Item {
-            id: blurred
+        // La petite copie floutée, cadrée comme l'écran et son débord (inset : -100px). Le
+        // shader lit la sortie du MultiEffect (sa couche), pas l'image.
+        Image {
+            id: picture
             width: Theme.backdropBlurSize.width
             height: Theme.backdropBlurSize.height
             visible: false
+            fillMode: Image.PreserveAspectCrop
+            asynchronous: true
+            cache: true
+            smooth: true
+            sourceSize: Qt.size(width * 2, height * 2)
+            onStatusChanged: if (status === Image.Ready || status === Image.Error) root.reveal(layer)
+        }
+        MultiEffect {
+            id: blurred
+            width: picture.width
+            height: picture.height
+            visible: false
+            source: picture
+            autoPaddingEnabled: false
+            blurEnabled: true
+            blurMax: Theme.backdropBlurMax
+            blur: 1
             layer.enabled: true
             layer.smooth: true
-            layer.effect: MultiEffect {
-                autoPaddingEnabled: false
-                blurEnabled: true
-                blurMax: Theme.backdropBlurMax
-                blur: 1
-            }
-            Image {
-                id: picture
-                anchors.fill: parent
-                fillMode: Image.PreserveAspectCrop
-                asynchronous: true
-                cache: true
-                smooth: true
-                sourceSize: Qt.size(blurred.width * 2, blurred.height * 2)
-                onStatusChanged: if (status === Image.Ready || status === Image.Error) root.reveal(layer)
-            }
         }
 
         ShaderEffect {

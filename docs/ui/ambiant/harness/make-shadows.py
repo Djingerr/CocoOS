@@ -18,8 +18,6 @@ SCALE = 2
 
 # nom : (largeur, hauteur, rayon, décalage y, flou, étalement, opacité, pad)
 SHADOWS = {
-    # Vignette de l'étagère (Theme.shelfThumbSize, shelfThumbRadius) : 0 18px 40px -12px, 90 %.
-    "thumb": (108, 144, 10, 18, 40, -12, 0.90, 78),
     # Île de notification (Theme.islandSize, islandRadius) : 0 14px 34px -8px, 80 %.
     "island": (340, 72, 28, 14, 34, -8, 0.80, 65),
     # Jaquettes du carrousel CocoOS (Theme.coverSlots, radiusCover) : la centrale

@@ -16,12 +16,10 @@ function isUtility(name) {
 
 // apps : [{ name, … }] ; favorites : noms épinglés, le dernier épinglé en tête ;
 // lastPlayed(name) : date de la dernière partie en ms, 0 si jamais joué.
-// Les utilitaires sont écartés tant qu'il reste au moins un jeu (sinon la console
-// ne servirait à rien). Ordre : favoris, puis du plus récent au plus ancien, puis
-// les jamais joués par nom.
+// Ordre : favoris, puis du plus récent au plus ancien, puis les jamais joués par nom.
+// Les utilitaires restent dans la liste : `collection` les range dans « Apps ».
 function order(apps, favorites, lastPlayed) {
-    var games = apps.filter(function(a) { return !isUtility(a.name) })
-    var list = games.length > 0 ? games : apps.slice()
+    var list = apps.slice()
     var pin = function(a) {
         var i = favorites.indexOf(a.name)
         return i < 0 ? favorites.length : i
@@ -83,22 +81,30 @@ function sync(model, items) {
         model.remove(items.length, model.count - items.length)
 }
 
-// Collections de l'étagère : "all" (tout, dans l'ordre de `order`), "favorites" (les
-// épinglés), "recent" (déjà joués, du plus récent au plus ancien). items : vignettes de
-// l'étagère ({ name, favorite, … }) ; lastPlayed(name) : date de la dernière partie en ms.
+// Catégories de l'accueil (onglets CocoOS) : "all" (les jeux, dans l'ordre de `order`),
+// "favorites" (les épinglés), "recent" (déjà joués, du plus récent au plus ancien), "apps"
+// (les utilitaires d'Apollo / Sunshine, par nom). Sans aucun jeu, « Tout » montre les
+// utilitaires (sinon la console ne servirait à rien). items : vignettes ({ name, favorite, … }) ;
+// lastPlayed(name) : date de la dernière partie en ms.
 function collection(items, kind, lastPlayed) {
+    var apps = items.filter(function(a) { return isUtility(a.name) })
+    if (kind === "apps")
+        return apps.sort(function(a, b) { return a.name.trim().localeCompare(b.name.trim()) })
+    var games = items.filter(function(a) { return !isUtility(a.name) })
+    var base = games.length > 0 ? games : items
     if (kind === "favorites")
-        return items.filter(function(a) { return a.favorite })
+        return base.filter(function(a) { return a.favorite })
     if (kind === "recent")
-        return items.filter(function(a) { return lastPlayed(a.name) > 0 })
-                    .sort(function(a, b) { return lastPlayed(b.name) - lastPlayed(a.name) })
-    return items
+        return base.filter(function(a) { return lastPlayed(a.name) > 0 })
+                   .sort(function(a, b) { return lastPlayed(b.name) - lastPlayed(a.name) })
+    return base
 }
 
-// Les collections à proposer : "all" toujours, les autres si elles ont au moins un jeu.
+// Les onglets à montrer : « Tout » et « Favoris » toujours (Favoris vide a son état,
+// EtatFavorisVide), « Récents » et « Apps » s'ils ont quelque chose.
 function collections(items, lastPlayed) {
-    return ["all", "favorites", "recent"].filter(function(kind) {
-        return kind === "all" || collection(items, kind, lastPlayed).length > 0
+    return ["all", "favorites", "recent", "apps"].filter(function(kind) {
+        return kind === "all" || kind === "favorites" || collection(items, kind, lastPlayed).length > 0
     })
 }
 

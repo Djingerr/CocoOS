@@ -348,20 +348,15 @@ Item {
         }
 
         // Un logo dans la bibliothèque du Companion : il remplace le titre en texte.
-        function test_9a_companionLogoReplacesTheTitle() {
+        // Accueil CocoOS : le titre reste en texte sous le carrousel, même quand le Companion a
+        // un logo (le logo est passé à HomeScreen pour la fiche).
+        function test_9a_titleStaysTextWithACompanionLogo() {
             CompanionClient.logos = { "game-1": Qt.resolvedUrl("art/logo-elden.png").toString() }
             CompanionClient.libraryChanged()
-            compare(screen.logo.toString(), "")            // Minecraft : pas de logo
             keyClick(Qt.Key_Right)                          // Elden Ring
             verify(screen.logo.toString().endsWith("art/logo-elden.png"))
-            var lines = find(screen, "showLogo")
-            tryVerify(function() {
-                for (var i = 0; i < lines.parent.children.length; i++) {
-                    var c = lines.parent.children[i]
-                    if (c.showLogo && c.value.title === "Elden Ring") return true
-                }
-                return false
-            }, 2000)
+            compare(find(screen, "showLogo"), null)
+            compare(screen.title, "Elden Ring")
             CompanionClient.logos = {}
             CompanionClient.libraryChanged()
         }
@@ -852,14 +847,26 @@ Item {
 
         // Collections : R1 sur l'étagère passe aux favoris (le jeu épinglé seul), L1 revient à
         // tout ; détacher le dernier favori fait disparaître la collection.
+        // Catégories CocoOS : Tout et Favoris toujours (Favoris vide montre son état), Apps
+        // pour les utilitaires d'Apollo ; LB / RB passent de l'une à l'autre.
         function test_9e_collections() {
-            compare(home.collections.indexOf("favorites"), -1)  // aucun favori : pas d'onglet
+            compare(home.collections.slice(0, 2), ["all", "favorites"])
+            compare(home.collections[home.collections.length - 1], "apps")
+            InputStatus.bumperPressed(1)
+            compare(home.collection, "favorites")
+            verify(screen.favoritesEmpty)
+            for (var i = 0; i < 4 && home.collection !== "apps"; i++) InputStatus.bumperPressed(1)
+            compare(home.collection, "apps")
+            compare(screen.title, "Desktop")
+            compare(screen.playLabel, "Ouvrir")             // une app : « A Ouvrir »
+            for (i = 0; i < 4 && home.collection !== "all"; i++) InputStatus.bumperPressed(-1)
+            compare(home.collection, "all")
             keyClick(Qt.Key_Right)
             var name = screen.title
             keyClick(Qt.Key_Menu)                           // X : épinglé
-            verify(home.collections.indexOf("favorites") > 0)
             InputStatus.bumperPressed(1)
             compare(home.collection, "favorites")
+            verify(!screen.favoritesEmpty)
             compare(screen.count, 1)
             compare(screen.title, name)
             InputStatus.bumperPressed(-1)
@@ -867,11 +874,13 @@ Item {
             compare(screen.count, 10)
             compare(screen.title, name)                     // la sélection suit le jeu
             InputStatus.bumperPressed(1)
-            keyClick(Qt.Key_Menu)                           // détaché : plus de favori
-            compare(home.collection, "all")
-            compare(home.collections.indexOf("favorites"), -1)
-            InputStatus.triggerPressed(1)                   // R2 : dix plus loin, le dernier
-            compare(screen.currentIndex, 9)
+            keyClick(Qt.Key_Menu)                           // détaché : Favoris redevient vide
+            compare(home.collection, "favorites")
+            verify(screen.favoritesEmpty)
+            InputStatus.bumperPressed(-1)
+            var index = screen.currentIndex
+            InputStatus.triggerPressed(1)                   // R2 : 10 jeux, pas de saut de lettre
+            compare(screen.currentIndex, index)
         }
 
         // Les utilitaires d'Apollo (ici « Desktop ») ne sont pas sur l'étagère.
@@ -1212,20 +1221,14 @@ Item {
         // Barre haute : haut depuis l'étagère (ou le héros) donne la manette à ses icônes
         // (Wi-Fi, batterie, réglages) ; l'icône choisie ouvre sa fiche, A agit : réglages →
         // options sur l'onglet Console, Wi-Fi → liste des réseaux ; bas ou B la rendent.
+        // La barre CocoOS n'a pas d'engrenage : haut depuis le carrousel donne la batterie.
         function test_9y_statusBarIcons() {
             var bar = screen.statusBar
             keyClick(Qt.Key_Up)
             verify(bar.activeFocus)
-            compare(bar.selected, "settings")
-            compare(bar.cardKey, "settings")
+            compare(bar.keys.indexOf("settings"), -1)
+            compare(bar.selected, "battery")
             keyClick(Qt.Key_Right)                          // déjà au bout
-            compare(bar.selected, "settings")
-            keyClick(Qt.Key_Return)
-            verify(screen.options.opened)
-            compare(screen.options.tab, 1)                  // Console
-            keyClick(Qt.Key_Escape)
-            tryVerify(function() { return bar.activeFocus }) // la manette revient à la barre
-            keyClick(Qt.Key_Left)
             compare(bar.cardKey, "battery")
             keyClick(Qt.Key_Return)                         // la batterie n'a rien à faire
             verify(!screen.options.opened && !screen.panelOpen)

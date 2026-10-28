@@ -239,22 +239,27 @@ FocusScope {
 
     // --- Étagère : les apps du PC sans les utilitaires, favoris puis jeux récents ---
     // Ses index ne sont PAS ceux d'AppModel : chaque élément porte son `appIndex`.
-    ListModel { id: shelfModel }        // name, appIndex, boxart, favorite, gameId, pending, progress
+    ListModel { id: shelfModel }        // name, appIndex, boxart, cover, publisher, favorite, gameId, pending, progress
     property int shelfRevision: 0       // change à chaque réordonnancement (liaisons)
     // Collection de l'étagère affichée (Library.collection) et celles qu'on peut choisir.
     property string collection: "all"
+    // Aucun jeu à montrer (pas seulement une catégorie vide, comme Favoris) : PC à trouver,
+    // bibliothèque à charger.
+    readonly property bool libraryEmpty: shelfModel.count === 0 && collection === "all"
     property var collections: ["all"]
-    readonly property var collectionNames: ({ all: qsTr("Tous"), favorites: qsTr("Favoris"), recent: qsTr("Récents") })
+    readonly property var collectionNames: ({ all: qsTr("Tout"), favorites: qsTr("Favoris"),
+                                              recent: qsTr("Récents"), apps: qsTr("Apps") })
 
-    // L1 / R1 sur l'étagère : la collection voisine ; la piste arrive de ce côté.
+    // LB / RB sur le carrousel : la catégorie voisine ; le carrousel arrive de ce côté.
     function switchCollection(dir) {
         var next = collections.indexOf(collection) + dir
         if (next < 0 || next >= collections.length) {
             Sounds.play("edge")
             return
         }
+        homeScreen.categoryStart(dir)
         collection = collections[next]
-        Sounds.play("move")
+        Sounds.play(dir > 0 ? "category_next" : "category_prev")
         rebuildShelf(true)
         homeScreen.shelf.slideIn(dir)
     }
@@ -300,11 +305,16 @@ FocusScope {
         // ligne seulement : hors ligne, l'accueil doit rester sur l'écran de recherche / réveil.
         var pending = activeHostOnline
             ? Library.pendingTiles(companionList, apps.map(function(a) { return a.name }), downloads) : []
+        // Jaquette : celle de Playnite (Companion, 600 × 848, le format du carrousel) d'abord,
+        // celle d'Apollo (600 × 800) à défaut.
+        var info = function(name) { return companionGames[name.toLowerCase()] || null }
         var all = ordered.map(function(a) {
-            return { name: a.name, appIndex: a.appIndex, boxart: a.boxart,
+            var i = info(a.name)
+            return { name: a.name, appIndex: a.appIndex, boxart: a.boxart, cover: i && i.cover ? i.cover : "",
+                     publisher: i ? Format.publisher(i) : "",
                      favorite: favorites.indexOf(a.name) >= 0, gameId: "", pending: false, progress: -1 }
         }).concat(pending.map(function(g) {
-            return { name: g.name, appIndex: -1, boxart: g.cover || "",
+            return { name: g.name, appIndex: -1, boxart: "", cover: g.cover || "", publisher: Format.publisher(g),
                      favorite: favorites.indexOf(g.name) >= 0, gameId: g.id, pending: true,
                      progress: home.downloadFraction(g.id) }
         }))
@@ -661,7 +671,7 @@ FocusScope {
     // aucun PC connu passé un délai de découverte). Sinon, le O fait le chargeur.
     property bool discoveryGrace: false
     Timer { interval: Theme.bootDiscoveryGrace; running: true; onTriggered: home.discoveryGrace = true }
-    readonly property bool bootReady: shelfModel.count > 0 || welcomeScreen.shown || networkScreen.shown
+    readonly property bool bootReady: !libraryEmpty || welcomeScreen.shown || networkScreen.shown
         || companionPairing.shown || pinScreen.shown
         || (searchScreen.shown && ((activeComputerIndex >= 0 && !activeHostOnline && !activeHostStatusUnknown)
                                    || (hostScanner.count === 0 && discoveryGrace)))
@@ -1523,15 +1533,26 @@ FocusScope {
         readonly property var info: tile ? (home.companionGames[tile.name.toLowerCase()] || null) : null
 
         model: shelfModel
-        ready: shelfModel.count > 0
+        // Une catégorie vide (Favoris) n'empêche pas l'accueil d'entrer : la bibliothèque est là.
+        ready: !home.libraryEmpty
+        favoritesEmpty: home.collection === "favorites" && shelfModel.count === 0
+        onRecentRequested: if (home.collections.indexOf("recent") >= 0)
+                               home.switchCollection(home.collections.indexOf("recent") - home.collections.indexOf(home.collection))
         title: tile ? tile.name : ""
         logo: info && info.logo ? info.logo : ""
+        // Sous le titre : « Éditeur · Année · Genre » ; dans Récents, la dernière partie et le
+        // temps de jeu (MotionCategories). Un champ absent disparaît avec son séparateur.
+        meta: !info ? [] : home.collection === "recent"
+              ? [Format.lastPlayed(info.lastPlayed, new Date()), Format.playtime(info.playtimeSeconds)].filter(Boolean)
+              : Format.meta(info)
+        pegi: info ? Format.pegi(info.ageRatings) : ""
         running: app ? app.running : false
         runningGame: home.runningGame
         collectionLabels: home.collections.map(function(c) { return home.collectionNames[c] })
         collectionIndex: home.collections.indexOf(home.collection)
         onCollectionRequested: function(direction) { home.switchCollection(direction) }
-        playLabel: !pending || info && info.isInstalled ? ""
+        playLabel: tile && Library.isUtility(tile.name) ? qsTr("Ouvrir")
+                 : !pending || info && info.isInstalled ? ""
                  : home.downloads[tile.gameId] ? qsTr("Téléchargement") : qsTr("Télécharger")
         updateNote: pending ? home.pendingNote(tile.gameId, info)
                   : info && home.uninstalls[info.id] ? qsTr("Désinstallation en cours") : ""
@@ -1624,7 +1645,7 @@ FocusScope {
     MessageScreen {
         id: searchScreen
         parent: homeScreen.stage
-        shown: home.setupDone && shelfModel.count === 0 && !pinScreen.shown && !companionPairing.shown
+        shown: home.setupDone && home.libraryEmpty && !pinScreen.shown && !companionPairing.shown
         // Un PC connu et réveillable, mais hors ligne : A le réveille.
         readonly property bool canWake: !home.activeHostOnline && home.activeHostWakeable && !home.waking
         focus: shown && canWake

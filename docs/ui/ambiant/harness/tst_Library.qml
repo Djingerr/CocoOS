@@ -10,15 +10,18 @@ TestCase {
     function names(list) { return list.map(function(a) { return a.name }) }
     function never() { return 0 }
 
-    function test_utilitiesAreHiddenWhenThereAreGames() {
-        var apps = [{ name: "Desktop" }, { name: "Hades" }, { name: "Steam Big Picture" },
-                    { name: " virtual display " }, { name: "PlayNite" }]
-        compare(names(Library.order(apps, [], never)), ["Hades"])
+    // Les utilitaires ne sont pas dans « Tout » quand il y a des jeux : ils ont leur onglet « Apps ».
+    function test_utilitiesGoToApps() {
+        var apps = Library.order([{ name: "Desktop" }, { name: "Hades" }, { name: "Steam Big Picture" },
+                                  { name: " virtual display " }, { name: "PlayNite" }], [], never)
+        compare(names(Library.collection(apps, "all", never)), ["Hades"])
+        compare(names(Library.collection(apps, "apps", never)),
+                ["Desktop", "PlayNite", "Steam Big Picture", " virtual display "])
     }
 
     function test_utilitiesStayWhenThereIsNoGame() {
-        var apps = [{ name: "Steam Big Picture" }, { name: "Desktop" }]
-        compare(names(Library.order(apps, [], never)), ["Desktop", "Steam Big Picture"])
+        var apps = Library.order([{ name: "Steam Big Picture" }, { name: "Desktop" }], [], never)
+        compare(names(Library.collection(apps, "all", never)), ["Desktop", "Steam Big Picture"])
     }
 
     function test_favoritesThenRecentThenName() {
@@ -44,8 +47,8 @@ TestCase {
         compare(names(tiles), ["Celeste", "Outer Wilds", "Abzû", "Zelda-like"])
     }
 
-    // Collections : favoris seuls, récents du plus récent au plus ancien, et seulement
-    // celles qui ont un jeu.
+    // Catégories : favoris seuls, récents du plus récent au plus ancien ; « Tout » et
+    // « Favoris » toujours proposés, « Récents » et « Apps » s'ils ont quelque chose.
     function test_collections() {
         var items = [ { name: "A", favorite: true }, { name: "B", favorite: false }, { name: "C", favorite: false } ]
         var dates = { B: 100, C: 300 }
@@ -55,7 +58,8 @@ TestCase {
         compare(names(Library.collection(items, "recent", played)), ["C", "B"])
         compare(Library.collections(items, played), ["all", "favorites", "recent"])
         items[0].favorite = false
-        compare(Library.collections(items, function() { return 0 }), ["all"])
+        compare(Library.collections(items, function() { return 0 }), ["all", "favorites"])
+        compare(Library.collections(items.concat([{ name: "Desktop" }]), never), ["all", "favorites", "apps"])
     }
 
     function test_toggledPinsInFrontAndUnpins() {

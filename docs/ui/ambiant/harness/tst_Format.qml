@@ -55,6 +55,18 @@ TestCase {
         compare(Format.sourceName(null), "")
     }
 
+    // Méta de l'accueil CocoOS : studio · année · genre, un champ absent disparaît (CasLimites).
+    function test_homeMeta() {
+        compare(Format.meta({ developers: ["Playground Games"], publishers: ["Xbox Game Studios"],
+                              releaseDate: "2021-11-09T00:00:00", genres: ["Course", "Monde ouvert"] }),
+                ["Playground Games", "2021", "Course"])
+        compare(Format.meta({ publishers: ["Valve"], releaseDate: "2011-04-18T00:00:00" }), ["Valve", "2011"])
+        compare(Format.meta({}), [])
+        compare(Format.publisher({ developers: ["Playground Games"], publishers: ["Xbox Game Studios"] }), "Xbox Game Studios")
+        compare(Format.pegi(["ESRB M", "PEGI 16"]), "PEGI 16")
+        compare(Format.pegi(["ESRB M"]), "")
+    }
+
     function test_playtime() {
         compare(Format.playtime(412 * 3600 + 1200), "412 h de jeu")
         compare(Format.playtime(7260), "2 h de jeu")
