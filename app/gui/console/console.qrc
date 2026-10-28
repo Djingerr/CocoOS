@@ -1,8 +1,10 @@
 <!DOCTYPE RCC>
 <!-- Ressources de la console embarquées par le build `embedded` seulement (app.pro) :
-     le pack de sons CocoOS (docs/ui/cocoos/sounds/) ne doit pas peser sur Moonlight vanilla. -->
+     le pack de sons CocoOS (docs/ui/cocoos/sounds/) ne doit pas peser sur Moonlight vanilla ;
+     les motifs de vibration (docs/ui/cocoos/motion/haptics.json, lus par backend/haptics). -->
 <RCC>
     <qresource prefix="/gui/console">
+        <file>haptics.json</file>
         <file>sounds/amb_accueil.wav</file>
         <file>sounds/amb_appairage.wav</file>
         <file>sounds/amb_mise_a_jour.wav</file>

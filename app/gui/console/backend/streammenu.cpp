@@ -1,5 +1,6 @@
 #include "streammenu.h"
 #include "streampainter.h"
+#include "haptics.h"
 
 #include "streaming/session.h"
 #include "streaming/video/decoder.h"
@@ -38,7 +39,8 @@ const int STICK_PUSH = 20000;
 const int STICK_REST = 10000;
 
 const char* STATS_SETTING = "ConsoleUi/streamStats";
-const char* RUMBLE_SETTING = "ConsoleUi/rumble";
+const char* HAPTICS_SETTING = "ConsoleUi/haptics";
+const double HAPTICS_DEFAULT = 0.6;   // « Légères »
 const char* MOTION_SETTING = "ConsoleUi/reduceMotion";
 // Départ sans action pour l'accueil : le flux s'est fermé autrement que par le menu.
 const char* ENDED = "ended";
@@ -196,7 +198,7 @@ std::atomic<bool> s_repeat { false };       // l'overlay a changé depuis la der
 std::atomic<Uint32> s_lastFrameTicks { 0 };
 
 bool s_soundsOn = false;
-bool s_rumbleOn = true;
+double s_haptics = HAPTICS_DEFAULT;     // intensité des vibrations (0 : coupées)
 bool s_reducedMotion = false;           // « Réduire les animations » : pas de fondu d'entrée
 std::atomic<bool> s_fadedIn { false };  // le flux a eu son fondu d'entrée
 QHash<QString, QByteArray> s_sounds;    // échantillons, volume appliqué
@@ -383,8 +385,8 @@ void loadSounds()
 // Un son à la fois, comme à l'accueil : le suivant coupe le précédent.
 void play(const char* name)
 {
-    if (s_rumbleOn) {
-        StreamMenu::rumble(QLatin1String(name));
+    if (s_haptics > 0) {
+        StreamMenu::rumble(QLatin1String(name), s_haptics);
     }
     const QByteArray samples = s_sounds.value(QLatin1String(name));
     if (!s_soundsOn || samples.isEmpty()) {
@@ -1164,7 +1166,7 @@ void StreamMenu::prepare(const QString& game, const QStringList& powerActions, c
     s_statsView = StreamPainter::Stats();
     s_statsFade.set(0);   // les statistiques apparaissent avec les premiers chiffres
     s_soundsOn = QSettings().value(SOUNDS_SETTING, true).toBool();
-    s_rumbleOn = QSettings().value(RUMBLE_SETTING, true).toBool();
+    s_haptics = QSettings().value(HAPTICS_SETTING, HAPTICS_DEFAULT).toDouble();
     s_reducedMotion = QSettings().value(MOTION_SETTING, false).toBool();
     s_fadedIn = false;
     if (s_soundsOn) {
@@ -1352,31 +1354,65 @@ void StreamMenu::onAxis(uint8_t axis, int16_t value)
     }
 }
 
-void StreamMenu::rumble(const QString& sound)
+// --- Vibrations : un motif de haptics.json, pas après pas, par un minuteur SDL ---
+
+namespace {
+
+QMutex s_rumbleLock;
+const Haptics::Pattern* s_rumblePattern = nullptr;
+int s_rumbleStep = 0;
+double s_rumbleLevel = 0;
+int s_rumbleRun = 0;            // numéro du motif en cours : un ancien minuteur s'arrête seul
+const Uint32 RUMBLE_SLACK_MS = 20;   // chaque pas dure un peu plus : le suivant le remplace sans trou
+
+void setRumble(double low, double high, Uint32 ms)
 {
-    // Moteur grave, moteur aigu (0 à 0xFFFF), durée : une touche légère pour une butée,
-    // un coup franc pour une confirmation, une poussée douce pour un lancement.
-    struct Rumble { const char* sound; Uint16 low; Uint16 high; Uint32 ms; };
-    static const Rumble RUMBLES[] = {
-        { "nav_edge", 0x2800, 0x5000, 40 },
-        { "deny", 0x7000, 0x3000, 90 },
-        { "hold_done", 0xA000, 0xC000, 120 },
-        { "launch_start", 0x6000, 0x2000, 220 },
-    };
-    if (!SDL_WasInit(SDL_INIT_GAMECONTROLLER)) {
+    for (int i = 0; i < SDL_NumJoysticks(); i++) {
+        SDL_GameController* gc = SDL_GameControllerFromInstanceID(SDL_JoystickGetDeviceInstanceID(i));
+        if (gc != nullptr) {
+            SDL_GameControllerRumble(gc, Uint16(low * s_rumbleLevel * 0xFFFF),
+                                     Uint16(high * s_rumbleLevel * 0xFFFF), ms);
+        }
+    }
+}
+
+// Joue le pas suivant (verrou pris) ; rend sa durée, 0 une fois le motif fini.
+Uint32 nextRumbleStep()
+{
+    if (s_rumblePattern == nullptr || s_rumbleStep >= s_rumblePattern->steps.size()) {
+        setRumble(0, 0, 0);
+        s_rumblePattern = nullptr;
+        return 0;
+    }
+    const Haptics::Step& step = s_rumblePattern->steps.at(s_rumbleStep++);
+    setRumble(step.low, step.high, Uint32(step.ms) + RUMBLE_SLACK_MS);
+    return Uint32(step.ms);
+}
+
+Uint32 rumbleTimer(Uint32, void* run)
+{
+    QMutexLocker locker(&s_rumbleLock);
+    if (int(reinterpret_cast<intptr_t>(run)) != s_rumbleRun) {
+        return 0;
+    }
+    return nextRumbleStep();
+}
+
+}
+
+void StreamMenu::rumble(const QString& sound, double level)
+{
+    const Haptics::Pattern* pattern = Haptics::forSound(sound);
+    if (pattern == nullptr || level <= 0 || !SDL_WasInit(SDL_INIT_GAMECONTROLLER)) {
         return;
     }
-    for (const Rumble& r : RUMBLES) {
-        if (sound != QLatin1String(r.sound)) {
-            continue;
-        }
-        for (int i = 0; i < SDL_NumJoysticks(); i++) {
-            SDL_GameController* gc = SDL_GameControllerFromInstanceID(SDL_JoystickGetDeviceInstanceID(i));
-            if (gc != nullptr) {
-                SDL_GameControllerRumble(gc, r.low, r.high, r.ms);
-            }
-        }
-        return;
+    QMutexLocker locker(&s_rumbleLock);
+    s_rumblePattern = pattern;
+    s_rumbleStep = 0;
+    s_rumbleLevel = level;
+    const Uint32 first = nextRumbleStep();
+    if (first > 0) {
+        SDL_AddTimer(first, rumbleTimer, reinterpret_cast<void*>(intptr_t(++s_rumbleRun)));
     }
 }
 

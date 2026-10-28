@@ -79,7 +79,9 @@ FocusScope {
         property bool streamProfileInitialized: false
         property bool sounds: true          // réglage « Sons » du panneau d'options
         property bool reduceMotion: false   // « Réduire les animations » (Theme.reducedMotion)
-        property bool rumble: true          // « Vibrations » : la manette vibre (InputStatus.feedback)
+        // « Vibrations » : intensité des motifs de la manette (InputStatus.feedback, haptics.json) :
+        // 0 coupées, 0,6 légères, 1 fortes. L'ancienne clé booléenne `rumble` est ignorée.
+        property real haptics: 0.6
         property string lastGame: ""        // dernier jeu lancé : l'accueil s'ouvre dessus
         property string favorites: "[]"     // jeux épinglés (X), le dernier épinglé en tête (JSON)
         property string recentGames: "{}"   // date de la dernière partie lancée d'ici, par jeu (JSON, ms)
@@ -700,7 +702,7 @@ FocusScope {
     // Vibrations : la manette suit certains sons (butée, refus, confirmation, lancement).
     Connections {
         target: Sounds
-        function onPlayed(name) { InputStatus.feedback(name) }
+        function onPlayed(name) { InputStatus.feedback(name, consoleConfig.haptics) }
     }
 
     Connections {
@@ -1233,7 +1235,8 @@ FocusScope {
                         { label: "PlayStation", value: "playstation" }, { label: "Nintendo", value: "nintendo" } ]
         var sounds = [ { label: qsTr("Coupés"), value: false }, { label: qsTr("Activés"), value: true } ]
         var motion = [ { label: qsTr("Non"), value: false }, { label: qsTr("Oui"), value: true } ]
-        var rumble = [ { label: qsTr("Coupées"), value: false }, { label: qsTr("Activées"), value: true } ]
+        var rumble = [ { label: qsTr("Off"), value: 0 }, { label: qsTr("Légères"), value: 0.6 },
+                       { label: qsTr("Fortes"), value: 1 } ]
         // Chaque langue dans sa langue.
         var language = [ { label: "Français", value: p.LANG_FR }, { label: "English", value: p.LANG_EN } ]
 
@@ -1261,7 +1264,8 @@ FocusScope {
                              Math.max(0, buttons.findIndex(function(c) { return c.value === consoleConfig.buttonLayout }))))
         consoleRows.push(row("sounds", qsTr("Sons"), consoleConfig.sounds ? 1 : 0, true))
         if (InputStatus.controllerCount > 0)
-            consoleRows.push(row("rumble", qsTr("Vibrations"), consoleConfig.rumble ? 1 : 0, true))
+            consoleRows.push(row("rumble", qsTr("Vibrations"),
+                                 Math.max(0, rumble.findIndex(function(c) { return c.value === consoleConfig.haptics }))))
         consoleRows.push(row("motion", qsTr("Réduire les animations"), consoleConfig.reduceMotion ? 1 : 0, true))
         consoleRows.push(row("language", qsTr("Langue"), english ? 1 : 0))
         if (WifiSetup.available)
@@ -1349,8 +1353,8 @@ FocusScope {
             consoleConfig.sounds = choice.value
             Sounds.enabled = choice.value
         } else if (key === "rumble") {
-            consoleConfig.rumble = choice.value
-            if (choice.value) InputStatus.feedback("confirm")   // pour la sentir
+            consoleConfig.haptics = choice.value
+            InputStatus.feedback("select", choice.value)   // pour la sentir
         } else if (key === "motion") {
             consoleConfig.reduceMotion = choice.value
             Theme.reducedMotion = choice.value

@@ -445,7 +445,10 @@ embedded {
     # Menu en jeu (bouton Home), dessine sur l'overlay de Moonlight.
     SOURCES += gui/console/backend/streammenu.cpp gui/console/backend/streampainter.cpp
     HEADERS += gui/console/backend/streammenu.h gui/console/backend/streampainter.h
-    # Sons de la console (57 Mo) : hors de qml.qrc, que le build vanilla embarque aussi.
+    SOURCES += gui/console/backend/haptics.cpp
+    HEADERS += gui/console/backend/haptics.h
+    # Sons de la console (57 Mo) et motifs de vibration : hors de qml.qrc, que le build
+    # vanilla embarque aussi.
     RESOURCES += gui/console/console.qrc
 }
 glslow {

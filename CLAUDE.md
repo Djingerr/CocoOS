@@ -750,6 +750,11 @@ Fichiers (dans `app/gui/console/`) :
 - `backend/streammenu.{h,cpp}` — menu en jeu et statistiques du flux (état, manette, chiffres,
   capture et flou de l'image, animations, sons par SDL), sur l'overlay de Moonlight. Build
   `embedded` uniquement.
+- `backend/haptics.{h,cpp}` — motifs de vibration CocoOS (`haptics.json`, copie de
+  `docs/ui/cocoos/motion/haptics.json` embarquée par `console.qrc`) découpés en pas de 10 ms ;
+  joués par `StreamMenu::rumble(son, intensité)` (minuteur SDL), à l'accueil comme en jeu.
+  Réglage `ConsoleUi/haptics` : 0 (Off), 0,6 (Légères, par défaut), 1 (Fortes). Sans SDL :
+  vérifié seul par `docs/ui/cocoos/harness/tst_haptics.cpp`.
 - `backend/streampainter.{h,cpp}` — leur dessin en QPainter, jetons de `Theme.qml` recopiés ;
   sans SDL ni Moonlight (le harnais le dessine seul : `streammenu-shot.cpp`).
 
