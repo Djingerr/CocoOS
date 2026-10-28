@@ -104,25 +104,6 @@
         <file>gui/console/LaunchScreen.qml</file>
         <file>gui/console/Sounds.qml</file>
         <file>gui/console/SoundBank.qml</file>
-        <file>gui/console/sounds/move.wav</file>
-        <file>gui/console/sounds/edge.wav</file>
-        <file>gui/console/sounds/select.wav</file>
-        <file>gui/console/sounds/back.wav</file>
-        <file>gui/console/sounds/open.wav</file>
-        <file>gui/console/sounds/close.wav</file>
-        <file>gui/console/sounds/tick.wav</file>
-        <file>gui/console/sounds/launch.wav</file>
-        <file>gui/console/sounds/ready.wav</file>
-        <file>gui/console/sounds/boot-close.wav</file>
-        <file>gui/console/sounds/boot-open.wav</file>
-        <file>gui/console/sounds/toggle-on.wav</file>
-        <file>gui/console/sounds/toggle-off.wav</file>
-        <file>gui/console/sounds/hold.wav</file>
-        <file>gui/console/sounds/confirm.wav</file>
-        <file>gui/console/sounds/deny.wav</file>
-        <file>gui/console/sounds/notify.wav</file>
-        <file>gui/console/sounds/detent.wav</file>
-        <file>gui/console/sounds/segment.wav</file>
         <file>gui/console/fonts/Sora-Regular.ttf</file>
         <file>gui/console/fonts/Sora-Medium.ttf</file>
         <file>gui/console/fonts/Sora-SemiBold.ttf</file>

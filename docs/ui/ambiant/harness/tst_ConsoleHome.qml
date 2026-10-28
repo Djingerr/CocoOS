@@ -421,7 +421,7 @@ Item {
         function test_9b_rumbleFollowsSounds() {
             InputStatus.feedbacks = []
             keyClick(Qt.Key_Left)                           // tout à gauche : une butée
-            verify(InputStatus.feedbacks.indexOf("edge") >= 0)
+            verify(InputStatus.feedbacks.indexOf("nav_edge") >= 0)   // nom du pack CocoOS
         }
 
         // « Réduire les animations » : plus de ressort ni de flou des textes, tout de suite.

@@ -1854,7 +1854,7 @@ FocusScope {
             systemReady: home.bootReady && t >= fakeDelay
             stepText: home.bootStep
             statusBarLogo: homeScreen.statusLogo
-            onSoundCue: function(name) { Sounds.play("boot-" + name) }
+            onSoundCue: function(name) { Sounds.play(mode === "wake" ? "wake" : "boot-" + name) }
             onFinished: {
                 console.info("[console-ui] Démarrage (" + mode + ") : " + Math.round(t) + " ms"
                              + (mode === "cold" && readyAt > Boot.loaderShowAt ? ", avec chargeur (prêt à "

@@ -90,11 +90,15 @@ const int SHOW_SETTLE_MS = 50;
 // plus qu'une image à 60 i/s), le décodeur réaffiche la dernière sous le menu.
 const Uint32 REPEAT_AFTER_MS = 20;
 
-// Sons de l'accueil (sounds/*.wav, 44,1 kHz mono 16 bits), joués par SDL :
-// QtMultimedia ne tourne pas pendant un flux.
-const int SOUND_RATE = 44100;
-const double SOUND_VOLUME = 0.125;  // Theme.soundVolume
-const char* const SOUND_NAMES[] = { "move", "edge", "select", "open", "close", "tick", "hold", "confirm" };
+// Sons du pack CocoOS (sounds/*.wav, 48 kHz stéréo 16 bits), joués par SDL :
+// QtMultimedia ne tourne pas pendant un flux. Seuls ceux qui ont leur place par-dessus
+// le jeu (SPEC §2 : menu en jeu, curseurs, volume).
+const int SOUND_RATE = 48000;
+const int SOUND_CHANNELS = 2;
+const double SOUND_VOLUME = 0.8;  // Theme.soundVolume
+const char* const SOUND_NAMES[] = { "ingame_menu_open", "ingame_menu_close", "focus_tick", "nav_edge", "select",
+                                    "hold_fill", "hold_done", "volume_tick", "volume_limit", "brightness_tick",
+                                    "slider_limit" };
 
 // Une valeur qui va de `from` à `to` en `duration` ms à partir de `start`.
 struct Anim {
@@ -364,7 +368,7 @@ void loadSounds()
         if (SDL_LoadWAV_RW(SDL_RWFromConstMem(wav.constData(), wav.size()), 1, &spec, &buffer, &length) == nullptr) {
             continue;
         }
-        if (spec.format == AUDIO_S16SYS && spec.channels == 1 && spec.freq == SOUND_RATE) {
+        if (spec.format == AUDIO_S16SYS && spec.channels == SOUND_CHANNELS && spec.freq == SOUND_RATE) {
             QByteArray samples(reinterpret_cast<const char*>(buffer), length);
             int16_t* data = reinterpret_cast<int16_t*>(samples.data());
             for (int i = 0; i < samples.size() / 2; i++) {
@@ -395,7 +399,7 @@ void play(const char* name)
         SDL_zero(want);
         want.freq = SOUND_RATE;
         want.format = AUDIO_S16SYS;
-        want.channels = 1;
+        want.channels = SOUND_CHANNELS;
         want.samples = 512;
         s_audio = SDL_OpenAudioDevice(nullptr, 0, &want, nullptr, 0);
         if (s_audio == 0) {
@@ -618,7 +622,7 @@ void openMenu()
     s_swap.set(1);
     s_swapRow = -1;
     resetHighlights(0);
-    play("open");
+    play("ingame_menu_open");
     requestRender();
 }
 
@@ -632,7 +636,7 @@ void closeMenu(bool sound = true)
     s_reveal.go(0, SHEET_SLIDE, now, QEasingCurve::OutQuint);
     s_veil.go(0, SHEET_DIM_FADE, now);
     if (sound) {
-        play("close");
+        play("ingame_menu_close");
     }
     requestRender();
 }
@@ -658,7 +662,7 @@ void focusRow(int next)
     s_highlight[next].go(1, SHEET_FOCUS_FADE, now);
     s_focus = next;
     s_focusY.go(next, SHEET_FOCUS_MOVE, now, QEasingCurve::OutCubic);
-    play("move");
+    play("focus_tick");
     requestRender();
 }
 
@@ -679,7 +683,7 @@ void startHold()
     const Uint32 now = SDL_GetTicks();
     s_holding = true;
     s_hold.go(1, int((1 - s_hold.at(now)) * HOLD_DURATION), now);
-    play("hold");
+    play("hold_fill");
     requestRender();
 }
 
@@ -706,7 +710,7 @@ void holdStep(Uint32 now)
     if (s_holding && s_holdDoneAt == 0 && s_hold.at(now) >= 1) {
         s_holdDoneAt = now;
         s_holdDone.go(1, HOLD_SWAP, now, QEasingCurve::OutCubic);
-        play("confirm");
+        play("hold_done");
     }
     if (s_holdDoneAt != 0 && s_leaving.isEmpty() && now - s_holdDoneAt >= (Uint32)HOLD_FINISH) {
         beginLeave(actions().value(s_focus).key);
@@ -724,7 +728,7 @@ bool step(int direction)
 {
     const int next = s_focus + direction;
     if (next < 0 || next >= s_highlight.size()) {
-        play("edge");
+        play("nav_edge");
         return false;
     }
     focusRow(next);
@@ -815,7 +819,7 @@ int setValue(int wanted, bool dragged)
     const int next = qBound(volume ? 0 : BRIGHTNESS_MIN, wanted, 100);
     if (next == value) {
         if (!dragged) {
-            play("edge");
+            play(volume ? "volume_limit" : "slider_limit");
         }
         return -1;
     }
@@ -830,7 +834,7 @@ int setValue(int wanted, bool dragged)
         anim.go(next, SLIDER_MOVE, SDL_GetTicks(), QEasingCurve::OutCubic);
         swapValue(s_focus, from);
     }
-    play("tick");
+    play(volume ? "volume_tick" : "brightness_tick");
     return next;
 }
 
@@ -889,7 +893,7 @@ void activate()
         closeMenu(false);
     }
     else if (key == QLatin1String("stats")) {
-        play("tick");
+        play("focus_tick");
         switchStats();
     }
     else if (key == QLatin1String("shot")) {
@@ -897,7 +901,7 @@ void activate()
         requestShot();
     }
     else if (key == QLatin1String("volume") || key == QLatin1String("brightness")) {
-        play("edge");   // ← / → les règlent
+        play("slider_limit");   // ← / → les règlent
     }
     else {
         play("select");
@@ -1354,10 +1358,10 @@ void StreamMenu::rumble(const QString& sound)
     // un coup franc pour une confirmation, une poussée douce pour un lancement.
     struct Rumble { const char* sound; Uint16 low; Uint16 high; Uint32 ms; };
     static const Rumble RUMBLES[] = {
-        { "edge", 0x2800, 0x5000, 40 },
+        { "nav_edge", 0x2800, 0x5000, 40 },
         { "deny", 0x7000, 0x3000, 90 },
-        { "confirm", 0xA000, 0xC000, 120 },
-        { "launch", 0x6000, 0x2000, 220 },
+        { "hold_done", 0xA000, 0xC000, 120 },
+        { "launch_start", 0x6000, 0x2000, 220 },
     };
     if (!SDL_WasInit(SDL_INIT_GAMECONTROLLER)) {
         return;
@@ -1415,7 +1419,7 @@ void StreamMenu::toggleStats()
     QMutexLocker locker(&s_lock);
     attach();
     s_screen = screenSize();
-    play("tick");
+    play("focus_tick");
     switchStats();
 }
 

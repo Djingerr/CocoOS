@@ -128,8 +128,8 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
     sur la console) sont des `MessageScreen` posés à la place du héros (`HomeScreen.stage`) ;
     la liaison Companion passe en priorité. Les dialogs (`ConsoleDialog`) sont un panneau
     latéral comme les options.
-  - **Sons** : `Sounds.qml` (+ `SoundBank.qml`, QtMultimedia) joue les 9 sons du prototype,
-    régénérables par `harness/make-sounds.py`.
+  - **Sons** : `Sounds.qml` (+ `SoundBank.qml`, QtMultimedia) joue les sons de l'interface :
+    depuis la refonte CocoOS, le pack `docs/ui/cocoos/sounds/` (les anciens noms restent valides par alias).
   - **Batterie et Wi-Fi** : backend C++ `backend/systemstatus.{h,cpp}` (sysfs + NetworkManager
     par D-Bus), build `embedded` seulement. Éclair pendant la charge, orange sous 20 %.
   `GameCarousel`, `ConsoleSettings`, `LaunchOverlay`, `PairingOverlay` et `Spinner` sont
@@ -468,7 +468,7 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   bouton s'élargit ; un appui maintenu plein montre une coche tracée et un libellé de fin
   (« Extinction », « PC oublié »…) avant l'action, et se fait aussi à la souris (clic tenu) ; le
   curseur de débit se règle à la souris (clic, glisser, accroche aux crans, butée élastique). **Sons**
-  nouveaux, synthétisés comme les autres (`make-sounds.py`) : `toggle-on` / `toggle-off`, `hold`
+  nouveaux, synthétisés alors (remplacés depuis par le pack CocoOS, mêmes noms par alias) : `toggle-on` / `toggle-off`, `hold`
   (coupé si on lâche) puis `confirm`, `deny` (refus), `notify` (île), `detent` (cran du curseur),
   `segment` (profil). ⚠️ Aucun son n'a encore été écouté ; rien vu à la manette.
 - ✅ **Profils de flux (2026-10-23, demande de Marco ; phase 1 du chantier §12)** : en tête de
@@ -650,7 +650,9 @@ Fichiers (dans `app/gui/console/`) :
   donne la manette)
 - `OptionsSheet.qml` — panneau « Options » (bouton Y) en onglets (Flux, Console), sans état propre
 - `LaunchScreen.qml` — écran de lancement d'un jeu (remplace l'ancien `LaunchOverlay`)
-- `Sounds.qml`, `SoundBank.qml`, `sounds/` — sons de l'interface (singleton `Sounds.play("move")`)
+- `Sounds.qml`, `SoundBank.qml`, `sounds/` — sons de l'interface (singleton `Sounds.play("nav_move")`,
+  pack CocoOS de 68 sons dans `console.qrc`, embarqué par le build `embedded` seulement ; table
+  d'alias des anciens noms ; `Sounds.ambiance("amb_veille")` pour une boucle)
 - `PadRepeat.qml` — répétition des flèches à l'appui prolongé (étagère, options)
 - `Pressable.qml` — élément qui s'écrase tant que `down` (A enfoncé) et revient avec le ressort
   « rebond » ; l'action part au relâché, chez l'appelant ; grandit au survol (`hovered`)
@@ -1002,7 +1004,6 @@ qml-qt6 Harness.qml -- view=PagesDemo page=code        # search|loading|pin|pin-
 ./shot.sh /tmp/b.png view=HomeDemo do=options,down at=2500 delay=3700   # idem, après des actions
 ./shot.sh /tmp/c.png view=ConsoleHomeDemo do=right,pin noart=Hades\ II at=2600 delay=6500   # vrai ConsoleHome
 ./ref-capture.py                                       # régénère ../ref/ et art/ depuis le prototype
-./make-sounds.py                                       # régénère app/gui/console/sounds/*.wav (dont boot-*)
 ./make-shadows.py                                      # régénère app/gui/console/shadows/*.png (ombres portées)
 # menu en jeu (C++, hors appli) : compiler streammenu-shot.cpp (commande en tête du fichier), puis
 # (streammenu-rows.cpp, compilé de même : vérifie la ligne sous la souris contre le dessin, « ok »)

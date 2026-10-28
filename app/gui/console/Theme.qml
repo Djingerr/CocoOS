@@ -204,7 +204,6 @@ QtObject {
     readonly property int bootStepSize: 13           // Sora 400
     readonly property color bootStepInk: "#6E6E6E"
     readonly property int bootDiscoveryGrace: 3000
-    readonly property real bootSoundVolume: 0.25
     // Rideau entre un jeu et l'accueil (StreamCurtain) : le logo au repos de
     // l'animation de démarrage, la même ligne d'état (bootStep*), le O qui respire
     // pendant une attente (fermeture du jeu sur le PC).
@@ -852,8 +851,11 @@ QtObject {
     readonly property color hintFill: Qt.rgba(0, 0, 0, 0.5)
     readonly property real hintOpacity: 0.8
 
-    // --- Sons (Sounds) ---
-    // 0,125 redonne le niveau du prototype (les fichiers sont enregistrés 8 fois
-    // plus fort, cf. make-sounds.py) ; monter pour des sons plus présents.
-    readonly property real soundVolume: 0.125
+    // --- Sons (Sounds, pack CocoOS) ---
+    // Niveau commun des sons de l'interface (celui du SoundBank de référence) : les
+    // fichiers sont déjà mastérisés, de −27 à −6 dBFS en crête.
+    readonly property real soundVolume: 0.8
+    readonly property int navFastInterval: 90        // nav_move_fast : 11 par seconde au plus
+    readonly property int ambianceFadeIn: 1800       // fondu croisé des ambiances
+    readonly property int ambianceFadeOut: 900
 }
