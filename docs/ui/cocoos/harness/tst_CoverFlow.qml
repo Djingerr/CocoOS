@@ -106,6 +106,26 @@ Item {
             compare(flow.currentIndex, 0)               // le premier « A »
         }
 
+        // Fiche ouverte : la jaquette centrale va à la place de la fiche, les autres s'effacent.
+        function test_detailMovesTheCentralCover() {
+            flow.detailOpen = true
+            tryCompare(flow, "detail", 1, Theme.ficheOpen + 200)
+            var central = null, other = null
+            for (var i = 0; i < flow.children.length && !central; i++) {
+                var strip = flow.children[i]
+                for (var j = 0; j < strip.children.length; j++) {
+                    var c = strip.children[j]
+                    if (c.central === true) central = c
+                    else if (c.central === false && c.visible !== undefined) other = c
+                }
+            }
+            verify(central)
+            compare(Qt.rect(central.x, central.y, central.width, central.height), Theme.ficheCover)
+            compare(other.opacity, 0)
+            flow.detailOpen = false
+            tryCompare(flow, "detail", 0, Theme.ficheClose + 200)
+        }
+
         // Sans jeu (Favoris vide) : A et bas ne font rien.
         function test_emptyDoesNothing() {
             fill([])

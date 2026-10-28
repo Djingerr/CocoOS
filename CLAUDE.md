@@ -557,6 +557,9 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   `EmptyFavorites`, saut de lettre RT / LT (> 30 jeux). Jaquette Playnite d'abord. Harnais :
   écart 3,2 / 255 avec AccueilCarrousel ; séquences filmées par `filmstrip.sh`. ⚠️ Porte : à
   valider à l'œil et à la manette par Marco (next_steps.md).
+  Phase 3 (fiche et favoris) : fiche éditoriale (`GamePage` refaite) dont la jaquette est celle du
+  carrousel qui glisse à gauche et s'incline (`CoverFlow.detail`) ; X : favori sur place (pastille
+  cœur, anneau, bannière), « Tout » n'est plus trié favoris en tête.
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
   télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
   Côté console uniquement (Apollo reste non modifié).
@@ -741,11 +744,13 @@ Fichiers (dans `app/gui/console/`) :
   (`SysCard`) ; A → `activated(key)`
 - `FocusRing.qml` — anneau de focus d'un bouton (héros, icônes de la barre haute)
 - `ControllerLegend.qml` — légende des boutons (glyphe + libellé), panneaux et écrans de message
-- `GamePage.qml` — fiche du jeu sélectionné (bas du pad sur l'étagère), posée dans `stage` comme
-  un écran de message, sur le fond du jeu : logo ou titre, faits (`Format.facts` : genres, année,
-  PEGI, + taille), studios (`Format.credits`), description (`Format.plainText` : HTML Playnite →
-  texte) qui défile par lignes entières, puis « Désinstaller » (jeux Steam, Companion :
-  `POST /v1/games/{id}/uninstall`, confirmé). Haut une fois en haut, ou B, la referme
+- `GamePage.qml` — fiche éditoriale du jeu (bas du pad sur le carrousel), posée dans
+  `HomeScreen.detailStage` : à droite éditeur, titre, méta + pastilles, description qui défile
+  par lignes, chiffres, faits, A Jouer / X Favori / Y Options (+ « Désinstaller » des jeux
+  Steam, hors maquette), en cascade ; « ↑ Bibliothèque » et l'aide. La jaquette est celle du
+  carrousel (`CoverFlow.detail`). Haut une fois en haut, ou B, la referme
+- `Heart.qml`, `FavoriteBanner.qml` — cœur des favoris ; bannière « Ajouté / Retiré des favoris »
+  (`HomeScreen.favoriteFeedback`)
 - `MessageScreen.qml` — écran de message à la place du héros : titre, texte, code en grandes
   cases, ligne d'état, piste d'attente. Sert à la recherche du PC, au chargement et à la
   liaison Moonlight (code à saisir sur le PC), instanciés dans `ConsoleHome`

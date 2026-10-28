@@ -14,23 +14,17 @@ function isUtility(name) {
     return UTILITIES.indexOf((name || "").trim().toLowerCase()) >= 0
 }
 
-// apps : [{ name, … }] ; favorites : noms épinglés, le dernier épinglé en tête ;
-// lastPlayed(name) : date de la dernière partie en ms, 0 si jamais joué.
-// Ordre : favoris, puis du plus récent au plus ancien, puis les jamais joués par nom.
+// apps : [{ name, … }] ; lastPlayed(name) : date de la dernière partie en ms, 0 si jamais joué.
+// Ordre : du plus récent au plus ancien, puis les jamais joués par nom. Les favoris ont leur
+// onglet (CocoOS) : ils ne passent plus en tête, le carrousel ne saute pas quand on en ajoute un.
 // Les utilitaires restent dans la liste : `collection` les range dans « Apps ».
-function order(apps, favorites, lastPlayed) {
+function order(apps, lastPlayed) {
     var list = apps.slice()
-    var pin = function(a) {
-        var i = favorites.indexOf(a.name)
-        return i < 0 ? favorites.length : i
-    }
     var played = list.map(function(a) { return lastPlayed(a.name) })
     var index = list.map(function(a, i) { return i })
     index.sort(function(i, j) {
-        var a = list[i], b = list[j]
-        if (pin(a) !== pin(b)) return pin(a) - pin(b)
         if (played[i] !== played[j]) return played[j] - played[i]
-        return a.name.localeCompare(b.name)
+        return list[i].name.localeCompare(list[j].name)
     })
     return index.map(function(i) { return list[i] })
 }

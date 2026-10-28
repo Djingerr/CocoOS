@@ -232,6 +232,10 @@ QtObject {
     readonly property real vignetteIn: 0.25
     readonly property real vignetteOut: 0.85
     readonly property real vignetteOutEmpty: 0.9     // état vide (EtatFavorisVide)
+    readonly property point vignetteAt: Qt.point(0.5, 0.4)       // centre (ellipse à 50 % 40 %)
+    readonly property point vignetteAtFiche: Qt.point(0.26, 0.5) // fiche : vers la jaquette
+    readonly property real vignetteInFiche: 0.3
+    readonly property real vignetteOutFiche: 0.84
     readonly property real grainOpacity: 0.07
     readonly property int grainSize: 256             // côté de images/grain.png
 
@@ -384,6 +388,88 @@ QtObject {
     readonly property int emptyHelpBottom: 34
     readonly property int emptyHelpGap: 26
     readonly property int emptyHelpGlyphSize: 11
+
+    // --- Fiche jeu éditoriale (GamePage ; FicheEditoriale, MotionFiche) ---
+    // La jaquette centrale du carrousel devient celle de la fiche : elle glisse en ficheCover
+    // et s'incline (ficheTilt, qui oscille lentement), assombrie à ficheCoverBrightness ; les
+    // autres s'écartent de ficheSpread px en s'effaçant.
+    readonly property rect ficheCover: Qt.rect(96, 150, 300, 424)
+    readonly property real ficheCoverBrightness: 0.66
+    readonly property var ficheTilt: [9, 3]          // rotateY (°), aller-retour en ficheTiltPeriod
+    readonly property int ficheTiltPeriod: 18000
+    readonly property int ficheSpread: 340
+    readonly property real ficheGloss: 0.10
+    readonly property real ficheRing: 0.07
+    readonly property real ficheReflectAlpha: 0.22
+    readonly property real ficheReflectSpan: 0.28
+    readonly property int ficheOpen: 780             // la jaquette va en place (curveMain)…
+    readonly property int ficheClose: 520            // …et revient, plus vite
+    // Texte : colonne à droite, en cascade (cocoIn : 18 px plus bas, flou de 8, 1 s curveMain).
+    readonly property point ficheText: Qt.point(476, 140)
+    readonly property int ficheTextWidth: 720
+    readonly property var ficheCascade: [150, 220, 290, 360, 440, 520, 600]   // ms, du libellé aux boutons
+    readonly property int ficheIn: 1000
+    readonly property int ficheInTravel: 18
+    readonly property real ficheInBlur: 8
+    readonly property int ficheOut: 220              // sortie : tout part ensemble
+    readonly property int homeLeaveTravel: 14        // le bloc titre de l'accueil part de 14 px vers le haut…
+    readonly property int homeReturnDelay: 300       // …et revient 300 ms après la fermeture
+    readonly property int homeReturn: 420
+    readonly property int homeReturnMove: 600
+    readonly property int ficheLabelSize: 12         // éditeur, capitales, Sora 600, 0,08 em
+    readonly property color ficheLabelInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.58)
+    readonly property int ficheTitleSize: 64         // Sora 600, −0,045 em, interligne 1,05
+    readonly property int ficheGap: 12
+    readonly property int ficheMetaSize: 15
+    readonly property int ficheTagHeight: 22         // pastilles PEGI, modes
+    readonly property int ficheTagPad: 8
+    readonly property int ficheTagRadius: 6
+    readonly property color ficheTagStroke: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.32)
+    readonly property color ficheTagInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.8)
+    readonly property int ficheTextTop: 20           // description
+    readonly property int ficheTextSize: 16          // Sora 400, interligne 1,6
+    readonly property real ficheTextLineHeight: 1.6
+    readonly property int ficheTextLines: 3          // lignes visibles ; bas fait défiler
+    readonly property int ficheTextMaxWidth: 600
+    readonly property color ficheTextInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.74)
+    readonly property int ficheStatsTop: 32          // chiffres : 44 px + unité 20 px + libellé 13 px
+    readonly property int ficheStatsGap: 56
+    readonly property int ficheStatSize: 44
+    readonly property int ficheStatUnitSize: 20
+    readonly property int ficheStatLabelSize: 13
+    readonly property int ficheFactsTop: 30          // grille de faits sous un filet
+    readonly property int ficheFactsWidth: 660
+    readonly property int ficheFactsPad: 18
+    readonly property int ficheFactLabelSize: 12
+    readonly property int ficheFactSize: 15
+    readonly property int ficheButtonsTop: 32
+    readonly property int ficheHelpBottom: 36        // « Appuyez sur B ou ↑ pour revenir »
+    // Bouton « ↑ Bibliothèque » à la place du logo.
+    readonly property int backPillHeight: 36
+    readonly property int backPillPadLeft: 10
+    readonly property int backPillPadRight: 16
+    readonly property color backPillFill: Qt.rgba(1, 1, 1, 0.1)
+    readonly property int backPillShift: 10          // il arrive de 10 px à gauche
+
+    // --- Favoris (MotionFavori) : pastille cœur sur la jaquette, anneau, bannière ---
+    readonly property int favBadgeSize: 38
+    readonly property int favBadgeInset: 12
+    readonly property color favBadgeFill: Qt.rgba(28 / 255, 28 / 255, 30 / 255, 0.72)
+    readonly property color favBadgeStroke: Qt.rgba(1, 1, 1, 0.14)
+    readonly property int favHeartSize: 18
+    readonly property var curveFavIn: [0.3, 1.7, 0.4, 1, 1, 1]
+    readonly property int favBadgeIn: 560
+    readonly property int favBadgeOut: 240
+    readonly property real favRingScale: 2.4         // l'anneau s'élargit en s'effaçant
+    readonly property int favRingMove: 650
+    readonly property int bannerHeight: 44
+    readonly property int bannerBottom: 36
+    readonly property color bannerFill: Qt.rgba(28 / 255, 28 / 255, 30 / 255, 0.78)
+    readonly property int bannerHold: 1500
+    readonly property int bannerTravel: 14           // elle monte de 14 px
+    readonly property var curveBannerIn: [0.3, 1.3, 0.4, 1, 1, 1]
+    readonly property int bannerIn: 560
+    readonly property int bannerOut: 300
 
     // --- Barre haute (StatusBar) ---
     readonly property int topBarY: 26
@@ -822,21 +908,6 @@ QtObject {
     readonly property int dialogMessageSize: 15
     readonly property real dialogMessageLineHeight: 1.45
     readonly property int dialogChoicesTop: 30
-
-    // --- Fiche du jeu (GamePage), bas du pad : à la place du héros, sur le fond du jeu ---
-    readonly property int gamePageTop: 108           // sous la barre haute
-    readonly property int gamePageLogoHeight: 96
-    readonly property int gamePageTitleSize: 48      // Sora 600
-    readonly property int gamePageLineGap: 6
-    readonly property int gamePageFactsTop: 8        // les faits, sous le titre
-    readonly property int gamePageTextTop: 24        // la description, sous les studios
-    readonly property int gamePageTextSize: 16
-    readonly property real gamePageTextLineHeight: 1.5
-    readonly property int gamePageScrollLines: 3     // lignes de description par appui
-    readonly property int gamePageScroll: 220        // easeOut
-    readonly property int gamePageButtonBottom: 24   // entre le bouton et la légende
-    readonly property color gamePageButtonFill: Qt.rgba(1, 1, 1, 0.06)
-    readonly property color gamePageButtonFocusFill: Qt.rgba(1, 1, 1, 0.16)
 
     // --- Écrans de message (MessageScreen) : recherche du PC, appairage ---
     // À la place du héros : même ancrage (heroBottom), même titre, puis le texte

@@ -13,22 +13,23 @@ TestCase {
     // Les utilitaires ne sont pas dans « Tout » quand il y a des jeux : ils ont leur onglet « Apps ».
     function test_utilitiesGoToApps() {
         var apps = Library.order([{ name: "Desktop" }, { name: "Hades" }, { name: "Steam Big Picture" },
-                                  { name: " virtual display " }, { name: "PlayNite" }], [], never)
+                                  { name: " virtual display " }, { name: "PlayNite" }], never)
         compare(names(Library.collection(apps, "all", never)), ["Hades"])
         compare(names(Library.collection(apps, "apps", never)),
                 ["Desktop", "PlayNite", "Steam Big Picture", " virtual display "])
     }
 
     function test_utilitiesStayWhenThereIsNoGame() {
-        var apps = Library.order([{ name: "Steam Big Picture" }, { name: "Desktop" }], [], never)
+        var apps = Library.order([{ name: "Steam Big Picture" }, { name: "Desktop" }], never)
         compare(names(Library.collection(apps, "all", never)), ["Desktop", "Steam Big Picture"])
     }
 
-    function test_favoritesThenRecentThenName() {
+    // Les plus récents d'abord, puis par nom ; les favoris ne passent plus en tête (onglet à part).
+    function test_recentThenName() {
         var apps = [{ name: "Celeste" }, { name: "Hades" }, { name: "Abzû" }, { name: "Outer Wilds" }, { name: "Doom" }]
         var played = { "Hades": 200, "Doom": 300, "Outer Wilds": 100 }
-        var order = Library.order(apps, ["Outer Wilds", "Celeste"], function(n) { return played[n] || 0 })
-        compare(names(order), ["Outer Wilds", "Celeste", "Doom", "Hades", "Abzû"])
+        var order = Library.order(apps, function(n) { return played[n] || 0 })
+        compare(names(order), ["Doom", "Hades", "Outer Wilds", "Abzû", "Celeste"])
     }
 
     function test_pendingTilesAreCompanionGamesNotYetApps() {

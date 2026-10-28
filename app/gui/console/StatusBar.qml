@@ -25,6 +25,7 @@ Item {
     // temps de voler jusqu'à lui (BootSplash).
     readonly property alias logo: logo
     property bool logoShown: true
+    property real logoFade: 1            // la fiche le remplace par « ↑ Bibliothèque »
     // Pastille de l'hôte, horloge, Wi-Fi, batterie : en fondu à l'entrée de l'accueil.
     property bool contentShown: true
     property real contentOpacity: contentShown ? 1 : 0
@@ -530,7 +531,7 @@ Item {
                 scale: Theme.statusLogoScale
                 transformOrigin: Item.TopLeft
                 width: implicitWidth; height: implicitHeight
-                opacity: root.logoShown ? 1 : 0
+                opacity: root.logoShown ? root.logoFade : 0
             }
         }
 

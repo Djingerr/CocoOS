@@ -39,6 +39,26 @@ FocusScope {
                                                Theme.coverFloor - Theme.coverSlots[0][1],
                                                Theme.coverSlots[0][0], Theme.coverSlots[0][1])
 
+    // --- Fiche du jeu (FicheEditoriale, MotionFiche) : la jaquette centrale devient la sienne ---
+    // 0 → 1 : elle glisse en Theme.ficheCover et s'incline, les autres s'écartent et s'effacent.
+    property bool detailOpen: false
+    property real detail: detailOpen ? 1 : 0
+    Behavior on detail {
+        NumberAnimation {
+            duration: Theme.reducedMotion ? Theme.reducedSpring.duration : root.detailOpen ? Theme.ficheOpen : Theme.ficheClose
+            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
+        }
+    }
+    // Inclinaison de la jaquette de la fiche, qui oscille lentement (cocoTilt).
+    property real sway: Theme.ficheTilt[0]
+    SequentialAnimation on sway {
+        running: root.detail > 0 && !Theme.reducedMotion
+        loops: Animation.Infinite
+        NumberAnimation { to: Theme.ficheTilt[1]; duration: Theme.ficheTiltPeriod; easing.type: Easing.InOutSine }
+        NumberAnimation { to: Theme.ficheTilt[0]; duration: Theme.ficheTiltPeriod; easing.type: Easing.InOutSine }
+    }
+    function mix(a, b, t) { return a + (b - a) * t }
+
     // --- Position animée ---
     property real position: currentIndex
     property bool fast: false            // flèche maintenue : pas rapides, sans rebond
@@ -283,15 +303,23 @@ FocusScope {
                 readonly property real k: Math.min(Math.abs(o), 4)
                 readonly property real side: Math.min(k, 1)          // 0 au centre, 1 sur les côtés
                 readonly property var place: root.slotAt(k)
+                // Fiche ouverte : la centrale va en place, les autres s'écartent.
+                readonly property bool central: Math.abs(o) < 0.5
+                readonly property real fiche: central ? root.detail : 0
+                readonly property real brightness: root.mix(place.brightness, Theme.ficheCoverBrightness, fiche)
 
-                visible: Math.abs(o) < 4
-                x: root.width / 2 + Math.sign(o) * place.dx + root.bump - place.w / 2
-                y: Theme.coverFloor - place.h
-                width: place.w
-                height: place.h
+                visible: Math.abs(o) < 4 && (central || root.detail < 1)
+                x: root.mix(root.width / 2 + Math.sign(o) * (place.dx + Theme.ficheSpread * root.detail) + root.bump - place.w / 2,
+                            Theme.ficheCover.x, fiche)
+                y: root.mix(Theme.coverFloor - place.h, Theme.ficheCover.y, fiche)
+                width: root.mix(place.w, Theme.ficheCover.width, fiche)
+                height: root.mix(place.h, Theme.ficheCover.height, fiche)
                 z: 10 - k
-                opacity: k <= 3 ? 1 : 4 - k
-                transform: Matrix4x4 { matrix: root.tilt(slot.width, slot.height, -Math.sign(slot.o) * slot.place.angle) }
+                opacity: (k <= 3 ? 1 : 4 - k) * (central ? 1 : 1 - root.detail)
+                transform: Matrix4x4 {
+                    matrix: root.tilt(slot.width, slot.height,
+                                      root.mix(-Math.sign(slot.o) * slot.place.angle, root.sway, slot.fiche))
+                }
 
                 // Ombres portées (pré-rendues), centrale et latérale en fondu.
                 Image {
@@ -317,6 +345,50 @@ FocusScope {
                     anchors.fill: parent
                     active: slot.visible
                     sourceComponent: slot.art.toString() !== "" ? artCover : composedCover
+                }
+
+                // Favori (MotionFavori) : pastille cœur en haut à droite de la jaquette centrale ;
+                // à l'ajout, un anneau accent s'en élargit.
+                readonly property bool favorite: model.favorite === true
+                readonly property bool badgeShown: favorite && central && root.detail < 0.01 && root.shown
+                onFavoriteChanged: if (favorite && central && !Theme.reducedMotion) ringAnim.restart()
+                Rectangle {
+                    id: ring
+                    x: parent.width - Theme.favBadgeInset - width; y: Theme.favBadgeInset
+                    width: Theme.favBadgeSize; height: width; radius: width / 2
+                    color: "transparent"
+                    border.width: 2; border.color: Theme.accent
+                    opacity: 0
+                    SequentialAnimation {
+                        id: ringAnim
+                        PropertyAction { target: ring; property: "opacity"; value: 0.8 }
+                        PropertyAction { target: ring; property: "scale"; value: 1 }
+                        ParallelAnimation {
+                            NumberAnimation { target: ring; property: "opacity"; to: 0; duration: Theme.favRingMove; easing.type: Easing.OutQuad }
+                            NumberAnimation {
+                                target: ring; property: "scale"; to: Theme.favRingScale; duration: Theme.favRingMove
+                                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
+                            }
+                        }
+                    }
+                }
+                Rectangle {
+                    x: parent.width - Theme.favBadgeInset - width; y: Theme.favBadgeInset
+                    width: Theme.favBadgeSize; height: width; radius: width / 2
+                    color: Theme.favBadgeFill
+                    border.color: Theme.favBadgeStroke
+                    visible: opacity > 0
+                    opacity: slot.badgeShown ? 1 : 0
+                    scale: slot.badgeShown ? 1 : 0.2
+                    Behavior on opacity { NumberAnimation { duration: slot.badgeShown ? 150 : Theme.durExit } }
+                    Behavior on scale {
+                        NumberAnimation {
+                            duration: slot.badgeShown ? Theme.favBadgeIn : Theme.favBadgeOut
+                            easing.type: Easing.BezierSpline
+                            easing.bezierCurve: slot.badgeShown ? Theme.curveFavIn : Theme.curveExit
+                        }
+                    }
+                    Heart { anchors.centerIn: parent; size: Theme.favHeartSize; filled: true }
                 }
 
                 // Jaquette d'après son image : un passage de shader (et un pour son reflet).
@@ -363,10 +435,10 @@ FocusScope {
                             readonly property size coverSize: Qt.size(width, height)
                             readonly property real itemHeight: height
                             readonly property real radius: Theme.radiusCover
-                            readonly property real dim: 1 - slot.place.brightness
-                            readonly property real gloss: Theme.coverGloss
+                            readonly property real dim: 1 - slot.brightness
+                            readonly property real gloss: root.mix(Theme.coverGloss, Theme.ficheGloss, slot.fiche)
                             readonly property real shade: Theme.coverShade * slot.side
-                            readonly property real ring: Theme.coverRing * (1 - slot.side)
+                            readonly property real ring: root.mix(Theme.coverRing * (1 - slot.side), Theme.ficheRing, slot.fiche)
                             readonly property real sheen: slot.k < 0.5 ? root.sheen : -2
                             readonly property real shimmer: cover.shimmer
                             readonly property real reveal: cover.reveal
@@ -381,7 +453,7 @@ FocusScope {
                         ShaderEffect {
                             y: parent.height + Theme.coverReflectGap
                             width: parent.width
-                            height: parent.height * Theme.coverReflectSpan
+                            height: parent.height * mirrorSpan
                             readonly property size coverSize: face.coverSize
                             readonly property real itemHeight: height
                             readonly property real radius: Theme.radiusCover
@@ -395,8 +467,8 @@ FocusScope {
                             readonly property real zoom: 1
                             readonly property real blurPx: 0
                             readonly property real mirror: 1
-                            readonly property real mirrorAlpha: Theme.coverReflectAlpha
-                            readonly property real mirrorSpan: Theme.coverReflectSpan
+                            readonly property real mirrorAlpha: root.mix(Theme.coverReflectAlpha, Theme.ficheReflectAlpha, slot.fiche)
+                            readonly property real mirrorSpan: root.mix(Theme.coverReflectSpan, Theme.ficheReflectSpan, slot.fiche)
                             readonly property var source: picture
                             fragmentShader: "shaders/Cover.frag.qsb"
                         }
@@ -406,8 +478,8 @@ FocusScope {
                             text: slot.name
                             visible: slot.side > 0
                             opacity: slot.side
-                            color: Qt.rgba(Theme.ink.r * slot.place.brightness, Theme.ink.g * slot.place.brightness,
-                                           Theme.ink.b * slot.place.brightness, 1)
+                            color: Qt.rgba(Theme.ink.r * slot.brightness, Theme.ink.g * slot.brightness,
+                                           Theme.ink.b * slot.brightness, 1)
                             font.family: Theme.fontUi
                             font.pixelSize: Theme.coverTitleSize
                             font.weight: Font.DemiBold
@@ -462,7 +534,7 @@ FocusScope {
                             anchors.fill: parent
                             radius: Theme.radiusCover
                             color: "black"
-                            opacity: 1 - slot.place.brightness
+                            opacity: 1 - slot.brightness
                             border.width: 1
                             border.color: Qt.rgba(1, 1, 1, Theme.coverRing * (1 - slot.side))
                         }
@@ -472,8 +544,9 @@ FocusScope {
         }
     }
 
-    // Fondus noirs des bords.
+    // Fondus noirs des bords (pas sur la fiche).
     Rectangle {
+        opacity: 1 - root.detail
         width: Theme.coverEdgeFade; height: Theme.coverAreaHeight
         gradient: Gradient {
             orientation: Gradient.Horizontal
@@ -482,6 +555,7 @@ FocusScope {
         }
     }
     Rectangle {
+        opacity: 1 - root.detail
         x: root.width - width
         width: Theme.coverEdgeFade; height: Theme.coverAreaHeight
         gradient: Gradient {

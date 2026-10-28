@@ -19,8 +19,11 @@ Item {
     // Zoom d'ensemble (lancement d'un jeu) ; `unveiled` retire le vignettage.
     property real zoom: 1
     property bool unveiled: false
-    // Noir du vignettage au-delà de 75 % du rayon (0,85 à l'accueil, 0,9 pour un état vide).
+    // Vignettage : noir au centre (`vignetteIn`), au-delà de 75 % du rayon (`vignetteOut`),
+    // centre en fraction de l'écran (la fiche le décale vers sa jaquette, à gauche).
+    property real vignetteIn: Theme.vignetteIn
     property real vignetteOut: Theme.vignetteOut
+    property point vignetteAt: Theme.vignetteAt
     property real vignette: unveiled ? 0 : 1
     Behavior on vignette { NumberAnimation { duration: Theme.launchScrimFade } }
 
@@ -144,7 +147,8 @@ Item {
                                          + (Theme.backdropPanScaleTo - Theme.backdropPanScaleFrom) * layer.drift
             readonly property point offset: Qt.point(Theme.backdropPanShift.x * layer.drift * zoom,
                                                      Theme.backdropPanShift.y * layer.drift * zoom)
-            readonly property real vignetteIn: Theme.vignetteIn
+            readonly property real vignetteIn: root.vignetteIn
+            readonly property point vignetteAt: root.vignetteAt
             readonly property real vignetteOut: root.vignetteOut
             readonly property real vignette: root.vignette
             readonly property real grain: Theme.grainOpacity

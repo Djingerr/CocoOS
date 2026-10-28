@@ -2,7 +2,7 @@
 // Fond CocoOS (BackdropLayer), en un passage : l'art du jeu déjà flouté (une petite
 // texture, floutée une fois), cadré comme `inset: -100px` puis zoomé et décalé (dérive
 // lente cocoBgPan), légèrement saturé (saturate 1.1), assombri par le vignettage radial
-// (ellipse à 50 % 40 %, farthest-corner) et grainé à 7 % en mode « overlay ».
+// (ellipse en `vignetteAt`, farthest-corner) et grainé à 7 % en mode « overlay ».
 layout(location = 0) in vec2 qt_TexCoord0;
 layout(location = 0) out vec4 fragColor;
 layout(std140, binding = 0) uniform buf {
@@ -17,6 +17,7 @@ layout(std140, binding = 0) uniform buf {
     float vignette;   // 1 : vignettage ; 0 : aucun (lancement)
     float grain;      // intensité du grain (0,07)
     float grainSize;  // côté de la texture de grain, px
+    vec2 vignetteAt;  // centre du vignettage, fraction de l'écran (0,5 0,4 ; fiche : 0,26 0,5)
 };
 layout(binding = 1) uniform sampler2D source;
 layout(binding = 2) uniform sampler2D noise;
@@ -29,9 +30,9 @@ void main() {
     float luma = dot(col, vec3(0.2126, 0.7152, 0.0722));
     col = max(mix(vec3(luma), col, 1.1), 0.0);
 
-    // radial-gradient(ellipse at 50% 40%) : rayons de « farthest-side » (au rapport près),
+    // radial-gradient(ellipse at X% Y%) : rayons de « farthest-side » (au rapport près),
     // agrandis pour passer par le coin le plus loin.
-    vec2 center = vec2(0.5, 0.4) * size;
+    vec2 center = vignetteAt * size;
     vec2 side = max(center, size - center);
     vec2 radius = side * sqrt(2.0);
     float t = length((p - center) / radius);

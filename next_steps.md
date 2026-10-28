@@ -215,6 +215,50 @@ Un commit par sous-étape :
 - ⚠️ **À écouter / sentir par Coco** : le niveau du nouveau pack (0,8) à l'accueil et dans le menu en
   jeu, et les vibrations Légères / Fortes à la manette (aucune n'a été ressentie).
 
+## Refonte CocoOS — phase 3, fiche jeu et favoris (2026-10-28)
+
+Décision de Coco : l'engrenage de la barre haute se réglera plus tard (reste masqué).
+
+- **Fiche éditoriale** (`GamePage` réécrite, même interface pour `ConsoleHome` et ses tests) :
+  à droite, en cascade (cocoIn : 18 px, flou 8, 1 s, de 150 à 600 ms), l'éditeur en capitales,
+  le titre 64 px, « année · genres » et la pastille PEGI, la description (trois lignes, bas la
+  fait défiler), les chiffres (temps de jeu, ou « Jamais joué » ; taille installée), les faits
+  sous un filet (développeur, date de sortie complète, bibliothèque, dernière session), puis
+  A Jouer / X Favori (Retirer s'il l'est) / Y Options ; « ↑ Bibliothèque » à la place du logo,
+  « Appuyez sur B ou ↑ pour revenir » en bas. Un champ absent disparaît.
+- **La jaquette de la fiche est celle du carrousel** (`CoverFlow.detail`, 0 → 1 en 780 ms
+  curveMain, retour en 520 ms) : elle glisse en (96, 150, 300 × 424), s'incline (rotateY 9 → 3°
+  en 18 s, aller-retour), s'assombrit à 0,66, son reflet s'allonge ; les autres s'écartent de
+  340 px en s'effaçant ; le bloc titre part de 14 px vers le haut en 220 ms (retour après
+  300 ms), les onglets et les fondus des bords s'effacent, le vignettage du fond se recentre
+  à 26 % 50 % (0,3 → 0,84). Sons `fiche_open` / `fiche_close`.
+- **Favori (X)**, sur l'accueil comme sur la fiche (MotionFavori) : pastille cœur en haut à
+  droite de la jaquette centrale (rebond 560 ms), anneau accent qui s'élargit (×2,4, 650 ms),
+  bannière « Ajouté aux favoris » / « Retiré des favoris » en bas (1,5 s), sons
+  `favorite_add` (+ sa vibration) / `favorite_remove`. Le jeu **reste à sa place** : « Tout » est
+  désormais trié par dernière partie puis par nom (plus de favoris en tête : ils ont leur onglet,
+  et le carrousel ne saute plus sous la jaquette de la fiche).
+- Harnais : `HomeDemo` avec la fiche (`fiche=1`, actions `down`, `up`, `x`). Tests :
+  `tst_Format::test_fiche`, `tst_CoverFlow::test_detailMovesTheCentralCover`,
+  `tst_ConsoleHome::test_9e_xMarksAFavoriteInPlace` (remplace « épingler en tête ») et
+  `test_9r` adapté (la fiche n'est plus un écran de message).
+
+### Porte de la phase 3
+- **FicheEditoriale** : mise en page au pixel près (colonne, titre, description, chiffres,
+  faits, boutons, bouton du haut, aide) ; écart global 9,0 / 255, dû aux données absentes du mock
+  et de l'API (note critique, pastilles Solo / Multijoueur / Manette, « Xbox · PC ») et au fond
+  (la maquette fait défiler trois images de fond, le Companion n'en a qu'une).
+- **MotionFiche** : contradiction dans le pack — sa source anime vers la « fiche centrée »
+  (variante abandonnée par le brief). Gardé : son minutage (780 ms, 700 ms décalés, cascade) vers
+  la fiche éditoriale, comme le dit SPEC §5.2. Filmstrip capturé : ouverture et retour fluides.
+- **MotionFavori** : même comportement (pastille, anneau, bannière). Écart : la planche montre un
+  bouton « Favori » à côté de Jouer / Options sur l'accueil, que la planche statique
+  `AccueilCarrousel` n'a pas ; pas ajouté (X suffit, la bannière confirme).
+- Tests : 19 suites vertes ; build `embedded` sans avertissement de la console.
+- ⚠️ **À valider à la manette par Coco** : bas / haut / B sur la fiche, défilement d'une longue
+  description, A Jouer depuis la fiche, X sur l'accueil et sur la fiche, Y Options depuis la
+  fiche ; avec un vrai jeu du Companion (description HTML, taille, source).
+
 ## Refonte CocoOS — phase 2, accueil (2026-10-28)
 
 Décision de Coco : jaquette Playnite (Companion) d'abord, celle d'Apollo à défaut ; à revoir

@@ -26,6 +26,8 @@ import "Mock.js" as Mock
 //             fastleft (pas rapide, flèche maintenue), release, rb, lb, jump, jumpback
 //   start     décalage du script, en ms (laisser l'accueil finir son entrée)
 //   loading   1 : jaquettes et fond arrivent comme dans MotionJaquettes (squelettes d'abord)
+//   fiche     1 : la fiche du jeu au centre ouverte d'entrée (FicheEditoriale)
+// Actions (script) en plus : down (la fiche), up (la referme), x (favori).
 //   time      heure affichée (21:42 par défaut)
 HomeScreen {
     id: demo
@@ -73,6 +75,36 @@ HomeScreen {
     collectionIndex: categories.indexOf(category)
     onCollectionRequested: function(direction) { demo.switchCategory(direction) }
     onRecentRequested: switchCategory(2 - collectionIndex)
+    onDetailsRequested: fiche.open()
+    detailOpen: fiche.shown
+    onFavoriteRequested: toggleFavorite()
+    favorite: !!(game && game.favorite)
+
+    function toggleFavorite() {
+        if (!game) return
+        game.favorite = !game.favorite
+        fill()
+        favoriteFeedback(game.favorite)
+    }
+
+    GamePage {
+        id: fiche
+        parent: demo.detailStage
+        readonly property var info: demo.game || ({})
+        title: demo.title
+        label: Format.publisher(info)
+        meta: Format.ficheMeta(info)
+        tags: demo.pegi !== "" ? [demo.pegi] : []
+        // (Le mock n'a pas de description : celle de la maquette pour Minecraft.)
+        description: info.id === "mc" ? "Explorez des mondes générés à l'infini, récoltez des ressources et construisez tout ce que vous imaginez. Survivez la nuit face aux créatures, ou laissez libre cours à votre créativité, seul ou entre amis."
+                                      : Format.plainText(info.description || "")
+        stats: Format.ficheStats(info, "")
+        details: Format.ficheDetails(info, Qt.locale("fr_FR"), new Date("2026-10-28T21:42:00"))
+        favorite: demo.favorite
+        banner: demo.favoriteBanner
+        onFavoriteRequested: demo.toggleFavorite()
+        onOptionsRequested: demo.options.open()
+    }
 
     title: game ? game.name : ""
     meta: !game ? [] : category === "recent" && game.lastPlayed
@@ -111,6 +143,7 @@ HomeScreen {
         currentIndex = Number(args.focus !== undefined ? args.focus : 3)
         Sounds.enabled = args.out === undefined && args.sound !== "0"
         if (args.do) actions.start()
+        if (args.fiche === "1") fiche.open()
         var start = Number(args.start || 0)
         var steps = args.script ? args.script.split(",").map(function(x) {
             var p = x.split(":"); return { t: start + Number(p[0]), action: p[1] } }) : []
@@ -157,6 +190,9 @@ HomeScreen {
         else if (action === "lb") switchCategory(-1)
         else if (action === "jump") shelf.jump(1)
         else if (action === "jumpback") shelf.jump(-1)
+        else if (action === "down") fiche.open()
+        else if (action === "up") fiche.close()
+        else if (action === "x") toggleFavorite()
         else if (action === "backdrop") backdropArrived = true
         else if (action === "ready") Sounds.play("library_ready")
         else if (action.indexOf("arrive:") === 0) {

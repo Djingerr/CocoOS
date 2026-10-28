@@ -50,6 +50,42 @@ function lastPlayed(iso, now) {
 
 // --- Fiche du jeu (GamePage) ---
 
+// Ligne sous le titre de la fiche : « 2011 · Bac à sable, Survie » (année, genres).
+function ficheMeta(info) {
+    var year = /^(\d{4})/.exec(info.releaseDate || "")
+    var genres = (info.genres || []).slice(0, 3).join(", ")
+    return [year ? year[1] : "", genres].filter(Boolean).join(" · ")
+}
+
+// Chiffres de la fiche : temps de jeu (« Jamais joué » s'il est nul, CasLimites) et taille
+// installée (`size` : « 1,2 Go », déjà mis en forme). La note critique n'est pas dans l'API.
+function ficheStats(info, size) {
+    var stats = []
+    var seconds = info.playtimeSeconds || 0
+    if (seconds >= 3600)
+        stats.push({ value: "" + Math.round(seconds / 3600), unit: qsTr("h"), label: qsTr("Temps de jeu") })
+    else if (seconds > 0)
+        stats.push({ value: "" + Math.max(1, Math.round(seconds / 60)), unit: qsTr("min"), label: qsTr("Temps de jeu") })
+    else
+        stats.push({ text: qsTr("Jamais joué"), label: qsTr("Temps de jeu") })
+    var parts = /^(.*\S)\s+(\S+)$/.exec(size || "")
+    if (parts)
+        stats.push({ value: parts[1], unit: parts[2], label: qsTr("Taille installée") })
+    return stats
+}
+
+// Faits de la fiche, sous le filet : studio, date de sortie, bibliothèque, dernière session.
+function ficheDetails(info, locale, now) {
+    var m = /^(\d{4})-(\d\d)-(\d\d)/.exec(info.releaseDate || "")
+    var list = [
+        { label: qsTr("Développeur"), value: (info.developers || [])[0] || "" },
+        { label: qsTr("Sortie"), value: m ? new Date(+m[1], +m[2] - 1, +m[3]).toLocaleDateString(locale, "d MMMM yyyy") : "" },
+        { label: qsTr("Bibliothèque"), value: sourceName(info.source) },
+        { label: qsTr("Dernière session"), value: lastPlayed(info.lastPlayed, now) }
+    ]
+    return list.filter(function(f) { return f.value !== "" })
+}
+
 // Description Playnite (HTML brut, souvent celle de Steam) → texte simple : les blocs et
 // les <br> deviennent des retours à la ligne, les <li> des puces, les autres balises
 // (images comprises) tombent, les entités sont décodées en une passe, et les lignes vides

@@ -45,6 +45,8 @@
         <file>gui/console/CategoryTabs.qml</file>
         <file>gui/console/HomeHelp.qml</file>
         <file>gui/console/EmptyFavorites.qml</file>
+        <file>gui/console/Heart.qml</file>
+        <file>gui/console/FavoriteBanner.qml</file>
         <file>gui/console/HeroBlock.qml</file>
         <file>gui/console/HomeScreen.qml</file>
         <file>gui/console/PadRepeat.qml</file>

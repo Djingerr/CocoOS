@@ -72,6 +72,17 @@ FocusScope {
     // `staged` est vrai, le héros et l'étagère s'effacent et la manette va à `stage`.
     readonly property alias stage: stage
     property bool staged: false
+    // --- Fiche du jeu (GamePage) : à poser dans `detailStage` ; `detailOpen` fait glisser la
+    //     jaquette centrale à gauche et efface le reste de l'accueil (MotionFiche). ---
+    readonly property alias detailStage: detailStage
+    property bool detailOpen: false
+    readonly property real detail: shelf.detail
+    // Favori ajouté ou retiré : la bannière (MotionFavori), sur l'accueil comme sur la fiche.
+    function favoriteFeedback(added) {
+        favBanner.show(added)
+        Sounds.play(added ? "favorite_add" : "favorite_remove")
+    }
+    readonly property alias favoriteBanner: favBanner
 
     // L'accueil entre quand on le lui permet (`entryAllowed` : l'animation de démarrage
     // en est à sa sortie) : la barre haute d'emblée, le héros et l'étagère dès que
@@ -181,6 +192,10 @@ FocusScope {
             opacity: root.entered ? 1 : 0
             zoom: root.launching ? Theme.launchBackdropZoom : 1
             unveiled: root.launching
+            vignetteAt: Qt.point(Theme.vignetteAt.x + (Theme.vignetteAtFiche.x - Theme.vignetteAt.x) * root.detail,
+                                 Theme.vignetteAt.y + (Theme.vignetteAtFiche.y - Theme.vignetteAt.y) * root.detail)
+            vignetteIn: Theme.vignetteIn + (Theme.vignetteInFiche - Theme.vignetteIn) * root.detail
+            vignetteOut: Theme.vignetteOut + (Theme.vignetteOutFiche - Theme.vignetteOut) * root.detail
             Behavior on opacity {
                 NumberAnimation {
                     duration: root.entered ? Theme.entryCardFade : 0
@@ -225,7 +240,8 @@ FocusScope {
                 systemShown: !sheet.opened && !root.panelOpen
                 contentShown: root.entryAllowed
                 notificationsAllowed: root.notificationsAllowed && root.settled && root.statusLogoShown
-                                      && !sheet.opened && !root.panelOpen && !root.launching
+                                      && !sheet.opened && !root.panelOpen && !root.launching && !root.detailOpen
+                logoFade: 1 - root.detail
             }
 
             // Catégories, au centre de la barre haute.
@@ -235,9 +251,10 @@ FocusScope {
                 y: Theme.tabsTop
                 labels: root.collectionLabels
                 currentIndex: root.collectionIndex
-                visible: labels.length > 1
-                opacity: root.entryAllowed ? 1 : 0
-                Behavior on opacity { NumberAnimation { duration: Theme.entryTextFade } }
+                visible: labels.length > 1 && opacity > 0
+                opacity: (root.entryAllowed ? 1 : 0) * (1 - root.detail)
+                transform: Translate { y: -8 * root.detail }
+                Behavior on opacity { enabled: root.detail === 0; NumberAnimation { duration: Theme.entryTextFade } }
                 onRequested: function(delta) { root.collectionRequested(delta) }
             }
         }
@@ -255,8 +272,9 @@ FocusScope {
                 anchors.fill: parent
                 // La manette va au carrousel, à l'écran de message ou au panneau ouvert :
                 // le focus suit ces liaisons, il revient seul à la fermeture.
-                focus: !root.staged && !sheet.opened && !root.heroFocused && !root.statusFocused
+                focus: !root.staged && !root.detailOpen && !sheet.opened && !root.heroFocused && !root.statusFocused
                 shown: root.entered
+                detailOpen: root.detailOpen
                 onLaunchRequested: function(index) { root.launchRequested(index) }
                 onDetailsRequested: root.detailsRequested()
                 onUpRequested: {
@@ -290,6 +308,26 @@ FocusScope {
                 HeroBlock {
                     id: hero
                     width: parent.width
+                    // Fiche ouverte : le bloc titre part vers le haut en fondu (220 ms), et revient
+                    // après 300 ms quand elle se referme (MotionFiche).
+                    opacity: root.detailOpen ? 0 : 1
+                    property real lift: root.detailOpen ? -Theme.homeLeaveTravel : 0
+                    transform: Translate { y: hero.lift }
+                    Behavior on opacity {
+                        SequentialAnimation {
+                            PauseAnimation { duration: root.detailOpen ? 0 : Theme.homeReturnDelay }
+                            NumberAnimation { duration: root.detailOpen ? Theme.ficheOut : Theme.homeReturn }
+                        }
+                    }
+                    Behavior on lift {
+                        SequentialAnimation {
+                            PauseAnimation { duration: root.detailOpen ? 0 : Theme.homeReturnDelay }
+                            NumberAnimation {
+                                duration: root.detailOpen ? Theme.ficheOut + 100 : Theme.homeReturnMove
+                                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
+                            }
+                        }
+                    }
                     focus: root.heroFocused && !root.statusFocused && !root.staged && !sheet.opened
                     meta: root.meta
                     pegi: root.pegi
@@ -321,11 +359,25 @@ FocusScope {
             anchors.horizontalCenter: parent.horizontalCenter
             y: Theme.canvasHeight - Theme.helpBottom - height
             lit: shelf.heldDirection
-            opacity: root.entered && !root.launching && !root.staged && !root.favoritesEmpty ? 1 : 0
+            opacity: root.entered && !root.launching && !root.staged && !root.favoritesEmpty && !root.detailOpen
+                     && !favBanner.shown ? 1 : 0
             Behavior on opacity { NumberAnimation { duration: Theme.entryTextFade } }
         }
 
         Toast { id: toastItem }
+
+        // La fiche du jeu (GamePage), par-dessus le carrousel.
+        FocusScope {
+            id: detailStage
+            anchors.fill: parent
+            focus: root.detailOpen && !sheet.opened
+        }
+
+        FavoriteBanner {
+            id: favBanner
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: Theme.canvasHeight - Theme.bannerBottom - height
+        }
 
         FocusScope {
             id: stage

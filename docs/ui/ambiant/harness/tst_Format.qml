@@ -67,6 +67,19 @@ TestCase {
         compare(Format.pegi(["ESRB M"]), "")
     }
 
+    // Fiche CocoOS : méta, chiffres (« Jamais joué », taille) et faits ; un champ absent disparaît.
+    function test_fiche() {
+        var info = { releaseDate: "2011-11-18T00:00:00", genres: ["Bac à sable", "Survie"], playtimeSeconds: 412 * 3600,
+                     developers: ["Mojang Studios"], source: "steam", lastPlayed: null }
+        compare(Format.ficheMeta(info), "2011 · Bac à sable, Survie")
+        compare(Format.ficheStats(info, "1,2 Go"), [{ value: "412", unit: "h", label: "Temps de jeu" },
+                                                   { value: "1,2", unit: "Go", label: "Taille installée" }])
+        compare(Format.ficheStats({}, ""), [{ text: "Jamais joué", label: "Temps de jeu" }])
+        var details = Format.ficheDetails(info, Qt.locale("fr_FR"), new Date(2026, 9, 28))
+        compare(details.map(function(d) { return d.label }), ["Développeur", "Sortie", "Bibliothèque"])
+        compare(details[1].value, "18 novembre 2011")
+    }
+
     function test_playtime() {
         compare(Format.playtime(412 * 3600 + 1200), "412 h de jeu")
         compare(Format.playtime(7260), "2 h de jeu")

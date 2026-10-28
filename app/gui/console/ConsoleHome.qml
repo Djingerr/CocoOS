@@ -295,7 +295,7 @@ FocusScope {
         }
         var favorites = favoriteNames()
         var recent = Library.parse(consoleConfig.recentGames, {})
-        var ordered = Library.order(apps, favorites, function(name) { return home.lastPlayedTime(name, recent) })
+        var ordered = Library.order(apps, function(name) { return home.lastPlayedTime(name, recent) })
 
         // Le jeu affiché le reste : la sélection le suit à sa nouvelle place. Au
         // chargement, avant l'entrée de l'accueil, c'est le dernier jeu lancé.
@@ -343,17 +343,14 @@ FocusScope {
     }
 
     // X : épingle le jeu en tête de l'étagère, ou le détache.
+    // X : ajoute le jeu aux favoris, ou l'en retire (bannière de MotionFavori).
     function toggleFavorite() {
         var tile = currentTile()
         if (!tile) return
-        var name = tile.name
-        var favorites = Library.toggled(favoriteNames(), name)
-        var pinned = favorites.indexOf(name) >= 0
+        var favorites = Library.toggled(favoriteNames(), tile.name)
         consoleConfig.favorites = JSON.stringify(favorites)
         rebuildShelf()
-        Sounds.play(pinned ? "select" : "back")
-        homeScreen.toast(pinned ? qsTr("%1 est épinglé en tête de liste").arg(name)
-                                : qsTr("%1 n'est plus épinglé").arg(name))
+        homeScreen.favoriteFeedback(favorites.indexOf(tile.name) >= 0)
     }
 
     // Un jeu vient d'être lancé : il passe en tête des jeux récents.
@@ -1603,7 +1600,8 @@ FocusScope {
         statusLogoShown: !bootSplash.visible || bootSplash.mode === "wake"
 
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
-                || welcomeScreen.shown || networkScreen.shown || gamePage.shown
+                || welcomeScreen.shown || networkScreen.shown
+        detailOpen: gamePage.shown
         panelOpen: confirmDialog.opened || homeMenu.opened || wifiSheet.opened || downloadMenu.opened
 
         onLaunchRequested: function(index) {
@@ -1960,20 +1958,32 @@ FocusScope {
     }
 
     // --- Fiche du jeu sélectionné (bas du pad) : à la place du héros, sur le fond du jeu ---
+    // Fiche éditoriale du jeu (FicheEditoriale) : les champs du Companion qu'il connaît ; un
+    // champ absent disparaît. Note critique et modes de jeu : pas dans l'API (next_steps.md, Q11).
     GamePage {
         id: gamePage
-        parent: homeScreen.stage
+        parent: homeScreen.detailStage
         readonly property var info: homeScreen.info
         title: homeScreen.title
         logo: homeScreen.logo
+        label: info ? Format.publisher(info) : ""
+        meta: info ? Format.ficheMeta(info) : ""
+        tags: info && Format.pegi(info.ageRatings) !== "" ? [Format.pegi(info.ageRatings)] : []
+        description: info ? Format.plainText(info.description) : ""
+        stats: info ? Format.ficheStats(info, home.humanSize(info.installSizeBytes)) : []
+        details: info ? Format.ficheDetails(info, Qt.locale(home.english ? "en_US" : "fr_FR"), new Date()) : []
+        favorite: homeScreen.favorite
         facts: info ? Format.facts(info)
                           .concat(info.installSizeBytes > 0 ? [home.humanSize(info.installSizeBytes)] : [])
                           .join(" · ") : ""
         credits: info ? Format.credits(info) : ""
-        description: info ? Format.plainText(info.description) : ""
         canUninstall: info ? info.uninstallable === true : false
         uninstalling: info ? home.uninstalls[info.id] === "UNINSTALLING" : false
+        banner: homeScreen.favoriteBanner
         onUninstallRequested: home.confirmUninstall(info)
+        onFavoriteRequested: home.toggleFavorite()
+        onOptionsRequested: homeScreen.options.open()
+        onPlayRequested: homeScreen.launchRequested(homeScreen.currentIndex)
     }
 
     // --- Saisie du code d'appairage Companion (6 chiffres, host → console) ---

@@ -828,25 +828,23 @@ Item {
         }
 
         // X épingle le jeu en tête de l'étagère (la sélection le suit), puis le détache.
-        function test_9e_xPinsTheGameInFront() {
+        // X : favori (MotionFavori) ; le jeu reste à sa place dans le carrousel, la bannière le dit.
+        function test_9e_xMarksAFavoriteInPlace() {
             keyClick(Qt.Key_Right); keyClick(Qt.Key_Right)
             var name = screen.title
+            var index = screen.currentIndex
             verify(!screen.favorite)
             keyClick(Qt.Key_Menu)                           // bouton X
-            compare(screen.currentIndex, 0)
+            compare(screen.currentIndex, index)
             compare(screen.title, name)
             verify(screen.favorite)
-            verify(find(screen, "shown").shown !== undefined)
-            keyClick(Qt.Key_Right); keyClick(Qt.Key_Left)   // il reste en tête
-            compare(screen.title, name)
+            verify(screen.favoriteBanner.shown && screen.favoriteBanner.added)
             keyClick(Qt.Key_Menu)
             verify(!screen.favorite)
-            compare(screen.title, name)
-            verify(screen.currentIndex > 0)                 // revenu à sa place
+            verify(!screen.favoriteBanner.added)
+            compare(screen.currentIndex, index)
         }
 
-        // Collections : R1 sur l'étagère passe aux favoris (le jeu épinglé seul), L1 revient à
-        // tout ; détacher le dernier favori fait disparaître la collection.
         // Catégories CocoOS : Tout et Favoris toujours (Favoris vide montre son état), Apps
         // pour les utilitaires d'Apollo ; LB / RB passent de l'une à l'autre.
         function test_9e_collections() {
@@ -941,7 +939,7 @@ Item {
             tryCompare(screen, "count", 10)
         }
 
-        // Bas sur un jeu : sa fiche sur le même fond (héros et étagère s'effacent) ; B, ou haut
+        // Bas sur un jeu : sa fiche sur le même fond (la jaquette glisse à gauche) ; B, ou haut
         // une fois en haut, la referme. Tout en bas, « Désinstaller » → confirmation → le PC.
         function test_9r_gamePageAndUninstall() {
             CompanionClient.paired = true
@@ -952,14 +950,14 @@ Item {
             compare(screen.title, "Elden Ring")
             keyClick(Qt.Key_Down)
             tryCompare(page, "shown", true)
-            verify(screen.staged)
+            verify(screen.detailOpen)                       // la fiche CocoOS : la jaquette part à gauche
             compare(page.facts, "Action · RPG · 2022 · PEGI 16 · 49,7 Go")
             compare(page.credits, "FromSoftware · Bandai Namco")
             compare(page.description.indexOf("Lève-toi, Sans-éclat"), 0)
             verify(page.canUninstall)
             keyClick(Qt.Key_Escape)                         // B
             tryCompare(page, "shown", false)
-            verify(!screen.staged)
+            verify(!screen.detailOpen)
             compare(screen.title, "Elden Ring")
 
             keyClick(Qt.Key_Down)
