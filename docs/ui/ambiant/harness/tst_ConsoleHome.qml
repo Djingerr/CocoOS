@@ -456,8 +456,8 @@ Item {
             compare(screen.optionRows[0].value, 61)
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Left)    // volume 75 → 74 %
             compare(SystemStatus.volume, 74)
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Right)   // veille : 2 → 5 min
-            compare(screen.optionRows[2].options[screen.optionRows[2].index], "5 min")
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Right)   // veille : 5 → 10 min
+            compare(screen.optionRows[2].options[screen.optionRows[2].index], "10 min")
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Right); keyClick(Qt.Key_Right)   // Boutons : PlayStation
             compare(Theme.buttonLayout, "playstation")
             keyClick(Qt.Key_Left); keyClick(Qt.Key_Left)    // Auto : sans manette, Xbox

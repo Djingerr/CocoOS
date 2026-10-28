@@ -497,7 +497,7 @@ QtObject {
     readonly property int toastDuration: 2600
 
     // --- Veille de l'écran (idle/, docs/design/idle/) ---
-    readonly property int idleSeconds: 120           // inactivité avant la veille, par défaut
+    readonly property int idleSeconds: 300           // inactivité avant la veille, par défaut
     // Bouton Home ignoré juste après le retour d'un jeu : il peut être encore enfoncé.
     readonly property int homeGuard: 1500
 

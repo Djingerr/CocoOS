@@ -516,10 +516,10 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   sinon énergie / puissance ou charge / courant ; temps lissé d'un relevé à l'autre) et
   `SystemStatus.wifi` (NetworkManager). Vérifié sur le laptop (38 %, 13,4 W → 86 min), dans le harnais (`do=sys,sysleft`) et par
   `tst_ConsoleHome::test_9y_statusBarIcons`. ⚠️ Pas vu à la manette.
-- ✅ **Écran de veille « Premium » (2026-10-27, branche `feat/idle-screen`, pas encore fusionnée dans
+- ✅ **Écran de veille « Premium » (2026-10-27, branche `feat/idle-screen`, fusionnée dans
   `console-ui`)** — cible :
   `docs/design/idle/` (brief, spec, maquettes 09 à 12, références) ; suivi détaillé dans `next_steps.md`.
-  Remplace `SleepScreen` (décision de Marco) : après `ConsoleUi/idleSeconds` (**120 s** par défaut ;
+  Remplace `SleepScreen` (décision de Marco) : après `ConsoleUi/idleSeconds` (**5 min** par défaut, décision de Marco du 2026-10-28 ;
   Options › Console › Mise en veille après : 30 s, 1, 2, 5, 10, 30 min, jamais ; l'ancienne clé
   `sleepMinutes` est ignorée), `idle/IdleOverlay` monte au-dessus de l'accueil en fondu ;
   quatre écrans selon l'état : jeu en cours sur le PC (09), jeu + téléchargement (10), téléchargement
