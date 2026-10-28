@@ -1,0 +1,297 @@
+[
+ [
+  "AccueilCarrousel",
+  "ecran",
+  "Accueil — carrousel 3D (retenu)"
+ ],
+ [
+  "FicheEditoriale",
+  "ecran",
+  "Fiche jeu — éditoriale (retenue)"
+ ],
+ [
+  "OptionsFeuille",
+  "ecran",
+  "Options — feuille groupée (retenue)"
+ ],
+ [
+  "JeuControle",
+  "ecran",
+  "Menu en jeu — centre de contrôle (retenu)"
+ ],
+ [
+  "ClavierWifi",
+  "ecran",
+  "Clavier — mot de passe Wi-Fi"
+ ],
+ [
+  "Recherche",
+  "ecran",
+  "Clavier — recherche dans la bibliothèque"
+ ],
+ [
+  "SetupBonjour",
+  "motion",
+  "Configuration 0 — Bonjour"
+ ],
+ [
+  "SetupLangue",
+  "ecran",
+  "Configuration 1 — Langue"
+ ],
+ [
+  "SetupWifi",
+  "ecran",
+  "Configuration 2 — Wi-Fi ou 5G"
+ ],
+ [
+  "SetupPC",
+  "ecran",
+  "Configuration 3 — Choix du PC"
+ ],
+ [
+  "SetupBibliotheque",
+  "ecran",
+  "Configuration 4 — Bibliothèque et préférences"
+ ],
+ [
+  "ReglagesWifi",
+  "ecran",
+  "Réglages — Wi-Fi"
+ ],
+ [
+  "ReglagesManettes",
+  "ecran",
+  "Réglages — Bluetooth et manettes"
+ ],
+ [
+  "ReglagesEcranSon",
+  "ecran",
+  "Réglages — Écran et son"
+ ],
+ [
+  "ReglagesGeneral",
+  "ecran",
+  "Réglages — Général"
+ ],
+ [
+  "MenuAlimentation",
+  "ecran",
+  "Menu d'alimentation"
+ ],
+ [
+  "ChoixPC",
+  "ecran",
+  "Choisir un autre PC"
+ ],
+ [
+  "StatsOverlay",
+  "ecran",
+  "Statistiques en jeu"
+ ],
+ [
+  "EtatHorsLigne",
+  "ecran",
+  "État — PC hors ligne"
+ ],
+ [
+  "EtatFavorisVide",
+  "ecran",
+  "État — aucun favori"
+ ],
+ [
+  "CasLimites",
+  "ecran",
+  "Cas limites — titres longs, jaquettes, métadonnées, grande bibliothèque"
+ ],
+ [
+  "VeilleJeu",
+  "ecran",
+  "Veille — jeu en cours"
+ ],
+ [
+  "VeilleJeuTelechargement",
+  "ecran",
+  "Veille — jeu + téléchargement"
+ ],
+ [
+  "VeilleTelechargement",
+  "ecran",
+  "Veille — téléchargement seul"
+ ],
+ [
+  "VeilleRepos",
+  "ecran",
+  "Veille — repos"
+ ],
+ [
+  "Vibrations",
+  "ecran",
+  "Vibrations de la manette"
+ ],
+ [
+  "CarteNavigation",
+  "ecran",
+  "Carte de navigation"
+ ],
+ [
+  "Demarrage",
+  "motion",
+  "Démarrage → accueil"
+ ],
+ [
+  "MotionNavigation",
+  "motion",
+  "Navigation du carrousel"
+ ],
+ [
+  "MotionLancement",
+  "motion",
+  "Lancement d'un jeu"
+ ],
+ [
+  "MotionEchec",
+  "motion",
+  "Hôte injoignable"
+ ],
+ [
+  "MotionFiche",
+  "motion",
+  "Accueil → fiche (↓ / ↑)"
+ ],
+ [
+  "MotionMenuJeu",
+  "motion",
+  "Menu en jeu"
+ ],
+ [
+  "MotionReveil",
+  "motion",
+  "Réveil depuis l'inactivité"
+ ],
+ [
+  "MotionExtinction",
+  "motion",
+  "Extinction"
+ ],
+ [
+  "MotionMicro",
+  "motion",
+  "Micro-interactions"
+ ],
+ [
+  "MotionVeille",
+  "motion",
+  "Mise en veille et réveil (appui court)"
+ ],
+ [
+  "MotionHud",
+  "motion",
+  "Volume (boutons du haut)"
+ ],
+ [
+  "MotionCapture",
+  "motion",
+  "Capture d'écran"
+ ],
+ [
+  "MotionQuitter",
+  "motion",
+  "Quitter le jeu → accueil"
+ ],
+ [
+  "MotionCategories",
+  "motion",
+  "Catégories (LB / RB)"
+ ],
+ [
+  "MotionOptions",
+  "motion",
+  "Options (Y)"
+ ],
+ [
+  "MotionRecharge",
+  "motion",
+  "Recharge console éteinte"
+ ],
+ [
+  "MotionAppairage",
+  "motion",
+  "Appairage (code PIN)"
+ ],
+ [
+  "MotionSalon",
+  "motion",
+  "Mode salon (TV)"
+ ],
+ [
+  "MotionReveilPC",
+  "motion",
+  "Réveil du PC à distance"
+ ],
+ [
+  "MotionReseau",
+  "motion",
+  "Changement de réseau"
+ ],
+ [
+  "MotionJaquettes",
+  "motion",
+  "Chargement des jaquettes"
+ ],
+ [
+  "MotionFavori",
+  "motion",
+  "Ajout aux favoris"
+ ],
+ [
+  "MotionMiseAJour",
+  "motion",
+  "Mise à jour système"
+ ],
+ [
+  "MotionAlertes",
+  "motion",
+  "Alertes critiques"
+ ],
+ [
+  "MotionClavier",
+  "motion",
+  "Saisie au clavier"
+ ],
+ [
+  "MotionSetupFin",
+  "motion",
+  "Fin de configuration → accueil"
+ ],
+ [
+  "MotionAlimentation",
+  "motion",
+  "Appui long → menu → redémarrage"
+ ],
+ [
+  "MotionCourbes",
+  "motion",
+  "Courbes et durées"
+ ],
+ [
+  "MotionInterruption",
+  "motion",
+  "Animations interrompues"
+ ],
+ [
+  "MotionReduite",
+  "motion",
+  "Réduire les animations"
+ ],
+ [
+  "MotionAccent",
+  "motion",
+  "Accent tiré de la jaquette"
+ ],
+ [
+  "LedConsole",
+  "motion",
+  "LED de la console"
+ ]
+]

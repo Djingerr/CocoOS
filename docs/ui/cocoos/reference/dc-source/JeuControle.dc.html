@@ -1,0 +1,127 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Menu en jeu — Centre de contrôle</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+button{cursor:default}
+@keyframes cocoPop{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:none}}
+@keyframes cocoBlurIn{from{filter:blur(0) brightness(1)}to{filter:blur(36px) brightness(0.55) saturate(1.2)}}
+@keyframes cocoLive{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: -60px; animation: cocoBlurIn .5s cubic-bezier(.32,.72,0,1) both">
+<div style="position: absolute; inset: 0; background: {{art}}"></div>
+<div style="position: absolute; left: -5%; right: -5%; bottom: 0; height: 58%; background: rgba(0,0,0,0.3); clip-path: polygon(0 55%, 14% 22%, 28% 48%, 44% 6%, 60% 44%, 76% 18%, 100% 50%, 100% 100%, 0 100%)"></div>
+<div style="position: absolute; left: -5%; right: -5%; bottom: 0; height: 36%; background: rgba(0,0,0,0.45); clip-path: polygon(0 45%, 20% 20%, 38% 52%, 56% 26%, 74% 58%, 90% 30%, 100% 44%, 100% 100%, 0 100%)"></div>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,0.25)"></div>
+
+<div style="position: absolute; left: 264px; right: 264px; top: 72px; display: flex; justify-content: space-between; align-items: center; animation: cocoPop .5s cubic-bezier(.32,.72,0,1) both">
+<div style="display: flex; align-items: center; gap: 14px">
+<div aria-hidden="true" style="width: 40px; height: 56px; border-radius: 6px; background: {{art}}; box-shadow: 0 0 0 1px rgba(255,255,255,0.12)"></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Minecraft</h1>
+<span style="font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.65); font-variant-numeric: tabular-nums">En pause · {{session}}</span>
+</div>
+</div>
+<div style="display: flex; align-items: center; gap: 16px; font-size: 13px; font-weight: 600">
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: cocoLive 2.4s ease-in-out infinite"></span>PC-Salon<span style="color: rgba(245,245,247,0.6); font-weight: 500">4 ms</span></span>
+<span style="font-size: 15px; font-variant-numeric: tabular-nums">{{time}}</span>
+<span style="display: flex; align-items: center; gap: 6px">82 %<svg width="25" height="12" viewBox="0 0 27 13" aria-hidden="true"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" fill="none" stroke="#F5F5F7" stroke-opacity="0.45"></rect><rect x="2" y="2" width="16.4" height="9" rx="2" fill="#F5F5F7"></rect><rect x="24.8" y="4.5" width="1.6" height="4" rx="0.8" fill="#F5F5F7" fill-opacity="0.45"></rect></svg></span>
+</div>
+</div>
+
+<div style="position: absolute; left: 264px; top: 152px; width: 752px; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(5, 80px); gap: 16px; animation: cocoPop .6s cubic-bezier(.32,.72,0,1) .05s both">
+
+<button style="grid-column: 1 / span 4; grid-row: 1 / span 2; box-sizing: border-box; padding: 22px; border: none; border-radius: 28px; background: #F5F5F7; color: #000; font-family: inherit; text-align: left; box-shadow: 0 20px 50px rgba(0,0,0,0.4), 0 0 0 4px rgba(245,245,247,0.25); display: flex; flex-direction: column; justify-content: space-between">
+<span style="width: 52px; height: 52px; border-radius: 50%; background: #000; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M6.5 3.8v12.4a.8.8 0 0 0 1.2.7l10-6.2a.8.8 0 0 0 0-1.4l-10-6.2a.8.8 0 0 0-1.2.7z" fill="#F5F5F7"></path></svg></span>
+<span style="display: flex; align-items: flex-end; justify-content: space-between; width: 100%">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 28px; font-weight: 600; letter-spacing: -0.03em">Reprendre</span><span style="font-size: 13px; font-weight: 500; color: rgba(0,0,0,0.55)">Retour au jeu</span></span>
+<span style="width: 26px; height: 26px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">A</span>
+</span>
+</button>
+
+<div aria-label="Luminosité 100 %" style="grid-column: 5 / span 2; grid-row: 1 / span 4; position: relative; border-radius: 28px; overflow: hidden; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px)">
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 100%; background: rgba(245,245,247,0.94)"></div>
+<span style="position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-size: 13px; font-weight: 600; color: #1C1C1E">Luminosité</span>
+<span style="position: absolute; left: 0; right: 0; top: 38px; text-align: center; font-size: 12px; font-weight: 500; color: rgba(28,28,30,0.6)">100 %</span>
+<svg width="26" height="26" viewBox="0 0 20 20" aria-hidden="true" style="position: absolute; left: 75px; bottom: 24px"><circle cx="10" cy="10" r="3.6" fill="#1C1C1E"></circle><g stroke="#1C1C1E" stroke-width="1.6" stroke-linecap="round"><path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"></path></g></svg>
+</div>
+
+<div aria-label="Volume 30 %" style="grid-column: 7 / span 2; grid-row: 1 / span 4; position: relative; border-radius: 28px; overflow: hidden; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px)">
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: rgba(245,245,247,0.94)"></div>
+<span style="position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-size: 13px; font-weight: 600">Volume</span>
+<span style="position: absolute; left: 0; right: 0; top: 38px; text-align: center; font-size: 12px; font-weight: 500; color: rgba(245,245,247,0.65)">30 %</span>
+<svg width="26" height="26" viewBox="0 0 20 20" aria-hidden="true" style="position: absolute; left: 75px; bottom: 24px"><path d="M3 7.5h3l4-3.2v11.4l-4-3.2H3z" fill="#1C1C1E"></path><path d="M13 7.5a3.5 3.5 0 0 1 0 5M15.5 5a7 7 0 0 1 0 10" stroke="#1C1C1E" stroke-width="1.6" fill="none" stroke-linecap="round"></path></svg>
+</div>
+
+<button style="grid-column: 1 / span 2; grid-row: 3 / span 2; box-sizing: border-box; padding: 20px; border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; background: rgba(255,255,255,0.1); color: #F5F5F7; font-family: inherit; text-align: left; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; flex-direction: column; justify-content: space-between">
+<span style="width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="5" width="16" height="11.5" rx="2.5" fill="none" stroke="#F5F5F7" stroke-width="1.6"></rect><path d="M7 5l1.3-2h3.4L13 5" fill="none" stroke="#F5F5F7" stroke-width="1.6" stroke-linejoin="round"></path><circle cx="10" cy="10.7" r="3" fill="none" stroke="#F5F5F7" stroke-width="1.6"></circle></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Capture</span><span style="font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.62)">Sur le PC</span></span>
+</button>
+
+<button style="grid-column: 3 / span 2; grid-row: 3 / span 2; box-sizing: border-box; padding: 20px; border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; background: rgba(255,255,255,0.1); color: #F5F5F7; font-family: inherit; text-align: left; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; flex-direction: column; justify-content: space-between">
+<span style="width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16V10M10 16V4M16 16v-7" stroke="#F5F5F7" stroke-width="2.2" stroke-linecap="round"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Statistiques</span><span style="font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.62)">Masquées</span></span>
+</button>
+
+<button style="grid-column: 1 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; background: rgba(255,255,255,0.1); color: #F5F5F7; font-family: inherit; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; align-items: center; gap: 12px">
+<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 9.5 10 3.5l7 6V16a1 1 0 0 1-1 1h-3.5v-4.5h-5V17H4a1 1 0 0 1-1-1z" fill="none" stroke="#F5F5F7" stroke-width="1.6" stroke-linejoin="round"></path></svg>
+<span style="font-size: 14px; font-weight: 600">Accueil</span>
+</button>
+<button style="grid-column: 3 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; background: rgba(255,255,255,0.1); color: #F5F5F7; font-family: inherit; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; align-items: center; gap: 12px">
+<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="#F5F5F7" stroke-width="1.6"></circle><path d="M7.4 7.4l5.2 5.2M12.6 7.4l-5.2 5.2" stroke="#F5F5F7" stroke-width="1.6" stroke-linecap="round"></path></svg>
+<span style="font-size: 14px; font-weight: 600">Quitter le jeu</span>
+</button>
+<button style="grid-column: 5 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; background: rgba(255,255,255,0.1); color: #F5F5F7; font-family: inherit; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; align-items: center; gap: 12px">
+<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M15.5 12.5A6.5 6.5 0 0 1 7.5 4.5a6.5 6.5 0 1 0 8 8z" fill="#F5F5F7"></path></svg>
+<span style="font-size: 14px; font-weight: 600">Veille</span>
+</button>
+<button style="grid-column: 7 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; background: rgba(255,255,255,0.1); color: #F5F5F7; font-family: inherit; text-align: left; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; align-items: center; gap: 12px">
+<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5v7" stroke="#F5F5F7" stroke-width="1.8" stroke-linecap="round"></path><path d="M6 5.2a6.5 6.5 0 1 0 8 0" fill="none" stroke="#F5F5F7" stroke-width="1.8" stroke-linecap="round"></path></svg>
+<span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 14px; font-weight: 600">Alimentation</span><span style="font-size: 11px; font-weight: 500; color: rgba(245,245,247,0.6)">Redémarrer · Éteindre</span></span>
+</button>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; top: 680px; display: flex; justify-content: center; align-items: center; gap: 24px; font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.65)">
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.45); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #F5F5F7">B</span>Reprendre</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.45); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #F5F5F7">A</span>Activer</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; border: 1px solid rgba(245,245,247,0.45); display: flex; align-items: center; font-size: 10px; font-weight: 600; color: #F5F5F7">◀ ▶</span>Régler</span>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._timer = setInterval(() => this.setState({ now: Date.now() }), 1000);
+  }
+  componentWillUnmount() {
+    clearInterval(this._timer);
+  }
+  renderVals() {
+    const now = (this.state && this.state.now) || Date.now();
+    if (this._t0 == null) this._t0 = now;
+    const d = new Date(now);
+    const pad = (n) => String(n).padStart(2, '0');
+    const el = 5077 + Math.floor((now - this._t0) / 1000);
+    return {
+      accent: this.props.accent ?? '#F2802A',
+      art: 'radial-gradient(circle at 30% 25%, #5E8F4E 0%, transparent 45%), radial-gradient(circle at 70% 78%, #6B4A2F 0%, transparent 50%), radial-gradient(circle at 82% 18%, #7FA6C8 0%, transparent 38%), linear-gradient(160deg, #1E2A1C 0%, #14110D 100%)',
+      time: pad(d.getHours()) + ':' + pad(d.getMinutes()),
+      session: Math.floor(el / 3600) + ' h ' + pad(Math.floor(el / 60) % 60) + ' min'
+    };
+  }
+}
+</script>
+</body>
+</html>

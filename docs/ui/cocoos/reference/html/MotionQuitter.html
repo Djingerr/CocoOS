@@ -1,0 +1,291 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Motion — Quitter le jeu</title>
+<style>
+@font-face{font-family:'Sora';font-style:normal;font-weight:100 800;font-display:block;
+  src:url(fonts/sora-latin-wght-normal.woff2) format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Sora';font-style:normal;font-weight:100 800;font-display:block;
+  src:url(fonts/sora-latin-ext-wght-normal.woff2) format('woff2');
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;}
+
+html,body{margin:0;background:#000}
+#root{width:1280px;height:800px;overflow:hidden;position:relative}
+</style>
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+button{cursor:default}
+@keyframes cocoBgPan{0%{transform:scale(1.25) translate(0,0)}100%{transform:scale(1.34) translate(-30px,16px)}}
+@keyframes cocoLive{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<template id="tpl">
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: 0; opacity: {{home.op}}; transition: {{home.bgTr}}">
+<div style="position: absolute; inset: -100px; background: {{art}}; filter: blur(100px) saturate(1.1); animation: cocoBgPan 60s ease-in-out infinite alternate"></div>
+<div style="position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.85) 75%)"></div>
+</div>
+
+<div style="position: absolute; left: 0; top: 0; width: 1280px; height: 560px">
+<sc-for list="{{covers}}" as="c" hint-placeholder-count="6">
+<div style="position: absolute; left: {{c.left}}px; top: {{c.top}}px; width: {{c.w}}px; height: {{c.h}}px; z-index: {{c.z}}; transform: {{c.transform}}; filter: {{c.filter}}; opacity: {{c.opacity}}; transition: {{c.tr}}">
+<div style="position: absolute; inset: 0; border-radius: 12px; overflow: hidden; background: {{c.art}}; box-shadow: 0 20px 40px rgba(0,0,0,0.5)">
+<div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.5), rgba(0,0,0,0) 45%)"></div>
+<span style="position: absolute; left: 12px; right: 12px; bottom: 12px; font-size: 12px; font-weight: 600">{{c.title}}</span>
+</div>
+<div aria-hidden="true" style="position: absolute; left: 0; top: calc(100% + 6px); width: 100%; height: 100%; border-radius: 12px; overflow: hidden; transform: scaleY(-1); background: {{c.art}}; -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0) 18%); mask-image: linear-gradient(to top, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0) 18%)"></div>
+</div>
+</sc-for>
+<div aria-hidden="true" style="position: absolute; left: 520px; top: 442px; width: 240px; height: 340px; border-radius: 12px; overflow: hidden; transform: scaleY(-1); background: {{art}}; opacity: {{home.reflOp}}; transition: {{home.reflTr}}; -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0) 18%); mask-image: linear-gradient(to top, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0) 18%)"></div>
+</div>
+
+<div style="position: absolute; z-index: 15; left: {{hero.left}}px; top: {{hero.top}}px; width: {{hero.w}}px; height: {{hero.h}}px; border-radius: {{hero.r}}px; overflow: hidden; box-shadow: {{hero.shadow}}; transition: {{hero.tr}}">
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 50%; width: 1280px; height: 800px; overflow: hidden; transform: translate(-50%, -50%) scale({{frame.sc}}); filter: {{frame.filter}}; opacity: {{frame.op}}; transition: {{frame.tr}}">
+<div style="position: absolute; inset: -60px">
+<div style="position: absolute; inset: 0; background: linear-gradient(180deg, #7FB6DE 0%, #BFDDF0 46%, #6E9F55 47%, #4C7A39 70%, #3A2B1D 100%)"></div>
+<div style="position: absolute; left: 1040px; top: 120px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, #FFF6D6 0%, rgba(255,246,214,0) 70%)"></div>
+<div style="position: absolute; left: 140px; top: 150px; width: 180px; height: 40px; background: rgba(255,255,255,0.85)"></div>
+<div style="position: absolute; left: 600px; top: 190px; width: 240px; height: 44px; background: rgba(255,255,255,0.8)"></div>
+<div style="position: absolute; left: -40px; bottom: 0; width: 1600px; height: 60%">
+<div style="position: absolute; inset: 0; background: #3F6B2F; clip-path: polygon(0 40%, 12% 30%, 24% 42%, 38% 22%, 52% 38%, 66% 26%, 80% 40%, 100% 30%, 100% 100%, 0 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 56%; background: #5A4128; clip-path: polygon(0 30%, 20% 24%, 40% 34%, 60% 20%, 80% 32%, 100% 22%, 100% 100%, 0 100%)"></div>
+</div>
+<div style="position: absolute; left: 650px; top: 470px; width: 36px; height: 72px; background: #2E4E7A"><div style="position: absolute; left: 4px; top: -28px; width: 28px; height: 28px; background: #C9A27A"></div></div>
+</div>
+</div>
+<div style="position: absolute; inset: 0; background: {{art}}; opacity: {{coverOp}}; transition: {{coverTr}}">
+<div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 45%)"></div>
+<span style="position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; color: rgba(245,245,247,0.55); white-space: nowrap">Jaquette Minecraft</span>
+</div>
+</div>
+
+<div style="position: absolute; z-index: 16; left: 264px; right: 264px; top: 72px; display: flex; align-items: center; gap: 14px; opacity: {{menu.op}}; transform: scale({{menu.sc}}); transition: {{menu.tr}}">
+<div aria-hidden="true" style="width: 40px; height: 56px; border-radius: 6px; background: {{art}}; box-shadow: 0 0 0 1px rgba(255,255,255,0.12)"></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Minecraft</span><span style="font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.65)">En pause · 1 h 24 min</span></div>
+</div>
+<div style="position: absolute; z-index: 16; left: 264px; top: 152px; width: 752px; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(5, 80px); gap: 16px; transform-origin: 50% 40%; opacity: {{menu.op}}; transform: scale({{menu.sc}}); transition: {{menu.tr}}">
+<div style="grid-column: 1 / span 4; grid-row: 1 / span 2; box-sizing: border-box; padding: 22px; border-radius: 28px; background: #F5F5F7; color: #000; display: flex; flex-direction: column; justify-content: space-between">
+<span style="width: 52px; height: 52px; border-radius: 50%; background: #000; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M6.5 3.8v12.4a.8.8 0 0 0 1.2.7l10-6.2a.8.8 0 0 0 0-1.4l-10-6.2a.8.8 0 0 0-1.2.7z" fill="#F5F5F7"></path></svg></span>
+<span style="font-size: 28px; font-weight: 600; letter-spacing: -0.03em">Reprendre</span>
+</div>
+<div style="grid-column: 5 / span 2; grid-row: 1 / span 4; position: relative; border-radius: 28px; overflow: hidden; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1)"><div style="position: absolute; left: 0; right: 0; bottom: 0; height: 100%; background: rgba(245,245,247,0.94)"></div><span style="position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-size: 13px; font-weight: 600; color: #1C1C1E">Luminosité</span></div>
+<div style="grid-column: 7 / span 2; grid-row: 1 / span 4; position: relative; border-radius: 28px; overflow: hidden; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1)"><div style="position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: rgba(245,245,247,0.94)"></div><span style="position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-size: 13px; font-weight: 600">Volume</span></div>
+<div style="grid-column: 1 / span 2; grid-row: 3 / span 2; box-sizing: border-box; padding: 20px; border-radius: 28px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: flex-end; font-size: 15px; font-weight: 600">Capture</div>
+<div style="grid-column: 3 / span 2; grid-row: 3 / span 2; box-sizing: border-box; padding: 20px; border-radius: 28px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: flex-end; font-size: 15px; font-weight: 600">Statistiques</div>
+<div style="grid-column: 1 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border-radius: 28px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; font-size: 14px; font-weight: 600">Accueil</div>
+<div style="grid-column: 3 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border-radius: 28px; background: rgba(255,255,255,0.24); border: 1px solid rgba(255,255,255,0.55); box-shadow: 0 0 0 4px rgba(245,245,247,0.28); display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="#F5F5F7" stroke-width="1.6"></circle><path d="M7.4 7.4l5.2 5.2M12.6 7.4l-5.2 5.2" stroke="#F5F5F7" stroke-width="1.6" stroke-linecap="round"></path></svg>Quitter le jeu</div>
+<div style="grid-column: 5 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border-radius: 28px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; font-size: 14px; font-weight: 600">Veille</div>
+<div style="grid-column: 7 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border-radius: 28px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; font-size: 14px; font-weight: 600">Alimentation</div>
+</div>
+
+<div aria-hidden="true" style="position: absolute; z-index: 17; inset: 0; background: rgba(0,0,0,0.4); opacity: {{alert.op}}; transition: {{alert.dimTr}}"></div>
+<div role="alertdialog" aria-label="Quitter Minecraft" style="position: absolute; z-index: 18; left: 420px; top: 280px; width: 440px; box-sizing: border-box; padding: 28px; border-radius: 30px; background: rgba(44,44,46,0.86); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 30px 80px rgba(0,0,0,0.5); backdrop-filter: blur(40px) saturate(1.6); -webkit-backdrop-filter: blur(40px) saturate(1.6); display: flex; flex-direction: column; align-items: center; text-align: center; opacity: {{alert.op}}; transform: scale({{alert.sc}}); transition: {{alert.tr}}">
+<span style="font-size: 20px; font-weight: 600; letter-spacing: -0.02em">Quitter Minecraft ?</span>
+<span style="margin-top: 8px; font-size: 14px; font-weight: 500; line-height: 1.5; color: rgba(245,245,247,0.65)">La progression non sauvegardée sera perdue.</span>
+<div style="margin-top: 24px; width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button style="height: 50px; border: none; border-radius: 25px; background: rgba(255,255,255,0.12); color: #F5F5F7; font-family: inherit; font-size: 15px; font-weight: 600">Annuler</button>
+<button style="height: 50px; border: none; border-radius: 25px; background: #F5F5F7; color: #000; font-family: inherit; font-size: 15px; font-weight: 600; box-shadow: 0 0 0 4px rgba(245,245,247,0.25); transform: scale({{alert.press}}); transition: {{alert.pressTr}}">Quitter</button>
+</div>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; top: 516px; display: flex; flex-direction: column; align-items: center; opacity: {{r1.op}}; transform: translateY({{r1.ty}}px); filter: blur({{r1.blur}}px); transition: {{r1.tr}}">
+<span style="font-size: 48px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.05">Minecraft</span>
+<span style="margin-top: 10px; font-size: 15px; font-weight: 500; color: rgba(245,245,247,0.62)">Joué pendant 1 h 24 min</span>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 620px; display: flex; justify-content: center; gap: 12px; opacity: {{r2.op}}; transform: translateY({{r2.ty}}px); filter: blur({{r2.blur}}px); transition: {{r2.tr}}">
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 26px 0 11px; border: none; border-radius: 26px; background: #F5F5F7; color: #000; font-family: inherit; font-size: 17px; font-weight: 600"><span style="width: 30px; height: 30px; border-radius: 50%; background: #000; color: #F5F5F7; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">A</span>Jouer</button>
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 22px 0 11px; border: 1px solid rgba(255,255,255,0.12); border-radius: 26px; background: rgba(255,255,255,0.12); color: #F5F5F7; font-family: inherit; font-size: 15px; font-weight: 600"><span style="width: 28px; height: 28px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.5); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600">Y</span>Options</button>
+</div>
+<div style="position: absolute; left: 0; top: 0; width: 1280px; height: 90px; opacity: {{tb.op}}; transform: translateY({{tb.ty}}px); transition: {{tb.tr}}">
+<div style="position: absolute; left: 72px; top: 34px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">Coco<span style="color: var(--accent)">OS</span></div>
+<div style="position: absolute; top: 30px; right: 56px; display: flex; align-items: center; gap: 18px">
+<div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px; border-radius: 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); font-size: 13px; font-weight: 600"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: cocoLive 2.4s ease-in-out infinite"></span>PC-Salon<span style="color: rgba(245,245,247,0.55); font-weight: 500">4 ms</span></div>
+<span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">{{time}}</span>
+</div>
+</div>
+
+<div style="position: absolute; z-index: 45; left: 32px; bottom: 32px; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px 0 8px; border-radius: 20px; background: rgba(30,30,32,0.6); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-size: 13px; font-weight: 600; opacity: {{keyOp}}; transform: translateY({{keyTy}}px); transition: opacity 200ms ease, transform 300ms cubic-bezier(.32,.72,0,1)">
+<span style="width: 26px; height: 26px; border-radius: 50%; background: #F5F5F7; color: #000; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">A</span>{{keyLabel}}
+</div>
+<div aria-hidden="true" style="position: absolute; z-index: 50; inset: 0; background: #000; opacity: {{curtain}}; transition: opacity 400ms ease-in-out"></div>
+</div>
+</template>
+<script>(function(global,factory){typeof exports==="object"&&typeof module!=="undefined"?module.exports=factory():typeof define==="function"&&define.amd?define(factory):(global=global||self,global.morphdom=factory())})(this,function(){"use strict";var DOCUMENT_FRAGMENT_NODE=11;function morphAttrs(fromNode,toNode){var toNodeAttrs=toNode.attributes;var attr;var attrName;var attrNamespaceURI;var attrValue;var fromValue;if(toNode.nodeType===DOCUMENT_FRAGMENT_NODE||fromNode.nodeType===DOCUMENT_FRAGMENT_NODE){return}for(var i=toNodeAttrs.length-1;i>=0;i--){attr=toNodeAttrs[i];attrName=attr.name;attrNamespaceURI=attr.namespaceURI;attrValue=attr.value;if(attrNamespaceURI){attrName=attr.localName||attrName;fromValue=fromNode.getAttributeNS(attrNamespaceURI,attrName);if(fromValue!==attrValue){if(attr.prefix==="xmlns"){attrName=attr.name}fromNode.setAttributeNS(attrNamespaceURI,attrName,attrValue)}}else{fromValue=fromNode.getAttribute(attrName);if(fromValue!==attrValue){fromNode.setAttribute(attrName,attrValue)}}}var fromNodeAttrs=fromNode.attributes;for(var d=fromNodeAttrs.length-1;d>=0;d--){attr=fromNodeAttrs[d];attrName=attr.name;attrNamespaceURI=attr.namespaceURI;if(attrNamespaceURI){attrName=attr.localName||attrName;if(!toNode.hasAttributeNS(attrNamespaceURI,attrName)){fromNode.removeAttributeNS(attrNamespaceURI,attrName)}}else{if(!toNode.hasAttribute(attrName)){fromNode.removeAttribute(attrName)}}}}var range;var NS_XHTML="http://www.w3.org/1999/xhtml";var doc=typeof document==="undefined"?undefined:document;var HAS_TEMPLATE_SUPPORT=!!doc&&"content"in doc.createElement("template");var HAS_RANGE_SUPPORT=!!doc&&doc.createRange&&"createContextualFragment"in doc.createRange();function createFragmentFromTemplate(str){var template=doc.createElement("template");template.innerHTML=str;return template.content.childNodes[0]}function createFragmentFromRange(str){if(!range){range=doc.createRange();range.selectNode(doc.body)}var fragment=range.createContextualFragment(str);return fragment.childNodes[0]}function createFragmentFromWrap(str){var fragment=doc.createElement("body");fragment.innerHTML=str;return fragment.childNodes[0]}function toElement(str){str=str.trim();if(HAS_TEMPLATE_SUPPORT){return createFragmentFromTemplate(str)}else if(HAS_RANGE_SUPPORT){return createFragmentFromRange(str)}return createFragmentFromWrap(str)}function compareNodeNames(fromEl,toEl){var fromNodeName=fromEl.nodeName;var toNodeName=toEl.nodeName;var fromCodeStart,toCodeStart;if(fromNodeName===toNodeName){return true}fromCodeStart=fromNodeName.charCodeAt(0);toCodeStart=toNodeName.charCodeAt(0);if(fromCodeStart<=90&&toCodeStart>=97){return fromNodeName===toNodeName.toUpperCase()}else if(toCodeStart<=90&&fromCodeStart>=97){return toNodeName===fromNodeName.toUpperCase()}else{return false}}function createElementNS(name,namespaceURI){return!namespaceURI||namespaceURI===NS_XHTML?doc.createElement(name):doc.createElementNS(namespaceURI,name)}function moveChildren(fromEl,toEl){var curChild=fromEl.firstChild;while(curChild){var nextChild=curChild.nextSibling;toEl.appendChild(curChild);curChild=nextChild}return toEl}function syncBooleanAttrProp(fromEl,toEl,name){if(fromEl[name]!==toEl[name]){fromEl[name]=toEl[name];if(fromEl[name]){fromEl.setAttribute(name,"")}else{fromEl.removeAttribute(name)}}}var specialElHandlers={OPTION:function(fromEl,toEl){var parentNode=fromEl.parentNode;if(parentNode){var parentName=parentNode.nodeName.toUpperCase();if(parentName==="OPTGROUP"){parentNode=parentNode.parentNode;parentName=parentNode&&parentNode.nodeName.toUpperCase()}if(parentName==="SELECT"&&!parentNode.hasAttribute("multiple")){if(fromEl.hasAttribute("selected")&&!toEl.selected){fromEl.setAttribute("selected","selected");fromEl.removeAttribute("selected")}parentNode.selectedIndex=-1}}syncBooleanAttrProp(fromEl,toEl,"selected")},INPUT:function(fromEl,toEl){syncBooleanAttrProp(fromEl,toEl,"checked");syncBooleanAttrProp(fromEl,toEl,"disabled");if(fromEl.value!==toEl.value){fromEl.value=toEl.value}if(!toEl.hasAttribute("value")){fromEl.removeAttribute("value")}},TEXTAREA:function(fromEl,toEl){var newValue=toEl.value;if(fromEl.value!==newValue){fromEl.value=newValue}var firstChild=fromEl.firstChild;if(firstChild){var oldValue=firstChild.nodeValue;if(oldValue==newValue||!newValue&&oldValue==fromEl.placeholder){return}firstChild.nodeValue=newValue}},SELECT:function(fromEl,toEl){if(!toEl.hasAttribute("multiple")){var selectedIndex=-1;var i=0;var curChild=fromEl.firstChild;var optgroup;var nodeName;while(curChild){nodeName=curChild.nodeName&&curChild.nodeName.toUpperCase();if(nodeName==="OPTGROUP"){optgroup=curChild;curChild=optgroup.firstChild}else{if(nodeName==="OPTION"){if(curChild.hasAttribute("selected")){selectedIndex=i;break}i++}curChild=curChild.nextSibling;if(!curChild&&optgroup){curChild=optgroup.nextSibling;optgroup=null}}}fromEl.selectedIndex=selectedIndex}}};var ELEMENT_NODE=1;var DOCUMENT_FRAGMENT_NODE$1=11;var TEXT_NODE=3;var COMMENT_NODE=8;function noop(){}function defaultGetNodeKey(node){if(node){return node.getAttribute&&node.getAttribute("id")||node.id}}function morphdomFactory(morphAttrs){return function morphdom(fromNode,toNode,options){if(!options){options={}}if(typeof toNode==="string"){if(fromNode.nodeName==="#document"||fromNode.nodeName==="HTML"||fromNode.nodeName==="BODY"){var toNodeHtml=toNode;toNode=doc.createElement("html");toNode.innerHTML=toNodeHtml}else{toNode=toElement(toNode)}}else if(toNode.nodeType===DOCUMENT_FRAGMENT_NODE$1){toNode=toNode.firstElementChild}var getNodeKey=options.getNodeKey||defaultGetNodeKey;var onBeforeNodeAdded=options.onBeforeNodeAdded||noop;var onNodeAdded=options.onNodeAdded||noop;var onBeforeElUpdated=options.onBeforeElUpdated||noop;var onElUpdated=options.onElUpdated||noop;var onBeforeNodeDiscarded=options.onBeforeNodeDiscarded||noop;var onNodeDiscarded=options.onNodeDiscarded||noop;var onBeforeElChildrenUpdated=options.onBeforeElChildrenUpdated||noop;var skipFromChildren=options.skipFromChildren||noop;var addChild=options.addChild||function(parent,child){return parent.appendChild(child)};var childrenOnly=options.childrenOnly===true;var fromNodesLookup=Object.create(null);var keyedRemovalList=[];function addKeyedRemoval(key){keyedRemovalList.push(key)}function walkDiscardedChildNodes(node,skipKeyedNodes){if(node.nodeType===ELEMENT_NODE){var curChild=node.firstChild;while(curChild){var key=undefined;if(skipKeyedNodes&&(key=getNodeKey(curChild))){addKeyedRemoval(key)}else{onNodeDiscarded(curChild);if(curChild.firstChild){walkDiscardedChildNodes(curChild,skipKeyedNodes)}}curChild=curChild.nextSibling}}}function removeNode(node,parentNode,skipKeyedNodes){if(onBeforeNodeDiscarded(node)===false){return}if(parentNode){parentNode.removeChild(node)}onNodeDiscarded(node);walkDiscardedChildNodes(node,skipKeyedNodes)}function indexTree(node){if(node.nodeType===ELEMENT_NODE||node.nodeType===DOCUMENT_FRAGMENT_NODE$1){var curChild=node.firstChild;while(curChild){var key=getNodeKey(curChild);if(key){fromNodesLookup[key]=curChild}indexTree(curChild);curChild=curChild.nextSibling}}}indexTree(fromNode);function handleNodeAdded(el){onNodeAdded(el);var curChild=el.firstChild;while(curChild){var nextSibling=curChild.nextSibling;var key=getNodeKey(curChild);if(key){var unmatchedFromEl=fromNodesLookup[key];if(unmatchedFromEl&&compareNodeNames(curChild,unmatchedFromEl)){curChild.parentNode.replaceChild(unmatchedFromEl,curChild);morphEl(unmatchedFromEl,curChild)}else{handleNodeAdded(curChild)}}else{handleNodeAdded(curChild)}curChild=nextSibling}}function cleanupFromEl(fromEl,curFromNodeChild,curFromNodeKey){while(curFromNodeChild){var fromNextSibling=curFromNodeChild.nextSibling;if(curFromNodeKey=getNodeKey(curFromNodeChild)){addKeyedRemoval(curFromNodeKey)}else{removeNode(curFromNodeChild,fromEl,true)}curFromNodeChild=fromNextSibling}}function morphEl(fromEl,toEl,childrenOnly){var toElKey=getNodeKey(toEl);if(toElKey){delete fromNodesLookup[toElKey]}if(!childrenOnly){var beforeUpdateResult=onBeforeElUpdated(fromEl,toEl);if(beforeUpdateResult===false){return}else if(beforeUpdateResult instanceof HTMLElement){fromEl=beforeUpdateResult;indexTree(fromEl)}morphAttrs(fromEl,toEl);onElUpdated(fromEl);if(onBeforeElChildrenUpdated(fromEl,toEl)===false){return}}if(fromEl.nodeName!=="TEXTAREA"){morphChildren(fromEl,toEl)}else{specialElHandlers.TEXTAREA(fromEl,toEl)}}function morphChildren(fromEl,toEl){var skipFrom=skipFromChildren(fromEl,toEl);var curToNodeChild=toEl.firstChild;var curFromNodeChild=fromEl.firstChild;var curToNodeKey;var curFromNodeKey;var fromNextSibling;var toNextSibling;var matchingFromEl;outer:while(curToNodeChild){toNextSibling=curToNodeChild.nextSibling;curToNodeKey=getNodeKey(curToNodeChild);while(!skipFrom&&curFromNodeChild){fromNextSibling=curFromNodeChild.nextSibling;if(curToNodeChild.isSameNode&&curToNodeChild.isSameNode(curFromNodeChild)){curToNodeChild=toNextSibling;curFromNodeChild=fromNextSibling;continue outer}curFromNodeKey=getNodeKey(curFromNodeChild);var curFromNodeType=curFromNodeChild.nodeType;var isCompatible=undefined;if(curFromNodeType===curToNodeChild.nodeType){if(curFromNodeType===ELEMENT_NODE){if(curToNodeKey){if(curToNodeKey!==curFromNodeKey){if(matchingFromEl=fromNodesLookup[curToNodeKey]){if(fromNextSibling===matchingFromEl){isCompatible=false}else{fromEl.insertBefore(matchingFromEl,curFromNodeChild);if(curFromNodeKey){addKeyedRemoval(curFromNodeKey)}else{removeNode(curFromNodeChild,fromEl,true)}curFromNodeChild=matchingFromEl;curFromNodeKey=getNodeKey(curFromNodeChild)}}else{isCompatible=false}}}else if(curFromNodeKey){isCompatible=false}isCompatible=isCompatible!==false&&compareNodeNames(curFromNodeChild,curToNodeChild);if(isCompatible){morphEl(curFromNodeChild,curToNodeChild)}}else if(curFromNodeType===TEXT_NODE||curFromNodeType==COMMENT_NODE){isCompatible=true;if(curFromNodeChild.nodeValue!==curToNodeChild.nodeValue){curFromNodeChild.nodeValue=curToNodeChild.nodeValue}}}if(isCompatible){curToNodeChild=toNextSibling;curFromNodeChild=fromNextSibling;continue outer}if(curFromNodeKey){addKeyedRemoval(curFromNodeKey)}else{removeNode(curFromNodeChild,fromEl,true)}curFromNodeChild=fromNextSibling}if(curToNodeKey&&(matchingFromEl=fromNodesLookup[curToNodeKey])&&compareNodeNames(matchingFromEl,curToNodeChild)){if(!skipFrom){addChild(fromEl,matchingFromEl)}morphEl(matchingFromEl,curToNodeChild)}else{var onBeforeNodeAddedResult=onBeforeNodeAdded(curToNodeChild);if(onBeforeNodeAddedResult!==false){if(onBeforeNodeAddedResult){curToNodeChild=onBeforeNodeAddedResult}if(curToNodeChild.actualize){curToNodeChild=curToNodeChild.actualize(fromEl.ownerDocument||doc)}addChild(fromEl,curToNodeChild);handleNodeAdded(curToNodeChild)}}curToNodeChild=toNextSibling;curFromNodeChild=fromNextSibling}cleanupFromEl(fromEl,curFromNodeChild,curFromNodeKey);var specialElHandler=specialElHandlers[fromEl.nodeName];if(specialElHandler){specialElHandler(fromEl,toEl)}}var morphedNode=fromNode;var morphedNodeType=morphedNode.nodeType;var toNodeType=toNode.nodeType;if(!childrenOnly){if(morphedNodeType===ELEMENT_NODE){if(toNodeType===ELEMENT_NODE){if(!compareNodeNames(fromNode,toNode)){onNodeDiscarded(fromNode);morphedNode=moveChildren(fromNode,createElementNS(toNode.nodeName,toNode.namespaceURI))}}else{morphedNode=toNode}}else if(morphedNodeType===TEXT_NODE||morphedNodeType===COMMENT_NODE){if(toNodeType===morphedNodeType){if(morphedNode.nodeValue!==toNode.nodeValue){morphedNode.nodeValue=toNode.nodeValue}return morphedNode}else{morphedNode=toNode}}}if(morphedNode===toNode){onNodeDiscarded(fromNode)}else{if(toNode.isSameNode&&toNode.isSameNode(morphedNode)){return}morphEl(morphedNode,toNode,childrenOnly);if(keyedRemovalList){for(var i=0,len=keyedRemovalList.length;i<len;i++){var elToRemove=fromNodesLookup[keyedRemovalList[i]];if(elToRemove){removeNode(elToRemove,elToRemove.parentNode,false)}}}}if(!childrenOnly&&morphedNode!==fromNode&&fromNode.parentNode){if(morphedNode.actualize){morphedNode=morphedNode.actualize(fromNode.ownerDocument||doc)}fromNode.parentNode.replaceChild(morphedNode,fromNode)}return morphedNode}}var morphdom=morphdomFactory(morphAttrs);return morphdom});</script>
+<script>
+(function(){
+  const P = new URLSearchParams(location.search);
+  if (P.get('now')) {
+    const fixed = Date.parse(P.get('now'));
+    const real = Date.now.bind(Date), t0 = real();
+    // fixed wall clock that still advances, so timers keep working
+    Date.now = () => fixed + (real() - t0);
+  }
+  window.DCLogic = class {
+    constructor(props){ this.props = props; this.state = null; }
+    setState(s){ this.state = Object.assign({}, this.state, typeof s === 'function' ? s(this.state) : s); window.__dcRender && window.__dcRender(); }
+    forceUpdate(){ window.__dcRender && window.__dcRender(); }
+  };
+})();
+</script>
+<script>
+const PROPS = {"accent": {"editor": "color", "default": "#F2802A", "options": ["#F2802A", "#F5F5F7", "#6E9BFF"]}, "$preview": {"width": 1280, "height": 800}};
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 9000 }), 50);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const instant = t >= 8600;
+    const back = t >= 2400 && !instant;
+    const alertOn = t >= 1300 && t < 2400;
+    const E = 'cubic-bezier(.32,.72,0,1)';
+    const tr = (s) => (instant ? 'none' : s);
+    const ART = {
+      mc: 'radial-gradient(circle at 30% 25%, #5E8F4E 0%, transparent 45%), radial-gradient(circle at 70% 78%, #6B4A2F 0%, transparent 50%), radial-gradient(circle at 82% 18%, #7FA6C8 0%, transparent 38%), linear-gradient(160deg, #1E2A1C 0%, #14110D 100%)',
+      hk: 'radial-gradient(circle at 35% 30%, #7FA3C9 0%, transparent 42%), radial-gradient(circle at 70% 75%, #22365C 0%, transparent 55%), linear-gradient(160deg, #1A2540 0%, #06080E 100%)',
+      fh: 'radial-gradient(circle at 70% 25%, #FFB347 0%, transparent 40%), radial-gradient(circle at 30% 70%, #D8345F 0%, transparent 50%), linear-gradient(160deg, #4A1747 0%, #12081A 100%)',
+      ce: 'radial-gradient(circle at 40% 30%, #F49AC1 0%, transparent 42%), radial-gradient(circle at 65% 75%, #6C4BD1 0%, transparent 52%), linear-gradient(160deg, #2B1B4F 0%, #0C0818 100%)',
+      sv: 'radial-gradient(circle at 30% 30%, #F6D55C 0%, transparent 40%), radial-gradient(circle at 65% 70%, #6DBE45 0%, transparent 52%), linear-gradient(160deg, #2F6B3A 0%, #0E1E10 100%)',
+      er: 'radial-gradient(circle at 50% 30%, #E8C46A 0%, transparent 38%), radial-gradient(circle at 40% 80%, #5C4520 0%, transparent 52%), linear-gradient(160deg, #2A2214 0%, #0A0805 100%)',
+      ha: 'radial-gradient(circle at 45% 30%, #FF6B4A 0%, transparent 40%), radial-gradient(circle at 60% 78%, #8A1C1C 0%, transparent 52%), linear-gradient(160deg, #2A0B0B 0%, #090303 100%)'
+    };
+    const order = [['Hades', 'ha'], ['Celeste', 'ce'], ['Hollow Knight', 'hk'], null, ['Forza Horizon 5', 'fh'], ['Stardew Valley', 'sv'], ['Elden Ring', 'er']];
+    const S = [[240, 340, 0, 1], [190, 269, 250, 0.6], [160, 227, 430, 0.38], [140, 198, 580, 0.2]];
+    const covers = [];
+    order.forEach((x, i) => {
+      if (!x) return;
+      const o = i - 3;
+      const k = Math.abs(o);
+      const z = S[k];
+      const sg = Math.sign(o);
+      const cx = 640 + sg * z[2];
+      const dx = back ? 0 : Math.round((640 - cx) * 0.7);
+      covers.push({
+        title: x[0], art: ART[x[1]], w: z[0], h: z[1],
+        left: Math.round(cx - z[0] / 2), top: 436 - z[1], z: 10 - k,
+        transform: 'perspective(900px) translateX(' + dx + 'px) rotateY(' + (back ? -sg * (38 + (k - 1) * 6) : 0) + 'deg) scale(' + (back ? 1 : 0.88) + ')',
+        filter: 'brightness(' + z[3] + ')',
+        opacity: back ? 1 : 0,
+        tr: tr('transform 700ms ' + E + ' ' + (700 + k * 60) + 'ms, opacity 420ms ease ' + (700 + k * 60) + 'ms')
+      });
+    });
+    const hero = back
+      ? { left: 520, top: 96, w: 240, h: 340, r: 12, shadow: '0 40px 90px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.12)' }
+      : { left: 0, top: 0, w: 1280, h: 800, r: 0, shadow: '0 0 0 rgba(0,0,0,0)' };
+    hero.tr = tr(['left', 'top', 'width', 'height', 'border-radius'].map((p) => p + ' 900ms ' + E + ' 80ms').join(', ') + ', box-shadow 600ms ease 300ms');
+    const rise = (delay) => ({ op: back ? 1 : 0, ty: back ? 0 : 18, blur: back ? 0 : 8, tr: tr('opacity 450ms ease ' + delay + 'ms, transform 620ms ' + E + ' ' + delay + 'ms, filter 450ms ease ' + delay + 'ms') });
+    const pressQuit = t >= 2150 && t < 2320;
+    const keyA = t >= 1000 && t < 1450;
+    const keyB = t >= 2000 && t < 2450;
+    return {
+      accent: this.props.accent ?? '#F2802A',
+      art: ART.mc,
+      time: pad(d.getHours()) + ':' + pad(d.getMinutes()),
+      covers: covers,
+      hero: hero,
+      frame: {
+        sc: back ? 0.425 : 1,
+        filter: back ? 'blur(0px) brightness(1)' : 'blur(36px) brightness(0.6)',
+        op: back ? 0 : 1,
+        tr: tr('transform 900ms ' + E + ' 80ms, filter 400ms ease, opacity 450ms ease 380ms')
+      },
+      coverOp: back ? 1 : 0,
+      coverTr: tr('opacity 500ms ease 380ms'),
+      home: { op: back ? 1 : 0, bgTr: tr('opacity 800ms ease 300ms'), reflOp: back ? 1 : 0, reflTr: tr('opacity 400ms ease 900ms') },
+      menu: {
+        op: back ? 0 : (alertOn ? 0.45 : 1),
+        sc: back ? 0.94 : (alertOn ? 0.98 : 1),
+        tr: tr(back ? 'opacity 200ms ease, transform 260ms ' + E : 'opacity 300ms ease, transform 400ms ' + E)
+      },
+      alert: {
+        op: alertOn ? 1 : 0,
+        sc: alertOn ? 1 : 0.92,
+        tr: tr(alertOn ? 'opacity 220ms ease, transform 520ms cubic-bezier(.3,1.3,.4,1)' : 'opacity 160ms ease, transform 200ms ease'),
+        dimTr: tr('opacity 250ms ease'),
+        press: pressQuit ? 0.94 : 1,
+        pressTr: pressQuit ? 'transform 110ms ease-out' : 'transform 450ms cubic-bezier(.3,1.6,.4,1)'
+      },
+      r1: rise(1050),
+      r2: rise(1130),
+      tb: { op: back ? 1 : 0, ty: back ? 0 : -10, tr: tr('opacity 500ms ease 1200ms, transform 600ms ' + E + ' 1200ms') },
+      keyOp: keyA || keyB ? 1 : 0,
+      keyTy: keyA || keyB ? 0 : 8,
+      keyLabel: keyB ? 'Confirmer' : 'Quitter le jeu',
+      curtain: t >= 8300 ? 1 : 0
+    };
+  }
+}
+</script>
+<script>
+(function(){
+  const P = new URLSearchParams(location.search);
+  const props = {};
+  for (const [k, spec] of Object.entries(PROPS)) {
+    if (k.startsWith('$')) continue;
+    let v = spec.default;
+    if (P.has(k)) { const raw = P.get(k); v = typeof v === 'number' ? Number(raw) : typeof v === 'boolean' ? raw === 'true' : raw; }
+    props[k] = v;
+  }
+  const tplNode = document.getElementById('tpl').content;
+  const lookup = (scope, path) => {
+    path = path.trim();
+    if (path === 'true') return true; if (path === 'false') return false;
+    if (/^-?\d+(\.\d+)?$/.test(path)) return Number(path);
+    return path.split('.').reduce((o, k) => (o == null ? o : o[k]), scope);
+  };
+  const HOLE = /\{\{\s*([\w.$]+)\s*\}\}/g;
+  const whole = /^\s*\{\{\s*([\w.$]+)\s*\}\}\s*$/;
+  const interp = (s, scope) => s.replace(HOLE, (m, p) => { const v = lookup(scope, p); return v == null ? '' : String(v); });
+  function renderNodes(nodes, scope, out) {
+    for (const n of nodes) {
+      if (n.nodeType === 3) { out.appendChild(document.createTextNode(interp(n.nodeValue, scope))); continue; }
+      if (n.nodeType !== 1) continue;
+      const tag = n.tagName.toLowerCase();
+      if (tag === 'sc-for') {
+        const m = whole.exec(n.getAttribute('list') || ''); const list = m ? lookup(scope, m[1]) : [];
+        const as = n.getAttribute('as') || 'item';
+        (list || []).forEach((it, i) => renderNodes(n.childNodes, Object.assign(Object.create(scope), { [as]: it, $index: i }), out));
+        continue;
+      }
+      if (tag === 'sc-if') {
+        const m = whole.exec(n.getAttribute('value') || ''); if (m && lookup(scope, m[1])) renderNodes(n.childNodes, scope, out);
+        continue;
+      }
+      const el = n.namespaceURI === 'http://www.w3.org/2000/svg' ? document.createElementNS(n.namespaceURI, n.tagName) : document.createElement(n.tagName);
+      for (const a of n.attributes) {
+        if (/^on[A-Z]/.test(a.name) || /^on[a-z]+$/.test(a.name)) continue;
+        el.setAttribute(a.name, interp(a.value, scope));
+      }
+      renderNodes(n.childNodes, scope, el);
+      out.appendChild(el);
+    }
+  }
+  const comp = new Component(props);
+  const root = document.getElementById('root');
+  let pending = false;
+  function render() {
+    const vals = comp.renderVals();
+    const frag = document.createElement('div'); frag.id = 'root';
+    renderNodes(tplNode.childNodes, vals, frag);
+    morphdom(root, frag);
+  }
+  window.__dcRender = () => { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; render(); }); };
+  render();
+  if (comp.componentDidMount) comp.componentDidMount();
+  document.fonts.ready.then(() => { window.__ready = true; });
+})();
+</script>
+</body>
+</html>

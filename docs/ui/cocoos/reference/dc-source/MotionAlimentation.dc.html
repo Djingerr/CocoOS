@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Motion — Menu d'alimentation</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+button{cursor:default}
+@keyframes cocoLive{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes cocoSpin{to{transform:rotate(360deg)}}
+@keyframes cocoCloud{0%{transform:translateX(0)}100%{transform:translateX(-300px)}}
+@keyframes cocoWalk{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes cocoPan{0%{transform:translateX(0)}100%{transform:translateX(-120px)}}
+
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div style="position: absolute; inset: 0; opacity: {{homeOp}}; transition: opacity 500ms ease"><div aria-hidden="true" style="position: absolute; inset: -100px; background: radial-gradient(circle at 30% 25%, #5E8F4E 0%, transparent 45%), radial-gradient(circle at 70% 78%, #6B4A2F 0%, transparent 50%), radial-gradient(circle at 82% 18%, #7FA6C8 0%, transparent 38%), linear-gradient(160deg, #1E2A1C 0%, #14110D 100%); filter: blur(100px) saturate(1.1)"></div><div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.85) 75%)"></div><div style="position: absolute; left: 0; top: 0; width: 1280px; height: 560px; perspective: 900px"><div style="position: absolute; left: -10px; top: 238px; width: 140px; height: 198px; z-index: 7; border-radius: 12px; background: linear-gradient(160deg, #6B4A9E, #0C0818); box-shadow: 0 30px 60px rgba(0,0,0,0.5); opacity: 0.30; filter: none; transform: rotateY(50deg)"></div><div style="position: absolute; left: 130px; top: 209px; width: 160px; height: 227px; z-index: 8; border-radius: 12px; background: linear-gradient(160deg, #2E4466, #06080E); box-shadow: 0 30px 60px rgba(0,0,0,0.5); opacity: 0.50; filter: none; transform: rotateY(44deg)"></div><div style="position: absolute; left: 295px; top: 167px; width: 190px; height: 269px; z-index: 9; border-radius: 12px; background: linear-gradient(160deg, #8A2E52, #12081A); box-shadow: 0 30px 60px rgba(0,0,0,0.5); opacity: 0.75; filter: none; transform: rotateY(38deg)"></div><div style="position: absolute; left: 520px; top: 96px; width: 240px; height: 340px; z-index: 10; border-radius: 12px; background: radial-gradient(circle at 30% 25%, #5E8F4E 0%, transparent 45%), radial-gradient(circle at 70% 78%, #6B4A2F 0%, transparent 50%), radial-gradient(circle at 82% 18%, #7FA6C8 0%, transparent 38%), linear-gradient(160deg, #1E2A1C 0%, #14110D 100%); box-shadow: 0 30px 60px rgba(0,0,0,0.5); opacity: 1.00; filter: none; transform: rotateY(0deg)"></div><div style="position: absolute; left: 795px; top: 167px; width: 190px; height: 269px; z-index: 9; border-radius: 12px; background: linear-gradient(160deg, #5E8A3A, #0E1E10); box-shadow: 0 30px 60px rgba(0,0,0,0.5); opacity: 0.75; filter: none; transform: rotateY(-38deg)"></div><div style="position: absolute; left: 990px; top: 209px; width: 160px; height: 227px; z-index: 8; border-radius: 12px; background: linear-gradient(160deg, #7A6230, #0A0805); box-shadow: 0 30px 60px rgba(0,0,0,0.5); opacity: 0.50; filter: none; transform: rotateY(-44deg)"></div><div style="position: absolute; left: 1150px; top: 238px; width: 140px; height: 198px; z-index: 7; border-radius: 12px; background: linear-gradient(160deg, #A4402C, #1A0806); box-shadow: 0 30px 60px rgba(0,0,0,0.5); opacity: 0.30; filter: none; transform: rotateY(-50deg)"></div></div><div style="position: absolute; left: 72px; top: 34px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em; z-index: 10">Coco<span style="color: var(--accent)">OS</span></div><div style="position: absolute; left: 0; right: 0; top: 28px; display: flex; justify-content: center; z-index: 10"><div style="display: flex; align-items: center; gap: 10px"><span style="height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; border: 1px solid rgba(245,245,247,0.3); font-size: 10px; font-weight: 600; color: rgba(245,245,247,0.6); display: flex; align-items: center">LB</span><nav style="display: flex; padding: 4px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1)"><span style="padding: 7px 18px; border-radius: 16px; background: #F5F5F7; color: #000; font-size: 14px; font-weight: 600">Tout</span><span style="padding: 7px 18px; border-radius: 16px; background: transparent; color: rgba(245,245,247,0.72); font-size: 14px; font-weight: 500">Favoris</span><span style="padding: 7px 18px; border-radius: 16px; background: transparent; color: rgba(245,245,247,0.72); font-size: 14px; font-weight: 500">Récents</span><span style="padding: 7px 18px; border-radius: 16px; background: transparent; color: rgba(245,245,247,0.72); font-size: 14px; font-weight: 500">Apps</span></nav><span style="height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; border: 1px solid rgba(245,245,247,0.3); font-size: 10px; font-weight: 600; color: rgba(245,245,247,0.6); display: flex; align-items: center">RB</span></div></div><div style="position: absolute; top: 30px; right: 56px; display: flex; align-items: center; gap: 18px; z-index: 20"><div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px; border-radius: 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); font-size: 13px; font-weight: 600; "><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: cocoLive 2.4s ease-in-out infinite"></span>PC-Salon<span style="color: rgba(245,245,247,0.55); font-weight: 500">4 ms</span></div><span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">21:42</span><svg width="17" height="12" viewBox="0 0 18 13" aria-hidden="true"><circle cx="9" cy="11" r="1.6" fill="#F5F5F7"></circle><path d="M5.3 7.6a5.2 5.2 0 0 1 7.4 0" stroke="#F5F5F7" stroke-width="1.8" fill="none" stroke-linecap="round"></path><path d="M2.2 4.6a9.6 9.6 0 0 1 13.6 0" stroke="#F5F5F7" stroke-width="1.8" fill="none" stroke-linecap="round"></path></svg><svg width="25" height="12" viewBox="0 0 27 13" aria-hidden="true"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" fill="none" stroke="#F5F5F7" stroke-opacity="0.45"></rect><rect x="2" y="2" width="16.4" height="9" rx="2" fill="#F5F5F7"></rect><rect x="24.8" y="4.5" width="1.6" height="4" rx="0.8" fill="#F5F5F7" fill-opacity="0.45"></rect></svg></div></div><div style="position: absolute; inset: 0; background: rgba(0,0,0,0.45); backdrop-filter: blur({{veil.blur}}px); -webkit-backdrop-filter: blur({{veil.blur}}px); opacity: {{veil.op}}; transition: opacity 360ms ease, backdrop-filter 360ms ease"></div><div role="dialog" aria-label="Alimentation" style="position: absolute; left: 340px; top: 220px; width: 600px; height: 330px; box-sizing: border-box; padding: 36px 30px 28px; border-radius: 36px; background: rgba(44,44,46,0.84); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 30px 80px rgba(0,0,0,0.5); backdrop-filter: blur(40px) saturate(1.6); -webkit-backdrop-filter: blur(40px) saturate(1.6); display: flex; flex-direction: column; align-items: center; opacity: {{dlg.op}}; transform: scale({{dlg.sc}}); transition: {{dlg.tr}}"><span style="font-size: 13px; font-weight: 600; letter-spacing: 0.06em; color: rgba(245,245,247,0.5)">BATTERIE 82 % · ENVIRON 3 H 10</span><div style="margin-top: 30px; display: flex; justify-content: center; gap: 22px"><sc-for list="{{btns}}" as="b" hint-placeholder-count="3"><div style="display: flex; flex-direction: column; align-items: center; gap: 14px; width: 150px"><span style="width: 92px; height: 92px; border-radius: 50%; background: {{b.bg}}; display: flex; align-items: center; justify-content: center; transform: scale({{b.sc}}); box-shadow: {{b.shadow}}; transition: background 200ms ease, transform {{b.scTr}}, box-shadow 300ms ease"><svg width="30" height="30" viewBox="0 0 16 16" aria-hidden="true"><path d="{{b.path}}" style="stroke: {{b.fg}}; fill: {{b.fill}}; transition: stroke 200ms ease, fill 200ms ease" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"></path></svg></span><span style="font-size: 15px; font-weight: {{b.fw}}; color: {{b.tc}}; transition: color 200ms ease">{{b.label}}</span></div></sc-for></div><span style="margin-top: auto; font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.55)">Le stream en cours sera fermé proprement avant l’arrêt.</span></div><span style="position: absolute; right: 601.7px; top: 369.66px; height: 64px; font-size: 64px; font-weight: 600; letter-spacing: -1.28px; line-height: 64px; white-space: nowrap; opacity: {{boot.op}}; filter: blur({{boot.blur}}px); transition: opacity 600ms ease, filter 600ms ease">Coco</span><span style="position: absolute; left: 732.4px; top: 369.66px; height: 64px; font-size: 64px; font-weight: 600; letter-spacing: -1.28px; line-height: 64px; white-space: nowrap; color: var(--accent); opacity: {{boot.op}}; filter: blur({{boot.blur}}px); transition: opacity 600ms ease, filter 600ms ease">S</span><div style="position: absolute; left: 681.35px; top: 375.35px; width: 49.3px; height: 49.3px; opacity: {{boot.op}}; transition: opacity 600ms ease"><div style="position: absolute; inset: 0; box-sizing: border-box; border: 8.8px solid {{track}}; border-radius: 50%"></div><svg width="49.3" height="49.3" viewBox="0 0 49.3 49.3" aria-hidden="true" style="position: absolute; inset: 0"><circle cx="24.65" cy="24.65" r="20.25" fill="none" stroke-width="8.8" stroke-dasharray="127.23" transform="rotate(-90 24.65 24.65)" style="stroke: var(--accent); stroke-dashoffset: {{boot.off}}; transition: {{boot.offTr}}"></circle></svg></div><span style="position: absolute; left: 0; right: 0; top: 476px; text-align: center; font-size: 14px; font-weight: 500; color: rgba(245,245,247,0.55); opacity: {{boot.txt}}; transition: opacity 400ms ease">Redémarrage…</span><div style="position: absolute; z-index: 45; right: 32px; top: 76px; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px 0 7px; border-radius: 20px; background: rgba(30,30,32,0.7); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-size: 13px; font-weight: 600; opacity: {{hold.op}}; transform: translateY({{hold.ty}}px); transition: opacity 200ms ease, transform 300ms cubic-bezier(.32,.72,0,1)"><span style="position: relative; width: 28px; height: 28px"><svg width="28" height="28" viewBox="0 0 28 28" aria-hidden="true" style="position: absolute; inset: 0"><circle cx="14" cy="14" r="12" fill="none" stroke="rgba(255,255,255,0.18)" stroke-width="2.4"></circle><circle cx="14" cy="14" r="12" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="75.4" transform="rotate(-90 14 14)" style="stroke: var(--accent); stroke-dashoffset: {{hold.off}}; transition: {{hold.offTr}}"></circle></svg><svg width="14" height="14" viewBox="0 0 16 16" aria-hidden="true" style="position: absolute; left: 7px; top: 7px"><path d="M8 1.5v6" stroke="#F5F5F7" stroke-width="1.8" stroke-linecap="round"></path><path d="M4.4 3.8a5.6 5.6 0 1 0 7.2 0" stroke="#F5F5F7" stroke-width="1.8" fill="none" stroke-linecap="round"></path></svg></span>{{hold.label}}</div><div style="position: absolute; z-index: 45; left: 32px; bottom: 32px; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px 0 8px; border-radius: 20px; background: rgba(30,30,32,0.6); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-size: 13px; font-weight: 600; opacity: {{keyOp}}; transform: translateY({{keyTy}}px); transition: opacity 200ms ease, transform 300ms cubic-bezier(.32,.72,0,1)"><span style="min-width: 26px; height: 26px; padding: 0 6px; box-sizing: border-box; border-radius: 13px; background: #F5F5F7; color: #000; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">{{keyGlyph}}</span>{{keyLabel}}</div><div aria-hidden="true" style="position: absolute; inset: 0; z-index: 60; background: #000; pointer-events: none; opacity: {{curtain}}; transition: opacity 400ms ease"></div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 9400 }), 40);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const accent = this.props.accent ?? '#F2802A';
+    const instant = t >= 9100;
+    const holding = t >= 700 && t < 1900;
+    const open = t >= 1900 && t < 3600 && !instant;
+    const focus = t >= 2700 ? 1 : 0;
+    const press = t >= 3300 && t < 3420;
+    const black = t >= 3600 && !instant;
+    const P = [
+      ['Mise en veille', 'M13.5 10.2A6 6 0 0 1 5.8 2.5a6 6 0 1 0 7.7 7.7z', true],
+      ['Redémarrer', 'M13.5 8A5.5 5.5 0 1 1 11.6 3.8M12.4 1.2v3.2H9.2', false],
+      ['Éteindre', 'M8 1.5v6M4.4 3.8a5.6 5.6 0 1 0 7.2 0', false]
+    ];
+    const btns = P.map((p, i) => {
+      const f = i === focus;
+      const c = f ? '#000' : '#F5F5F7';
+      return { label: p[0], path: p[1], fg: c, fill: p[2] ? c : 'none', bg: f ? '#F5F5F7' : 'rgba(255,255,255,0.12)',
+        sc: f ? (press ? 0.92 : 1.08) : 1, scTr: press ? '110ms ease-out' : '420ms cubic-bezier(.3,1.5,.4,1)',
+        shadow: f ? '0 14px 34px rgba(0,0,0,0.45)' : 'none', fw: f ? 600 : 500, tc: f ? '#F5F5F7' : 'rgba(245,245,247,0.7)' };
+    });
+    const bootOn = t >= 4600 && t < 8800 && !instant;
+    const K = [[2550, 2900, '▶', ''], [3150, 3550, 'A', 'Redémarrer']];
+    const k = K.find((q) => t >= q[0] && t < q[1]);
+    return {
+      accent: accent,
+      track: 'color-mix(in oklab, ' + accent + ' 25%, transparent)',
+      homeOp: black ? 0 : 1,
+      veil: open ? { op: 1, blur: 24 } : { op: 0, blur: 0 },
+      dlg: open
+        ? { op: 1, sc: 1, tr: 'opacity 240ms ease, transform 560ms cubic-bezier(.3,1.25,.4,1)' }
+        : { op: 0, sc: black ? 0.96 : 0.9, tr: instant ? 'none' : 'opacity 260ms ease, transform 320ms cubic-bezier(.4,0,1,1)' },
+      btns: btns,
+      hold: {
+        op: holding || (t >= 1900 && t < 2200) ? 1 : 0, ty: holding ? 0 : -8,
+        off: holding || (t >= 1900 && t < 2200) ? 0 : 75.4,
+        offTr: holding ? 'stroke-dashoffset 1200ms linear' : 'none',
+        label: t >= 1900 ? 'Menu d’alimentation' : 'Maintenir le bouton'
+      },
+      boot: {
+        op: bootOn ? 1 : 0, blur: bootOn ? 0 : 8,
+        off: t >= 5200 && bootOn ? 0 : 127.23,
+        offTr: t >= 5200 && bootOn ? 'stroke-dashoffset 2600ms cubic-bezier(.65,0,.35,1)' : 'none',
+        txt: t >= 3900 && t < 4500 ? 1 : 0
+      },
+      keyOp: k ? 1 : 0, keyTy: k ? 0 : 8, keyGlyph: k ? k[2] : '', keyLabel: k ? k[3] || 'Choisir' : '',
+      curtain: t >= 8800 ? 1 : 0
+    };
+  }
+}
+</script>
+</body>
+</html>

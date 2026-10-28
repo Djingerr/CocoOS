@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Motion — Réduire les animations</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<sc-for list="{{halves}}" as="h" hint-placeholder-count="2">
+<div style="position: absolute; left: {{h.x}}px; top: 0; width: 640px; height: 800px; overflow: hidden; border-right: 1px solid rgba(255,255,255,0.08)">
+<div aria-hidden="true" style="position: absolute; inset: -60px; background: radial-gradient(circle at 35% 30%, #7FA3C9 0%, transparent 42%), radial-gradient(circle at 70% 75%, #22365C 0%, transparent 55%), linear-gradient(160deg, #1A2540 0%, #06080E 100%); filter: blur(60px); opacity: 0.8"></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,{{h.veil}}); transition: background {{h.veilTr}}"></div>
+<span style="position: absolute; left: 40px; top: 40px; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: {{h.tagColor}}">{{h.tag}}</span>
+<span style="position: absolute; left: 40px; top: 64px; font-size: 26px; font-weight: 600; letter-spacing: -0.025em">{{h.title}}</span>
+
+<div style="position: absolute; left: 0; right: 0; top: 116px; display: flex; justify-content: center">
+<div style="display: flex; align-items: center; gap: 12px; height: 56px; padding: 0 20px 0 10px; border-radius: 28px; background: rgba(28,28,30,0.82); border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 14px 36px rgba(0,0,0,0.4); opacity: {{h.ban.op}}; transform: translateY({{h.ban.ty}}px) scale({{h.ban.sc}}); transition: {{h.ban.tr}}">
+<span style="width: 38px; height: 38px; border-radius: 50%; background: rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center"><svg width="18" height="13" viewBox="0 0 22 16" aria-hidden="true"><path d="M6 2h10a4 4 0 0 1 3.9 3.1l1 4.6a2.2 2.2 0 0 1-3.8 1.9L15 9.5H7l-2.1 2.1a2.2 2.2 0 0 1-3.8-1.9l1-4.6A4 4 0 0 1 6 2z" fill="none" stroke="#F5F5F7" stroke-width="1.4"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 14px; font-weight: 600">Manette connectée</span><span style="font-size: 12px; font-weight: 500; color: rgba(245,245,247,0.6)">Joueur 2</span></span>
+</div>
+</div>
+
+<div role="dialog" aria-label="Quitter" style="position: absolute; left: 110px; top: 260px; width: 420px; box-sizing: border-box; padding: 30px 26px 24px; border-radius: 32px; background: rgba(44,44,46,0.86); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 30px 80px rgba(0,0,0,0.5); display: flex; flex-direction: column; align-items: center; text-align: center; gap: 8px; opacity: {{h.dlg.op}}; transform: scale({{h.dlg.sc}}); filter: blur({{h.dlg.blur}}px); transition: {{h.dlg.tr}}">
+<span style="font-size: 20px; font-weight: 600; letter-spacing: -0.02em">Quitter Hollow Knight ?</span>
+<span style="font-size: 14px; font-weight: 500; color: rgba(245,245,247,0.6)">La partie non sauvegardée sera perdue.</span>
+<div style="margin-top: 16px; display: flex; gap: 10px">
+<span style="height: 44px; padding: 0 20px; border-radius: 22px; background: rgba(255,255,255,0.12); font-size: 15px; font-weight: 600; display: flex; align-items: center">Annuler</span>
+<span style="height: 44px; padding: 0 20px; border-radius: 22px; background: #F5F5F7; color: #000; font-size: 15px; font-weight: 600; display: flex; align-items: center">Quitter</span>
+</div>
+</div>
+<span style="position: absolute; left: 40px; right: 40px; top: 660px; font-size: 14px; font-weight: 500; line-height: 1.5; color: rgba(245,245,247,0.7)">{{h.note}}</span>
+</div>
+</sc-for>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 6000 }), 40);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const dlgOn = t >= 600 && t < 2600;
+    const banOn = t >= 3200 && t < 5200;
+    const FADE = 'opacity 200ms ease';
+    const full = {
+      dlg: dlgOn ? { op: 1, sc: 1, blur: 0, tr: 'opacity 240ms ease, transform 560ms cubic-bezier(.3,1.25,.4,1), filter 300ms ease' }
+                 : { op: 0, sc: 0.9, blur: 6, tr: 'opacity 220ms ease, transform 260ms cubic-bezier(.4,0,1,1), filter 220ms ease' },
+      ban: banOn ? { op: 1, ty: 0, sc: 1, tr: 'opacity 240ms ease, transform 640ms cubic-bezier(.3,1.25,.4,1)' }
+                 : { op: 0, ty: -60, sc: 0.9, tr: 'opacity 280ms ease-in, transform 360ms cubic-bezier(.4,0,1,1)' },
+      veil: dlgOn ? 0.55 : 0.3, veilTr: '360ms ease'
+    };
+    const reduced = {
+      dlg: { op: dlgOn ? 1 : 0, sc: 1, blur: 0, tr: FADE },
+      ban: { op: banOn ? 1 : 0, ty: 0, sc: 1, tr: FADE },
+      veil: dlgOn ? 0.55 : 0.3, veilTr: '200ms ease'
+    };
+    return {
+      accent: this.props.accent ?? '#F2802A',
+      halves: [
+        Object.assign({ x: 0, tag: 'ANIMATIONS COMPLÈTES', tagColor: 'rgba(245,245,247,0.5)', title: 'Ressorts et déplacements',
+          note: 'Le dialogue grandit avec un léger rebond, la bannière descend du haut de l’écran.' }, full),
+        Object.assign({ x: 640, tag: 'RÉDUIRE LES ANIMATIONS', tagColor: 'var(--accent)', title: 'Fondus de 200 ms',
+          note: 'Même ordre, mêmes délais, mais plus aucun mouvement : tout apparaît et disparaît en fondu sur place. Le carrousel saute d’une jaquette à l’autre par fondu enchaîné.' }, reduced)
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

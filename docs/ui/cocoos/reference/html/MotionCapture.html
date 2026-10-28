@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Motion — Capture d'écran</title>
+<style>
+@font-face{font-family:'Sora';font-style:normal;font-weight:100 800;font-display:block;
+  src:url(fonts/sora-latin-wght-normal.woff2) format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Sora';font-style:normal;font-weight:100 800;font-display:block;
+  src:url(fonts/sora-latin-ext-wght-normal.woff2) format('woff2');
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;}
+
+html,body{margin:0;background:#000}
+#root{width:1280px;height:800px;overflow:hidden;position:relative}
+</style>
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+@keyframes cocoCloud{0%{transform:translateX(0)}100%{transform:translateX(-300px)}}
+@keyframes cocoWalk{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes cocoPan{0%{transform:translateX(0)}100%{transform:translateX(-120px)}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<template id="tpl">
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: -60px">
+<div style="position: absolute; inset: 0; background: linear-gradient(180deg, #7FB6DE 0%, #BFDDF0 46%, #6E9F55 47%, #4C7A39 70%, #3A2B1D 100%)"></div>
+<div style="position: absolute; left: 1040px; top: 120px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, #FFF6D6 0%, rgba(255,246,214,0) 70%)"></div>
+<div style="position: absolute; left: 0; top: 140px; width: 1800px; height: 120px; animation: cocoCloud 16s linear infinite alternate">
+<div style="position: absolute; left: 240px; top: 10px; width: 180px; height: 40px; background: rgba(255,255,255,0.85)"></div>
+<div style="position: absolute; left: 700px; top: 50px; width: 240px; height: 44px; background: rgba(255,255,255,0.8)"></div>
+<div style="position: absolute; left: 1180px; top: 0; width: 160px; height: 36px; background: rgba(255,255,255,0.85)"></div>
+</div>
+<div style="position: absolute; left: 0; bottom: 0; width: 1600px; height: 60%; animation: cocoPan 12s ease-in-out infinite alternate">
+<div style="position: absolute; inset: 0; background: #3F6B2F; clip-path: polygon(0 40%, 12% 30%, 24% 42%, 38% 22%, 52% 38%, 66% 26%, 80% 40%, 100% 30%, 100% 100%, 0 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 56%; background: #5A4128; clip-path: polygon(0 30%, 20% 24%, 40% 34%, 60% 20%, 80% 32%, 100% 22%, 100% 100%, 0 100%)"></div>
+</div>
+<div style="position: absolute; left: 650px; top: 470px; width: 36px; height: 72px; background: #2E4E7A; animation: cocoWalk .6s ease-in-out infinite"><div style="position: absolute; left: 4px; top: -28px; width: 28px; height: 28px; background: #C9A27A"></div></div>
+<span style="position: absolute; left: 0; right: 0; top: 420px; text-align: center; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7)">[Flux vidéo du jeu]</span>
+</div>
+
+<div aria-hidden="true" style="position: absolute; inset: 0; background: #FFFFFF; opacity: {{flash}}; transition: {{flashTr}}"></div>
+
+<div aria-hidden="true" style="position: absolute; z-index: 20; left: 0; top: 0; width: 1280px; height: 800px; box-sizing: border-box; overflow: hidden; transform-origin: 0 0; transform: {{snap.transform}}; opacity: {{snap.op}}; border: {{snap.bw}}px solid #F5F5F7; border-radius: {{snap.r}}px; box-shadow: {{snap.shadow}}; transition: {{snap.tr}}">
+<div style="position: absolute; left: -60px; top: -60px; width: 1400px; height: 920px">
+<div style="position: absolute; inset: 0; background: linear-gradient(180deg, #7FB6DE 0%, #BFDDF0 46%, #6E9F55 47%, #4C7A39 70%, #3A2B1D 100%)"></div>
+<div style="position: absolute; left: 1040px; top: 120px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, #FFF6D6 0%, rgba(255,246,214,0) 70%)"></div>
+<div style="position: absolute; left: 140px; top: 150px; width: 180px; height: 40px; background: rgba(255,255,255,0.85)"></div>
+<div style="position: absolute; left: 600px; top: 190px; width: 240px; height: 44px; background: rgba(255,255,255,0.8)"></div>
+<div style="position: absolute; left: -40px; bottom: 0; width: 1600px; height: 60%">
+<div style="position: absolute; inset: 0; background: #3F6B2F; clip-path: polygon(0 40%, 12% 30%, 24% 42%, 38% 22%, 52% 38%, 66% 26%, 80% 40%, 100% 30%, 100% 100%, 0 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 56%; background: #5A4128; clip-path: polygon(0 30%, 20% 24%, 40% 34%, 60% 20%, 80% 32%, 100% 22%, 100% 100%, 0 100%)"></div>
+</div>
+<div style="position: absolute; left: 650px; top: 470px; width: 36px; height: 72px; background: #2E4E7A"><div style="position: absolute; left: 4px; top: -28px; width: 28px; height: 28px; background: #C9A27A"></div></div>
+</div>
+</div>
+
+<div style="position: absolute; z-index: 21; left: 236px; top: 690px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px 0 12px; border-radius: 22px; background: rgba(28,28,30,0.72); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(30px) saturate(1.6); -webkit-backdrop-filter: blur(30px) saturate(1.6); font-size: 13px; font-weight: 600; white-space: nowrap; opacity: {{cap.op}}; transform: translateX({{cap.tx}}px); transition: {{cap.tr}}">
+<svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke-width="1.8" style="stroke: var(--accent)"></circle><path d="M6.5 10.2l2.3 2.3 4.7-4.8" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="stroke: var(--accent)"></path></svg>
+<span>Capture enregistrée</span><span style="font-weight: 500; color: rgba(245,245,247,0.6)">sur PC-Salon</span>
+</div>
+
+<div style="position: absolute; z-index: 45; left: 32px; top: 32px; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px 0 8px; border-radius: 20px; background: rgba(30,30,32,0.6); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-size: 13px; font-weight: 600; opacity: {{keyOp}}; transform: translateY({{keyTy}}px); transition: opacity 200ms ease, transform 300ms cubic-bezier(.32,.72,0,1)">
+<span style="width: 26px; height: 26px; border-radius: 50%; background: #F5F5F7; display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="5" width="16" height="11.5" rx="2.5" fill="none" stroke="#000" stroke-width="1.8"></rect><path d="M7 5l1.3-2h3.4L13 5" fill="none" stroke="#000" stroke-width="1.8" stroke-linejoin="round"></path><circle cx="10" cy="10.7" r="3" fill="none" stroke="#000" stroke-width="1.8"></circle></svg></span>Capture
+</div>
+</div>
+</template>
+<script>(function(global,factory){typeof exports==="object"&&typeof module!=="undefined"?module.exports=factory():typeof define==="function"&&define.amd?define(factory):(global=global||self,global.morphdom=factory())})(this,function(){"use strict";var DOCUMENT_FRAGMENT_NODE=11;function morphAttrs(fromNode,toNode){var toNodeAttrs=toNode.attributes;var attr;var attrName;var attrNamespaceURI;var attrValue;var fromValue;if(toNode.nodeType===DOCUMENT_FRAGMENT_NODE||fromNode.nodeType===DOCUMENT_FRAGMENT_NODE){return}for(var i=toNodeAttrs.length-1;i>=0;i--){attr=toNodeAttrs[i];attrName=attr.name;attrNamespaceURI=attr.namespaceURI;attrValue=attr.value;if(attrNamespaceURI){attrName=attr.localName||attrName;fromValue=fromNode.getAttributeNS(attrNamespaceURI,attrName);if(fromValue!==attrValue){if(attr.prefix==="xmlns"){attrName=attr.name}fromNode.setAttributeNS(attrNamespaceURI,attrName,attrValue)}}else{fromValue=fromNode.getAttribute(attrName);if(fromValue!==attrValue){fromNode.setAttribute(attrName,attrValue)}}}var fromNodeAttrs=fromNode.attributes;for(var d=fromNodeAttrs.length-1;d>=0;d--){attr=fromNodeAttrs[d];attrName=attr.name;attrNamespaceURI=attr.namespaceURI;if(attrNamespaceURI){attrName=attr.localName||attrName;if(!toNode.hasAttributeNS(attrNamespaceURI,attrName)){fromNode.removeAttributeNS(attrNamespaceURI,attrName)}}else{if(!toNode.hasAttribute(attrName)){fromNode.removeAttribute(attrName)}}}}var range;var NS_XHTML="http://www.w3.org/1999/xhtml";var doc=typeof document==="undefined"?undefined:document;var HAS_TEMPLATE_SUPPORT=!!doc&&"content"in doc.createElement("template");var HAS_RANGE_SUPPORT=!!doc&&doc.createRange&&"createContextualFragment"in doc.createRange();function createFragmentFromTemplate(str){var template=doc.createElement("template");template.innerHTML=str;return template.content.childNodes[0]}function createFragmentFromRange(str){if(!range){range=doc.createRange();range.selectNode(doc.body)}var fragment=range.createContextualFragment(str);return fragment.childNodes[0]}function createFragmentFromWrap(str){var fragment=doc.createElement("body");fragment.innerHTML=str;return fragment.childNodes[0]}function toElement(str){str=str.trim();if(HAS_TEMPLATE_SUPPORT){return createFragmentFromTemplate(str)}else if(HAS_RANGE_SUPPORT){return createFragmentFromRange(str)}return createFragmentFromWrap(str)}function compareNodeNames(fromEl,toEl){var fromNodeName=fromEl.nodeName;var toNodeName=toEl.nodeName;var fromCodeStart,toCodeStart;if(fromNodeName===toNodeName){return true}fromCodeStart=fromNodeName.charCodeAt(0);toCodeStart=toNodeName.charCodeAt(0);if(fromCodeStart<=90&&toCodeStart>=97){return fromNodeName===toNodeName.toUpperCase()}else if(toCodeStart<=90&&fromCodeStart>=97){return toNodeName===fromNodeName.toUpperCase()}else{return false}}function createElementNS(name,namespaceURI){return!namespaceURI||namespaceURI===NS_XHTML?doc.createElement(name):doc.createElementNS(namespaceURI,name)}function moveChildren(fromEl,toEl){var curChild=fromEl.firstChild;while(curChild){var nextChild=curChild.nextSibling;toEl.appendChild(curChild);curChild=nextChild}return toEl}function syncBooleanAttrProp(fromEl,toEl,name){if(fromEl[name]!==toEl[name]){fromEl[name]=toEl[name];if(fromEl[name]){fromEl.setAttribute(name,"")}else{fromEl.removeAttribute(name)}}}var specialElHandlers={OPTION:function(fromEl,toEl){var parentNode=fromEl.parentNode;if(parentNode){var parentName=parentNode.nodeName.toUpperCase();if(parentName==="OPTGROUP"){parentNode=parentNode.parentNode;parentName=parentNode&&parentNode.nodeName.toUpperCase()}if(parentName==="SELECT"&&!parentNode.hasAttribute("multiple")){if(fromEl.hasAttribute("selected")&&!toEl.selected){fromEl.setAttribute("selected","selected");fromEl.removeAttribute("selected")}parentNode.selectedIndex=-1}}syncBooleanAttrProp(fromEl,toEl,"selected")},INPUT:function(fromEl,toEl){syncBooleanAttrProp(fromEl,toEl,"checked");syncBooleanAttrProp(fromEl,toEl,"disabled");if(fromEl.value!==toEl.value){fromEl.value=toEl.value}if(!toEl.hasAttribute("value")){fromEl.removeAttribute("value")}},TEXTAREA:function(fromEl,toEl){var newValue=toEl.value;if(fromEl.value!==newValue){fromEl.value=newValue}var firstChild=fromEl.firstChild;if(firstChild){var oldValue=firstChild.nodeValue;if(oldValue==newValue||!newValue&&oldValue==fromEl.placeholder){return}firstChild.nodeValue=newValue}},SELECT:function(fromEl,toEl){if(!toEl.hasAttribute("multiple")){var selectedIndex=-1;var i=0;var curChild=fromEl.firstChild;var optgroup;var nodeName;while(curChild){nodeName=curChild.nodeName&&curChild.nodeName.toUpperCase();if(nodeName==="OPTGROUP"){optgroup=curChild;curChild=optgroup.firstChild}else{if(nodeName==="OPTION"){if(curChild.hasAttribute("selected")){selectedIndex=i;break}i++}curChild=curChild.nextSibling;if(!curChild&&optgroup){curChild=optgroup.nextSibling;optgroup=null}}}fromEl.selectedIndex=selectedIndex}}};var ELEMENT_NODE=1;var DOCUMENT_FRAGMENT_NODE$1=11;var TEXT_NODE=3;var COMMENT_NODE=8;function noop(){}function defaultGetNodeKey(node){if(node){return node.getAttribute&&node.getAttribute("id")||node.id}}function morphdomFactory(morphAttrs){return function morphdom(fromNode,toNode,options){if(!options){options={}}if(typeof toNode==="string"){if(fromNode.nodeName==="#document"||fromNode.nodeName==="HTML"||fromNode.nodeName==="BODY"){var toNodeHtml=toNode;toNode=doc.createElement("html");toNode.innerHTML=toNodeHtml}else{toNode=toElement(toNode)}}else if(toNode.nodeType===DOCUMENT_FRAGMENT_NODE$1){toNode=toNode.firstElementChild}var getNodeKey=options.getNodeKey||defaultGetNodeKey;var onBeforeNodeAdded=options.onBeforeNodeAdded||noop;var onNodeAdded=options.onNodeAdded||noop;var onBeforeElUpdated=options.onBeforeElUpdated||noop;var onElUpdated=options.onElUpdated||noop;var onBeforeNodeDiscarded=options.onBeforeNodeDiscarded||noop;var onNodeDiscarded=options.onNodeDiscarded||noop;var onBeforeElChildrenUpdated=options.onBeforeElChildrenUpdated||noop;var skipFromChildren=options.skipFromChildren||noop;var addChild=options.addChild||function(parent,child){return parent.appendChild(child)};var childrenOnly=options.childrenOnly===true;var fromNodesLookup=Object.create(null);var keyedRemovalList=[];function addKeyedRemoval(key){keyedRemovalList.push(key)}function walkDiscardedChildNodes(node,skipKeyedNodes){if(node.nodeType===ELEMENT_NODE){var curChild=node.firstChild;while(curChild){var key=undefined;if(skipKeyedNodes&&(key=getNodeKey(curChild))){addKeyedRemoval(key)}else{onNodeDiscarded(curChild);if(curChild.firstChild){walkDiscardedChildNodes(curChild,skipKeyedNodes)}}curChild=curChild.nextSibling}}}function removeNode(node,parentNode,skipKeyedNodes){if(onBeforeNodeDiscarded(node)===false){return}if(parentNode){parentNode.removeChild(node)}onNodeDiscarded(node);walkDiscardedChildNodes(node,skipKeyedNodes)}function indexTree(node){if(node.nodeType===ELEMENT_NODE||node.nodeType===DOCUMENT_FRAGMENT_NODE$1){var curChild=node.firstChild;while(curChild){var key=getNodeKey(curChild);if(key){fromNodesLookup[key]=curChild}indexTree(curChild);curChild=curChild.nextSibling}}}indexTree(fromNode);function handleNodeAdded(el){onNodeAdded(el);var curChild=el.firstChild;while(curChild){var nextSibling=curChild.nextSibling;var key=getNodeKey(curChild);if(key){var unmatchedFromEl=fromNodesLookup[key];if(unmatchedFromEl&&compareNodeNames(curChild,unmatchedFromEl)){curChild.parentNode.replaceChild(unmatchedFromEl,curChild);morphEl(unmatchedFromEl,curChild)}else{handleNodeAdded(curChild)}}else{handleNodeAdded(curChild)}curChild=nextSibling}}function cleanupFromEl(fromEl,curFromNodeChild,curFromNodeKey){while(curFromNodeChild){var fromNextSibling=curFromNodeChild.nextSibling;if(curFromNodeKey=getNodeKey(curFromNodeChild)){addKeyedRemoval(curFromNodeKey)}else{removeNode(curFromNodeChild,fromEl,true)}curFromNodeChild=fromNextSibling}}function morphEl(fromEl,toEl,childrenOnly){var toElKey=getNodeKey(toEl);if(toElKey){delete fromNodesLookup[toElKey]}if(!childrenOnly){var beforeUpdateResult=onBeforeElUpdated(fromEl,toEl);if(beforeUpdateResult===false){return}else if(beforeUpdateResult instanceof HTMLElement){fromEl=beforeUpdateResult;indexTree(fromEl)}morphAttrs(fromEl,toEl);onElUpdated(fromEl);if(onBeforeElChildrenUpdated(fromEl,toEl)===false){return}}if(fromEl.nodeName!=="TEXTAREA"){morphChildren(fromEl,toEl)}else{specialElHandlers.TEXTAREA(fromEl,toEl)}}function morphChildren(fromEl,toEl){var skipFrom=skipFromChildren(fromEl,toEl);var curToNodeChild=toEl.firstChild;var curFromNodeChild=fromEl.firstChild;var curToNodeKey;var curFromNodeKey;var fromNextSibling;var toNextSibling;var matchingFromEl;outer:while(curToNodeChild){toNextSibling=curToNodeChild.nextSibling;curToNodeKey=getNodeKey(curToNodeChild);while(!skipFrom&&curFromNodeChild){fromNextSibling=curFromNodeChild.nextSibling;if(curToNodeChild.isSameNode&&curToNodeChild.isSameNode(curFromNodeChild)){curToNodeChild=toNextSibling;curFromNodeChild=fromNextSibling;continue outer}curFromNodeKey=getNodeKey(curFromNodeChild);var curFromNodeType=curFromNodeChild.nodeType;var isCompatible=undefined;if(curFromNodeType===curToNodeChild.nodeType){if(curFromNodeType===ELEMENT_NODE){if(curToNodeKey){if(curToNodeKey!==curFromNodeKey){if(matchingFromEl=fromNodesLookup[curToNodeKey]){if(fromNextSibling===matchingFromEl){isCompatible=false}else{fromEl.insertBefore(matchingFromEl,curFromNodeChild);if(curFromNodeKey){addKeyedRemoval(curFromNodeKey)}else{removeNode(curFromNodeChild,fromEl,true)}curFromNodeChild=matchingFromEl;curFromNodeKey=getNodeKey(curFromNodeChild)}}else{isCompatible=false}}}else if(curFromNodeKey){isCompatible=false}isCompatible=isCompatible!==false&&compareNodeNames(curFromNodeChild,curToNodeChild);if(isCompatible){morphEl(curFromNodeChild,curToNodeChild)}}else if(curFromNodeType===TEXT_NODE||curFromNodeType==COMMENT_NODE){isCompatible=true;if(curFromNodeChild.nodeValue!==curToNodeChild.nodeValue){curFromNodeChild.nodeValue=curToNodeChild.nodeValue}}}if(isCompatible){curToNodeChild=toNextSibling;curFromNodeChild=fromNextSibling;continue outer}if(curFromNodeKey){addKeyedRemoval(curFromNodeKey)}else{removeNode(curFromNodeChild,fromEl,true)}curFromNodeChild=fromNextSibling}if(curToNodeKey&&(matchingFromEl=fromNodesLookup[curToNodeKey])&&compareNodeNames(matchingFromEl,curToNodeChild)){if(!skipFrom){addChild(fromEl,matchingFromEl)}morphEl(matchingFromEl,curToNodeChild)}else{var onBeforeNodeAddedResult=onBeforeNodeAdded(curToNodeChild);if(onBeforeNodeAddedResult!==false){if(onBeforeNodeAddedResult){curToNodeChild=onBeforeNodeAddedResult}if(curToNodeChild.actualize){curToNodeChild=curToNodeChild.actualize(fromEl.ownerDocument||doc)}addChild(fromEl,curToNodeChild);handleNodeAdded(curToNodeChild)}}curToNodeChild=toNextSibling;curFromNodeChild=fromNextSibling}cleanupFromEl(fromEl,curFromNodeChild,curFromNodeKey);var specialElHandler=specialElHandlers[fromEl.nodeName];if(specialElHandler){specialElHandler(fromEl,toEl)}}var morphedNode=fromNode;var morphedNodeType=morphedNode.nodeType;var toNodeType=toNode.nodeType;if(!childrenOnly){if(morphedNodeType===ELEMENT_NODE){if(toNodeType===ELEMENT_NODE){if(!compareNodeNames(fromNode,toNode)){onNodeDiscarded(fromNode);morphedNode=moveChildren(fromNode,createElementNS(toNode.nodeName,toNode.namespaceURI))}}else{morphedNode=toNode}}else if(morphedNodeType===TEXT_NODE||morphedNodeType===COMMENT_NODE){if(toNodeType===morphedNodeType){if(morphedNode.nodeValue!==toNode.nodeValue){morphedNode.nodeValue=toNode.nodeValue}return morphedNode}else{morphedNode=toNode}}}if(morphedNode===toNode){onNodeDiscarded(fromNode)}else{if(toNode.isSameNode&&toNode.isSameNode(morphedNode)){return}morphEl(morphedNode,toNode,childrenOnly);if(keyedRemovalList){for(var i=0,len=keyedRemovalList.length;i<len;i++){var elToRemove=fromNodesLookup[keyedRemovalList[i]];if(elToRemove){removeNode(elToRemove,elToRemove.parentNode,false)}}}}if(!childrenOnly&&morphedNode!==fromNode&&fromNode.parentNode){if(morphedNode.actualize){morphedNode=morphedNode.actualize(fromNode.ownerDocument||doc)}fromNode.parentNode.replaceChild(morphedNode,fromNode)}return morphedNode}}var morphdom=morphdomFactory(morphAttrs);return morphdom});</script>
+<script>
+(function(){
+  const P = new URLSearchParams(location.search);
+  if (P.get('now')) {
+    const fixed = Date.parse(P.get('now'));
+    const real = Date.now.bind(Date), t0 = real();
+    // fixed wall clock that still advances, so timers keep working
+    Date.now = () => fixed + (real() - t0);
+  }
+  window.DCLogic = class {
+    constructor(props){ this.props = props; this.state = null; }
+    setState(s){ this.state = Object.assign({}, this.state, typeof s === 'function' ? s(this.state) : s); window.__dcRender && window.__dcRender(); }
+    forceUpdate(){ window.__dcRender && window.__dcRender(); }
+  };
+})();
+</script>
+<script>
+const PROPS = {"accent": {"editor": "color", "default": "#F2802A", "options": ["#F2802A", "#F5F5F7", "#6E9BFF"]}, "$preview": {"width": 1280, "height": 800}};
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 6000 }), 40);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const flashOn = t >= 1000 && t < 1080;
+    let snap;
+    if (t >= 1000 && t < 1150) snap = { transform: 'translate(0px, 0px) scale(1)', op: 1, bw: 0, r: 0, shadow: '0 0 0 rgba(0,0,0,0)', tr: 'none' };
+    else if (t >= 1150 && t < 3700) snap = { transform: 'translate(32px, 648px) scale(0.15)', op: 1, bw: 20, r: 80, shadow: '0 120px 300px rgba(0,0,0,0.6)', tr: 'transform 640ms cubic-bezier(.3,1.12,.4,1), border-width 380ms ease, border-radius 420ms ease, box-shadow 500ms ease' };
+    else if (t >= 3700 && t < 4300) snap = { transform: 'translate(-240px, 648px) scale(0.15)', op: 0, bw: 20, r: 80, shadow: '0 120px 300px rgba(0,0,0,0.6)', tr: 'transform 420ms cubic-bezier(.4,0,1,1), opacity 300ms ease 120ms' };
+    else snap = { transform: 'translate(0px, 0px) scale(1)', op: 0, bw: 0, r: 0, shadow: '0 0 0 rgba(0,0,0,0)', tr: 'none' };
+    const capOn = t >= 1500 && t < 3550;
+    return {
+      accent: this.props.accent ?? '#F2802A',
+      flash: flashOn ? 0.6 : 0,
+      flashTr: flashOn ? 'opacity 50ms ease-out' : 'opacity 380ms ease-out',
+      snap: snap,
+      cap: {
+        op: capOn ? 1 : 0,
+        tx: capOn ? 0 : -12,
+        tr: capOn ? 'opacity 300ms ease, transform 500ms cubic-bezier(.32,.72,0,1)' : 'opacity 200ms ease, transform 300ms ease'
+      },
+      keyOp: t >= 800 && t < 1400 ? 1 : 0,
+      keyTy: t >= 800 && t < 1400 ? 0 : -8
+    };
+  }
+}
+</script>
+<script>
+(function(){
+  const P = new URLSearchParams(location.search);
+  const props = {};
+  for (const [k, spec] of Object.entries(PROPS)) {
+    if (k.startsWith('$')) continue;
+    let v = spec.default;
+    if (P.has(k)) { const raw = P.get(k); v = typeof v === 'number' ? Number(raw) : typeof v === 'boolean' ? raw === 'true' : raw; }
+    props[k] = v;
+  }
+  const tplNode = document.getElementById('tpl').content;
+  const lookup = (scope, path) => {
+    path = path.trim();
+    if (path === 'true') return true; if (path === 'false') return false;
+    if (/^-?\d+(\.\d+)?$/.test(path)) return Number(path);
+    return path.split('.').reduce((o, k) => (o == null ? o : o[k]), scope);
+  };
+  const HOLE = /\{\{\s*([\w.$]+)\s*\}\}/g;
+  const whole = /^\s*\{\{\s*([\w.$]+)\s*\}\}\s*$/;
+  const interp = (s, scope) => s.replace(HOLE, (m, p) => { const v = lookup(scope, p); return v == null ? '' : String(v); });
+  function renderNodes(nodes, scope, out) {
+    for (const n of nodes) {
+      if (n.nodeType === 3) { out.appendChild(document.createTextNode(interp(n.nodeValue, scope))); continue; }
+      if (n.nodeType !== 1) continue;
+      const tag = n.tagName.toLowerCase();
+      if (tag === 'sc-for') {
+        const m = whole.exec(n.getAttribute('list') || ''); const list = m ? lookup(scope, m[1]) : [];
+        const as = n.getAttribute('as') || 'item';
+        (list || []).forEach((it, i) => renderNodes(n.childNodes, Object.assign(Object.create(scope), { [as]: it, $index: i }), out));
+        continue;
+      }
+      if (tag === 'sc-if') {
+        const m = whole.exec(n.getAttribute('value') || ''); if (m && lookup(scope, m[1])) renderNodes(n.childNodes, scope, out);
+        continue;
+      }
+      const el = n.namespaceURI === 'http://www.w3.org/2000/svg' ? document.createElementNS(n.namespaceURI, n.tagName) : document.createElement(n.tagName);
+      for (const a of n.attributes) {
+        if (/^on[A-Z]/.test(a.name) || /^on[a-z]+$/.test(a.name)) continue;
+        el.setAttribute(a.name, interp(a.value, scope));
+      }
+      renderNodes(n.childNodes, scope, el);
+      out.appendChild(el);
+    }
+  }
+  const comp = new Component(props);
+  const root = document.getElementById('root');
+  let pending = false;
+  function render() {
+    const vals = comp.renderVals();
+    const frag = document.createElement('div'); frag.id = 'root';
+    renderNodes(tplNode.childNodes, vals, frag);
+    morphdom(root, frag);
+  }
+  window.__dcRender = () => { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; render(); }); };
+  render();
+  if (comp.componentDidMount) comp.componentDidMount();
+  document.fonts.ready.then(() => { window.__ready = true; });
+})();
+</script>
+</body>
+</html>

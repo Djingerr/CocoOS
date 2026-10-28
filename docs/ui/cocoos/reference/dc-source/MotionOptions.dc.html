@@ -1,0 +1,233 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Motion — Options</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+button{cursor:default}
+@keyframes cocoBgPan{0%{transform:scale(1.25) translate(0,0)}100%{transform:scale(1.34) translate(-30px,16px)}}
+@keyframes cocoLive{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+
+<div style="position: absolute; inset: 0; overflow: hidden; transform-origin: 30% 50%; transform: scale({{home.sc}}); filter: brightness({{home.br}}); border-radius: {{home.r}}px; transition: {{home.tr}}">
+<div aria-hidden="true" style="position: absolute; inset: -100px; background: {{art}}; filter: blur(100px) saturate(1.1); animation: cocoBgPan 60s ease-in-out infinite alternate"></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.85) 75%)"></div>
+<div style="position: absolute; left: 0; top: 0; width: 1280px; height: 560px">
+<sc-for list="{{covers}}" as="c" hint-placeholder-count="7">
+<div style="position: absolute; left: {{c.left}}px; top: {{c.top}}px; width: {{c.w}}px; height: {{c.h}}px; z-index: {{c.z}}; transform: {{c.transform}}; filter: {{c.filter}}">
+<div style="position: absolute; inset: 0; border-radius: 12px; overflow: hidden; background: {{c.art}}; box-shadow: {{c.shadow}}">
+<div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.5), rgba(0,0,0,0) 45%)"></div>
+<span style="position: absolute; left: 12px; right: 12px; bottom: 12px; font-size: 12px; font-weight: 600">{{c.title}}</span>
+</div>
+<div aria-hidden="true" style="position: absolute; left: 0; top: calc(100% + 6px); width: 100%; height: 100%; border-radius: 12px; overflow: hidden; transform: scaleY(-1); background: {{c.art}}; -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0) 18%); mask-image: linear-gradient(to top, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0) 18%)"></div>
+</div>
+</sc-for>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 516px; display: flex; flex-direction: column; align-items: center">
+<span style="font-size: 48px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.05">Minecraft</span>
+<span style="margin-top: 10px; font-size: 15px; font-weight: 500; color: rgba(245,245,247,0.62)">Mojang Studios · 2011 · Bac à sable</span>
+<div style="margin-top: 26px; display: flex; gap: 12px">
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 26px 0 11px; border: none; border-radius: 26px; background: #F5F5F7; color: #000; font-family: inherit; font-size: 17px; font-weight: 600"><span style="width: 30px; height: 30px; border-radius: 50%; background: #000; color: #F5F5F7; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">A</span>Jouer</button>
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 22px 0 11px; border: 1px solid rgba(255,255,255,0.12); border-radius: 26px; background: rgba(255,255,255,0.12); color: #F5F5F7; font-family: inherit; font-size: 15px; font-weight: 600"><span style="width: 28px; height: 28px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.5); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600">Y</span>Options</button>
+</div>
+</div>
+<div style="position: absolute; left: 72px; top: 34px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">Coco<span style="color: var(--accent)">OS</span></div>
+<div style="position: absolute; top: 30px; right: 56px; display: flex; align-items: center; gap: 18px">
+<div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px; border-radius: 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); font-size: 13px; font-weight: 600"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: cocoLive 2.4s ease-in-out infinite"></span>PC-Salon<span style="color: rgba(245,245,247,0.55); font-weight: 500">4 ms</span></div>
+<span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">{{time}}</span>
+</div>
+</div>
+
+<aside aria-label="Options" style="position: absolute; left: 772px; top: 16px; width: 492px; height: 768px; box-sizing: border-box; padding: 28px; border-radius: 32px; background: rgba(30,30,32,0.86); border: 1px solid rgba(255,255,255,0.08); box-shadow: -20px 0 60px rgba(0,0,0,0.5); backdrop-filter: blur(40px) saturate(1.6); -webkit-backdrop-filter: blur(40px) saturate(1.6); transform: translateX({{sheet.tx}}px); opacity: {{sheet.op}}; transition: {{sheet.tr}}">
+<h1 style="margin: 0; font-size: 30px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.2">Options</h1>
+<div style="margin-top: 6px; display: flex; align-items: center; gap: 8px; font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.58)"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent)"></span>PC-Salon · connecté · 4 ms</div>
+<div style="margin-top: 20px; display: flex; align-items: center; gap: 10px">
+<span style="height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; border: 1px solid rgba(245,245,247,0.3); font-size: 10px; font-weight: 600; color: rgba(245,245,247,0.6); display: flex; align-items: center">LB</span>
+<div role="tablist" style="position: relative; flex: 1; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); padding: 3px; border-radius: 12px; background: rgba(118,118,128,0.24)">
+<span aria-hidden="true" style="position: absolute; top: 3px; bottom: 3px; left: {{seg.left}}; width: calc(50% - 3px); border-radius: 9px; background: #636366; box-shadow: 0 3px 8px rgba(0,0,0,0.25); transition: left 480ms cubic-bezier(.3,1.2,.4,1)"></span>
+<button role="tab" style="position: relative; height: 34px; border: none; background: transparent; color: {{seg.c1}}; font-family: inherit; font-size: 14px; font-weight: 600; transition: color 240ms ease">Stream</button>
+<button role="tab" style="position: relative; height: 34px; border: none; background: transparent; color: {{seg.c2}}; font-family: inherit; font-size: 14px; font-weight: 600; transition: color 240ms ease">Console</button>
+</div>
+<span style="height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; border: 1px solid rgba(245,245,247,0.3); font-size: 10px; font-weight: 600; display: flex; align-items: center; background: {{rbBg}}; color: {{rbFg}}; transition: background 150ms ease, color 150ms ease">RB</span>
+</div>
+
+<div style="position: relative; margin-top: 4px; height: 560px">
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; opacity: {{paneS.op}}; transform: translateX({{paneS.tx}}px); transition: opacity 260ms ease, transform 420ms cubic-bezier(.32,.72,0,1)">
+<span style="margin: 20px 0 0 16px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: rgba(245,245,247,0.5)">PROFIL DE STREAM</span>
+<div style="margin-top: 8px; padding: 14px 16px; border-radius: 18px; background: rgba(255,255,255,0.06)">
+<div style="display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); padding: 3px; border-radius: 10px; background: rgba(118,118,128,0.2); font-size: 12px; font-weight: 500; text-align: center">
+<span style="padding: 7px 0; color: rgba(245,245,247,0.72)">Compétitif</span><span style="padding: 7px 0; color: rgba(245,245,247,0.72)">Équilibré</span><span style="padding: 7px 0; border-radius: 7px; background: #F5F5F7; color: #000; font-weight: 600">Qualité</span><span style="padding: 7px 0; color: rgba(245,245,247,0.72)">Éco</span><span style="padding: 7px 0; color: rgba(245,245,247,0.72)">Manuel</span>
+</div>
+<div style="margin-top: 14px; display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px">
+<div style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11px; font-weight: 500; color: rgba(245,245,247,0.55)">Résolution</span><span style="font-size: 15px; font-weight: 600">720p</span></div>
+<div style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11px; font-weight: 500; color: rgba(245,245,247,0.55)">Images/s</span><span style="font-size: 15px; font-weight: 600">60</span></div>
+<div style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11px; font-weight: 500; color: rgba(245,245,247,0.55)">Débit</span><span style="font-size: 15px; font-weight: 600">10 Mb/s</span></div>
+<div style="display: flex; flex-direction: column; gap: 3px"><span style="font-size: 11px; font-weight: 500; color: rgba(245,245,247,0.55)">Priorité</span><span style="font-size: 15px; font-weight: 600">Image</span></div>
+</div>
+</div>
+<span style="margin: 22px 0 0 16px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: rgba(245,245,247,0.5)">AVANCÉ</span>
+<div style="margin-top: 8px; border-radius: 18px; background: rgba(255,255,255,0.06); overflow: hidden">
+<sc-for list="{{rowsS}}" as="r" hint-placeholder-count="5">
+<div style="height: 50px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; font-size: 15px; font-weight: {{r.weight}}; background: {{r.bg}}; border-bottom: 1px solid rgba(255,255,255,0.06); transition: background 220ms ease">
+<span>{{r.label}}</span><span style="color: {{r.valColor}}; transition: color 220ms ease">{{r.value}} ›</span>
+</div>
+</sc-for>
+</div>
+</div>
+
+<div style="position: absolute; inset: 0; display: flex; flex-direction: column; opacity: {{paneC.op}}; transform: translateX({{paneC.tx}}px); transition: opacity 260ms ease, transform 420ms cubic-bezier(.32,.72,0,1)">
+<span style="margin: 20px 0 0 16px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: rgba(245,245,247,0.5)">ÉCRAN ET SON</span>
+<div style="margin-top: 8px; border-radius: 18px; background: rgba(255,255,255,0.06); overflow: hidden">
+<sc-for list="{{sliders}}" as="s" hint-placeholder-count="2">
+<div style="height: 76px; box-sizing: border-box; padding: 14px 16px 0; background: {{s.bg}}; border-bottom: 1px solid rgba(255,255,255,0.06); transition: background 220ms ease">
+<div style="display: flex; justify-content: space-between; font-size: 15px; font-weight: 500"><span>{{s.label}}</span><span style="color: rgba(245,245,247,0.6); font-variant-numeric: tabular-nums">{{s.v}} %</span></div>
+<div style="position: relative; margin-top: 14px; height: 4px; border-radius: 2px; background: rgba(255,255,255,0.16)"><div style="position: absolute; left: 0; top: 0; bottom: 0; width: {{s.v}}%; border-radius: 2px; background: var(--accent)"></div><div style="position: absolute; left: {{s.v}}%; top: -8px; width: 20px; height: 20px; margin-left: -10px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 2px 6px rgba(0,0,0,0.35); transform: scale({{s.ks}}); transition: transform 260ms cubic-bezier(.3,1.4,.4,1)"></div></div>
+</div>
+</sc-for>
+</div>
+<span style="margin: 22px 0 0 16px; font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: rgba(245,245,247,0.5)">CONSOLE</span>
+<div style="margin-top: 8px; border-radius: 18px; background: rgba(255,255,255,0.06); overflow: hidden">
+<sc-for list="{{rowsC}}" as="r" hint-placeholder-count="4">
+<div style="height: 50px; padding: 0 16px; display: flex; align-items: center; justify-content: space-between; font-size: 15px; font-weight: {{r.weight}}; background: {{r.bg}}; border-bottom: 1px solid rgba(255,255,255,0.06); transition: background 220ms ease">
+<span>{{r.label}}</span>
+<sc-if value="{{r.isToggle}}" hint-placeholder-val="{{false}}">
+<span style="position: relative; width: 51px; height: 31px; border-radius: 16px; background: {{r.tbg}}; transition: background 250ms ease"><span style="position: absolute; left: 2px; top: 2px; width: 27px; height: 27px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 2px 4px rgba(0,0,0,0.25); transform: translateX({{r.tx}}px); transition: transform 420ms cubic-bezier(.3,1.35,.4,1)"></span></span>
+</sc-if>
+<sc-if value="{{r.isValue}}" hint-placeholder-val="{{true}}"><span style="color: rgba(245,245,247,0.55)">{{r.value}} ›</span></sc-if>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+
+<div style="position: absolute; left: 28px; bottom: 28px; display: flex; align-items: center; gap: 22px; font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.6)">
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.45); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #F5F5F7">B</span>Fermer</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.45); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #F5F5F7">A</span>Modifier</span>
+</div>
+</aside>
+
+<div style="position: absolute; z-index: 45; left: 32px; bottom: 32px; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px 0 8px; border-radius: 20px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-size: 13px; font-weight: 600; opacity: {{keyOp}}; transform: translateY({{keyTy}}px); transition: opacity 200ms ease, transform 300ms cubic-bezier(.32,.72,0,1)">
+<span style="min-width: 26px; height: 26px; padding: 0 6px; box-sizing: border-box; border-radius: 13px; background: #F5F5F7; color: #000; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">{{keyGlyph}}</span>{{keyLabel}}
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 9000 }), 50);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const accent = this.props.accent ?? '#F2802A';
+    const E = 'cubic-bezier(.32,.72,0,1)';
+    const open = t >= 1200 && t < 6600;
+    const consoleTab = t >= 3300 && t < 6900;
+    let fS = 2;
+    if (t >= 2000) fS = 3;
+    if (t >= 2500) fS = 4;
+    let fC = 0;
+    if (t >= 3900) fC = 1;
+    if (t >= 4300) fC = 2;
+    if (t >= 4700) fC = 3;
+    const soundsOn = !(t >= 5300 && t < 8800);
+    const ART = {
+      mc: 'radial-gradient(circle at 30% 25%, #5E8F4E 0%, transparent 45%), radial-gradient(circle at 70% 78%, #6B4A2F 0%, transparent 50%), radial-gradient(circle at 82% 18%, #7FA6C8 0%, transparent 38%), linear-gradient(160deg, #1E2A1C 0%, #14110D 100%)',
+      hk: 'radial-gradient(circle at 35% 30%, #7FA3C9 0%, transparent 42%), radial-gradient(circle at 70% 75%, #22365C 0%, transparent 55%), linear-gradient(160deg, #1A2540 0%, #06080E 100%)',
+      fh: 'radial-gradient(circle at 70% 25%, #FFB347 0%, transparent 40%), radial-gradient(circle at 30% 70%, #D8345F 0%, transparent 50%), linear-gradient(160deg, #4A1747 0%, #12081A 100%)',
+      ce: 'radial-gradient(circle at 40% 30%, #F49AC1 0%, transparent 42%), radial-gradient(circle at 65% 75%, #6C4BD1 0%, transparent 52%), linear-gradient(160deg, #2B1B4F 0%, #0C0818 100%)',
+      sv: 'radial-gradient(circle at 30% 30%, #F6D55C 0%, transparent 40%), radial-gradient(circle at 65% 70%, #6DBE45 0%, transparent 52%), linear-gradient(160deg, #2F6B3A 0%, #0E1E10 100%)',
+      er: 'radial-gradient(circle at 50% 30%, #E8C46A 0%, transparent 38%), radial-gradient(circle at 40% 80%, #5C4520 0%, transparent 52%), linear-gradient(160deg, #2A2214 0%, #0A0805 100%)',
+      ha: 'radial-gradient(circle at 45% 30%, #FF6B4A 0%, transparent 40%), radial-gradient(circle at 60% 78%, #8A1C1C 0%, transparent 52%), linear-gradient(160deg, #2A0B0B 0%, #090303 100%)'
+    };
+    const order = [['Hades', 'ha'], ['Celeste', 'ce'], ['Hollow Knight', 'hk'], ['Minecraft', 'mc'], ['Forza Horizon 5', 'fh'], ['Stardew Valley', 'sv'], ['Elden Ring', 'er']];
+    const S = [[240, 340, 0, 1], [190, 269, 250, 0.6], [160, 227, 430, 0.38], [140, 198, 580, 0.2]];
+    const covers = order.map((x, i) => {
+      const o = i - 3;
+      const k = Math.abs(o);
+      const z = S[k];
+      const sg = Math.sign(o);
+      const cx = 640 + sg * z[2];
+      return {
+        title: x[0], art: ART[x[1]], w: z[0], h: z[1], left: Math.round(cx - z[0] / 2), top: 436 - z[1], z: 10 - k,
+        transform: 'perspective(900px) rotateY(' + (o === 0 ? 0 : -sg * (38 + (k - 1) * 6)) + 'deg)',
+        filter: 'brightness(' + z[3] + ')',
+        shadow: o === 0 ? '0 40px 90px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.12)' : '0 20px 40px rgba(0,0,0,0.5)'
+      };
+    });
+    const FOC = 'rgba(255,255,255,0.12)';
+    const rowsS = [['Écran virtuel', 'Par défaut'], ['Réglages avancés', 'Activés'], ['Résolution', '720p'], ['Images par seconde', '60'], ['Débit', '10 Mb/s'], ['Codec', 'Auto']].map((r, i) => ({
+      label: r[0], value: r[1],
+      bg: open && !consoleTab && i === fS ? FOC : 'transparent',
+      weight: open && !consoleTab && i === fS ? 600 : 500,
+      valColor: open && !consoleTab && i === fS ? '#F5F5F7' : 'rgba(245,245,247,0.55)'
+    }));
+    const sliders = [['Luminosité', 100], ['Volume', 40]].map((s, i) => ({
+      label: s[0], v: s[1], bg: consoleTab && fC === i ? FOC : 'transparent', ks: consoleTab && fC === i ? 1.2 : 1
+    }));
+    const rowsC = [
+      { label: 'Veille après', value: '30 s', isValue: true, isToggle: false },
+      { label: 'Sons', isToggle: true, isValue: false, on: soundsOn },
+      { label: 'Réduire les animations', isToggle: true, isValue: false, on: false },
+      { label: 'Langue', value: 'Français', isValue: true, isToggle: false }
+    ].map((r, i) => Object.assign(r, {
+      bg: consoleTab && fC === i + 2 ? FOC : 'transparent',
+      weight: consoleTab && fC === i + 2 ? 600 : 500,
+      tbg: r.on ? accent : 'rgba(120,120,128,0.36)',
+      tx: r.on ? 20 : 0
+    }));
+    const keys = [
+      [900, 1400, 'Y', 'Options'], [1850, 2150, '▼', ''], [2350, 2650, '▼', ''], [3150, 3550, 'RB', 'Console'],
+      [3750, 4050, '▼', ''], [4150, 4450, '▼', ''], [4550, 4850, '▼', ''], [5150, 5550, 'A', 'Sons'], [6300, 6800, 'B', 'Fermer']
+    ];
+    const k = keys.find((x) => t >= x[0] && t < x[1]);
+    const rbOn = t >= 3150 && t < 3550;
+    return {
+      accent: accent,
+      art: ART.mc,
+      time: pad(d.getHours()) + ':' + pad(d.getMinutes()),
+      covers: covers,
+      home: {
+        sc: open ? 0.94 : 1,
+        br: open ? 0.5 : 1,
+        r: open ? 28 : 0,
+        tr: open ? 'transform 600ms ' + E + ', filter 500ms ease, border-radius 600ms ' + E : 'transform 420ms ' + E + ', filter 380ms ease, border-radius 420ms ' + E
+      },
+      sheet: {
+        tx: open ? 0 : 540,
+        op: open ? 1 : 0.6,
+        tr: open ? 'transform 620ms cubic-bezier(.3,1.08,.4,1), opacity 200ms ease' : 'transform 360ms cubic-bezier(.4,0,1,1), opacity 300ms ease 60ms'
+      },
+      seg: { left: consoleTab ? '50%' : '3px', c1: consoleTab ? 'rgba(245,245,247,0.6)' : '#F5F5F7', c2: consoleTab ? '#F5F5F7' : 'rgba(245,245,247,0.6)' },
+      paneS: { op: consoleTab ? 0 : 1, tx: consoleTab ? -24 : 0 },
+      paneC: { op: consoleTab ? 1 : 0, tx: consoleTab ? 0 : 24 },
+      rowsS: rowsS,
+      sliders: sliders,
+      rowsC: rowsC,
+      rbBg: rbOn ? '#F5F5F7' : 'transparent',
+      rbFg: rbOn ? '#000' : 'rgba(245,245,247,0.6)',
+      keyOp: k ? 1 : 0,
+      keyTy: k ? 0 : 8,
+      keyGlyph: k ? k[2] : '',
+      keyLabel: k ? k[3] : ''
+    };
+  }
+}
+</script>
+</body>
+</html>

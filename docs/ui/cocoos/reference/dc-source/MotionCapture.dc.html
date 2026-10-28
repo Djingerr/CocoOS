@@ -1,0 +1,98 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Motion — Capture d'écran</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+@keyframes cocoCloud{0%{transform:translateX(0)}100%{transform:translateX(-300px)}}
+@keyframes cocoWalk{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes cocoPan{0%{transform:translateX(0)}100%{transform:translateX(-120px)}}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: -60px">
+<div style="position: absolute; inset: 0; background: linear-gradient(180deg, #7FB6DE 0%, #BFDDF0 46%, #6E9F55 47%, #4C7A39 70%, #3A2B1D 100%)"></div>
+<div style="position: absolute; left: 1040px; top: 120px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, #FFF6D6 0%, rgba(255,246,214,0) 70%)"></div>
+<div style="position: absolute; left: 0; top: 140px; width: 1800px; height: 120px; animation: cocoCloud 16s linear infinite alternate">
+<div style="position: absolute; left: 240px; top: 10px; width: 180px; height: 40px; background: rgba(255,255,255,0.85)"></div>
+<div style="position: absolute; left: 700px; top: 50px; width: 240px; height: 44px; background: rgba(255,255,255,0.8)"></div>
+<div style="position: absolute; left: 1180px; top: 0; width: 160px; height: 36px; background: rgba(255,255,255,0.85)"></div>
+</div>
+<div style="position: absolute; left: 0; bottom: 0; width: 1600px; height: 60%; animation: cocoPan 12s ease-in-out infinite alternate">
+<div style="position: absolute; inset: 0; background: #3F6B2F; clip-path: polygon(0 40%, 12% 30%, 24% 42%, 38% 22%, 52% 38%, 66% 26%, 80% 40%, 100% 30%, 100% 100%, 0 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 56%; background: #5A4128; clip-path: polygon(0 30%, 20% 24%, 40% 34%, 60% 20%, 80% 32%, 100% 22%, 100% 100%, 0 100%)"></div>
+</div>
+<div style="position: absolute; left: 650px; top: 470px; width: 36px; height: 72px; background: #2E4E7A; animation: cocoWalk .6s ease-in-out infinite"><div style="position: absolute; left: 4px; top: -28px; width: 28px; height: 28px; background: #C9A27A"></div></div>
+<span style="position: absolute; left: 0; right: 0; top: 420px; text-align: center; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7)">[Flux vidéo du jeu]</span>
+</div>
+
+<div aria-hidden="true" style="position: absolute; inset: 0; background: #FFFFFF; opacity: {{flash}}; transition: {{flashTr}}"></div>
+
+<div aria-hidden="true" style="position: absolute; z-index: 20; left: 0; top: 0; width: 1280px; height: 800px; box-sizing: border-box; overflow: hidden; transform-origin: 0 0; transform: {{snap.transform}}; opacity: {{snap.op}}; border: {{snap.bw}}px solid #F5F5F7; border-radius: {{snap.r}}px; box-shadow: {{snap.shadow}}; transition: {{snap.tr}}">
+<div style="position: absolute; left: -60px; top: -60px; width: 1400px; height: 920px">
+<div style="position: absolute; inset: 0; background: linear-gradient(180deg, #7FB6DE 0%, #BFDDF0 46%, #6E9F55 47%, #4C7A39 70%, #3A2B1D 100%)"></div>
+<div style="position: absolute; left: 1040px; top: 120px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, #FFF6D6 0%, rgba(255,246,214,0) 70%)"></div>
+<div style="position: absolute; left: 140px; top: 150px; width: 180px; height: 40px; background: rgba(255,255,255,0.85)"></div>
+<div style="position: absolute; left: 600px; top: 190px; width: 240px; height: 44px; background: rgba(255,255,255,0.8)"></div>
+<div style="position: absolute; left: -40px; bottom: 0; width: 1600px; height: 60%">
+<div style="position: absolute; inset: 0; background: #3F6B2F; clip-path: polygon(0 40%, 12% 30%, 24% 42%, 38% 22%, 52% 38%, 66% 26%, 80% 40%, 100% 30%, 100% 100%, 0 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 56%; background: #5A4128; clip-path: polygon(0 30%, 20% 24%, 40% 34%, 60% 20%, 80% 32%, 100% 22%, 100% 100%, 0 100%)"></div>
+</div>
+<div style="position: absolute; left: 650px; top: 470px; width: 36px; height: 72px; background: #2E4E7A"><div style="position: absolute; left: 4px; top: -28px; width: 28px; height: 28px; background: #C9A27A"></div></div>
+</div>
+</div>
+
+<div style="position: absolute; z-index: 21; left: 236px; top: 690px; display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 16px 0 12px; border-radius: 22px; background: rgba(28,28,30,0.72); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(30px) saturate(1.6); -webkit-backdrop-filter: blur(30px) saturate(1.6); font-size: 13px; font-weight: 600; white-space: nowrap; opacity: {{cap.op}}; transform: translateX({{cap.tx}}px); transition: {{cap.tr}}">
+<svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="8" fill="none" stroke-width="1.8" style="stroke: var(--accent)"></circle><path d="M6.5 10.2l2.3 2.3 4.7-4.8" fill="none" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" style="stroke: var(--accent)"></path></svg>
+<span>Capture enregistrée</span><span style="font-weight: 500; color: rgba(245,245,247,0.6)">sur PC-Salon</span>
+</div>
+
+<div style="position: absolute; z-index: 45; left: 32px; top: 32px; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px 0 8px; border-radius: 20px; background: rgba(30,30,32,0.6); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-size: 13px; font-weight: 600; opacity: {{keyOp}}; transform: translateY({{keyTy}}px); transition: opacity 200ms ease, transform 300ms cubic-bezier(.32,.72,0,1)">
+<span style="width: 26px; height: 26px; border-radius: 50%; background: #F5F5F7; display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="5" width="16" height="11.5" rx="2.5" fill="none" stroke="#000" stroke-width="1.8"></rect><path d="M7 5l1.3-2h3.4L13 5" fill="none" stroke="#000" stroke-width="1.8" stroke-linejoin="round"></path><circle cx="10" cy="10.7" r="3" fill="none" stroke="#000" stroke-width="1.8"></circle></svg></span>Capture
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 6000 }), 40);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const flashOn = t >= 1000 && t < 1080;
+    let snap;
+    if (t >= 1000 && t < 1150) snap = { transform: 'translate(0px, 0px) scale(1)', op: 1, bw: 0, r: 0, shadow: '0 0 0 rgba(0,0,0,0)', tr: 'none' };
+    else if (t >= 1150 && t < 3700) snap = { transform: 'translate(32px, 648px) scale(0.15)', op: 1, bw: 20, r: 80, shadow: '0 120px 300px rgba(0,0,0,0.6)', tr: 'transform 640ms cubic-bezier(.3,1.12,.4,1), border-width 380ms ease, border-radius 420ms ease, box-shadow 500ms ease' };
+    else if (t >= 3700 && t < 4300) snap = { transform: 'translate(-240px, 648px) scale(0.15)', op: 0, bw: 20, r: 80, shadow: '0 120px 300px rgba(0,0,0,0.6)', tr: 'transform 420ms cubic-bezier(.4,0,1,1), opacity 300ms ease 120ms' };
+    else snap = { transform: 'translate(0px, 0px) scale(1)', op: 0, bw: 0, r: 0, shadow: '0 0 0 rgba(0,0,0,0)', tr: 'none' };
+    const capOn = t >= 1500 && t < 3550;
+    return {
+      accent: this.props.accent ?? '#F2802A',
+      flash: flashOn ? 0.6 : 0,
+      flashTr: flashOn ? 'opacity 50ms ease-out' : 'opacity 380ms ease-out',
+      snap: snap,
+      cap: {
+        op: capOn ? 1 : 0,
+        tx: capOn ? 0 : -12,
+        tr: capOn ? 'opacity 300ms ease, transform 500ms cubic-bezier(.32,.72,0,1)' : 'opacity 200ms ease, transform 300ms ease'
+      },
+      keyOp: t >= 800 && t < 1400 ? 1 : 0,
+      keyTy: t >= 800 && t < 1400 ? 0 : -8
+    };
+  }
+}
+</script>
+</body>
+</html>

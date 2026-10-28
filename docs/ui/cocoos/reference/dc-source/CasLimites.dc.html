@@ -1,0 +1,168 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Cas limites</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<span style="position: absolute; left: 56px; top: 44px; font-size: 30px; font-weight: 600; letter-spacing: -0.03em">Cas limites</span>
+<span style="position: absolute; left: 56px; top: 90px; width: 900px; font-size: 14px; font-weight: 500; line-height: 1.5; color: rgba(245,245,247,0.6)">Ce que fait l’interface quand les données réelles ne ressemblent pas aux maquettes : titres longs, images absentes, métadonnées incomplètes, très grande bibliothèque.</span>
+
+<div style="position: absolute; left: 56px; right: 56px; top: 150px; bottom: 26px; display: grid; grid-template-columns: 1fr 1fr; grid-template-rows: 1fr 1fr; gap: 20px">
+
+<!-- 1 titre long -->
+<div style="border-radius: 22px; background: rgba(255,255,255,0.06); display: flex; gap: 22px; padding: 18px; box-sizing: border-box; min-width: 0">
+<div style="position: relative; width: 290px; height: 100%; flex: none; border-radius: 14px; overflow: hidden; background: #000">
+<div aria-hidden="true" style="position: absolute; inset: -40px; background: {{art.zl}}; filter: blur(40px)"></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0.2) 0%, rgba(0,0,0,0.85) 75%)"></div>
+<div style="position: absolute; left: 30px; top: 46px; width: 50px; height: 71px; border-radius: 5px; background: {{art.hk}}; filter: brightness(0.5); transform: perspective(300px) rotateY(38deg)"></div>
+<div style="position: absolute; left: 210px; top: 46px; width: 50px; height: 71px; border-radius: 5px; background: {{art.fh}}; filter: brightness(0.5); transform: perspective(300px) rotateY(-38deg)"></div>
+<div style="position: absolute; left: 110px; top: 22px; width: 70px; height: 99px; border-radius: 6px; background: {{art.zl}}; box-shadow: 0 12px 26px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.12)"></div>
+<div style="position: absolute; left: 14px; right: 14px; top: 134px; display: flex; flex-direction: column; align-items: center; text-align: center">
+<span style="font-size: 17px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.08; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; text-wrap: balance">The Legend of Zelda: Tears of the Kingdom</span>
+<span style="margin-top: 6px; font-size: 8px; font-weight: 500; color: rgba(245,245,247,0.62); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%">Nintendo EPD · 2023 · Action-aventure</span>
+<span style="margin-top: 9px; height: 20px; padding: 0 12px 0 4px; border-radius: 10px; background: #F5F5F7; color: #000; font-size: 9px; font-weight: 600; display: flex; align-items: center; gap: 5px"><span style="width: 13px; height: 13px; border-radius: 50%; background: #000; color: #F5F5F7; font-size: 6px; display: flex; align-items: center; justify-content: center">A</span>Jouer</span>
+</div>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; min-width: 0; padding-top: 4px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: rgba(245,245,247,0.45)">TITRE LONG</span>
+<span style="font-size: 17px; font-weight: 600; letter-spacing: -0.02em">Deux lignes, puis on réduit</span>
+<sc-for list="{{r1}}" as="r" hint-placeholder-count="3"><span style="font-size: 13px; font-weight: 500; line-height: 1.45; color: rgba(245,245,247,0.68)">{{r}}</span></sc-for>
+</div>
+</div>
+
+<!-- 2 jaquette absente -->
+<div style="border-radius: 22px; background: rgba(255,255,255,0.06); display: flex; gap: 22px; padding: 18px; box-sizing: border-box; min-width: 0">
+<div style="position: relative; width: 290px; height: 100%; flex: none; border-radius: 14px; overflow: hidden; background: #000; display: flex; align-items: center; justify-content: center; gap: 16px">
+<div style="position: relative; width: 96px; height: 136px; border-radius: 8px; overflow: hidden; background: {{gen.bg}}; box-shadow: 0 14px 30px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.12)">
+<div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.14) 0%, rgba(255,255,255,0) 45%)"></div>
+<span style="position: absolute; left: 10px; right: 10px; bottom: 10px; font-size: 14px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.05">Factorio</span>
+<span style="position: absolute; left: 10px; top: 10px; font-size: 7px; font-weight: 600; letter-spacing: 0.08em; color: rgba(245,245,247,0.6)">WUBE SOFTWARE</span>
+</div>
+<div style="position: relative; width: 96px; height: 136px; border-radius: 8px; overflow: hidden; background: rgba(255,255,255,0.07); box-shadow: 0 0 0 1px rgba(255,255,255,0.08)">
+<div style="position: absolute; top: -20%; bottom: -20%; left: 0; width: 45%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.1), rgba(255,255,255,0)); transform: translateX({{shim}}%) skewX(-18deg); transition: transform 1100ms cubic-bezier(.32,.72,0,1)"></div>
+</div>
+<span style="position: absolute; left: 0; right: 0; bottom: 12px; display: flex; justify-content: space-around; font-size: 9px; font-weight: 500; color: rgba(245,245,247,0.5)"><span>Introuvable</span><span>En chargement</span></span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; min-width: 0; padding-top: 4px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: rgba(245,245,247,0.45)">JAQUETTE ABSENTE</span>
+<span style="font-size: 17px; font-weight: 600; letter-spacing: -0.02em">Une jaquette composée</span>
+<sc-for list="{{r2}}" as="r" hint-placeholder-count="3"><span style="font-size: 13px; font-weight: 500; line-height: 1.45; color: rgba(245,245,247,0.68)">{{r}}</span></sc-for>
+</div>
+</div>
+
+<!-- 3 métadonnées incomplètes -->
+<div style="border-radius: 22px; background: rgba(255,255,255,0.06); display: flex; gap: 22px; padding: 18px; box-sizing: border-box; min-width: 0">
+<div style="position: relative; width: 290px; height: 100%; flex: none; border-radius: 14px; overflow: hidden; background: #000">
+<div aria-hidden="true" style="position: absolute; inset: -40px; background: {{art.p2}}; filter: blur(40px)"></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: linear-gradient(90deg, rgba(0,0,0,0.25), rgba(0,0,0,0.85) 60%)"></div>
+<div style="position: absolute; left: 20px; top: 34px; width: 80px; height: 113px; border-radius: 6px; background: {{art.p2}}; box-shadow: 0 12px 26px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.12); transform: perspective(400px) rotateY(14deg)"></div>
+<div style="position: absolute; left: 118px; right: 14px; top: 40px; display: flex; flex-direction: column; gap: 6px">
+<span style="font-size: 18px; font-weight: 600; letter-spacing: -0.03em">Portal 2</span>
+<span style="font-size: 8px; font-weight: 500; color: rgba(245,245,247,0.62)">Valve · 2011</span>
+<span style="font-size: 8px; font-weight: 500; color: rgba(245,245,247,0.45)">Jamais joué</span>
+<span style="margin-top: 8px; align-self: flex-start; height: 20px; padding: 0 12px 0 4px; border-radius: 10px; background: #F5F5F7; color: #000; font-size: 9px; font-weight: 600; display: flex; align-items: center; gap: 5px"><span style="width: 13px; height: 13px; border-radius: 50%; background: #000; color: #F5F5F7; font-size: 6px; display: flex; align-items: center; justify-content: center">A</span>Jouer</span>
+</div>
+<span style="position: absolute; left: 118px; right: 14px; bottom: 16px; font-size: 8px; font-weight: 500; line-height: 1.5; color: rgba(245,245,247,0.35); text-decoration: line-through">Genre : Inconnu · PEGI : — · Aucune description</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; min-width: 0; padding-top: 4px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: rgba(245,245,247,0.45)">MÉTADONNÉES INCOMPLÈTES</span>
+<span style="font-size: 17px; font-weight: 600; letter-spacing: -0.02em">On retire, on ne remplace pas</span>
+<sc-for list="{{r3}}" as="r" hint-placeholder-count="3"><span style="font-size: 13px; font-weight: 500; line-height: 1.45; color: rgba(245,245,247,0.68)">{{r}}</span></sc-for>
+</div>
+</div>
+
+<!-- 4 grande bibliothèque -->
+<div style="border-radius: 22px; background: rgba(255,255,255,0.06); display: flex; gap: 22px; padding: 18px; box-sizing: border-box; min-width: 0">
+<div style="position: relative; width: 290px; height: 100%; flex: none; border-radius: 14px; overflow: hidden; background: #000">
+<div aria-hidden="true" style="position: absolute; inset: -40px; background: {{art.mc}}; filter: blur(40px)"></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,0.55)"></div>
+<sc-for list="{{strip}}" as="c" hint-placeholder-count="5">
+<div style="position: absolute; left: {{c.left}}px; top: {{c.top}}px; width: {{c.w}}px; height: {{c.h}}px; border-radius: 5px; background: {{c.art}}; filter: brightness({{c.br}}) blur({{c.blur}}px); transform: perspective(300px) rotateY({{c.rot}}deg); transition: filter 300ms ease"></div>
+</sc-for>
+<div style="position: absolute; left: 50%; top: 50%; width: 88px; height: 88px; margin: -56px 0 0 -44px; border-radius: 24px; background: rgba(44,44,46,0.84); box-shadow: 0 20px 50px rgba(0,0,0,0.5), inset 0 0 0 1px rgba(255,255,255,0.1); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; align-items: center; justify-content: center; opacity: {{jump.op}}; transform: scale({{jump.sc}}); transition: opacity 200ms ease, transform 420ms cubic-bezier(.3,1.25,.4,1)">
+<span style="font-size: 46px; font-weight: 600; letter-spacing: -0.03em">{{jump.letter}}</span>
+</div>
+<span style="position: absolute; left: 0; right: 0; bottom: 14px; display: flex; justify-content: center; align-items: center; gap: 6px; font-size: 9px; font-weight: 500; color: rgba(245,245,247,0.6)"><span style="height: 15px; padding: 0 5px; border-radius: 8px; border: 1px solid rgba(245,245,247,0.4); font-size: 7px; font-weight: 600; display: flex; align-items: center">RT</span>Lettre suivante · 214 jeux</span>
+</div>
+<div style="display: flex; flex-direction: column; gap: 10px; min-width: 0; padding-top: 4px">
+<span style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: rgba(245,245,247,0.45)">GRANDE BIBLIOTHÈQUE</span>
+<span style="font-size: 17px; font-weight: 600; letter-spacing: -0.02em">Sauter de lettre en lettre</span>
+<sc-for list="{{r4}}" as="r" hint-placeholder-count="3"><span style="font-size: 13px; font-weight: 500; line-height: 1.45; color: rgba(245,245,247,0.68)">{{r}}</span></sc-for>
+</div>
+</div>
+
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 4800 }), 100);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const accent = this.props.accent ?? '#F2802A';
+    const ART = {
+      mc: 'radial-gradient(circle at 30% 25%, #5E8F4E 0%, transparent 45%), radial-gradient(circle at 70% 78%, #6B4A2F 0%, transparent 50%), radial-gradient(circle at 82% 18%, #7FA6C8 0%, transparent 38%), linear-gradient(160deg, #1E2A1C 0%, #14110D 100%)',
+      hk: 'radial-gradient(circle at 35% 30%, #7FA3C9 0%, transparent 42%), radial-gradient(circle at 70% 75%, #22365C 0%, transparent 55%), linear-gradient(160deg, #1A2540 0%, #06080E 100%)',
+      fh: 'radial-gradient(circle at 70% 25%, #FFB347 0%, transparent 40%), radial-gradient(circle at 30% 70%, #D8345F 0%, transparent 50%), linear-gradient(160deg, #4A1747 0%, #12081A 100%)',
+      zl: 'radial-gradient(circle at 60% 25%, #9ED6C8 0%, transparent 40%), radial-gradient(circle at 30% 75%, #3F7A5C 0%, transparent 52%), linear-gradient(160deg, #1D3B33 0%, #07110E 100%)',
+      p2: 'radial-gradient(circle at 35% 30%, #8FB8D8 0%, transparent 40%), radial-gradient(circle at 70% 75%, #E07B39 0%, transparent 45%), linear-gradient(160deg, #26313A 0%, #0A0D10 100%)',
+      sv: 'radial-gradient(circle at 30% 30%, #F6D55C 0%, transparent 40%), radial-gradient(circle at 65% 70%, #6DBE45 0%, transparent 52%), linear-gradient(160deg, #2F6B3A 0%, #0E1E10 100%)',
+      ce: 'radial-gradient(circle at 40% 30%, #F49AC1 0%, transparent 42%), radial-gradient(circle at 65% 75%, #6C4BD1 0%, transparent 52%), linear-gradient(160deg, #2B1B4F 0%, #0C0818 100%)'
+    };
+    // letter jump: N → O → P, the strip blurs while jumping
+    const phase = Math.floor(t / 1600);
+    const local = t % 1600;
+    const jumping = local < 900;
+    const letters = ['N', 'O', 'P'];
+    const strip = [[-6, 'sv', 38, 0.4], [52, 'ce', 34, 0.6], [112, 'mc', 0, 1], [178, 'hk', -34, 0.6], [236, 'fh', -38, 0.4]].map((x, i) => ({
+      left: x[0] + 6, top: i === 2 ? 42 : 56, w: i === 2 ? 66 : 50, h: i === 2 ? 93 : 71, art: ART[x[1]], rot: x[2], br: x[3], blur: jumping ? 3 : 0
+    }));
+    return {
+      accent: accent,
+      art: ART,
+      gen: { bg: 'linear-gradient(160deg, #5B4A3A 0%, #2A211A 55%, #120E0B 100%)' },
+      shim: (t % 1600) < 800 ? -120 : 260,
+      strip: strip,
+      jump: { op: jumping ? 1 : 0, sc: jumping ? 1 : 0.86, letter: letters[phase] },
+      r1: [
+        'Le titre tient sur deux lignes, coupées au mot et équilibrées.',
+        'S’il déborde encore, la taille descend de 48 à 36 px, puis on coupe avec des points de suspension.',
+        'Sur les jaquettes latérales du carrousel : 12 px, deux lignes au plus.'
+      ],
+      r2: [
+        'Sans jaquette Playnite, on compose une jaquette : dégradé sourd tiré du fond du jeu (ou d’une des six teintes de secours, choisie par le nom), éditeur en libellé, titre en Sora 600.',
+        'Pendant le chargement : un squelette en verre avec un balayage, jamais d’icône d’image cassée.'
+      ],
+      r3: [
+        'Un champ absent disparaît avec son séparateur : « Valve · 2011 », pas « Valve · 2011 · Inconnu ».',
+        'Pas de PEGI connu : pas de pastille. Pas de description : la section n’existe pas sur la fiche.',
+        'Temps de jeu nul : « Jamais joué ».'
+      ],
+      r4: [
+        'Au-delà de 30 jeux, maintenir RT ou LT saute à la lettre suivante ou précédente.',
+        'La lettre s’affiche au centre dans un carré de verre, le carrousel se floute un instant, son « tab_switch », vibration « category ».',
+        'Les catégories (LB / RB) restent le premier filtre ; la recherche fait le reste.'
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

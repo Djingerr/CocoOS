@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Motion — Quitter le jeu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+button{cursor:default}
+@keyframes cocoBgPan{0%{transform:scale(1.25) translate(0,0)}100%{transform:scale(1.34) translate(-30px,16px)}}
+@keyframes cocoLive{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: 0; opacity: {{home.op}}; transition: {{home.bgTr}}">
+<div style="position: absolute; inset: -100px; background: {{art}}; filter: blur(100px) saturate(1.1); animation: cocoBgPan 60s ease-in-out infinite alternate"></div>
+<div style="position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.85) 75%)"></div>
+</div>
+
+<div style="position: absolute; left: 0; top: 0; width: 1280px; height: 560px">
+<sc-for list="{{covers}}" as="c" hint-placeholder-count="6">
+<div style="position: absolute; left: {{c.left}}px; top: {{c.top}}px; width: {{c.w}}px; height: {{c.h}}px; z-index: {{c.z}}; transform: {{c.transform}}; filter: {{c.filter}}; opacity: {{c.opacity}}; transition: {{c.tr}}">
+<div style="position: absolute; inset: 0; border-radius: 12px; overflow: hidden; background: {{c.art}}; box-shadow: 0 20px 40px rgba(0,0,0,0.5)">
+<div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.5), rgba(0,0,0,0) 45%)"></div>
+<span style="position: absolute; left: 12px; right: 12px; bottom: 12px; font-size: 12px; font-weight: 600">{{c.title}}</span>
+</div>
+<div aria-hidden="true" style="position: absolute; left: 0; top: calc(100% + 6px); width: 100%; height: 100%; border-radius: 12px; overflow: hidden; transform: scaleY(-1); background: {{c.art}}; -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0) 18%); mask-image: linear-gradient(to top, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0) 18%)"></div>
+</div>
+</sc-for>
+<div aria-hidden="true" style="position: absolute; left: 520px; top: 442px; width: 240px; height: 340px; border-radius: 12px; overflow: hidden; transform: scaleY(-1); background: {{art}}; opacity: {{home.reflOp}}; transition: {{home.reflTr}}; -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0) 18%); mask-image: linear-gradient(to top, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0) 18%)"></div>
+</div>
+
+<div style="position: absolute; z-index: 15; left: {{hero.left}}px; top: {{hero.top}}px; width: {{hero.w}}px; height: {{hero.h}}px; border-radius: {{hero.r}}px; overflow: hidden; box-shadow: {{hero.shadow}}; transition: {{hero.tr}}">
+<div aria-hidden="true" style="position: absolute; left: 50%; top: 50%; width: 1280px; height: 800px; overflow: hidden; transform: translate(-50%, -50%) scale({{frame.sc}}); filter: {{frame.filter}}; opacity: {{frame.op}}; transition: {{frame.tr}}">
+<div style="position: absolute; inset: -60px">
+<div style="position: absolute; inset: 0; background: linear-gradient(180deg, #7FB6DE 0%, #BFDDF0 46%, #6E9F55 47%, #4C7A39 70%, #3A2B1D 100%)"></div>
+<div style="position: absolute; left: 1040px; top: 120px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, #FFF6D6 0%, rgba(255,246,214,0) 70%)"></div>
+<div style="position: absolute; left: 140px; top: 150px; width: 180px; height: 40px; background: rgba(255,255,255,0.85)"></div>
+<div style="position: absolute; left: 600px; top: 190px; width: 240px; height: 44px; background: rgba(255,255,255,0.8)"></div>
+<div style="position: absolute; left: -40px; bottom: 0; width: 1600px; height: 60%">
+<div style="position: absolute; inset: 0; background: #3F6B2F; clip-path: polygon(0 40%, 12% 30%, 24% 42%, 38% 22%, 52% 38%, 66% 26%, 80% 40%, 100% 30%, 100% 100%, 0 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 56%; background: #5A4128; clip-path: polygon(0 30%, 20% 24%, 40% 34%, 60% 20%, 80% 32%, 100% 22%, 100% 100%, 0 100%)"></div>
+</div>
+<div style="position: absolute; left: 650px; top: 470px; width: 36px; height: 72px; background: #2E4E7A"><div style="position: absolute; left: 4px; top: -28px; width: 28px; height: 28px; background: #C9A27A"></div></div>
+</div>
+</div>
+<div style="position: absolute; inset: 0; background: {{art}}; opacity: {{coverOp}}; transition: {{coverTr}}">
+<div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 45%)"></div>
+<span style="position: absolute; left: 0; right: 0; bottom: 16px; text-align: center; font-size: 11px; font-weight: 500; letter-spacing: 0.04em; color: rgba(245,245,247,0.55); white-space: nowrap">Jaquette Minecraft</span>
+</div>
+</div>
+
+<div style="position: absolute; z-index: 16; left: 264px; right: 264px; top: 72px; display: flex; align-items: center; gap: 14px; opacity: {{menu.op}}; transform: scale({{menu.sc}}); transition: {{menu.tr}}">
+<div aria-hidden="true" style="width: 40px; height: 56px; border-radius: 6px; background: {{art}}; box-shadow: 0 0 0 1px rgba(255,255,255,0.12)"></div>
+<div style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Minecraft</span><span style="font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.65)">En pause · 1 h 24 min</span></div>
+</div>
+<div style="position: absolute; z-index: 16; left: 264px; top: 152px; width: 752px; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(5, 80px); gap: 16px; transform-origin: 50% 40%; opacity: {{menu.op}}; transform: scale({{menu.sc}}); transition: {{menu.tr}}">
+<div style="grid-column: 1 / span 4; grid-row: 1 / span 2; box-sizing: border-box; padding: 22px; border-radius: 28px; background: #F5F5F7; color: #000; display: flex; flex-direction: column; justify-content: space-between">
+<span style="width: 52px; height: 52px; border-radius: 50%; background: #000; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M6.5 3.8v12.4a.8.8 0 0 0 1.2.7l10-6.2a.8.8 0 0 0 0-1.4l-10-6.2a.8.8 0 0 0-1.2.7z" fill="#F5F5F7"></path></svg></span>
+<span style="font-size: 28px; font-weight: 600; letter-spacing: -0.03em">Reprendre</span>
+</div>
+<div style="grid-column: 5 / span 2; grid-row: 1 / span 4; position: relative; border-radius: 28px; overflow: hidden; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1)"><div style="position: absolute; left: 0; right: 0; bottom: 0; height: 100%; background: rgba(245,245,247,0.94)"></div><span style="position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-size: 13px; font-weight: 600; color: #1C1C1E">Luminosité</span></div>
+<div style="grid-column: 7 / span 2; grid-row: 1 / span 4; position: relative; border-radius: 28px; overflow: hidden; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1)"><div style="position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: rgba(245,245,247,0.94)"></div><span style="position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-size: 13px; font-weight: 600">Volume</span></div>
+<div style="grid-column: 1 / span 2; grid-row: 3 / span 2; box-sizing: border-box; padding: 20px; border-radius: 28px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: flex-end; font-size: 15px; font-weight: 600">Capture</div>
+<div style="grid-column: 3 / span 2; grid-row: 3 / span 2; box-sizing: border-box; padding: 20px; border-radius: 28px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: flex-end; font-size: 15px; font-weight: 600">Statistiques</div>
+<div style="grid-column: 1 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border-radius: 28px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; font-size: 14px; font-weight: 600">Accueil</div>
+<div style="grid-column: 3 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border-radius: 28px; background: rgba(255,255,255,0.24); border: 1px solid rgba(255,255,255,0.55); box-shadow: 0 0 0 4px rgba(245,245,247,0.28); display: flex; align-items: center; gap: 12px; font-size: 14px; font-weight: 600"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="#F5F5F7" stroke-width="1.6"></circle><path d="M7.4 7.4l5.2 5.2M12.6 7.4l-5.2 5.2" stroke="#F5F5F7" stroke-width="1.6" stroke-linecap="round"></path></svg>Quitter le jeu</div>
+<div style="grid-column: 5 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border-radius: 28px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; font-size: 14px; font-weight: 600">Veille</div>
+<div style="grid-column: 7 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border-radius: 28px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); display: flex; align-items: center; font-size: 14px; font-weight: 600">Alimentation</div>
+</div>
+
+<div aria-hidden="true" style="position: absolute; z-index: 17; inset: 0; background: rgba(0,0,0,0.4); opacity: {{alert.op}}; transition: {{alert.dimTr}}"></div>
+<div role="alertdialog" aria-label="Quitter Minecraft" style="position: absolute; z-index: 18; left: 420px; top: 280px; width: 440px; box-sizing: border-box; padding: 28px; border-radius: 30px; background: rgba(44,44,46,0.86); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 30px 80px rgba(0,0,0,0.5); backdrop-filter: blur(40px) saturate(1.6); -webkit-backdrop-filter: blur(40px) saturate(1.6); display: flex; flex-direction: column; align-items: center; text-align: center; opacity: {{alert.op}}; transform: scale({{alert.sc}}); transition: {{alert.tr}}">
+<span style="font-size: 20px; font-weight: 600; letter-spacing: -0.02em">Quitter Minecraft ?</span>
+<span style="margin-top: 8px; font-size: 14px; font-weight: 500; line-height: 1.5; color: rgba(245,245,247,0.65)">La progression non sauvegardée sera perdue.</span>
+<div style="margin-top: 24px; width: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px">
+<button style="height: 50px; border: none; border-radius: 25px; background: rgba(255,255,255,0.12); color: #F5F5F7; font-family: inherit; font-size: 15px; font-weight: 600">Annuler</button>
+<button style="height: 50px; border: none; border-radius: 25px; background: #F5F5F7; color: #000; font-family: inherit; font-size: 15px; font-weight: 600; box-shadow: 0 0 0 4px rgba(245,245,247,0.25); transform: scale({{alert.press}}); transition: {{alert.pressTr}}">Quitter</button>
+</div>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; top: 516px; display: flex; flex-direction: column; align-items: center; opacity: {{r1.op}}; transform: translateY({{r1.ty}}px); filter: blur({{r1.blur}}px); transition: {{r1.tr}}">
+<span style="font-size: 48px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.05">Minecraft</span>
+<span style="margin-top: 10px; font-size: 15px; font-weight: 500; color: rgba(245,245,247,0.62)">Joué pendant 1 h 24 min</span>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 620px; display: flex; justify-content: center; gap: 12px; opacity: {{r2.op}}; transform: translateY({{r2.ty}}px); filter: blur({{r2.blur}}px); transition: {{r2.tr}}">
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 26px 0 11px; border: none; border-radius: 26px; background: #F5F5F7; color: #000; font-family: inherit; font-size: 17px; font-weight: 600"><span style="width: 30px; height: 30px; border-radius: 50%; background: #000; color: #F5F5F7; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">A</span>Jouer</button>
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 22px 0 11px; border: 1px solid rgba(255,255,255,0.12); border-radius: 26px; background: rgba(255,255,255,0.12); color: #F5F5F7; font-family: inherit; font-size: 15px; font-weight: 600"><span style="width: 28px; height: 28px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.5); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600">Y</span>Options</button>
+</div>
+<div style="position: absolute; left: 0; top: 0; width: 1280px; height: 90px; opacity: {{tb.op}}; transform: translateY({{tb.ty}}px); transition: {{tb.tr}}">
+<div style="position: absolute; left: 72px; top: 34px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">Coco<span style="color: var(--accent)">OS</span></div>
+<div style="position: absolute; top: 30px; right: 56px; display: flex; align-items: center; gap: 18px">
+<div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px; border-radius: 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); font-size: 13px; font-weight: 600"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: cocoLive 2.4s ease-in-out infinite"></span>PC-Salon<span style="color: rgba(245,245,247,0.55); font-weight: 500">4 ms</span></div>
+<span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">{{time}}</span>
+</div>
+</div>
+
+<div style="position: absolute; z-index: 45; left: 32px; bottom: 32px; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px 0 8px; border-radius: 20px; background: rgba(30,30,32,0.6); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-size: 13px; font-weight: 600; opacity: {{keyOp}}; transform: translateY({{keyTy}}px); transition: opacity 200ms ease, transform 300ms cubic-bezier(.32,.72,0,1)">
+<span style="width: 26px; height: 26px; border-radius: 50%; background: #F5F5F7; color: #000; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">A</span>{{keyLabel}}
+</div>
+<div aria-hidden="true" style="position: absolute; z-index: 50; inset: 0; background: #000; opacity: {{curtain}}; transition: opacity 400ms ease-in-out"></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 9000 }), 50);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const instant = t >= 8600;
+    const back = t >= 2400 && !instant;
+    const alertOn = t >= 1300 && t < 2400;
+    const E = 'cubic-bezier(.32,.72,0,1)';
+    const tr = (s) => (instant ? 'none' : s);
+    const ART = {
+      mc: 'radial-gradient(circle at 30% 25%, #5E8F4E 0%, transparent 45%), radial-gradient(circle at 70% 78%, #6B4A2F 0%, transparent 50%), radial-gradient(circle at 82% 18%, #7FA6C8 0%, transparent 38%), linear-gradient(160deg, #1E2A1C 0%, #14110D 100%)',
+      hk: 'radial-gradient(circle at 35% 30%, #7FA3C9 0%, transparent 42%), radial-gradient(circle at 70% 75%, #22365C 0%, transparent 55%), linear-gradient(160deg, #1A2540 0%, #06080E 100%)',
+      fh: 'radial-gradient(circle at 70% 25%, #FFB347 0%, transparent 40%), radial-gradient(circle at 30% 70%, #D8345F 0%, transparent 50%), linear-gradient(160deg, #4A1747 0%, #12081A 100%)',
+      ce: 'radial-gradient(circle at 40% 30%, #F49AC1 0%, transparent 42%), radial-gradient(circle at 65% 75%, #6C4BD1 0%, transparent 52%), linear-gradient(160deg, #2B1B4F 0%, #0C0818 100%)',
+      sv: 'radial-gradient(circle at 30% 30%, #F6D55C 0%, transparent 40%), radial-gradient(circle at 65% 70%, #6DBE45 0%, transparent 52%), linear-gradient(160deg, #2F6B3A 0%, #0E1E10 100%)',
+      er: 'radial-gradient(circle at 50% 30%, #E8C46A 0%, transparent 38%), radial-gradient(circle at 40% 80%, #5C4520 0%, transparent 52%), linear-gradient(160deg, #2A2214 0%, #0A0805 100%)',
+      ha: 'radial-gradient(circle at 45% 30%, #FF6B4A 0%, transparent 40%), radial-gradient(circle at 60% 78%, #8A1C1C 0%, transparent 52%), linear-gradient(160deg, #2A0B0B 0%, #090303 100%)'
+    };
+    const order = [['Hades', 'ha'], ['Celeste', 'ce'], ['Hollow Knight', 'hk'], null, ['Forza Horizon 5', 'fh'], ['Stardew Valley', 'sv'], ['Elden Ring', 'er']];
+    const S = [[240, 340, 0, 1], [190, 269, 250, 0.6], [160, 227, 430, 0.38], [140, 198, 580, 0.2]];
+    const covers = [];
+    order.forEach((x, i) => {
+      if (!x) return;
+      const o = i - 3;
+      const k = Math.abs(o);
+      const z = S[k];
+      const sg = Math.sign(o);
+      const cx = 640 + sg * z[2];
+      const dx = back ? 0 : Math.round((640 - cx) * 0.7);
+      covers.push({
+        title: x[0], art: ART[x[1]], w: z[0], h: z[1],
+        left: Math.round(cx - z[0] / 2), top: 436 - z[1], z: 10 - k,
+        transform: 'perspective(900px) translateX(' + dx + 'px) rotateY(' + (back ? -sg * (38 + (k - 1) * 6) : 0) + 'deg) scale(' + (back ? 1 : 0.88) + ')',
+        filter: 'brightness(' + z[3] + ')',
+        opacity: back ? 1 : 0,
+        tr: tr('transform 700ms ' + E + ' ' + (700 + k * 60) + 'ms, opacity 420ms ease ' + (700 + k * 60) + 'ms')
+      });
+    });
+    const hero = back
+      ? { left: 520, top: 96, w: 240, h: 340, r: 12, shadow: '0 40px 90px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.12)' }
+      : { left: 0, top: 0, w: 1280, h: 800, r: 0, shadow: '0 0 0 rgba(0,0,0,0)' };
+    hero.tr = tr(['left', 'top', 'width', 'height', 'border-radius'].map((p) => p + ' 900ms ' + E + ' 80ms').join(', ') + ', box-shadow 600ms ease 300ms');
+    const rise = (delay) => ({ op: back ? 1 : 0, ty: back ? 0 : 18, blur: back ? 0 : 8, tr: tr('opacity 450ms ease ' + delay + 'ms, transform 620ms ' + E + ' ' + delay + 'ms, filter 450ms ease ' + delay + 'ms') });
+    const pressQuit = t >= 2150 && t < 2320;
+    const keyA = t >= 1000 && t < 1450;
+    const keyB = t >= 2000 && t < 2450;
+    return {
+      accent: this.props.accent ?? '#F2802A',
+      art: ART.mc,
+      time: pad(d.getHours()) + ':' + pad(d.getMinutes()),
+      covers: covers,
+      hero: hero,
+      frame: {
+        sc: back ? 0.425 : 1,
+        filter: back ? 'blur(0px) brightness(1)' : 'blur(36px) brightness(0.6)',
+        op: back ? 0 : 1,
+        tr: tr('transform 900ms ' + E + ' 80ms, filter 400ms ease, opacity 450ms ease 380ms')
+      },
+      coverOp: back ? 1 : 0,
+      coverTr: tr('opacity 500ms ease 380ms'),
+      home: { op: back ? 1 : 0, bgTr: tr('opacity 800ms ease 300ms'), reflOp: back ? 1 : 0, reflTr: tr('opacity 400ms ease 900ms') },
+      menu: {
+        op: back ? 0 : (alertOn ? 0.45 : 1),
+        sc: back ? 0.94 : (alertOn ? 0.98 : 1),
+        tr: tr(back ? 'opacity 200ms ease, transform 260ms ' + E : 'opacity 300ms ease, transform 400ms ' + E)
+      },
+      alert: {
+        op: alertOn ? 1 : 0,
+        sc: alertOn ? 1 : 0.92,
+        tr: tr(alertOn ? 'opacity 220ms ease, transform 520ms cubic-bezier(.3,1.3,.4,1)' : 'opacity 160ms ease, transform 200ms ease'),
+        dimTr: tr('opacity 250ms ease'),
+        press: pressQuit ? 0.94 : 1,
+        pressTr: pressQuit ? 'transform 110ms ease-out' : 'transform 450ms cubic-bezier(.3,1.6,.4,1)'
+      },
+      r1: rise(1050),
+      r2: rise(1130),
+      tb: { op: back ? 1 : 0, ty: back ? 0 : -10, tr: tr('opacity 500ms ease 1200ms, transform 600ms ' + E + ' 1200ms') },
+      keyOp: keyA || keyB ? 1 : 0,
+      keyTy: keyA || keyB ? 0 : 8,
+      keyLabel: keyB ? 'Confirmer' : 'Quitter le jeu',
+      curtain: t >= 8300 ? 1 : 0
+    };
+  }
+}
+</script>
+</body>
+</html>

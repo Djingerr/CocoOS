@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Courbes et durées</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<span style="position: absolute; left: 56px; top: 44px; font-size: 30px; font-weight: 600; letter-spacing: -0.03em">Courbes et durées</span>
+<span style="position: absolute; left: 56px; top: 90px; width: 780px; font-size: 14px; font-weight: 500; line-height: 1.5; color: rgba(245,245,247,0.6)">Quatre courbes et cinq durées pour tout CocoOS. Ce qui arrive rebondit un peu, ce qui part accélère et disparaît, et une sortie est toujours plus courte que l’entrée.</span>
+<div style="position: absolute; left: 56px; right: 56px; top: 160px; display: flex; flex-direction: column; gap: 14px">
+<sc-for list="{{curves}}" as="c" hint-placeholder-count="4">
+<div style="height: 96px; box-sizing: border-box; padding: 0 22px; border-radius: 20px; background: rgba(255,255,255,0.06); display: flex; align-items: center; gap: 24px">
+<svg width="64" height="64" viewBox="0 0 64 64" aria-hidden="true"><rect x="0.5" y="0.5" width="63" height="63" rx="10" fill="none" stroke="rgba(255,255,255,0.1)"></rect><path d="{{c.path}}" fill="none" stroke="#F5F5F7" stroke-width="2" stroke-linecap="round"></path></svg>
+<span style="width: 260px; display: flex; flex-direction: column; gap: 4px"><span style="font-size: 16px; font-weight: 600">{{c.name}}</span><span style="font-size: 12px; font-weight: 500; color: rgba(245,245,247,0.55); font-variant-numeric: tabular-nums">{{c.css}}</span><span style="font-size: 12px; font-weight: 500; color: rgba(245,245,247,0.55)">{{c.use}}</span></span>
+<div style="flex: 1; height: 44px; position: relative; border-radius: 22px; background: rgba(255,255,255,0.05)">
+<span style="position: absolute; top: 4px; left: {{c.x}}%; width: 36px; height: 36px; margin-left: {{c.ml}}px; border-radius: 50%; background: {{c.dot}}; transition: left {{c.dur}}ms {{c.css}}, margin-left {{c.dur}}ms {{c.css}}"></span>
+</div>
+<span style="width: 80px; text-align: right; font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums">{{c.dur}} ms</span>
+</div>
+</sc-for>
+</div>
+<div style="position: absolute; left: 56px; right: 56px; top: 600px; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px">
+<sc-for list="{{durs}}" as="d" hint-placeholder-count="5">
+<div style="box-sizing: border-box; padding: 16px 18px; border-radius: 18px; background: rgba(255,255,255,0.06); display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 22px; font-weight: 600; letter-spacing: -0.02em; font-variant-numeric: tabular-nums">{{d.v}}</span>
+<div style="height: 4px; border-radius: 2px; background: rgba(255,255,255,0.1)"><div style="height: 100%; width: {{d.w}}%; border-radius: 2px; background: var(--accent)"></div></div>
+<span style="font-size: 12px; font-weight: 500; line-height: 1.4; color: rgba(245,245,247,0.6)">{{d.use}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 2400 }), 60);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const accent = this.props.accent ?? '#F2802A';
+    const go = t < 1200;
+    const bez = (x1, y1, x2, y2) => {
+      const P = (u, a, b) => 3 * a * u * (1 - u) * (1 - u) + 3 * b * u * u * (1 - u) + u * u * u;
+      let d = 'M 6 58';
+      for (let i = 1; i <= 24; i++) { const u = i / 24; d += ' L ' + (6 + 52 * P(u, x1, x2)).toFixed(1) + ' ' + (58 - 52 * P(u, y1, y2)).toFixed(1); }
+      return d;
+    };
+    const C = [
+      ['Principale', 'cubic-bezier(.32,.72,0,1)', 'Déplacements, fondus, panneaux', [.32, .72, 0, 1], 560, '#F5F5F7'],
+      ['Ressort', 'cubic-bezier(.3,1.25,.4,1)', 'Dialogues, bannières, focus', [.3, 1.25, .4, 1], 560, accent],
+      ['Ressort fort', 'cubic-bezier(.3,1.6,.4,1)', 'Relâchement d’un bouton', [.3, 1.6, .4, 1], 420, accent],
+      ['Sortie', 'cubic-bezier(.4,0,1,1)', 'Tout ce qui disparaît', [.4, 0, 1, 1], 260, 'rgba(245,245,247,0.55)']
+    ];
+    return {
+      accent: accent,
+      curves: C.map((c) => ({ name: c[0], css: c[1], use: c[2], path: bez.apply(null, c[3]), dur: c[4], dot: c[5],
+        x: go ? 100 : 0, ml: go ? -40 : 4 })),
+      durs: [
+        { v: '110 ms', w: 12, use: 'Appui sur un bouton (échelle 0,94)' },
+        { v: '210 ms', w: 23, use: 'Déplacement du focus' },
+        { v: '260 ms', w: 29, use: 'Fermer une feuille ou une bannière' },
+        { v: '560 ms', w: 62, use: 'Ouvrir une feuille ou un dialogue' },
+        { v: '900 ms', w: 100, use: 'Changer de scène' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,216 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Motion — Navigation du carrousel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+button{cursor:default}
+@keyframes cocoBgPan{0%{transform:scale(1.25) translate(0,0)}100%{transform:scale(1.34) translate(-30px,16px)}}
+@keyframes cocoSheen{0%,55%{transform:translateX(-160%) skewX(-18deg)}85%,100%{transform:translateX(420%) skewX(-18deg)}}
+@keyframes cocoLive{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: -100px; filter: blur(100px) saturate(1.1); animation: cocoBgPan 60s ease-in-out infinite alternate">
+<sc-for list="{{backdrops}}" as="b" hint-placeholder-count="0">
+<div style="position: absolute; inset: 0; background: {{b.art}}; opacity: {{b.op}}; transition: opacity {{b.dur}}ms ease-in-out"></div>
+</sc-for>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.85) 75%)"></div>
+<svg aria-hidden="true" width="1280" height="800" style="position: absolute; left: 0; top: 0; opacity: 0.07; mix-blend-mode: overlay"><filter id="grainNav"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"></feTurbulence><feColorMatrix type="saturate" values="0"></feColorMatrix></filter><rect width="1280" height="800" filter="url(#grainNav)"></rect></svg>
+
+<div style="position: absolute; left: 72px; top: 34px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">Coco<span style="color: var(--accent)">OS</span></div>
+<div style="position: absolute; left: 0; right: 0; top: 28px; display: flex; justify-content: center">
+<div style="display: flex; align-items: center; gap: 10px">
+<span style="height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; border: 1px solid rgba(245,245,247,0.3); font-size: 10px; font-weight: 600; color: rgba(245,245,247,0.6); display: flex; align-items: center">LB</span>
+<nav aria-label="Catégories" style="display: flex; padding: 4px; border-radius: 20px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1)">
+<button style="padding: 7px 18px; border: none; border-radius: 16px; background: #F5F5F7; color: #000; font-family: inherit; font-size: 14px; font-weight: 600">Tout</button>
+<button style="padding: 7px 18px; border: none; border-radius: 16px; background: transparent; color: rgba(245,245,247,0.72); font-family: inherit; font-size: 14px; font-weight: 500">Favoris</button>
+<button style="padding: 7px 18px; border: none; border-radius: 16px; background: transparent; color: rgba(245,245,247,0.72); font-family: inherit; font-size: 14px; font-weight: 500">Récents</button>
+<button style="padding: 7px 18px; border: none; border-radius: 16px; background: transparent; color: rgba(245,245,247,0.72); font-family: inherit; font-size: 14px; font-weight: 500">Apps</button>
+</nav>
+<span style="height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; border: 1px solid rgba(245,245,247,0.3); font-size: 10px; font-weight: 600; color: rgba(245,245,247,0.6); display: flex; align-items: center">RB</span>
+</div>
+</div>
+<div style="position: absolute; top: 30px; right: 56px; display: flex; align-items: center; gap: 18px">
+<div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px; border-radius: 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); font-size: 13px; font-weight: 600">
+<span style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: cocoLive 2.4s ease-in-out infinite"></span>PC-Salon<span style="color: rgba(245,245,247,0.55); font-weight: 500">4 ms</span>
+</div>
+<span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">{{time}}</span>
+<svg width="25" height="12" viewBox="0 0 27 13" aria-hidden="true"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" fill="none" stroke="#F5F5F7" stroke-opacity="0.45"></rect><rect x="2" y="2" width="16.4" height="9" rx="2" fill="#F5F5F7"></rect><rect x="24.8" y="4.5" width="1.6" height="4" rx="0.8" fill="#F5F5F7" fill-opacity="0.45"></rect></svg>
+</div>
+
+<div style="position: absolute; left: 0; top: 0; width: 1280px; height: 560px">
+<sc-for list="{{covers}}" as="c" hint-placeholder-count="9">
+<div style="position: absolute; left: {{c.left}}px; top: {{c.top}}px; width: {{c.w}}px; height: {{c.h}}px; z-index: {{c.z}}; transform: {{c.transform}}; filter: {{c.filter}}; opacity: {{c.opacity}}; transition: {{c.tr}}">
+<div style="position: absolute; inset: 0; border-radius: 12px; overflow: hidden; background: {{c.art}}; box-shadow: {{c.shadow}}; transition: box-shadow 500ms ease">
+<div style="position: absolute; inset: 0; background: linear-gradient(135deg, rgba(255,255,255,0.12) 0%, rgba(255,255,255,0) 45%)"></div>
+<div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.5), rgba(0,0,0,0) 45%)"></div>
+<sc-if value="{{c.center}}" hint-placeholder-val="{{false}}">
+<div style="position: absolute; top: -20%; bottom: -20%; left: 0; width: 30%; background: linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,0.16), rgba(255,255,255,0)); animation: cocoSheen 6s ease-in-out infinite"></div>
+</sc-if>
+<span style="position: absolute; left: 12px; right: 12px; bottom: 12px; font-size: 12px; font-weight: 600; line-height: 1.15">{{c.title}}</span>
+</div>
+<div aria-hidden="true" style="position: absolute; left: 0; top: calc(100% + 6px); width: 100%; height: 100%; border-radius: 12px; overflow: hidden; transform: scaleY(-1); background: {{c.art}}; -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0) 18%); mask-image: linear-gradient(to top, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0) 18%)"></div>
+</div>
+</sc-for>
+</div>
+<div aria-hidden="true" style="position: absolute; left: 0; top: 0; width: 160px; height: 560px; background: linear-gradient(90deg, rgba(0,0,0,0.75), rgba(0,0,0,0))"></div>
+<div aria-hidden="true" style="position: absolute; right: 0; top: 0; width: 160px; height: 560px; background: linear-gradient(270deg, rgba(0,0,0,0.75), rgba(0,0,0,0))"></div>
+
+<div style="position: absolute; left: 0; right: 0; top: 516px; height: 90px">
+<sc-for list="{{titles}}" as="t" hint-placeholder-count="1">
+<div style="position: absolute; left: 0; right: 0; top: 0; display: flex; flex-direction: column; align-items: center; opacity: {{t.op}}; transform: translateY({{t.ty}}px); filter: blur({{t.blur}}px); transition: {{t.tr}}">
+<span style="font-size: 48px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.05; white-space: nowrap">{{t.title}}</span>
+<span style="margin-top: 10px; font-size: 15px; font-weight: 500; color: rgba(245,245,247,0.62); white-space: nowrap">{{t.meta}}</span>
+</div>
+</sc-for>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 620px; display: flex; justify-content: center; gap: 12px">
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 26px 0 11px; border: none; border-radius: 26px; background: #F5F5F7; color: #000; font-family: inherit; font-size: 17px; font-weight: 600"><span style="width: 30px; height: 30px; border-radius: 50%; background: #000; color: #F5F5F7; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">A</span>Jouer</button>
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 22px 0 11px; border: 1px solid rgba(255,255,255,0.12); border-radius: 26px; background: rgba(255,255,255,0.12); color: #F5F5F7; font-family: inherit; font-size: 15px; font-weight: 600"><span style="width: 28px; height: 28px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.5); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600">Y</span>Options</button>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 40px; display: flex; justify-content: center; align-items: center; gap: 28px; font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.55)">
+<span style="display: flex; align-items: center; gap: 8px">
+<span style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.45); display: flex; align-items: center; justify-content: center; background: {{leftBg}}; transition: background 150ms ease"><svg width="11" height="10" viewBox="0 0 12 10" aria-hidden="true"><path d="M5 1 1 5l4 4M1 5h10" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke: {{leftFg}}"></path></svg></span>
+<span style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.45); display: flex; align-items: center; justify-content: center; background: {{rightBg}}; transition: background 150ms ease"><svg width="11" height="10" viewBox="0 0 12 10" aria-hidden="true"><path d="M7 1l4 4-4 4M11 5H1" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round" style="stroke: {{rightFg}}"></path></svg></span>
+Parcourir</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.45); display: flex; align-items: center; justify-content: center"><svg width="9" height="11" viewBox="0 0 10 12" aria-hidden="true"><path d="M5 1v9M1.5 6.8 5 10.3l3.5-3.5" stroke="#F5F5F7" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>Plus d'infos</span>
+</div>
+
+<div style="position: absolute; left: 32px; bottom: 32px; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px 0 8px; border-radius: 20px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-size: 13px; font-weight: 600; opacity: {{keyOp}}; transform: translateY({{keyTy}}px); transition: opacity 200ms ease, transform 300ms cubic-bezier(.32,.72,0,1)">
+<span style="width: 26px; height: 26px; border-radius: 50%; background: #F5F5F7; display: flex; align-items: center; justify-content: center"><svg width="12" height="10" viewBox="0 0 12 10" aria-hidden="true" style="transform: {{keyRot}}"><path d="M7 1l4 4-4 4M11 5H1" stroke="#000" stroke-width="1.7" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>{{keyLabel}}
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    const seq = [
+      [1600, { f: 4, key: 'r', fast: false, hold: false }],
+      [260, { key: '' }],
+      [1300, { f: 5, key: 'r' }],
+      [260, { key: '' }],
+      [1100, { f: 6, key: 'r', fast: true, hold: true }],
+      [190, { f: 7 }],
+      [190, { f: 8 }],
+      [200, { bump: -34 }],
+      [170, { bump: 0 }],
+      [300, { key: '', hold: false, fast: false }],
+      [1500, { f: 7, key: 'l', fast: true, hold: true }],
+      [190, { f: 6 }],
+      [190, { f: 5 }],
+      [190, { f: 4 }],
+      [190, { f: 3 }],
+      [320, { key: '', hold: false, fast: false }],
+      [1700, null]
+    ];
+    let i = 0;
+    const run = () => {
+      const step = seq[i];
+      this._to = setTimeout(() => {
+        if (step[1]) this.setState(step[1]);
+        i = (i + 1) % seq.length;
+        run();
+      }, step[0]);
+    };
+    run();
+    this._clock = setInterval(() => this.setState({ now: Date.now() }), 15000);
+  }
+  componentWillUnmount() {
+    clearTimeout(this._to);
+    clearInterval(this._clock);
+  }
+  renderVals() {
+    const s = Object.assign({ f: 3, bump: 0, fast: false, key: '', hold: false, now: Date.now() }, this.state || {});
+    const d = new Date(s.now);
+    const pad = (n) => String(n).padStart(2, '0');
+    const ART = {
+      mc: 'radial-gradient(circle at 30% 25%, #5E8F4E 0%, transparent 45%), radial-gradient(circle at 70% 78%, #6B4A2F 0%, transparent 50%), radial-gradient(circle at 82% 18%, #7FA6C8 0%, transparent 38%), linear-gradient(160deg, #1E2A1C 0%, #14110D 100%)',
+      hk: 'radial-gradient(circle at 35% 30%, #7FA3C9 0%, transparent 42%), radial-gradient(circle at 70% 75%, #22365C 0%, transparent 55%), linear-gradient(160deg, #1A2540 0%, #06080E 100%)',
+      fh: 'radial-gradient(circle at 70% 25%, #FFB347 0%, transparent 40%), radial-gradient(circle at 30% 70%, #D8345F 0%, transparent 50%), linear-gradient(160deg, #4A1747 0%, #12081A 100%)',
+      ce: 'radial-gradient(circle at 40% 30%, #F49AC1 0%, transparent 42%), radial-gradient(circle at 65% 75%, #6C4BD1 0%, transparent 52%), linear-gradient(160deg, #2B1B4F 0%, #0C0818 100%)',
+      sv: 'radial-gradient(circle at 30% 30%, #F6D55C 0%, transparent 40%), radial-gradient(circle at 65% 70%, #6DBE45 0%, transparent 52%), linear-gradient(160deg, #2F6B3A 0%, #0E1E10 100%)',
+      er: 'radial-gradient(circle at 50% 30%, #E8C46A 0%, transparent 38%), radial-gradient(circle at 40% 80%, #5C4520 0%, transparent 52%), linear-gradient(160deg, #2A2214 0%, #0A0805 100%)',
+      ha: 'radial-gradient(circle at 45% 30%, #FF6B4A 0%, transparent 40%), radial-gradient(circle at 60% 78%, #8A1C1C 0%, transparent 52%), linear-gradient(160deg, #2A0B0B 0%, #090303 100%)',
+      cu: 'radial-gradient(circle at 40% 30%, #F2C14E 0%, transparent 42%), radial-gradient(circle at 65% 75%, #C9472E 0%, transparent 52%), linear-gradient(160deg, #3B2414 0%, #120A05 100%)',
+      p2: 'radial-gradient(circle at 30% 30%, #5BB6F2 0%, transparent 40%), radial-gradient(circle at 70% 72%, #F28C38 0%, transparent 45%), linear-gradient(160deg, #1D2733 0%, #07090C 100%)'
+    };
+    const GAMES = [
+      ['Hades', 'ha', 'Supergiant Games · 2020 · Rogue-lite'],
+      ['Celeste', 'ce', 'Maddy Makes Games · 2018 · Plateforme'],
+      ['Hollow Knight', 'hk', 'Team Cherry · 2017 · Metroidvania'],
+      ['Minecraft', 'mc', 'Mojang Studios · 2011 · Bac à sable'],
+      ['Forza Horizon 5', 'fh', 'Playground Games · 2021 · Course'],
+      ['Stardew Valley', 'sv', 'ConcernedApe · 2016 · Simulation'],
+      ['Elden Ring', 'er', 'FromSoftware · 2022 · Action-RPG'],
+      ['Cuphead', 'cu', 'Studio MDHR · 2017 · Action'],
+      ['Portal 2', 'p2', 'Valve · 2011 · Réflexion']
+    ];
+    const S = [[240, 340, 0, 1], [190, 269, 250, 0.6], [160, 227, 430, 0.38], [140, 198, 580, 0.2], [140, 198, 720, 0.2]];
+    const tr = s.fast
+      ? 'left 230ms cubic-bezier(.25,.1,.25,1), top 230ms cubic-bezier(.25,.1,.25,1), width 230ms cubic-bezier(.25,.1,.25,1), height 230ms cubic-bezier(.25,.1,.25,1), transform 230ms cubic-bezier(.25,.1,.25,1), filter 230ms ease, opacity 230ms ease'
+      : 'left 640ms cubic-bezier(.3,1.12,.4,1), top 640ms cubic-bezier(.3,1.12,.4,1), width 640ms cubic-bezier(.3,1.12,.4,1), height 640ms cubic-bezier(.3,1.12,.4,1), transform 640ms cubic-bezier(.3,1.12,.4,1), filter 500ms ease, opacity 400ms ease';
+    const covers = GAMES.map((g, i) => {
+      const o = i - s.f;
+      const k = Math.min(Math.abs(o), 4);
+      const z = S[k];
+      const sg = Math.sign(o);
+      const cx = 640 + sg * z[2] + s.bump;
+      const rot = o === 0 ? 0 : -sg * (38 + (Math.min(k, 3) - 1) * 6 + (k >= 4 ? 6 : 0));
+      return {
+        title: g[0],
+        art: ART[g[1]],
+        center: o === 0,
+        w: z[0],
+        h: z[1],
+        left: Math.round(cx - z[0] / 2),
+        top: 436 - z[1],
+        z: 10 - k,
+        transform: 'perspective(900px) rotateY(' + rot + 'deg)',
+        filter: 'brightness(' + z[3] + ')',
+        opacity: k >= 4 ? 0 : 1,
+        shadow: o === 0 ? '0 40px 90px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.14)' : '0 20px 40px rgba(0,0,0,0.5)',
+        tr: tr
+      };
+    });
+    const backdrops = GAMES.map((g, i) => ({ art: ART[g[1]], op: i === s.f ? 1 : 0, dur: s.fast ? 300 : 900 }));
+    const ttr = s.fast ? 'opacity 160ms ease, transform 200ms ease, filter 160ms ease' : 'opacity 420ms ease, transform 520ms cubic-bezier(.32,.72,0,1), filter 420ms ease';
+    const titles = GAMES.map((g, i) => ({
+      title: g[0],
+      meta: g[2],
+      op: i === s.f ? 1 : 0,
+      ty: i === s.f ? 0 : (i < s.f ? -12 : 12),
+      blur: i === s.f ? 0 : 6,
+      tr: ttr
+    }));
+    const on = (k) => s.key === k;
+    return {
+      accent: this.props.accent ?? '#F2802A',
+      time: pad(d.getHours()) + ':' + pad(d.getMinutes()),
+      covers: covers,
+      backdrops: backdrops,
+      titles: titles,
+      leftBg: on('l') ? '#F5F5F7' : 'transparent',
+      leftFg: on('l') ? '#000' : '#F5F5F7',
+      rightBg: on('r') ? '#F5F5F7' : 'transparent',
+      rightFg: on('r') ? '#000' : '#F5F5F7',
+      keyOp: s.key ? 1 : 0,
+      keyTy: s.key ? 0 : 8,
+      keyRot: s.key === 'l' ? 'rotate(180deg)' : 'none',
+      keyLabel: s.hold ? 'Maintenu' : 'Appui'
+    };
+  }
+}
+</script>
+</body>
+</html>

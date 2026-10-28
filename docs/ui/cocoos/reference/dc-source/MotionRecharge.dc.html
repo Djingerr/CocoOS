@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Motion — Recharge</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+@keyframes cocoBreath{0%,100%{opacity:.35;transform:scale(1)}50%{opacity:.6;transform:scale(1.08)}}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div style="position: absolute; left: 0; right: 0; top: 0; bottom: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; opacity: {{g.op}}; transform: scale({{g.sc}}); filter: blur({{g.blur}}px); transition: {{g.tr}}">
+<div style="position: relative; width: 120px; height: 120px">
+<div aria-hidden="true" style="position: absolute; left: -60px; top: -60px; width: 240px; height: 240px; border-radius: 50%; background: radial-gradient(circle, var(--accent) 0%, rgba(0,0,0,0) 62%); filter: blur(30px); animation: cocoBreath 3.2s ease-in-out infinite"></div>
+<svg width="120" height="120" viewBox="0 0 120 120" aria-hidden="true" style="position: absolute; inset: 0">
+<circle cx="60" cy="60" r="49" fill="none" stroke-width="20" style="stroke: {{track}}"></circle>
+<circle cx="60" cy="60" r="49" fill="none" stroke-width="20" stroke-dasharray="307.88" transform="rotate(-90 60 60)" style="stroke: var(--accent); stroke-dashoffset: {{off}}; transition: {{offTr}}"></circle>
+</svg>
+<svg width="26" height="40" viewBox="0 0 13 20" aria-hidden="true" style="position: absolute; left: 47px; top: 40px; opacity: {{boltOp}}; transform: scale({{boltSc}}); transition: opacity 300ms ease 600ms, transform 500ms cubic-bezier(.3,1.4,.4,1) 600ms"><path d="M8 0 0 11.5h5L4 20l9-12H7.6z" fill="#F5F5F7"></path></svg>
+</div>
+<div style="margin-top: 34px; display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: {{txt.op}}; transform: translateY({{txt.ty}}px); transition: {{txt.tr}}">
+<span style="font-size: 34px; font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums">{{pct}} %</span>
+<span style="font-size: 14px; font-weight: 500; color: rgba(245,245,247,0.55)">En charge · plein dans environ 1 h 10</span>
+</div>
+</div>
+
+<div style="position: absolute; left: 32px; bottom: 32px; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px 0 8px; border-radius: 20px; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.12); font-size: 13px; font-weight: 600; opacity: {{keyOp}}; transform: translateY({{keyTy}}px); transition: opacity 200ms ease, transform 300ms cubic-bezier(.32,.72,0,1)">
+<span style="width: 26px; height: 26px; border-radius: 50%; background: #F5F5F7; display: flex; align-items: center; justify-content: center"><svg width="9" height="14" viewBox="0 0 13 20" aria-hidden="true"><path d="M8 0 0 11.5h5L4 20l9-12H7.6z" fill="#000"></path></svg></span>Câble branché
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"level":{"editor":"range","default":42,"min":5,"max":100,"step":1,"unit":"%"},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 8000 }), 50);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const accent = this.props.accent ?? '#F2802A';
+    const level = this.props.level ?? 42;
+    const E = 'cubic-bezier(.32,.72,0,1)';
+    const on = t >= 1000 && t < 5000;
+    const off = t >= 5000;
+    const filled = t >= 1150 && t < 5600;
+    const C = 307.88;
+    const prog = filled ? Math.min(1, (t - 1150) / 1100) : 0;
+    const eased = 1 - Math.pow(1 - prog, 3);
+    const pct = Math.round(level * eased);
+    return {
+      accent: accent,
+      track: 'color-mix(in oklab, ' + accent + ' 22%, transparent)',
+      g: on
+        ? { op: 1, sc: 1, blur: 0, tr: 'opacity 500ms ease, transform 700ms ' + E + ', filter 500ms ease' }
+        : (off ? { op: 0, sc: 0.96, blur: 6, tr: 'opacity 700ms ease-in, transform 700ms ease-in, filter 700ms ease-in' } : { op: 0, sc: 0.9, blur: 8, tr: 'none' }),
+      off: filled ? C * (1 - level / 100) : C,
+      offTr: filled ? 'stroke-dashoffset 1100ms ' + E : 'none',
+      boltOp: on ? 1 : 0,
+      boltSc: on ? 1 : 0.5,
+      pct: pct,
+      txt: { op: on ? 1 : 0, ty: on ? 0 : 10, tr: on ? 'opacity 400ms ease 300ms, transform 600ms ' + E + ' 300ms' : 'opacity 400ms ease' },
+      keyOp: t >= 700 && t < 1500 ? 1 : 0,
+      keyTy: t >= 700 && t < 1500 ? 0 : 8
+    };
+  }
+}
+</script>
+</body>
+</html>

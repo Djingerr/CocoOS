@@ -1,0 +1,55 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Statistiques en jeu</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+button{cursor:default}
+@keyframes cocoLive{0%,100%{opacity:.35}50%{opacity:1}}
+@keyframes cocoSpin{to{transform:rotate(360deg)}}
+@keyframes cocoCloud{0%{transform:translateX(0)}100%{transform:translateX(-300px)}}
+@keyframes cocoWalk{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes cocoPan{0%{transform:translateX(0)}100%{transform:translateX(-120px)}}
+
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: -60px"><div style="position: absolute; inset: 0; background: linear-gradient(180deg, #7FB6DE 0%, #BFDDF0 46%, #6E9F55 47%, #4C7A39 70%, #3A2B1D 100%)"></div><div style="position: absolute; left: 0; top: 140px; width: 1800px; height: 120px; animation: cocoCloud 16s linear infinite alternate"><div style="position: absolute; left: 240px; top: 10px; width: 180px; height: 40px; background: rgba(255,255,255,0.85)"></div><div style="position: absolute; left: 700px; top: 50px; width: 240px; height: 44px; background: rgba(255,255,255,0.8)"></div></div><div style="position: absolute; left: 0; bottom: 0; width: 1600px; height: 60%; animation: cocoPan 12s ease-in-out infinite alternate"><div style="position: absolute; inset: 0; background: #3F6B2F; clip-path: polygon(0 40%, 12% 30%, 24% 42%, 38% 22%, 52% 38%, 66% 26%, 80% 40%, 100% 30%, 100% 100%, 0 100%)"></div><div style="position: absolute; left: 0; right: 0; bottom: 0; height: 56%; background: #5A4128; clip-path: polygon(0 30%, 20% 24%, 40% 34%, 60% 20%, 80% 32%, 100% 22%, 100% 100%, 0 100%)"></div></div><div style="position: absolute; left: 650px; top: 470px; width: 36px; height: 72px; background: #2E4E7A; animation: cocoWalk .6s ease-in-out infinite"><div style="position: absolute; left: 4px; top: -28px; width: 28px; height: 28px; background: #C9A27A"></div></div><span style="position: absolute; left: 0; right: 0; top: 420px; text-align: center; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7)">[Flux vidéo du jeu]</span></div>
+<div role="status" aria-label="Statistiques du stream" style="position: absolute; left: 24px; top: 24px; width: 300px; box-sizing: border-box; padding: 16px 18px; border-radius: 22px; background: rgba(20,20,22,0.62); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(24px) saturate(1.5); -webkit-backdrop-filter: blur(24px) saturate(1.5); display: flex; flex-direction: column; gap: 12px; opacity: {{detailOp}}">
+<div style="display: flex; align-items: baseline; justify-content: space-between"><span style="font-size: 12px; font-weight: 600; letter-spacing: 0.06em; color: rgba(245,245,247,0.55)">LATENCE TOTALE</span><span style="font-size: 11px; font-weight: 500; color: rgba(245,245,247,0.45)">PC-Salon</span></div>
+<div style="display: flex; align-items: baseline; gap: 6px"><span style="font-size: 38px; font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums">11</span><span style="font-size: 15px; font-weight: 500; color: rgba(245,245,247,0.6)">ms</span>
+<span style="margin-left: auto; height: 22px; padding: 0 9px; border-radius: 11px; background: color-mix(in oklab, var(--accent) 22%, transparent); color: var(--accent); font-size: 11px; font-weight: 700; display: flex; align-items: center">EXCELLENT</span></div>
+<svg width="264" height="30" viewBox="0 0 240 30" preserveAspectRatio="none" aria-hidden="true"><path d="M0 22 L12 21 L24 23 L36 20 L48 21 L60 19 L72 22 L84 20 L96 21 L108 8 L120 18 L132 21 L144 20 L156 22 L168 21 L180 20 L192 21 L204 22 L216 20 L228 21 L240 21 L240 30 L0 30 Z" fill="color-mix(in oklab, var(--accent) 22%, transparent)"></path><path d="M0 22 L12 21 L24 23 L36 20 L48 21 L60 19 L72 22 L84 20 L96 21 L108 8 L120 18 L132 21 L144 20 L156 22 L168 21 L180 20 L192 21 L204 22 L216 20 L228 21 L240 21" stroke="var(--accent)" stroke-width="1.6" fill="none" stroke-linejoin="round"></path><circle cx="240" cy="21" r="2.6" fill="var(--accent)"></circle></svg>
+<div style="display: grid; grid-template-columns: 1fr auto; gap: 7px 12px; font-size: 13px; font-weight: 500">
+<span style="color: rgba(245,245,247,0.6)">Réseau</span><span style="text-align: right; font-variant-numeric: tabular-nums">4 ms</span>
+<span style="color: rgba(245,245,247,0.6)">Encodage sur le PC</span><span style="text-align: right; font-variant-numeric: tabular-nums">3,8 ms</span>
+<span style="color: rgba(245,245,247,0.6)">Décodage</span><span style="text-align: right; font-variant-numeric: tabular-nums">3,1 ms</span>
+<div style="grid-column: 1 / -1; height: 1px; background: rgba(255,255,255,0.08)"></div>
+<span style="color: rgba(245,245,247,0.6)">Image</span><span style="text-align: right; font-variant-numeric: tabular-nums">720p · 60 i/s · HEVC</span>
+<span style="color: rgba(245,245,247,0.6)">Débit</span><span style="text-align: right; font-variant-numeric: tabular-nums">18,4 Mb/s</span>
+<span style="color: rgba(245,245,247,0.6)">Images perdues</span><span style="text-align: right; font-variant-numeric: tabular-nums">0,1 %</span>
+<span style="color: rgba(245,245,247,0.6)">Batterie</span><span style="text-align: right; font-variant-numeric: tabular-nums">82 % · 3 h 10</span>
+</div>
+</div>
+<div role="status" aria-label="Statistiques compactes" style="position: absolute; left: 24px; top: 24px; height: 34px; padding: 0 14px; border-radius: 17px; background: rgba(20,20,22,0.55); border: 1px solid rgba(255,255,255,0.12); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); display: flex; align-items: center; gap: 14px; font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; opacity: {{compactOp}}">
+<span style="display: flex; align-items: center; gap: 6px"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent)"></span>11 ms</span><span style="color: rgba(245,245,247,0.6)">60 i/s</span><span style="color: rgba(245,245,247,0.6)">18 Mb/s</span><span style="color: rgba(245,245,247,0.6)">82 %</span>
+</div></div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"affichage":{"editor":"enum","default":"détaillé","options":["détaillé","compact"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const d = (this.props.affichage ?? 'détaillé') === 'détaillé';
+    return { accent: this.props.accent ?? '#F2802A', detailOp: d ? 1 : 0, compactOp: d ? 0 : 1 };
+  }
+}
+</script>
+</body>
+</html>

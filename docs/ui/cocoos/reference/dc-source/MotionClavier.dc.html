@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Motion — Clavier virtuel</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+button{cursor:default}
+@keyframes cocoAurora{0%{transform:translate(0,0) scale(1)}100%{transform:translate(-60px,30px) scale(1.12)}}
+@keyframes cocoCaret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes cocoCharIn{0%{opacity:0;transform:translateY(6px) scale(.5);filter:blur(4px)}100%{opacity:1;transform:none;filter:blur(0)}}
+@keyframes cocoSpin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: -120px; animation: cocoAurora 30s ease-in-out infinite alternate">
+<div style="position: absolute; left: 180px; top: 520px; width: 900px; height: 520px; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in oklab, var(--accent) 34%, transparent), transparent); filter: blur(40px)"></div>
+<div style="position: absolute; left: 820px; top: 60px; width: 600px; height: 420px; border-radius: 50%; background: radial-gradient(closest-side, rgba(110,155,255,0.16), transparent); filter: blur(50px)"></div>
+</div>
+
+<span style="position: absolute; left: 0; right: 0; top: 52px; text-align: center; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: rgba(245,245,247,0.5)">PREMIÈRE CONFIGURATION · 1 SUR 3</span>
+<h1 style="position: absolute; left: 0; right: 0; top: 78px; margin: 0; text-align: center; font-size: 34px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.2">Mot de passe de « Livebox-7A3C »</h1>
+
+<div style="position: absolute; left: 320px; top: {{field.top}}px; width: 640px; height: 64px; box-sizing: border-box; padding: 0 20px 0 26px; border-radius: 32px; background: rgba(255,255,255,0.1); border: 1.5px solid {{field.line}}; box-shadow: {{field.ring}}; display: flex; align-items: center; gap: 14px; transition: top 640ms cubic-bezier(.32,.72,0,1), border-color 300ms ease, box-shadow 300ms ease">
+<svg width="16" height="20" viewBox="0 0 16 20" aria-hidden="true"><rect x="1" y="8.5" width="14" height="10.5" rx="2.6" fill="rgba(245,245,247,0.55)"></rect><path d="M4.2 8.5V6a3.8 3.8 0 0 1 7.6 0v2.5" stroke="rgba(245,245,247,0.55)" stroke-width="1.8" fill="none"></path></svg>
+<div style="flex: 1; height: 40px; display: flex; align-items: center">
+<sc-for list="{{chars}}" as="c" hint-placeholder-count="6">
+<span style="position: relative; display: inline-block; width: {{c.w}}px; height: 32px; opacity: {{c.op}}; transform: scale({{c.sc}}); transition: opacity 220ms ease, transform 260ms cubic-bezier(.4,0,1,1), width 260ms cubic-bezier(.32,.72,0,1); animation: cocoCharIn 300ms cubic-bezier(.3,1.4,.4,1) both">
+<span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-size: 24px; font-weight: 600; opacity: {{c.letterOp}}; transition: opacity 220ms ease">{{c.ch}}</span>
+<span style="position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; opacity: {{c.dotOp}}; transition: opacity 220ms ease"><span style="width: 10px; height: 10px; border-radius: 50%; background: #F5F5F7"></span></span>
+</span>
+</sc-for>
+<span style="width: 2px; height: 28px; margin-left: 3px; border-radius: 1px; background: var(--accent); opacity: {{caretOp}}; animation: cocoCaret 1s infinite"></span>
+</div>
+<span style="position: relative; width: 26px; height: 26px">
+<svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true" style="position: absolute; left: 2px; top: 2px; opacity: {{field.spin}}; transition: opacity 200ms ease; animation: cocoSpin .9s linear infinite"><circle cx="11" cy="11" r="8.5" stroke="rgba(245,245,247,0.2)" stroke-width="2.6" fill="none"></circle><path d="M11 2.5a8.5 8.5 0 0 1 8.5 8.5" stroke="#F5F5F7" stroke-width="2.6" fill="none" stroke-linecap="round"></path></svg>
+<span style="position: absolute; inset: 0; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; opacity: {{field.ok}}; transform: scale({{field.okSc}}); transition: opacity 160ms ease, transform 520ms cubic-bezier(.3,1.7,.4,1)"><svg width="14" height="14" viewBox="0 0 20 20" aria-hidden="true"><path d="M5 10.5l3.2 3.2L15 7" stroke="#FFFFFF" stroke-width="2.6" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+</span>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; top: 300px; display: flex; flex-direction: column; align-items: center; gap: 28px; opacity: {{done.op}}; transform: translateY({{done.ty}}px); filter: blur({{done.blur}}px); transition: opacity 420ms ease, transform 640ms cubic-bezier(.32,.72,0,1), filter 420ms ease">
+<span style="display: flex; align-items: center; gap: 10px; font-size: 16px; font-weight: 500; color: rgba(245,245,247,0.75)"><svg width="18" height="13" viewBox="0 0 18 13" aria-hidden="true"><circle cx="9" cy="11" r="1.6" fill="#F5F5F7"></circle><path d="M5.3 7.6a5.2 5.2 0 0 1 7.4 0" stroke="#F5F5F7" stroke-width="1.8" fill="none" stroke-linecap="round"></path><path d="M2.2 4.6a9.6 9.6 0 0 1 13.6 0" stroke="#F5F5F7" stroke-width="1.8" fill="none" stroke-linecap="round"></path></svg>Connecté à Livebox-7A3C · signal excellent</span>
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 26px 0 11px; border: none; border-radius: 26px; background: #F5F5F7; color: #000; font-family: inherit; font-size: 17px; font-weight: 600"><span style="width: 30px; height: 30px; border-radius: 50%; background: #000; color: #F5F5F7; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">A</span>Continuer</button>
+</div>
+
+<div role="group" aria-label="Clavier" style="position: absolute; left: 50px; top: 344px; width: 1180px; height: 428px; border-radius: 36px; background: rgba(28,28,30,0.78); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 30px 80px rgba(0,0,0,0.5); backdrop-filter: blur(40px) saturate(1.6); -webkit-backdrop-filter: blur(40px) saturate(1.6); opacity: {{kb.op}}; transform: translateY({{kb.ty}}px); transition: {{kb.tr}}">
+<div style="position: absolute; left: {{hl.x}}px; top: {{hl.y}}px; width: {{hl.w}}px; height: 62px; border-radius: 14px; background: #F5F5F7; box-shadow: 0 12px 30px rgba(0,0,0,0.45); opacity: {{hl.op}}; transform: scale({{hl.sc}}); z-index: 2; transition: left 210ms cubic-bezier(.3,1.25,.4,1), top 210ms cubic-bezier(.3,1.25,.4,1), width 210ms cubic-bezier(.3,1.25,.4,1), transform {{hl.scT}}, opacity 200ms ease"></div>
+<sc-for list="{{keys}}" as="k" hint-placeholder-count="38">
+<div style="position: absolute; left: {{k.x}}px; top: {{k.y}}px; width: {{k.w}}px; height: 62px; box-sizing: border-box; border-radius: 14px; background: {{k.bg}}; color: {{k.fg}}; z-index: {{k.z}}; transform: scale({{k.sc}}); display: flex; align-items: center; justify-content: center; font-size: {{k.fs}}px; font-weight: {{k.fw}}; transition: color 120ms ease, transform {{k.scT}}">
+<sc-if value="{{k.isIcon}}" hint-placeholder-val="{{false}}"><svg width="24" height="20" viewBox="0 0 24 20" aria-hidden="true"><path d="{{k.path}}" style="stroke: {{k.fg}}; transition: stroke 120ms ease" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+<sc-if value="{{k.hasLabel}}" hint-placeholder-val="{{true}}"><span>{{k.label}}</span></sc-if>
+</div>
+</sc-for>
+<div style="position: absolute; left: 28px; top: -20px; width: 564px; height: 82px; box-sizing: border-box; padding: 10px; border-radius: 22px; background: rgba(58,58,62,0.96); border: 1px solid rgba(255,255,255,0.14); box-shadow: 0 20px 50px rgba(0,0,0,0.55); display: flex; gap: 8px; z-index: 5; transform-origin: 282px 100%; opacity: {{pop.op}}; transform: translateY({{pop.ty}}px) scale({{pop.sc}}); transition: {{pop.tr}}">
+<sc-for list="{{accents}}" as="a" hint-placeholder-count="6">
+<span style="width: 84px; height: 62px; border-radius: 14px; background: {{a.bg}}; color: {{a.fg}}; transform: scale({{a.sc}}); display: flex; align-items: center; justify-content: center; font-size: 26px; font-weight: 500; transition: background 160ms ease, color 160ms ease, transform 240ms cubic-bezier(.3,1.25,.4,1)">{{a.c}}</span>
+</sc-for>
+</div>
+</div>
+
+<div style="position: absolute; z-index: 45; left: 32px; top: 32px; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px 0 8px; border-radius: 20px; background: rgba(30,30,32,0.6); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-size: 13px; font-weight: 600; opacity: {{keyOp}}; transform: translateY({{keyTy}}px); transition: opacity 200ms ease, transform 300ms cubic-bezier(.32,.72,0,1)">
+<span style="min-width: 26px; height: 26px; padding: 0 6px; box-sizing: border-box; border-radius: 13px; background: #F5F5F7; color: #000; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; transform: scale({{keySc}}); transition: transform 110ms ease">{{keyGlyph}}</span>{{keyLabel}}
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; z-index: 60; background: #000; pointer-events: none; opacity: {{curtain}}; transition: opacity 400ms ease"></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 11000 }), 30);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const accent = this.props.accent ?? '#F2802A';
+    const instant = t >= 10500;
+    // ---- keyboard geometry (same as the « Clavier — mot de passe Wi-Fi » board)
+    const L = [['a','z','e','r','t','y','u','i','o','p'], ['q','s','d','f','g','h','j','k','l','m'], ['w','x','c','v','b','n','’']];
+    const KW = 100, G = 12, X0 = 36, Y0 = 72, RH = 74;
+    const keys = [];
+    const push = (x, row, w, o) => keys.push(Object.assign({ x: x, y: Y0 + row * RH, w: w, isIcon: false, hasLabel: true, path: '' }, o));
+    L[0].forEach((c, i) => push(X0 + i * (KW + G), 0, KW, { label: c, kind: 'char', id: c }));
+    L[1].forEach((c, i) => push(X0 + i * (KW + G), 1, KW, { label: c, kind: 'char', id: c }));
+    push(X0, 2, 156, { kind: 'fn', isIcon: true, hasLabel: false, path: 'M12 3 4 11h4.5v6h7v-6H20z', id: 'shift' });
+    L[2].forEach((c, i) => push(X0 + 156 + G + i * (KW + G), 2, KW, { label: c, kind: 'char', id: c }));
+    push(X0 + 156 + G + 7 * (KW + G), 2, 156, { kind: 'fn', isIcon: true, hasLabel: false, path: 'M8.5 4H21v12H8.5L3 10zM12 7.5l5 5M17 7.5l-5 5', id: 'del' });
+    let x = X0;
+    push(x, 3, 156, { label: '123', kind: 'fn', id: '123' }); x += 156 + G;
+    push(x, 3, KW, { label: '#+=', kind: 'fn', id: 'sym' }); x += KW + G;
+    push(x, 3, 380, { label: 'espace', kind: 'fn', id: 'space' }); x += 380 + G;
+    push(x, 3, KW, { label: '@', kind: 'char', id: '@' }); x += KW + G;
+    push(x, 3, KW, { label: '.', kind: 'char', id: '.' }); x += KW + G;
+    push(x, 3, 212, { label: 'Valider', kind: 'ok', id: 'ok' });
+    const byId = {}; keys.forEach((k) => { byId[k.id] = k; });
+
+    // ---- script
+    const moves = [[0, 'g'], [1150, 's'], [1850, 'o'], [2550, 'i'], [3150, 'r'], [3800, 'e']];
+    const presses = [1450, 2150, 2800, 3400, 5650, 6050];
+    const typed = [[1450, 's'], [2150, 'o'], [2800, 'i'], [3400, 'r'], [5150, 'é'], [5650, 'e'], [6050, 'e']];
+    const delAt = 6500;
+    const holdOn = t >= 4000 && t < 5150;
+    const popOpen = t >= 4450 && t < 5150;
+    const popIdx = t >= 4850 ? 1 : 0;
+    const okPress = t >= 7100 && t < 7260;
+    const kbOn = t >= 600 && t < 7300 && !instant;
+    const checking = t >= 7200 && t < 7900;
+    const ok = t >= 7900 && !instant;
+
+    let fk = 'g';
+    moves.forEach((m) => { if (t >= m[0]) fk = m[1]; });
+    const F = byId[fk];
+    const pressing = presses.some((p) => t >= p && t < p + 110);
+    const hl = {
+      x: F.x, y: F.y, w: F.w,
+      op: popOpen ? 0.35 : 1,
+      sc: pressing ? 0.9 : (holdOn ? 0.94 : 1.08),
+      scT: pressing ? '110ms ease-out' : '420ms cubic-bezier(.3,1.6,.4,1)'
+    };
+    const outKeys = keys.map((k) => {
+      const f = k.id === fk;
+      let bg = k.kind === 'char' ? 'rgba(255,255,255,0.11)' : 'rgba(255,255,255,0.055)';
+      let fg = '#F5F5F7';
+      if (k.kind === 'ok') { bg = okPress ? '#FFB06B' : accent; fg = '#1B0E04'; }
+      if (f) fg = '#000';
+      const sc = f ? hl.sc : (k.kind === 'ok' && okPress ? 0.92 : 1);
+      return Object.assign({}, k, { bg: bg, fg: fg, z: f ? 3 : 1, sc: sc, scT: hl.scT,
+        fs: k.kind === 'char' ? 26 : 16, fw: k.kind === 'char' ? 500 : 600 });
+    });
+
+    const chars = [];
+    typed.forEach((e, i) => {
+      if (t < e[0] || instant) return;
+      const deleting = i === typed.length - 1 && t >= delAt;
+      if (deleting && t >= delAt + 300) return;
+      const clear = t - e[0] < 800 && !deleting;
+      chars.push({ ch: e[1], letterOp: clear ? 1 : 0, dotOp: clear ? 0 : 1, op: deleting ? 0 : 1, sc: deleting ? 0.3 : 1, w: deleting ? 0 : 20 });
+    });
+
+    const accents = ['e', 'é', 'è', 'ê', 'ë', '€'].map((c, i) => ({
+      c: c, bg: i === popIdx ? '#F5F5F7' : 'rgba(255,255,255,0.1)', fg: i === popIdx ? '#000' : '#F5F5F7', sc: i === popIdx ? 1.06 : 1
+    }));
+
+    const K = [
+      [400, 1000, 'A', 'Saisir le mot de passe'], [1050, 1400, 'L', 'Déplacer'], [1400, 1650, 'A', 'Taper'],
+      [1750, 2100, 'L', 'Déplacer'], [2100, 2350, 'A', 'Taper'], [2450, 2750, 'L', 'Déplacer'], [2750, 3000, 'A', 'Taper'],
+      [3050, 3350, 'L', 'Déplacer'], [3350, 3600, 'A', 'Taper'], [3700, 3990, 'L', 'Déplacer'],
+      [3990, 4840, 'A', 'Maintenir · accents'], [4840, 5100, 'L', 'é'], [5100, 5400, 'A', 'Relâcher'],
+      [5600, 5900, 'A', 'Taper'], [6000, 6300, 'A', 'Taper'], [6450, 6800, 'X', 'Effacer'], [7000, 7500, '≡', 'Valider']
+    ];
+    const k = K.find((q) => t >= q[0] && t < q[1]);
+    return {
+      accent: accent,
+      keys: outKeys,
+      hl: hl,
+      chars: chars,
+      caretOp: checking || ok ? 0 : 1,
+      accents: accents,
+      pop: popOpen
+        ? { op: 1, sc: 1, ty: 0, tr: 'opacity 160ms ease, transform 420ms cubic-bezier(.3,1.3,.4,1)' }
+        : { op: 0, sc: 0.4, ty: 30, tr: 'opacity 160ms ease, transform 220ms cubic-bezier(.4,0,1,1)' },
+      kb: kbOn
+        ? { op: 1, ty: 0, tr: 'opacity 240ms ease, transform 640ms cubic-bezier(.3,1.15,.4,1)' }
+        : { op: 0, ty: 460, tr: instant ? 'none' : 'opacity 300ms ease 80ms, transform 380ms cubic-bezier(.4,0,1,1)' },
+      field: {
+        top: ok ? 200 : 160,
+        line: ok ? 'rgba(255,255,255,0.16)' : (checking ? 'rgba(255,255,255,0.3)' : accent),
+        ring: checking || ok ? '0 0 0 0 transparent' : '0 0 0 5px color-mix(in oklab, ' + accent + ' 22%, transparent)',
+        spin: checking ? 1 : 0,
+        ok: ok ? 1 : 0, okSc: ok ? 1 : 0.3
+      },
+      done: ok && t >= 8100 ? { op: 1, ty: 0, blur: 0 } : { op: 0, ty: 18, blur: 6 },
+      keyOp: k ? 1 : 0,
+      keyTy: k ? 0 : -8,
+      keyGlyph: k ? k[2] : '',
+      keyLabel: k ? k[3] : '',
+      keySc: k && k[2] !== 'L' && t - k[0] < 140 ? 0.86 : 1,
+      curtain: t >= 10100 ? 1 : 0
+    };
+  }
+}
+</script>
+</body>
+</html>

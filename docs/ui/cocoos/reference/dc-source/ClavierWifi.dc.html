@@ -1,0 +1,131 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Clavier — mot de passe Wi-Fi</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+button{cursor:default}
+@keyframes cocoAurora{0%{transform:translate(0,0) scale(1)}100%{transform:translate(-60px,30px) scale(1.12)}}
+@keyframes cocoCaret{0%,49%{opacity:1}50%,100%{opacity:0}}
+@keyframes cocoKbIn{from{transform:translateY(60px);opacity:0}to{transform:none;opacity:1}}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: -120px; animation: cocoAurora 30s ease-in-out infinite alternate">
+<div style="position: absolute; left: 180px; top: 520px; width: 900px; height: 520px; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in oklab, var(--accent) 34%, transparent), transparent); filter: blur(40px)"></div>
+<div style="position: absolute; left: 820px; top: 60px; width: 600px; height: 420px; border-radius: 50%; background: radial-gradient(closest-side, rgba(110,155,255,0.16), transparent); filter: blur(50px)"></div>
+</div>
+<svg aria-hidden="true" width="1280" height="800" style="position: absolute; left: 0; top: 0; opacity: 0.07; mix-blend-mode: overlay"><filter id="grainKb"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"></feTurbulence><feColorMatrix type="saturate" values="0"></feColorMatrix></filter><rect width="1280" height="800" filter="url(#grainKb)"></rect></svg>
+
+<span style="position: absolute; left: 0; right: 0; top: 52px; text-align: center; font-size: 12px; font-weight: 600; letter-spacing: 0.08em; color: rgba(245,245,247,0.5)">PREMIÈRE CONFIGURATION · 1 SUR 3</span>
+<h1 style="position: absolute; left: 0; right: 0; top: 78px; margin: 0; text-align: center; font-size: 34px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.2">Mot de passe de « Livebox-7A3C »</h1>
+
+<div style="position: absolute; left: 320px; top: 160px; width: 640px; height: 64px; box-sizing: border-box; padding: 0 20px 0 26px; border-radius: 32px; background: rgba(255,255,255,0.1); border: 1.5px solid var(--accent); box-shadow: 0 0 0 5px color-mix(in oklab, var(--accent) 22%, transparent); display: flex; align-items: center; gap: 14px">
+<svg width="16" height="20" viewBox="0 0 16 20" aria-hidden="true"><rect x="1" y="8.5" width="14" height="10.5" rx="2.6" fill="rgba(245,245,247,0.55)"></rect><path d="M4.2 8.5V6a3.8 3.8 0 0 1 7.6 0v2.5" stroke="rgba(245,245,247,0.55)" stroke-width="1.8" fill="none"></path></svg>
+<div style="flex: 1; display: flex; align-items: center; font-size: 24px; font-weight: 600; letter-spacing: 0.18em">
+<span>{{shown}}</span><span style="width: 2px; height: 28px; margin-left: 3px; border-radius: 1px; background: var(--accent); animation: cocoCaret 1s infinite"></span>
+</div>
+<span style="display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: rgba(245,245,247,0.6)"><span style="height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; border: 1px solid rgba(245,245,247,0.3); font-size: 10px; display: flex; align-items: center">R3</span>{{revealLabel}}</span>
+</div>
+<span style="position: absolute; left: 0; right: 0; top: 240px; text-align: center; font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.5)">WPA2 · 8 caractères minimum · {{count}} saisis</span>
+
+<div role="group" aria-label="Clavier" style="position: absolute; left: 50px; top: 344px; width: 1180px; height: 428px; border-radius: 36px; background: rgba(28,28,30,0.78); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 30px 80px rgba(0,0,0,0.5); backdrop-filter: blur(40px) saturate(1.6); -webkit-backdrop-filter: blur(40px) saturate(1.6); animation: cocoKbIn .6s cubic-bezier(.32,.72,0,1) both">
+<div style="position: absolute; left: 36px; right: 36px; top: 22px; height: 34px; display: flex; align-items: center; gap: 8px">
+<sc-for list="{{chips}}" as="c" hint-placeholder-count="4">
+<span style="height: 34px; padding: 0 16px; box-sizing: border-box; border-radius: 17px; background: rgba(255,255,255,0.08); display: flex; align-items: center; font-size: 14px; font-weight: 500; color: rgba(245,245,247,0.78)">{{c}}</span>
+</sc-for>
+<span style="margin-left: auto; display: flex; align-items: center; gap: 8px; font-size: 12px; font-weight: 600; color: rgba(245,245,247,0.5)">{{layoutName}}<svg width="15" height="15" viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="6.6" stroke="rgba(245,245,247,0.5)" stroke-width="1.3" fill="none"></circle><path d="M1.6 8h12.8M8 1.4c2 2 2 11.2 0 13.2M8 1.4c-2 2-2 11.2 0 13.2" stroke="rgba(245,245,247,0.5)" stroke-width="1.3" fill="none"></path></svg></span>
+</div>
+<sc-for list="{{keys}}" as="k" hint-placeholder-count="38">
+<div style="position: absolute; left: {{k.x}}px; top: {{k.y}}px; width: {{k.w}}px; height: 62px; box-sizing: border-box; border-radius: 14px; background: {{k.bg}}; color: {{k.fg}}; box-shadow: {{k.shadow}}; transform: scale({{k.sc}}); z-index: {{k.z}}; display: flex; align-items: center; justify-content: center; gap: 8px; font-size: {{k.fs}}px; font-weight: {{k.fw}}">
+<sc-if value="{{k.isIcon}}" hint-placeholder-val="{{false}}"><svg width="24" height="20" viewBox="0 0 24 20" aria-hidden="true"><path d="{{k.path}}" style="stroke: {{k.fg}}" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+<sc-if value="{{k.hasLabel}}" hint-placeholder-val="{{true}}"><span>{{k.label}}</span></sc-if>
+<sc-if value="{{k.glyph}}" hint-placeholder-val="{{false}}"><span style="height: 20px; padding: 0 6px; box-sizing: border-box; border-radius: 10px; border: 1px solid {{k.glyphLine}}; font-size: 10px; font-weight: 600; display: flex; align-items: center; opacity: 0.7">{{k.glyph}}</span></sc-if>
+</div>
+</sc-for>
+<div style="position: absolute; left: 36px; right: 36px; bottom: 22px; display: flex; align-items: center; justify-content: center; gap: 26px; font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.6)">
+<sc-for list="{{hints}}" as="h" hint-placeholder-count="6">
+<span style="display: flex; align-items: center; gap: 8px"><span style="min-width: 22px; height: 22px; padding: 0 {{h.pad}}px; box-sizing: border-box; border-radius: 11px; border: 1px solid rgba(245,245,247,0.45); display: flex; align-items: center; justify-content: center; font-size: {{h.fs}}px; font-weight: 600; color: #F5F5F7">{{h.g}}</span>{{h.t}}</span>
+</sc-for>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"disposition":{"editor":"enum","default":"AZERTY","options":["AZERTY","QWERTY"]},"majuscules":{"editor":"enum","default":"non","options":["non","oui"]},"afficher":{"editor":"enum","default":"non","options":["non","oui"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    const accent = this.props.accent ?? '#F2802A';
+    const az = (this.props.disposition ?? 'AZERTY') === 'AZERTY';
+    const caps = (this.props.majuscules ?? 'non') === 'oui';
+    const reveal = (this.props.afficher ?? 'non') === 'oui';
+    const L = az
+      ? [['a','z','e','r','t','y','u','i','o','p'], ['q','s','d','f','g','h','j','k','l','m'], ['w','x','c','v','b','n','’']]
+      : [['q','w','e','r','t','y','u','i','o','p'], ['a','s','d','f','g','h','j','k','l','-'], ['z','x','c','v','b','n','m']];
+    const PATHS = {
+      shift: 'M12 3 4 11h4.5v6h7v-6H20z',
+      shiftOn: 'M12 3 4 11h4.5v6h7v-6H20z',
+      del: 'M8.5 4H21v12H8.5L3 10zM12 7.5l5 5M17 7.5l-5 5'
+    };
+    const KW = 100, G = 12, X0 = 36, Y0 = 72, RH = 74;
+    const focus = 'r';
+    const keys = [];
+    const push = (x, row, w, o) => keys.push(Object.assign({ x: x, y: Y0 + row * RH, w: w, isIcon: false, hasLabel: true, glyph: '', path: '' }, o));
+    L[0].forEach((c, i) => push(X0 + i * (KW + G), 0, KW, { label: caps ? c.toUpperCase() : c, kind: 'char', id: c }));
+    L[1].forEach((c, i) => push(X0 + i * (KW + G), 1, KW, { label: caps ? c.toUpperCase() : c, kind: 'char', id: c }));
+    push(X0, 2, 156, { kind: 'fn', isIcon: true, hasLabel: false, path: PATHS.shift, glyph: 'LT', id: 'shift', on: caps });
+    L[2].forEach((c, i) => push(X0 + 156 + G + i * (KW + G), 2, KW, { label: caps ? c.toUpperCase() : c, kind: 'char', id: c }));
+    push(X0 + 156 + G + 7 * (KW + G), 2, 156, { kind: 'fn', isIcon: true, hasLabel: false, path: PATHS.del, glyph: 'X', id: 'del' });
+    let x = X0;
+    push(x, 3, 156, { label: '123', kind: 'fn', id: '123' }); x += 156 + G;
+    push(x, 3, KW, { label: '#+=', kind: 'fn', id: 'sym' }); x += KW + G;
+    push(x, 3, 380, { label: 'espace', kind: 'fn', glyph: 'Y', id: 'space' }); x += 380 + G;
+    push(x, 3, KW, { label: '@', kind: 'char', id: '@' }); x += KW + G;
+    push(x, 3, KW, { label: '.', kind: 'char', id: '.' }); x += KW + G;
+    push(x, 3, 212, { label: 'Valider', kind: 'ok', glyph: '≡', id: 'ok' });
+    const out = keys.map((k) => {
+      const f = k.id === focus;
+      let bg = k.kind === 'char' ? 'rgba(255,255,255,0.11)' : 'rgba(255,255,255,0.055)';
+      let fg = '#F5F5F7';
+      if (k.kind === 'ok') { bg = accent; fg = '#1B0E04'; }
+      if (k.on) { bg = 'rgba(255,255,255,0.32)'; }
+      if (f) { bg = '#F5F5F7'; fg = '#000'; }
+      return Object.assign({}, k, {
+        bg: bg, fg: fg,
+        sc: f ? 1.08 : 1, z: f ? 2 : 1,
+        shadow: f ? '0 12px 30px rgba(0,0,0,0.45), 0 0 0 1px rgba(255,255,255,0.4)' : 'none',
+        fs: k.kind === 'char' ? 26 : 16, fw: k.kind === 'char' ? 500 : 600,
+        glyphLine: f || k.kind === 'ok' ? 'rgba(0,0,0,0.45)' : 'rgba(245,245,247,0.4)'
+      });
+    });
+    const pwd = 'soirée24';
+    return {
+      accent: accent,
+      keys: out,
+      shown: reveal ? pwd : '•'.repeat(pwd.length - 1) + pwd.slice(-1),
+      revealLabel: reveal ? 'Masquer' : 'Afficher',
+      count: pwd.length,
+      layoutName: az ? 'Français · AZERTY' : 'Anglais · QWERTY',
+      chips: ['.com', '.fr', '@gmail.com', '@free.fr'],
+      hints: [
+        { g: 'X', t: 'Effacer', pad: 0, fs: 11 },
+        { g: 'Y', t: 'Espace', pad: 0, fs: 11 },
+        { g: 'LT', t: 'Majuscule', pad: 6, fs: 10 },
+        { g: 'LB RB', t: 'Curseur', pad: 7, fs: 10 },
+        { g: 'A', t: 'Maintenir pour les accents', pad: 0, fs: 11 },
+        { g: '≡', t: 'Valider', pad: 0, fs: 12 },
+        { g: 'B', t: 'Annuler', pad: 0, fs: 11 }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

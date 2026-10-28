@@ -1,0 +1,330 @@
+{
+ "version": 1,
+ "units": "ms, amplitude 0..1",
+ "motors": {
+  "L": "moteur basse fréquence (lourd)",
+  "H": "moteur haute fréquence (léger)"
+ },
+ "global_levels": {
+  "Off": 0,
+  "Légères": 0.6,
+  "Fortes": 1.0
+ },
+ "patterns": [
+  {
+   "id": "nav",
+   "label": "Déplacement du focus",
+   "sound": "nav_move",
+   "pulses": [
+    {
+     "start": 0,
+     "duration": 12,
+     "from": 0.22,
+     "to": 0.22,
+     "motor": "H"
+    }
+   ],
+   "total_ms": 12
+  },
+  {
+   "id": "nav_edge",
+   "label": "Butée de fin de liste",
+   "sound": "nav_edge",
+   "pulses": [
+    {
+     "start": 0,
+     "duration": 40,
+     "from": 0.55,
+     "to": 0.55,
+     "motor": "L"
+    },
+    {
+     "start": 190,
+     "duration": 12,
+     "from": 0.18,
+     "to": 0.18,
+     "motor": "H"
+    }
+   ],
+   "total_ms": 202
+  },
+  {
+   "id": "select",
+   "label": "Valider (A)",
+   "sound": "select",
+   "pulses": [
+    {
+     "start": 0,
+     "duration": 14,
+     "from": 0.45,
+     "to": 0.45,
+     "motor": "H"
+    },
+    {
+     "start": 40,
+     "duration": 24,
+     "from": 0.32,
+     "to": 0.32,
+     "motor": "L"
+    }
+   ],
+   "total_ms": 64
+  },
+  {
+   "id": "back",
+   "label": "Retour (B)",
+   "sound": "back",
+   "pulses": [
+    {
+     "start": 0,
+     "duration": 20,
+     "from": 0.32,
+     "to": 0.32,
+     "motor": "L"
+    }
+   ],
+   "total_ms": 20
+  },
+  {
+   "id": "toggle_on",
+   "label": "Interrupteur activé",
+   "sound": "toggle_on",
+   "pulses": [
+    {
+     "start": 0,
+     "duration": 10,
+     "from": 0.25,
+     "to": 0.25,
+     "motor": "H"
+    },
+    {
+     "start": 60,
+     "duration": 18,
+     "from": 0.5,
+     "to": 0.5,
+     "motor": "H"
+    }
+   ],
+   "total_ms": 78
+  },
+  {
+   "id": "category",
+   "label": "Catégorie (LB / RB)",
+   "sound": "category_next",
+   "pulses": [
+    {
+     "start": 0,
+     "duration": 12,
+     "from": 0.3,
+     "to": 0.3,
+     "motor": "H"
+    },
+    {
+     "start": 45,
+     "duration": 14,
+     "from": 0.38,
+     "to": 0.38,
+     "motor": "H"
+    }
+   ],
+   "total_ms": 59
+  },
+  {
+   "id": "favorite",
+   "label": "Ajout aux favoris",
+   "sound": "favorite_add",
+   "pulses": [
+    {
+     "start": 0,
+     "duration": 14,
+     "from": 0.3,
+     "to": 0.3,
+     "motor": "H"
+    },
+    {
+     "start": 120,
+     "duration": 14,
+     "from": 0.4,
+     "to": 0.4,
+     "motor": "H"
+    },
+    {
+     "start": 165,
+     "duration": 14,
+     "from": 0.5,
+     "to": 0.5,
+     "motor": "H"
+    },
+    {
+     "start": 210,
+     "duration": 40,
+     "from": 0.65,
+     "to": 0.65,
+     "motor": "L"
+    }
+   ],
+   "total_ms": 250
+  },
+  {
+   "id": "capture",
+   "label": "Capture d'écran",
+   "sound": "capture",
+   "pulses": [
+    {
+     "start": 0,
+     "duration": 8,
+     "from": 0.8,
+     "to": 0.8,
+     "motor": "H"
+    },
+    {
+     "start": 55,
+     "duration": 8,
+     "from": 0.6,
+     "to": 0.6,
+     "motor": "H"
+    }
+   ],
+   "total_ms": 63
+  },
+  {
+   "id": "volume_limit",
+   "label": "Volume en butée",
+   "sound": "volume_limit",
+   "pulses": [
+    {
+     "start": 0,
+     "duration": 30,
+     "from": 0.5,
+     "to": 0.5,
+     "motor": "L"
+    }
+   ],
+   "total_ms": 30
+  },
+  {
+   "id": "launch",
+   "label": "Jeu prêt, entrée dans le stream",
+   "sound": "launch_ready",
+   "pulses": [
+    {
+     "start": 0,
+     "duration": 420,
+     "from": 0.0,
+     "to": 0.6,
+     "motor": "L"
+    },
+    {
+     "start": 430,
+     "duration": 30,
+     "from": 0.8,
+     "to": 0.8,
+     "motor": "L"
+    }
+   ],
+   "total_ms": 460
+  },
+  {
+   "id": "power_hold",
+   "label": "Appui long sur power",
+   "sound": "—",
+   "pulses": [
+    {
+     "start": 0,
+     "duration": 1200,
+     "from": 0.0,
+     "to": 0.5,
+     "motor": "L"
+    },
+    {
+     "start": 1200,
+     "duration": 22,
+     "from": 1.0,
+     "to": 1.0,
+     "motor": "H"
+    }
+   ],
+   "total_ms": 1222
+  },
+  {
+   "id": "battery_critical",
+   "label": "Batterie très faible",
+   "sound": "battery_critical",
+   "pulses": [
+    {
+     "start": 0,
+     "duration": 60,
+     "from": 0.7,
+     "to": 0.7,
+     "motor": "L"
+    },
+    {
+     "start": 140,
+     "duration": 60,
+     "from": 0.7,
+     "to": 0.7,
+     "motor": "L"
+    },
+    {
+     "start": 280,
+     "duration": 120,
+     "from": 0.5,
+     "to": 0.5,
+     "motor": "L"
+    }
+   ],
+   "total_ms": 400
+  },
+  {
+   "id": "pad_lost",
+   "label": "Manette déconnectée",
+   "sound": "controller_disconnected",
+   "pulses": [
+    {
+     "start": 0,
+     "duration": 260,
+     "from": 0.6,
+     "to": 0.0,
+     "motor": "L"
+    }
+   ],
+   "total_ms": 260
+  },
+  {
+   "id": "pairing_ok",
+   "label": "Appairage réussi",
+   "sound": "pairing_success",
+   "pulses": [
+    {
+     "start": 0,
+     "duration": 14,
+     "from": 0.4,
+     "to": 0.4,
+     "motor": "H"
+    },
+    {
+     "start": 220,
+     "duration": 14,
+     "from": 0.35,
+     "to": 0.35,
+     "motor": "H"
+    },
+    {
+     "start": 290,
+     "duration": 14,
+     "from": 0.45,
+     "to": 0.45,
+     "motor": "H"
+    },
+    {
+     "start": 360,
+     "duration": 50,
+     "from": 0.6,
+     "to": 0.6,
+     "motor": "L"
+    }
+   ],
+   "total_ms": 410
+  }
+ ]
+}

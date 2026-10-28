@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=1280">
+<title>Menu en jeu — Centre de contrôle</title>
+<style>
+@font-face{font-family:'Sora';font-style:normal;font-weight:100 800;font-display:block;
+  src:url(fonts/sora-latin-wght-normal.woff2) format('woff2');
+  unicode-range:U+0000-00FF,U+0131,U+0152-0153,U+02BB-02BC,U+02C6,U+02DA,U+02DC,U+0304,U+0308,U+0329,U+2000-206F,U+20AC,U+2122,U+2191,U+2193,U+2212,U+2215,U+FEFF,U+FFFD;}
+@font-face{font-family:'Sora';font-style:normal;font-weight:100 800;font-display:block;
+  src:url(fonts/sora-latin-ext-wght-normal.woff2) format('woff2');
+  unicode-range:U+0100-02BA,U+02BD-02C5,U+02C7-02CC,U+02CE-02D7,U+02DD-02FF,U+0304,U+0308,U+0329,U+1D00-1DBF,U+1E00-1E9F,U+1EF2-1EFF,U+2020,U+20A0-20AB,U+20AD-20C0,U+2113,U+2C60-2C7F,U+A720-A7FF;}
+
+html,body{margin:0;background:#000}
+#root{width:1280px;height:800px;overflow:hidden;position:relative}
+</style>
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+button{cursor:default}
+@keyframes cocoPop{from{opacity:0;transform:scale(0.96)}to{opacity:1;transform:none}}
+@keyframes cocoBlurIn{from{filter:blur(0) brightness(1)}to{filter:blur(36px) brightness(0.55) saturate(1.2)}}
+@keyframes cocoLive{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</head>
+<body>
+<div id="root"></div>
+<template id="tpl">
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: -60px; animation: cocoBlurIn .5s cubic-bezier(.32,.72,0,1) both">
+<div style="position: absolute; inset: 0; background: {{art}}"></div>
+<div style="position: absolute; left: -5%; right: -5%; bottom: 0; height: 58%; background: rgba(0,0,0,0.3); clip-path: polygon(0 55%, 14% 22%, 28% 48%, 44% 6%, 60% 44%, 76% 18%, 100% 50%, 100% 100%, 0 100%)"></div>
+<div style="position: absolute; left: -5%; right: -5%; bottom: 0; height: 36%; background: rgba(0,0,0,0.45); clip-path: polygon(0 45%, 20% 20%, 38% 52%, 56% 26%, 74% 58%, 90% 30%, 100% 44%, 100% 100%, 0 100%)"></div>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: rgba(0,0,0,0.25)"></div>
+
+<div style="position: absolute; left: 264px; right: 264px; top: 72px; display: flex; justify-content: space-between; align-items: center; animation: cocoPop .5s cubic-bezier(.32,.72,0,1) both">
+<div style="display: flex; align-items: center; gap: 14px">
+<div aria-hidden="true" style="width: 40px; height: 56px; border-radius: 6px; background: {{art}}; box-shadow: 0 0 0 1px rgba(255,255,255,0.12)"></div>
+<div style="display: flex; flex-direction: column; gap: 2px">
+<h1 style="margin: 0; font-size: 22px; font-weight: 600; letter-spacing: -0.02em">Minecraft</h1>
+<span style="font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.65); font-variant-numeric: tabular-nums">En pause · {{session}}</span>
+</div>
+</div>
+<div style="display: flex; align-items: center; gap: 16px; font-size: 13px; font-weight: 600">
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: cocoLive 2.4s ease-in-out infinite"></span>PC-Salon<span style="color: rgba(245,245,247,0.6); font-weight: 500">4 ms</span></span>
+<span style="font-size: 15px; font-variant-numeric: tabular-nums">{{time}}</span>
+<span style="display: flex; align-items: center; gap: 6px">82 %<svg width="25" height="12" viewBox="0 0 27 13" aria-hidden="true"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" fill="none" stroke="#F5F5F7" stroke-opacity="0.45"></rect><rect x="2" y="2" width="16.4" height="9" rx="2" fill="#F5F5F7"></rect><rect x="24.8" y="4.5" width="1.6" height="4" rx="0.8" fill="#F5F5F7" fill-opacity="0.45"></rect></svg></span>
+</div>
+</div>
+
+<div style="position: absolute; left: 264px; top: 152px; width: 752px; display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); grid-template-rows: repeat(5, 80px); gap: 16px; animation: cocoPop .6s cubic-bezier(.32,.72,0,1) .05s both">
+
+<button style="grid-column: 1 / span 4; grid-row: 1 / span 2; box-sizing: border-box; padding: 22px; border: none; border-radius: 28px; background: #F5F5F7; color: #000; font-family: inherit; text-align: left; box-shadow: 0 20px 50px rgba(0,0,0,0.4), 0 0 0 4px rgba(245,245,247,0.25); display: flex; flex-direction: column; justify-content: space-between">
+<span style="width: 52px; height: 52px; border-radius: 50%; background: #000; display: flex; align-items: center; justify-content: center"><svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M6.5 3.8v12.4a.8.8 0 0 0 1.2.7l10-6.2a.8.8 0 0 0 0-1.4l-10-6.2a.8.8 0 0 0-1.2.7z" fill="#F5F5F7"></path></svg></span>
+<span style="display: flex; align-items: flex-end; justify-content: space-between; width: 100%">
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 28px; font-weight: 600; letter-spacing: -0.03em">Reprendre</span><span style="font-size: 13px; font-weight: 500; color: rgba(0,0,0,0.55)">Retour au jeu</span></span>
+<span style="width: 26px; height: 26px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(0,0,0,0.4); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">A</span>
+</span>
+</button>
+
+<div aria-label="Luminosité 100 %" style="grid-column: 5 / span 2; grid-row: 1 / span 4; position: relative; border-radius: 28px; overflow: hidden; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px)">
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 100%; background: rgba(245,245,247,0.94)"></div>
+<span style="position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-size: 13px; font-weight: 600; color: #1C1C1E">Luminosité</span>
+<span style="position: absolute; left: 0; right: 0; top: 38px; text-align: center; font-size: 12px; font-weight: 500; color: rgba(28,28,30,0.6)">100 %</span>
+<svg width="26" height="26" viewBox="0 0 20 20" aria-hidden="true" style="position: absolute; left: 75px; bottom: 24px"><circle cx="10" cy="10" r="3.6" fill="#1C1C1E"></circle><g stroke="#1C1C1E" stroke-width="1.6" stroke-linecap="round"><path d="M10 1.8v2M10 16.2v2M1.8 10h2M16.2 10h2M4.2 4.2l1.4 1.4M14.4 14.4l1.4 1.4M4.2 15.8l1.4-1.4M14.4 5.6l1.4-1.4"></path></g></svg>
+</div>
+
+<div aria-label="Volume 30 %" style="grid-column: 7 / span 2; grid-row: 1 / span 4; position: relative; border-radius: 28px; overflow: hidden; background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px)">
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 30%; background: rgba(245,245,247,0.94)"></div>
+<span style="position: absolute; left: 0; right: 0; top: 18px; text-align: center; font-size: 13px; font-weight: 600">Volume</span>
+<span style="position: absolute; left: 0; right: 0; top: 38px; text-align: center; font-size: 12px; font-weight: 500; color: rgba(245,245,247,0.65)">30 %</span>
+<svg width="26" height="26" viewBox="0 0 20 20" aria-hidden="true" style="position: absolute; left: 75px; bottom: 24px"><path d="M3 7.5h3l4-3.2v11.4l-4-3.2H3z" fill="#1C1C1E"></path><path d="M13 7.5a3.5 3.5 0 0 1 0 5M15.5 5a7 7 0 0 1 0 10" stroke="#1C1C1E" stroke-width="1.6" fill="none" stroke-linecap="round"></path></svg>
+</div>
+
+<button style="grid-column: 1 / span 2; grid-row: 3 / span 2; box-sizing: border-box; padding: 20px; border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; background: rgba(255,255,255,0.1); color: #F5F5F7; font-family: inherit; text-align: left; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; flex-direction: column; justify-content: space-between">
+<span style="width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true"><rect x="2" y="5" width="16" height="11.5" rx="2.5" fill="none" stroke="#F5F5F7" stroke-width="1.6"></rect><path d="M7 5l1.3-2h3.4L13 5" fill="none" stroke="#F5F5F7" stroke-width="1.6" stroke-linejoin="round"></path><circle cx="10" cy="10.7" r="3" fill="none" stroke="#F5F5F7" stroke-width="1.6"></circle></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Capture</span><span style="font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.62)">Sur le PC</span></span>
+</button>
+
+<button style="grid-column: 3 / span 2; grid-row: 3 / span 2; box-sizing: border-box; padding: 20px; border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; background: rgba(255,255,255,0.1); color: #F5F5F7; font-family: inherit; text-align: left; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; flex-direction: column; justify-content: space-between">
+<span style="width: 52px; height: 52px; border-radius: 50%; background: rgba(255,255,255,0.14); display: flex; align-items: center; justify-content: center"><svg width="22" height="22" viewBox="0 0 20 20" aria-hidden="true"><path d="M4 16V10M10 16V4M16 16v-7" stroke="#F5F5F7" stroke-width="2.2" stroke-linecap="round"></path></svg></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Statistiques</span><span style="font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.62)">Masquées</span></span>
+</button>
+
+<button style="grid-column: 1 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; background: rgba(255,255,255,0.1); color: #F5F5F7; font-family: inherit; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; align-items: center; gap: 12px">
+<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M3 9.5 10 3.5l7 6V16a1 1 0 0 1-1 1h-3.5v-4.5h-5V17H4a1 1 0 0 1-1-1z" fill="none" stroke="#F5F5F7" stroke-width="1.6" stroke-linejoin="round"></path></svg>
+<span style="font-size: 14px; font-weight: 600">Accueil</span>
+</button>
+<button style="grid-column: 3 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; background: rgba(255,255,255,0.1); color: #F5F5F7; font-family: inherit; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; align-items: center; gap: 12px">
+<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><circle cx="10" cy="10" r="7.5" fill="none" stroke="#F5F5F7" stroke-width="1.6"></circle><path d="M7.4 7.4l5.2 5.2M12.6 7.4l-5.2 5.2" stroke="#F5F5F7" stroke-width="1.6" stroke-linecap="round"></path></svg>
+<span style="font-size: 14px; font-weight: 600">Quitter le jeu</span>
+</button>
+<button style="grid-column: 5 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; background: rgba(255,255,255,0.1); color: #F5F5F7; font-family: inherit; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; align-items: center; gap: 12px">
+<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M15.5 12.5A6.5 6.5 0 0 1 7.5 4.5a6.5 6.5 0 1 0 8 8z" fill="#F5F5F7"></path></svg>
+<span style="font-size: 14px; font-weight: 600">Veille</span>
+</button>
+<button style="grid-column: 7 / span 2; grid-row: 5; box-sizing: border-box; padding: 0 16px; border: 1px solid rgba(255,255,255,0.1); border-radius: 28px; background: rgba(255,255,255,0.1); color: #F5F5F7; font-family: inherit; text-align: left; backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; align-items: center; gap: 12px">
+<svg width="20" height="20" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 2.5v7" stroke="#F5F5F7" stroke-width="1.8" stroke-linecap="round"></path><path d="M6 5.2a6.5 6.5 0 1 0 8 0" fill="none" stroke="#F5F5F7" stroke-width="1.8" stroke-linecap="round"></path></svg>
+<span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 14px; font-weight: 600">Alimentation</span><span style="font-size: 11px; font-weight: 500; color: rgba(245,245,247,0.6)">Redémarrer · Éteindre</span></span>
+</button>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; top: 680px; display: flex; justify-content: center; align-items: center; gap: 24px; font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.65)">
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.45); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #F5F5F7">B</span>Reprendre</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="width: 22px; height: 22px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.45); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #F5F5F7">A</span>Activer</span>
+<span style="display: flex; align-items: center; gap: 8px"><span style="height: 22px; padding: 0 7px; box-sizing: border-box; border-radius: 11px; border: 1px solid rgba(245,245,247,0.45); display: flex; align-items: center; font-size: 10px; font-weight: 600; color: #F5F5F7">◀ ▶</span>Régler</span>
+</div>
+</div>
+</template>
+<script>(function(global,factory){typeof exports==="object"&&typeof module!=="undefined"?module.exports=factory():typeof define==="function"&&define.amd?define(factory):(global=global||self,global.morphdom=factory())})(this,function(){"use strict";var DOCUMENT_FRAGMENT_NODE=11;function morphAttrs(fromNode,toNode){var toNodeAttrs=toNode.attributes;var attr;var attrName;var attrNamespaceURI;var attrValue;var fromValue;if(toNode.nodeType===DOCUMENT_FRAGMENT_NODE||fromNode.nodeType===DOCUMENT_FRAGMENT_NODE){return}for(var i=toNodeAttrs.length-1;i>=0;i--){attr=toNodeAttrs[i];attrName=attr.name;attrNamespaceURI=attr.namespaceURI;attrValue=attr.value;if(attrNamespaceURI){attrName=attr.localName||attrName;fromValue=fromNode.getAttributeNS(attrNamespaceURI,attrName);if(fromValue!==attrValue){if(attr.prefix==="xmlns"){attrName=attr.name}fromNode.setAttributeNS(attrNamespaceURI,attrName,attrValue)}}else{fromValue=fromNode.getAttribute(attrName);if(fromValue!==attrValue){fromNode.setAttribute(attrName,attrValue)}}}var fromNodeAttrs=fromNode.attributes;for(var d=fromNodeAttrs.length-1;d>=0;d--){attr=fromNodeAttrs[d];attrName=attr.name;attrNamespaceURI=attr.namespaceURI;if(attrNamespaceURI){attrName=attr.localName||attrName;if(!toNode.hasAttributeNS(attrNamespaceURI,attrName)){fromNode.removeAttributeNS(attrNamespaceURI,attrName)}}else{if(!toNode.hasAttribute(attrName)){fromNode.removeAttribute(attrName)}}}}var range;var NS_XHTML="http://www.w3.org/1999/xhtml";var doc=typeof document==="undefined"?undefined:document;var HAS_TEMPLATE_SUPPORT=!!doc&&"content"in doc.createElement("template");var HAS_RANGE_SUPPORT=!!doc&&doc.createRange&&"createContextualFragment"in doc.createRange();function createFragmentFromTemplate(str){var template=doc.createElement("template");template.innerHTML=str;return template.content.childNodes[0]}function createFragmentFromRange(str){if(!range){range=doc.createRange();range.selectNode(doc.body)}var fragment=range.createContextualFragment(str);return fragment.childNodes[0]}function createFragmentFromWrap(str){var fragment=doc.createElement("body");fragment.innerHTML=str;return fragment.childNodes[0]}function toElement(str){str=str.trim();if(HAS_TEMPLATE_SUPPORT){return createFragmentFromTemplate(str)}else if(HAS_RANGE_SUPPORT){return createFragmentFromRange(str)}return createFragmentFromWrap(str)}function compareNodeNames(fromEl,toEl){var fromNodeName=fromEl.nodeName;var toNodeName=toEl.nodeName;var fromCodeStart,toCodeStart;if(fromNodeName===toNodeName){return true}fromCodeStart=fromNodeName.charCodeAt(0);toCodeStart=toNodeName.charCodeAt(0);if(fromCodeStart<=90&&toCodeStart>=97){return fromNodeName===toNodeName.toUpperCase()}else if(toCodeStart<=90&&fromCodeStart>=97){return toNodeName===fromNodeName.toUpperCase()}else{return false}}function createElementNS(name,namespaceURI){return!namespaceURI||namespaceURI===NS_XHTML?doc.createElement(name):doc.createElementNS(namespaceURI,name)}function moveChildren(fromEl,toEl){var curChild=fromEl.firstChild;while(curChild){var nextChild=curChild.nextSibling;toEl.appendChild(curChild);curChild=nextChild}return toEl}function syncBooleanAttrProp(fromEl,toEl,name){if(fromEl[name]!==toEl[name]){fromEl[name]=toEl[name];if(fromEl[name]){fromEl.setAttribute(name,"")}else{fromEl.removeAttribute(name)}}}var specialElHandlers={OPTION:function(fromEl,toEl){var parentNode=fromEl.parentNode;if(parentNode){var parentName=parentNode.nodeName.toUpperCase();if(parentName==="OPTGROUP"){parentNode=parentNode.parentNode;parentName=parentNode&&parentNode.nodeName.toUpperCase()}if(parentName==="SELECT"&&!parentNode.hasAttribute("multiple")){if(fromEl.hasAttribute("selected")&&!toEl.selected){fromEl.setAttribute("selected","selected");fromEl.removeAttribute("selected")}parentNode.selectedIndex=-1}}syncBooleanAttrProp(fromEl,toEl,"selected")},INPUT:function(fromEl,toEl){syncBooleanAttrProp(fromEl,toEl,"checked");syncBooleanAttrProp(fromEl,toEl,"disabled");if(fromEl.value!==toEl.value){fromEl.value=toEl.value}if(!toEl.hasAttribute("value")){fromEl.removeAttribute("value")}},TEXTAREA:function(fromEl,toEl){var newValue=toEl.value;if(fromEl.value!==newValue){fromEl.value=newValue}var firstChild=fromEl.firstChild;if(firstChild){var oldValue=firstChild.nodeValue;if(oldValue==newValue||!newValue&&oldValue==fromEl.placeholder){return}firstChild.nodeValue=newValue}},SELECT:function(fromEl,toEl){if(!toEl.hasAttribute("multiple")){var selectedIndex=-1;var i=0;var curChild=fromEl.firstChild;var optgroup;var nodeName;while(curChild){nodeName=curChild.nodeName&&curChild.nodeName.toUpperCase();if(nodeName==="OPTGROUP"){optgroup=curChild;curChild=optgroup.firstChild}else{if(nodeName==="OPTION"){if(curChild.hasAttribute("selected")){selectedIndex=i;break}i++}curChild=curChild.nextSibling;if(!curChild&&optgroup){curChild=optgroup.nextSibling;optgroup=null}}}fromEl.selectedIndex=selectedIndex}}};var ELEMENT_NODE=1;var DOCUMENT_FRAGMENT_NODE$1=11;var TEXT_NODE=3;var COMMENT_NODE=8;function noop(){}function defaultGetNodeKey(node){if(node){return node.getAttribute&&node.getAttribute("id")||node.id}}function morphdomFactory(morphAttrs){return function morphdom(fromNode,toNode,options){if(!options){options={}}if(typeof toNode==="string"){if(fromNode.nodeName==="#document"||fromNode.nodeName==="HTML"||fromNode.nodeName==="BODY"){var toNodeHtml=toNode;toNode=doc.createElement("html");toNode.innerHTML=toNodeHtml}else{toNode=toElement(toNode)}}else if(toNode.nodeType===DOCUMENT_FRAGMENT_NODE$1){toNode=toNode.firstElementChild}var getNodeKey=options.getNodeKey||defaultGetNodeKey;var onBeforeNodeAdded=options.onBeforeNodeAdded||noop;var onNodeAdded=options.onNodeAdded||noop;var onBeforeElUpdated=options.onBeforeElUpdated||noop;var onElUpdated=options.onElUpdated||noop;var onBeforeNodeDiscarded=options.onBeforeNodeDiscarded||noop;var onNodeDiscarded=options.onNodeDiscarded||noop;var onBeforeElChildrenUpdated=options.onBeforeElChildrenUpdated||noop;var skipFromChildren=options.skipFromChildren||noop;var addChild=options.addChild||function(parent,child){return parent.appendChild(child)};var childrenOnly=options.childrenOnly===true;var fromNodesLookup=Object.create(null);var keyedRemovalList=[];function addKeyedRemoval(key){keyedRemovalList.push(key)}function walkDiscardedChildNodes(node,skipKeyedNodes){if(node.nodeType===ELEMENT_NODE){var curChild=node.firstChild;while(curChild){var key=undefined;if(skipKeyedNodes&&(key=getNodeKey(curChild))){addKeyedRemoval(key)}else{onNodeDiscarded(curChild);if(curChild.firstChild){walkDiscardedChildNodes(curChild,skipKeyedNodes)}}curChild=curChild.nextSibling}}}function removeNode(node,parentNode,skipKeyedNodes){if(onBeforeNodeDiscarded(node)===false){return}if(parentNode){parentNode.removeChild(node)}onNodeDiscarded(node);walkDiscardedChildNodes(node,skipKeyedNodes)}function indexTree(node){if(node.nodeType===ELEMENT_NODE||node.nodeType===DOCUMENT_FRAGMENT_NODE$1){var curChild=node.firstChild;while(curChild){var key=getNodeKey(curChild);if(key){fromNodesLookup[key]=curChild}indexTree(curChild);curChild=curChild.nextSibling}}}indexTree(fromNode);function handleNodeAdded(el){onNodeAdded(el);var curChild=el.firstChild;while(curChild){var nextSibling=curChild.nextSibling;var key=getNodeKey(curChild);if(key){var unmatchedFromEl=fromNodesLookup[key];if(unmatchedFromEl&&compareNodeNames(curChild,unmatchedFromEl)){curChild.parentNode.replaceChild(unmatchedFromEl,curChild);morphEl(unmatchedFromEl,curChild)}else{handleNodeAdded(curChild)}}else{handleNodeAdded(curChild)}curChild=nextSibling}}function cleanupFromEl(fromEl,curFromNodeChild,curFromNodeKey){while(curFromNodeChild){var fromNextSibling=curFromNodeChild.nextSibling;if(curFromNodeKey=getNodeKey(curFromNodeChild)){addKeyedRemoval(curFromNodeKey)}else{removeNode(curFromNodeChild,fromEl,true)}curFromNodeChild=fromNextSibling}}function morphEl(fromEl,toEl,childrenOnly){var toElKey=getNodeKey(toEl);if(toElKey){delete fromNodesLookup[toElKey]}if(!childrenOnly){var beforeUpdateResult=onBeforeElUpdated(fromEl,toEl);if(beforeUpdateResult===false){return}else if(beforeUpdateResult instanceof HTMLElement){fromEl=beforeUpdateResult;indexTree(fromEl)}morphAttrs(fromEl,toEl);onElUpdated(fromEl);if(onBeforeElChildrenUpdated(fromEl,toEl)===false){return}}if(fromEl.nodeName!=="TEXTAREA"){morphChildren(fromEl,toEl)}else{specialElHandlers.TEXTAREA(fromEl,toEl)}}function morphChildren(fromEl,toEl){var skipFrom=skipFromChildren(fromEl,toEl);var curToNodeChild=toEl.firstChild;var curFromNodeChild=fromEl.firstChild;var curToNodeKey;var curFromNodeKey;var fromNextSibling;var toNextSibling;var matchingFromEl;outer:while(curToNodeChild){toNextSibling=curToNodeChild.nextSibling;curToNodeKey=getNodeKey(curToNodeChild);while(!skipFrom&&curFromNodeChild){fromNextSibling=curFromNodeChild.nextSibling;if(curToNodeChild.isSameNode&&curToNodeChild.isSameNode(curFromNodeChild)){curToNodeChild=toNextSibling;curFromNodeChild=fromNextSibling;continue outer}curFromNodeKey=getNodeKey(curFromNodeChild);var curFromNodeType=curFromNodeChild.nodeType;var isCompatible=undefined;if(curFromNodeType===curToNodeChild.nodeType){if(curFromNodeType===ELEMENT_NODE){if(curToNodeKey){if(curToNodeKey!==curFromNodeKey){if(matchingFromEl=fromNodesLookup[curToNodeKey]){if(fromNextSibling===matchingFromEl){isCompatible=false}else{fromEl.insertBefore(matchingFromEl,curFromNodeChild);if(curFromNodeKey){addKeyedRemoval(curFromNodeKey)}else{removeNode(curFromNodeChild,fromEl,true)}curFromNodeChild=matchingFromEl;curFromNodeKey=getNodeKey(curFromNodeChild)}}else{isCompatible=false}}}else if(curFromNodeKey){isCompatible=false}isCompatible=isCompatible!==false&&compareNodeNames(curFromNodeChild,curToNodeChild);if(isCompatible){morphEl(curFromNodeChild,curToNodeChild)}}else if(curFromNodeType===TEXT_NODE||curFromNodeType==COMMENT_NODE){isCompatible=true;if(curFromNodeChild.nodeValue!==curToNodeChild.nodeValue){curFromNodeChild.nodeValue=curToNodeChild.nodeValue}}}if(isCompatible){curToNodeChild=toNextSibling;curFromNodeChild=fromNextSibling;continue outer}if(curFromNodeKey){addKeyedRemoval(curFromNodeKey)}else{removeNode(curFromNodeChild,fromEl,true)}curFromNodeChild=fromNextSibling}if(curToNodeKey&&(matchingFromEl=fromNodesLookup[curToNodeKey])&&compareNodeNames(matchingFromEl,curToNodeChild)){if(!skipFrom){addChild(fromEl,matchingFromEl)}morphEl(matchingFromEl,curToNodeChild)}else{var onBeforeNodeAddedResult=onBeforeNodeAdded(curToNodeChild);if(onBeforeNodeAddedResult!==false){if(onBeforeNodeAddedResult){curToNodeChild=onBeforeNodeAddedResult}if(curToNodeChild.actualize){curToNodeChild=curToNodeChild.actualize(fromEl.ownerDocument||doc)}addChild(fromEl,curToNodeChild);handleNodeAdded(curToNodeChild)}}curToNodeChild=toNextSibling;curFromNodeChild=fromNextSibling}cleanupFromEl(fromEl,curFromNodeChild,curFromNodeKey);var specialElHandler=specialElHandlers[fromEl.nodeName];if(specialElHandler){specialElHandler(fromEl,toEl)}}var morphedNode=fromNode;var morphedNodeType=morphedNode.nodeType;var toNodeType=toNode.nodeType;if(!childrenOnly){if(morphedNodeType===ELEMENT_NODE){if(toNodeType===ELEMENT_NODE){if(!compareNodeNames(fromNode,toNode)){onNodeDiscarded(fromNode);morphedNode=moveChildren(fromNode,createElementNS(toNode.nodeName,toNode.namespaceURI))}}else{morphedNode=toNode}}else if(morphedNodeType===TEXT_NODE||morphedNodeType===COMMENT_NODE){if(toNodeType===morphedNodeType){if(morphedNode.nodeValue!==toNode.nodeValue){morphedNode.nodeValue=toNode.nodeValue}return morphedNode}else{morphedNode=toNode}}}if(morphedNode===toNode){onNodeDiscarded(fromNode)}else{if(toNode.isSameNode&&toNode.isSameNode(morphedNode)){return}morphEl(morphedNode,toNode,childrenOnly);if(keyedRemovalList){for(var i=0,len=keyedRemovalList.length;i<len;i++){var elToRemove=fromNodesLookup[keyedRemovalList[i]];if(elToRemove){removeNode(elToRemove,elToRemove.parentNode,false)}}}}if(!childrenOnly&&morphedNode!==fromNode&&fromNode.parentNode){if(morphedNode.actualize){morphedNode=morphedNode.actualize(fromNode.ownerDocument||doc)}fromNode.parentNode.replaceChild(morphedNode,fromNode)}return morphedNode}}var morphdom=morphdomFactory(morphAttrs);return morphdom});</script>
+<script>
+(function(){
+  const P = new URLSearchParams(location.search);
+  if (P.get('now')) {
+    const fixed = Date.parse(P.get('now'));
+    const real = Date.now.bind(Date), t0 = real();
+    // fixed wall clock that still advances, so timers keep working
+    Date.now = () => fixed + (real() - t0);
+  }
+  window.DCLogic = class {
+    constructor(props){ this.props = props; this.state = null; }
+    setState(s){ this.state = Object.assign({}, this.state, typeof s === 'function' ? s(this.state) : s); window.__dcRender && window.__dcRender(); }
+    forceUpdate(){ window.__dcRender && window.__dcRender(); }
+  };
+})();
+</script>
+<script>
+const PROPS = {"accent": {"editor": "color", "default": "#F2802A", "options": ["#F2802A", "#F5F5F7", "#6E9BFF"]}, "$preview": {"width": 1280, "height": 800}};
+class Component extends DCLogic {
+  componentDidMount() {
+    this._timer = setInterval(() => this.setState({ now: Date.now() }), 1000);
+  }
+  componentWillUnmount() {
+    clearInterval(this._timer);
+  }
+  renderVals() {
+    const now = (this.state && this.state.now) || Date.now();
+    if (this._t0 == null) this._t0 = now;
+    const d = new Date(now);
+    const pad = (n) => String(n).padStart(2, '0');
+    const el = 5077 + Math.floor((now - this._t0) / 1000);
+    return {
+      accent: this.props.accent ?? '#F2802A',
+      art: 'radial-gradient(circle at 30% 25%, #5E8F4E 0%, transparent 45%), radial-gradient(circle at 70% 78%, #6B4A2F 0%, transparent 50%), radial-gradient(circle at 82% 18%, #7FA6C8 0%, transparent 38%), linear-gradient(160deg, #1E2A1C 0%, #14110D 100%)',
+      time: pad(d.getHours()) + ':' + pad(d.getMinutes()),
+      session: Math.floor(el / 3600) + ' h ' + pad(Math.floor(el / 60) % 60) + ' min'
+    };
+  }
+}
+</script>
+<script>
+(function(){
+  const P = new URLSearchParams(location.search);
+  const props = {};
+  for (const [k, spec] of Object.entries(PROPS)) {
+    if (k.startsWith('$')) continue;
+    let v = spec.default;
+    if (P.has(k)) { const raw = P.get(k); v = typeof v === 'number' ? Number(raw) : typeof v === 'boolean' ? raw === 'true' : raw; }
+    props[k] = v;
+  }
+  const tplNode = document.getElementById('tpl').content;
+  const lookup = (scope, path) => {
+    path = path.trim();
+    if (path === 'true') return true; if (path === 'false') return false;
+    if (/^-?\d+(\.\d+)?$/.test(path)) return Number(path);
+    return path.split('.').reduce((o, k) => (o == null ? o : o[k]), scope);
+  };
+  const HOLE = /\{\{\s*([\w.$]+)\s*\}\}/g;
+  const whole = /^\s*\{\{\s*([\w.$]+)\s*\}\}\s*$/;
+  const interp = (s, scope) => s.replace(HOLE, (m, p) => { const v = lookup(scope, p); return v == null ? '' : String(v); });
+  function renderNodes(nodes, scope, out) {
+    for (const n of nodes) {
+      if (n.nodeType === 3) { out.appendChild(document.createTextNode(interp(n.nodeValue, scope))); continue; }
+      if (n.nodeType !== 1) continue;
+      const tag = n.tagName.toLowerCase();
+      if (tag === 'sc-for') {
+        const m = whole.exec(n.getAttribute('list') || ''); const list = m ? lookup(scope, m[1]) : [];
+        const as = n.getAttribute('as') || 'item';
+        (list || []).forEach((it, i) => renderNodes(n.childNodes, Object.assign(Object.create(scope), { [as]: it, $index: i }), out));
+        continue;
+      }
+      if (tag === 'sc-if') {
+        const m = whole.exec(n.getAttribute('value') || ''); if (m && lookup(scope, m[1])) renderNodes(n.childNodes, scope, out);
+        continue;
+      }
+      const el = n.namespaceURI === 'http://www.w3.org/2000/svg' ? document.createElementNS(n.namespaceURI, n.tagName) : document.createElement(n.tagName);
+      for (const a of n.attributes) {
+        if (/^on[A-Z]/.test(a.name) || /^on[a-z]+$/.test(a.name)) continue;
+        el.setAttribute(a.name, interp(a.value, scope));
+      }
+      renderNodes(n.childNodes, scope, el);
+      out.appendChild(el);
+    }
+  }
+  const comp = new Component(props);
+  const root = document.getElementById('root');
+  let pending = false;
+  function render() {
+    const vals = comp.renderVals();
+    const frag = document.createElement('div'); frag.id = 'root';
+    renderNodes(tplNode.childNodes, vals, frag);
+    morphdom(root, frag);
+  }
+  window.__dcRender = () => { if (pending) return; pending = true; requestAnimationFrame(() => { pending = false; render(); }); };
+  render();
+  if (comp.componentDidMount) comp.componentDidMount();
+  document.fonts.ready.then(() => { window.__ready = true; });
+})();
+</script>
+</body>
+</html>

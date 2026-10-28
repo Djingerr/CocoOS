@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Motion — Fin de la configuration</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+button{cursor:default}
+@keyframes cocoAurora{0%{transform:translate(0,0) scale(1)}100%{transform:translate(-80px,40px) scale(1.15)}}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: -140px; opacity: {{aurora}}; transition: opacity 900ms ease; animation: cocoAurora 24s ease-in-out infinite alternate">
+<div style="position: absolute; left: 260px; top: 560px; width: 1000px; height: 560px; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in oklab, var(--accent) 30%, transparent), transparent); filter: blur(50px)"></div>
+<div style="position: absolute; left: 900px; top: 60px; width: 640px; height: 460px; border-radius: 50%; background: radial-gradient(closest-side, rgba(110,155,255,0.16), transparent); filter: blur(60px)"></div>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: -100px; background: {{heroArt}}; filter: blur(100px) saturate(1.1); opacity: {{home.bg}}; transition: opacity 1400ms ease"></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.85) 75%); opacity: {{home.bg}}; transition: opacity 1400ms ease"></div>
+
+<div style="position: absolute; inset: 0; opacity: {{setup.op}}; filter: blur({{setup.blur}}px); transform: scale({{setup.sc}}); transition: opacity 420ms ease, filter 420ms ease, transform 520ms cubic-bezier(.4,0,1,1)">
+<h1 style="position: absolute; left: 0; right: 0; top: 108px; margin: 0; text-align: center; font-size: 36px; font-weight: 600; letter-spacing: -0.03em">Votre bibliothèque est prête</h1>
+<div style="position: absolute; left: 368px; top: 200px; width: 544px; height: 392px">
+<sc-for list="{{tiles}}" as="m" hint-placeholder-count="18">
+<div style="position: absolute; left: {{m.x}}px; top: {{m.y}}px; width: 82px; height: 116px; border-radius: 8px; background: {{m.art}}; box-shadow: 0 8px 18px rgba(0,0,0,0.4)"></div>
+</sc-for>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 636px; display: flex; justify-content: center">
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 26px 0 11px; border: none; border-radius: 26px; background: #F5F5F7; color: #000; font-family: inherit; font-size: 17px; font-weight: 600; transform: scale({{btnSc}}); transition: transform {{btnTr}}"><span style="width: 30px; height: 30px; border-radius: 50%; background: #000; color: #F5F5F7; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">≡</span>Commencer</button>
+</div>
+</div>
+
+<div aria-hidden="true" style="position: absolute; left: 540px; top: 220px; width: 200px; height: 200px; border-radius: 50%; background: radial-gradient(circle, var(--accent) 0%, rgba(0,0,0,0) 65%); filter: blur(30px); opacity: {{ring.glow}}; transform: scale({{ring.sc}}); transition: opacity 800ms ease, transform 700ms cubic-bezier(.32,.72,0,1)"></div>
+<div style="position: absolute; left: 580px; top: 260px; width: 120px; height: 120px; opacity: {{ring.op}}; transform: scale({{ring.sc}}); transition: opacity 360ms ease, transform 640ms {{ring.ease}}">
+<div style="position: absolute; inset: 0; box-sizing: border-box; border: 20px solid {{track}}; border-radius: 50%"></div>
+<svg width="120" height="120" viewBox="0 0 120 120" aria-hidden="true" style="position: absolute; inset: 0"><circle cx="60" cy="60" r="50" fill="none" stroke-width="20" stroke-linecap="round" stroke-dasharray="314.16" transform="rotate(-90 60 60)" style="stroke: var(--accent); stroke-dashoffset: {{ring.off}}; transition: {{ring.offTr}}"></circle></svg>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 420px; display: flex; flex-direction: column; align-items: center; gap: 10px; opacity: {{msg.op}}; transform: translateY({{msg.ty}}px); filter: blur({{msg.blur}}px); transition: opacity 500ms ease, transform 700ms cubic-bezier(.32,.72,0,1), filter 500ms ease">
+<span style="font-size: 44px; font-weight: 600; letter-spacing: -0.035em">Tout est prêt.</span>
+<span style="font-size: 16px; font-weight: 500; color: rgba(245,245,247,0.6)">Bienvenue dans CocoOS.</span>
+</div>
+
+<div style="position: absolute; left: 0; top: 0; width: 1280px; height: 560px; perspective: 900px">
+<sc-for list="{{covers}}" as="c" hint-placeholder-count="7">
+<div style="position: absolute; left: {{c.left}}px; top: {{c.top}}px; width: {{c.w}}px; height: {{c.h}}px; z-index: {{c.z}}; border-radius: 12px; background: {{c.art}}; box-shadow: 0 30px 60px rgba(0,0,0,0.5); opacity: {{c.op}}; transform: {{c.tf}}; transition: {{c.tr}}"></div>
+</sc-for>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 470px; display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: {{home.txt}}; transform: translateY({{home.ty}}px); transition: opacity 600ms ease, transform 800ms cubic-bezier(.32,.72,0,1)">
+<span style="font-size: 40px; font-weight: 600; letter-spacing: -0.035em">Minecraft</span>
+<span style="font-size: 14px; font-weight: 500; color: rgba(245,245,247,0.6)">Mojang Studios · 2011 · Bac à sable</span>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 590px; display: flex; justify-content: center; opacity: {{home.btn}}; transform: translateY({{home.bty}}px); transition: opacity 600ms ease, transform 800ms cubic-bezier(.32,.72,0,1)">
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 26px 0 11px; border: none; border-radius: 26px; background: #F5F5F7; color: #000; font-family: inherit; font-size: 17px; font-weight: 600"><span style="width: 30px; height: 30px; border-radius: 50%; background: #000; color: #F5F5F7; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">A</span>Jouer</button>
+</div>
+<div style="position: absolute; left: 72px; top: 34px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em; opacity: {{home.btn}}; transition: opacity 600ms ease">Coco<span style="color: var(--accent)">OS</span></div>
+
+<div style="position: absolute; z-index: 45; left: 32px; bottom: 32px; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px 0 8px; border-radius: 20px; background: rgba(30,30,32,0.6); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-size: 13px; font-weight: 600; opacity: {{keyOp}}; transform: translateY({{keyTy}}px); transition: opacity 200ms ease, transform 300ms cubic-bezier(.32,.72,0,1)">
+<span style="width: 26px; height: 26px; border-radius: 13px; background: #F5F5F7; color: #000; display: flex; align-items: center; justify-content: center; font-size: 14px; font-weight: 700">≡</span>Commencer
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; z-index: 60; background: #000; pointer-events: none; opacity: {{curtain}}; transition: opacity 400ms ease"></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 9200 }), 40);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const accent = this.props.accent ?? '#F2802A';
+    const instant = t >= 8900;
+    const ART = [
+      'linear-gradient(160deg, #3E5E36, #14110D)', 'linear-gradient(160deg, #2E4466, #06080E)', 'linear-gradient(160deg, #8A2E52, #12081A)',
+      'linear-gradient(160deg, #6B4A9E, #0C0818)', 'linear-gradient(160deg, #5E8A3A, #0E1E10)', 'linear-gradient(160deg, #7A6230, #0A0805)',
+      'linear-gradient(160deg, #A4402C, #1A0806)', 'linear-gradient(160deg, #2F6E74, #0B0F10)', 'linear-gradient(160deg, #C08A3A, #1C1206)'
+    ];
+    const MC = 'radial-gradient(circle at 30% 25%, #5E8F4E 0%, transparent 45%), radial-gradient(circle at 70% 78%, #6B4A2F 0%, transparent 50%), radial-gradient(circle at 82% 18%, #7FA6C8 0%, transparent 38%), linear-gradient(160deg, #1E2A1C 0%, #14110D 100%)';
+    const tiles = [];
+    for (let i = 0; i < 18; i++) tiles.push({ x: (i % 6) * 92, y: Math.floor(i / 6) * 132, art: ART[i % ART.length] });
+    const setupOn = t < 900 || instant;
+    const ringOn = t >= 1250 && t < 3300 && !instant;
+    const drawn = t >= 1350 && !instant;
+    const msgOn = t >= 1900 && t < 3200 && !instant;
+    const homeOn = t >= 3400 && !instant;
+    const S = [[240, 340, 0], [190, 269, 250], [160, 227, 430], [140, 198, 580]];
+    const arts = [ART[3], ART[1], ART[2], MC, ART[4], ART[5], ART[6]];
+    const covers = [-3, -2, -1, 0, 1, 2, 3].map((o, i) => {
+      const k = Math.abs(o), s = S[k];
+      const w = s[0], h = s[1];
+      const cx = 640 + Math.sign(o) * s[2];
+      const rot = o === 0 ? 0 : -Math.sign(o) * (38 + (k - 1) * 6);
+      const fin = 'translateZ(0) rotateY(' + rot + 'deg)';
+      return {
+        art: arts[i], w: w, h: h, left: Math.round(cx - w / 2), top: 436 - h, z: 10 - k,
+        op: homeOn ? [1, 0.75, 0.5, 0.3][k] : 0,
+        tf: homeOn ? fin : 'translateX(' + (-Math.sign(o) * s[2]) + 'px) scale(0.4) rotateY(0deg)',
+        tr: homeOn
+          ? 'opacity 500ms ease ' + (80 * k) + 'ms, transform 900ms cubic-bezier(.3,1.12,.4,1) ' + (80 * k) + 'ms'
+          : (instant ? 'none' : 'opacity 300ms ease, transform 300ms ease')
+      };
+    });
+    const pressing = t >= 700 && t < 820;
+    return {
+      accent: accent,
+      track: 'color-mix(in oklab, ' + accent + ' 25%, transparent)',
+      heroArt: MC,
+      tiles: tiles,
+      aurora: homeOn ? 0 : 1,
+      setup: setupOn ? { op: 1, blur: 0, sc: 1 } : { op: 0, blur: 12, sc: 0.96 },
+      btnSc: pressing ? 0.94 : 1,
+      btnTr: pressing ? '110ms ease-out' : '520ms cubic-bezier(.3,1.6,.4,1)',
+      ring: {
+        op: ringOn ? 1 : 0,
+        sc: ringOn ? 1 : (t >= 3300 && !instant ? 0.2 : 0.7),
+        ease: ringOn ? 'cubic-bezier(.3,1.25,.4,1)' : 'cubic-bezier(.4,0,1,1)',
+        off: drawn ? 0 : 314.16,
+        offTr: drawn ? 'stroke-dashoffset 1300ms cubic-bezier(.65,0,.35,1)' : 'none',
+        glow: t >= 2500 && t < 3400 && !instant ? 0.8 : (ringOn ? 0.3 : 0)
+      },
+      msg: msgOn ? { op: 1, ty: 0, blur: 0 } : { op: 0, ty: t >= 3200 ? -12 : 14, blur: 6 },
+      covers: covers,
+      home: homeOn
+        ? { bg: 1, txt: t >= 4000 ? 1 : 0, ty: t >= 4000 ? 0 : 14, btn: t >= 4300 ? 1 : 0, bty: t >= 4300 ? 0 : 14 }
+        : { bg: 0, txt: 0, ty: 14, btn: 0, bty: 14 },
+      keyOp: t >= 500 && t < 1100 ? 1 : 0,
+      keyTy: t >= 500 && t < 1100 ? 0 : 8,
+      curtain: t >= 8500 ? 1 : 0
+    };
+  }
+}
+</script>
+</body>
+</html>

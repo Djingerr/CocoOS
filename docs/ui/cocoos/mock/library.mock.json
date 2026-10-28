@@ -1,0 +1,228 @@
+{
+ "hosts": [
+  {
+   "id": "pc-salon",
+   "name": "PC-Salon",
+   "state": "online",
+   "latency_ms": 4,
+   "address": "192.168.1.20",
+   "apollo": true,
+   "hostCompanion": true,
+   "games": 214
+  },
+  {
+   "id": "pc-bureau",
+   "name": "PC-Bureau",
+   "state": "asleep",
+   "latency_ms": null,
+   "address": "192.168.1.31",
+   "apollo": true,
+   "hostCompanion": false,
+   "games": 38
+  },
+  {
+   "id": "portable",
+   "name": "Portable-Gaming",
+   "state": "unreachable",
+   "latency_ms": null,
+   "address": null,
+   "apollo": true,
+   "hostCompanion": true,
+   "games": 0
+  }
+ ],
+ "games": [
+  {
+   "id": "mc",
+   "title": "Minecraft",
+   "publisher": "Mojang Studios",
+   "developer": "Mojang Studios",
+   "release": "2011-11-18",
+   "genre": "Bac à sable",
+   "pegi": 7,
+   "favorite": true,
+   "lastPlayed": "2026-10-28T19:40:00",
+   "playtime_min": 4920,
+   "progress": 62,
+   "installed": true,
+   "accent": "#7BC96F"
+  },
+  {
+   "id": "hk",
+   "title": "Hollow Knight",
+   "publisher": "Team Cherry",
+   "developer": "Team Cherry",
+   "release": "2017-02-24",
+   "genre": "Metroidvania",
+   "pegi": 7,
+   "favorite": true,
+   "lastPlayed": "2026-10-25T21:10:00",
+   "playtime_min": 1830,
+   "progress": 38,
+   "installed": true,
+   "accent": "#8FB3DA"
+  },
+  {
+   "id": "fh",
+   "title": "Forza Horizon 5",
+   "publisher": "Xbox Game Studios",
+   "developer": "Playground Games",
+   "release": "2021-11-09",
+   "genre": "Course",
+   "pegi": 3,
+   "favorite": false,
+   "lastPlayed": "2026-10-27T20:00:00",
+   "playtime_min": 2210,
+   "progress": 81,
+   "installed": true,
+   "accent": "#FFA24D"
+  },
+  {
+   "id": "ce",
+   "title": "Celeste",
+   "publisher": "Maddy Makes Games",
+   "developer": "Maddy Makes Games",
+   "release": "2018-01-25",
+   "genre": "Plateforme",
+   "pegi": 7,
+   "favorite": true,
+   "lastPlayed": null,
+   "playtime_min": 640,
+   "progress": 55,
+   "installed": true,
+   "accent": "#F49AC1"
+  },
+  {
+   "id": "sv",
+   "title": "Stardew Valley",
+   "publisher": "ConcernedApe",
+   "developer": "ConcernedApe",
+   "release": "2016-02-26",
+   "genre": "Simulation",
+   "pegi": 7,
+   "favorite": false,
+   "lastPlayed": null,
+   "playtime_min": 3100,
+   "progress": 47,
+   "installed": true,
+   "accent": "#F6D55C"
+  },
+  {
+   "id": "er",
+   "title": "Elden Ring",
+   "publisher": "Bandai Namco",
+   "developer": "FromSoftware",
+   "release": "2022-02-25",
+   "genre": "Action-RPG",
+   "pegi": 16,
+   "favorite": false,
+   "lastPlayed": null,
+   "playtime_min": 0,
+   "progress": 0,
+   "installed": false,
+   "accent": "#E8C46A"
+  },
+  {
+   "id": "ha",
+   "title": "Hades",
+   "publisher": "Supergiant Games",
+   "developer": "Supergiant Games",
+   "release": "2020-09-17",
+   "genre": "Rogue-lite",
+   "pegi": 12,
+   "favorite": false,
+   "lastPlayed": null,
+   "playtime_min": 900,
+   "progress": 70,
+   "installed": true,
+   "accent": "#E2533A"
+  },
+  {
+   "id": "zl",
+   "title": "The Legend of Zelda: Tears of the Kingdom",
+   "publisher": "Nintendo",
+   "developer": "Nintendo EPD",
+   "release": "2023-05-12",
+   "genre": "Action-aventure",
+   "pegi": 12,
+   "favorite": false,
+   "lastPlayed": null,
+   "playtime_min": 310,
+   "progress": null,
+   "installed": true,
+   "accent": null,
+   "note": "Cas limite : titre long (2 lignes puis 48 → 36 px)"
+  },
+  {
+   "id": "fa",
+   "title": "Factorio",
+   "publisher": "Wube Software",
+   "developer": "Wube Software",
+   "release": "2020-08-14",
+   "genre": "Gestion",
+   "pegi": null,
+   "favorite": false,
+   "lastPlayed": "2026-10-20T22:10:00",
+   "playtime_min": 1260,
+   "progress": null,
+   "installed": true,
+   "accent": null,
+   "cover": null,
+   "background": null,
+   "note": "Cas limite : ni jaquette ni fond, jaquette composée"
+  },
+  {
+   "id": "p2",
+   "title": "Portal 2",
+   "publisher": "Valve",
+   "developer": "Valve",
+   "release": "2011-04-18",
+   "genre": null,
+   "pegi": null,
+   "favorite": false,
+   "lastPlayed": null,
+   "playtime_min": 0,
+   "progress": null,
+   "installed": true,
+   "accent": null,
+   "description": null,
+   "note": "Cas limite : genre, PEGI et description absents, jamais joué"
+  }
+ ],
+ "session": {
+  "gameId": "mc",
+  "since": "2026-10-28T20:18:00",
+  "resolution": "720p",
+  "fps": 60,
+  "codec": "HEVC",
+  "bitrate_mbps": 18.4,
+  "latency": {
+   "network": 4,
+   "encode": 3.8,
+   "decode": 3.1
+  },
+  "dropped_pct": 0.1
+ },
+ "console": {
+  "name": "Console de Coco",
+  "os": "CocoOS 1.2",
+  "battery_pct": 82,
+  "charging": false,
+  "storage_gb": {
+   "used": 23,
+   "total": 64
+  },
+  "wifi": {
+   "ssid": "Livebox-7A3C",
+   "band": "5 GHz",
+   "rssi_dbm": -48
+  },
+  "cellular": {
+   "carrier": "Free",
+   "available": true
+  }
+ },
+ "notes": [
+  "Pour tester la grande bibliothèque (saut alphabétique RT/LT), le harnais duplique ces jeux jusqu'à 214 entrées avec des titres de A à Z."
+ ]
+}

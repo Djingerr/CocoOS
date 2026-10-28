@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Motion — Changement de réseau</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+@keyframes cocoCloud{0%{transform:translateX(0)}100%{transform:translateX(-300px)}}
+@keyframes cocoWalk{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes cocoPan{0%{transform:translateX(0)}100%{transform:translateX(-120px)}}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: -60px; filter: blur({{soft}}px) saturate({{sat}}); transition: filter 900ms ease">
+<div style="position: absolute; inset: 0; background: linear-gradient(180deg, #7FB6DE 0%, #BFDDF0 46%, #6E9F55 47%, #4C7A39 70%, #3A2B1D 100%)"></div>
+<div style="position: absolute; left: 1040px; top: 120px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, #FFF6D6 0%, rgba(255,246,214,0) 70%)"></div>
+<div style="position: absolute; left: 0; top: 140px; width: 1800px; height: 120px; animation: cocoCloud 16s linear infinite alternate">
+<div style="position: absolute; left: 240px; top: 10px; width: 180px; height: 40px; background: rgba(255,255,255,0.85)"></div>
+<div style="position: absolute; left: 700px; top: 50px; width: 240px; height: 44px; background: rgba(255,255,255,0.8)"></div>
+<div style="position: absolute; left: 1180px; top: 0; width: 160px; height: 36px; background: rgba(255,255,255,0.85)"></div>
+</div>
+<div style="position: absolute; left: 0; bottom: 0; width: 1600px; height: 60%; animation: cocoPan 12s ease-in-out infinite alternate">
+<div style="position: absolute; inset: 0; background: #3F6B2F; clip-path: polygon(0 40%, 12% 30%, 24% 42%, 38% 22%, 52% 38%, 66% 26%, 80% 40%, 100% 30%, 100% 100%, 0 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 56%; background: #5A4128; clip-path: polygon(0 30%, 20% 24%, 40% 34%, 60% 20%, 80% 32%, 100% 22%, 100% 100%, 0 100%)"></div>
+</div>
+<div style="position: absolute; left: 650px; top: 470px; width: 36px; height: 72px; background: #2E4E7A; animation: cocoWalk .6s ease-in-out infinite"><div style="position: absolute; left: 4px; top: -28px; width: 28px; height: 28px; background: #C9A27A"></div></div>
+<span style="position: absolute; left: 0; right: 0; top: 420px; text-align: center; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7)">[Flux vidéo du jeu]</span>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; top: 22px; display: flex; justify-content: center; pointer-events: none">
+<div role="status" aria-label="{{aria}}" style="position: relative; width: {{pill.w}}px; height: 56px; border-radius: 28px; background: rgba(28,28,30,0.78); border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 12px 34px rgba(0,0,0,0.35); backdrop-filter: blur(30px) saturate(1.6); -webkit-backdrop-filter: blur(30px) saturate(1.6); overflow: hidden; opacity: {{pill.op}}; transform: translateY({{pill.ty}}px) scale({{pill.sc}}); transition: {{pill.tr}}">
+<sc-for list="{{layers}}" as="l" hint-placeholder-count="3">
+<div style="position: absolute; left: 10px; top: 8px; display: flex; align-items: center; gap: 12px; white-space: nowrap; opacity: {{l.op}}; filter: blur({{l.blur}}px); transition: opacity 280ms ease {{l.delay}}ms, filter 280ms ease {{l.delay}}ms">
+<span style="width: 40px; height: 40px; border-radius: 50%; background: {{l.iconBg}}; display: flex; align-items: center; justify-content: center">
+<sc-if value="{{l.cell}}" hint-placeholder-val="{{false}}"><span style="display: flex; align-items: flex-end; gap: 2px; height: 14px"><span style="width: 3px; height: 5px; border-radius: 1px; background: #FFFFFF"></span><span style="width: 3px; height: 8px; border-radius: 1px; background: #FFFFFF"></span><span style="width: 3px; height: 11px; border-radius: 1px; background: #FFFFFF"></span><span style="width: 3px; height: 14px; border-radius: 1px; background: rgba(255,255,255,0.45)"></span></span></sc-if>
+<sc-if value="{{l.down}}" hint-placeholder-val="{{false}}"><svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.5v11M5.5 10l4.5 4.5 4.5-4.5" stroke="#F5F5F7" stroke-width="2" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg></sc-if>
+<sc-if value="{{l.wifi}}" hint-placeholder-val="{{false}}"><svg width="19" height="14" viewBox="0 0 18 13" aria-hidden="true"><circle cx="9" cy="11" r="1.6" fill="#FFFFFF"></circle><path d="M5.3 7.6a5.2 5.2 0 0 1 7.4 0" stroke="#FFFFFF" stroke-width="1.8" fill="none" stroke-linecap="round"></path><path d="M2.2 4.6a9.6 9.6 0 0 1 13.6 0" stroke="#FFFFFF" stroke-width="1.8" fill="none" stroke-linecap="round"></path></svg></sc-if>
+</span>
+<span style="display: flex; flex-direction: column; gap: 1px"><span style="font-size: 14px; font-weight: 600">{{l.title}}</span><span style="font-size: 12px; font-weight: 500; color: rgba(245,245,247,0.6)">{{l.sub}}</span></span>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 12000 }), 50);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const accent = this.props.accent ?? '#F2802A';
+    let st = '';
+    if (t >= 1200 && t < 3800) st = 'cell';
+    else if (t >= 4600 && t < 7400) st = 'down';
+    else if (t >= 8200 && t < 10800) st = 'wifi';
+    const L = [
+      { key: 'cell', title: 'Wi-Fi perdu · passage en 4G', sub: 'Le stream continue sans interruption', iconBg: accent },
+      { key: 'down', title: 'Qualité ajustée', sub: '720p · 8 Mb/s pour garder la fluidité', iconBg: 'rgba(255,255,255,0.16)' },
+      { key: 'wifi', title: 'Wi-Fi retrouvé', sub: 'Retour en 1080p · 20 Mb/s', iconBg: accent }
+    ];
+    const layers = L.map((l) => ({
+      title: l.title, sub: l.sub, iconBg: l.iconBg,
+      cell: l.key === 'cell', down: l.key === 'down', wifi: l.key === 'wifi',
+      op: l.key === st ? 1 : 0, blur: l.key === st ? 0 : 4, delay: l.key === st ? 120 : 0
+    }));
+    const widths = { cell: 360, down: 368, wifi: 300, '': 300 };
+    const vis = st !== '';
+    const lowQ = t >= 5000 && t < 8400;
+    return {
+      accent: accent,
+      layers: layers,
+      aria: vis ? L.find((l) => l.key === st).title : '',
+      pill: {
+        w: widths[st],
+        op: vis ? 1 : 0,
+        ty: vis ? 0 : -22,
+        sc: vis ? 1 : 0.9,
+        tr: vis ? 'opacity 240ms ease, transform 620ms cubic-bezier(.3,1.25,.4,1), width 520ms cubic-bezier(.3,1.15,.4,1)' : 'opacity 280ms ease-in, transform 360ms cubic-bezier(.4,0,1,1), width 360ms ease'
+      },
+      soft: lowQ ? 1.4 : 0,
+      sat: lowQ ? 0.92 : 1
+    };
+  }
+}
+</script>
+</body>
+</html>

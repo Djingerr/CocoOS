@@ -1,0 +1,774 @@
+{
+ "note": "Temps en ms depuis le début du cycle de la planche (voir reference/video/<id>.mp4). Les sons sont dans sounds/wav, les vibrations dans motion/haptics.json.",
+ "boards": {
+  "Demarrage": {
+   "title": "Démarrage → accueil",
+   "loop_ms": 10000,
+   "cues": [
+    {
+     "t_ms": 0,
+     "sound": "boot"
+    }
+   ]
+  },
+  "MotionNavigation": {
+   "title": "Navigation du carrousel",
+   "events": [
+    {
+     "on": "focus moves one cover",
+     "sound": "nav_move (rotate 1/2/3)",
+     "haptic": "nav"
+    },
+    {
+     "on": "focus moves while stick held (190 ms steps)",
+     "sound": "nav_move_fast",
+     "haptic": "nav"
+    },
+    {
+     "on": "end of list bump",
+     "sound": "nav_edge",
+     "haptic": "nav_edge"
+    }
+   ]
+  },
+  "MotionLancement": {
+   "title": "Lancement d'un jeu",
+   "cues": [
+    {
+     "t_ms": 900,
+     "sound": "launch_start"
+    },
+    {
+     "t_ms": 2000,
+     "sound": "connecting_loop",
+     "loop_until_ms": 5600
+    },
+    {
+     "t_ms": 5600,
+     "sound": "launch_ready",
+     "haptic": "launch"
+    }
+   ]
+  },
+  "MotionEchec": {
+   "title": "Hôte injoignable",
+   "cues": [
+    {
+     "t_ms": 100,
+     "sound": "connecting_loop",
+     "loop_until_ms": 2600
+    },
+    {
+     "t_ms": 2600,
+     "sound": "host_unreachable"
+    },
+    {
+     "t_ms": 6500,
+     "sound": "select",
+     "haptic": "select"
+    },
+    {
+     "t_ms": 6550,
+     "sound": "connecting_loop",
+     "loop_until_ms": 7400
+    }
+   ]
+  },
+  "MotionFiche": {
+   "title": "Accueil → fiche (↓ / ↑)",
+   "cues": [
+    {
+     "t_ms": 1100,
+     "sound": "fiche_open"
+    },
+    {
+     "t_ms": 4500,
+     "sound": "fiche_close"
+    }
+   ]
+  },
+  "MotionMenuJeu": {
+   "title": "Menu en jeu",
+   "cues": [
+    {
+     "t_ms": 1250,
+     "sound": "ingame_menu_open"
+    },
+    {
+     "t_ms": 2500,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 2900,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 3400,
+     "sound": "slider_tick"
+    },
+    {
+     "t_ms": 3600,
+     "sound": "slider_tick"
+    },
+    {
+     "t_ms": 3800,
+     "sound": "slider_tick"
+    },
+    {
+     "t_ms": 4000,
+     "sound": "slider_limit"
+    },
+    {
+     "t_ms": 4800,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 5100,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 5750,
+     "sound": "ingame_menu_close"
+    }
+   ]
+  },
+  "MotionReveil": {
+   "title": "Réveil depuis l'inactivité",
+   "cues": [
+    {
+     "t_ms": 1950,
+     "sound": "idle_exit"
+    }
+   ]
+  },
+  "MotionExtinction": {
+   "title": "Extinction",
+   "cues": [
+    {
+     "t_ms": 1200,
+     "sound": "shutdown"
+    }
+   ]
+  },
+  "MotionMicro": {
+   "title": "Micro-interactions",
+   "periodic": [
+    {
+     "period_ms": 2000,
+     "offset_ms": 800,
+     "sound": "select",
+     "haptic": "select"
+    },
+    {
+     "period_ms": 3200,
+     "offset_ms": 0,
+     "sound": "toggle_on",
+     "haptic": "toggle_on"
+    },
+    {
+     "period_ms": 3200,
+     "offset_ms": 1600,
+     "sound": "toggle_off"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 600,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 700,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 800,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 900,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 1000,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 1100,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 1200,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 1300,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 1400,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 1500,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 2400,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 2500,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 2600,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 2700,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 2800,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 2900,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 3000,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 3100,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 3200,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 4800,
+     "offset_ms": 3300,
+     "sound": "slider_tick"
+    },
+    {
+     "period_ms": 10000,
+     "offset_ms": 600,
+     "sound": "controller_connected"
+    },
+    {
+     "period_ms": 10000,
+     "offset_ms": 5600,
+     "sound": "battery_low"
+    },
+    {
+     "period_ms": 6000,
+     "offset_ms": 1500,
+     "sound": "network_unstable"
+    }
+   ]
+  },
+  "MotionVeille": {
+   "title": "Mise en veille et réveil (appui court)",
+   "cues": [
+    {
+     "t_ms": 1250,
+     "sound": "sleep"
+    },
+    {
+     "t_ms": 4350,
+     "sound": "wake"
+    }
+   ]
+  },
+  "MotionHud": {
+   "title": "Volume (boutons du haut)",
+   "cues": [
+    {
+     "t_ms": 900,
+     "sound": "volume_tick"
+    },
+    {
+     "t_ms": 1130,
+     "sound": "volume_tick"
+    },
+    {
+     "t_ms": 1360,
+     "sound": "volume_tick"
+    },
+    {
+     "t_ms": 1590,
+     "sound": "volume_tick"
+    },
+    {
+     "t_ms": 1820,
+     "sound": "volume_tick"
+    },
+    {
+     "t_ms": 2120,
+     "sound": "volume_limit",
+     "haptic": "volume_limit"
+    },
+    {
+     "t_ms": 2400,
+     "sound": "volume_limit",
+     "haptic": "volume_limit"
+    },
+    {
+     "t_ms": 5200,
+     "sound": "volume_tick"
+    },
+    {
+     "t_ms": 5420,
+     "sound": "volume_tick"
+    },
+    {
+     "t_ms": 5640,
+     "sound": "volume_tick"
+    },
+    {
+     "t_ms": 5860,
+     "sound": "volume_tick"
+    },
+    {
+     "t_ms": 6080,
+     "sound": "volume_tick"
+    },
+    {
+     "t_ms": 6400,
+     "sound": "volume_limit",
+     "haptic": "volume_limit"
+    },
+    {
+     "t_ms": 6680,
+     "sound": "volume_limit",
+     "haptic": "volume_limit"
+    }
+   ]
+  },
+  "MotionCapture": {
+   "title": "Capture d'écran",
+   "cues": [
+    {
+     "t_ms": 1000,
+     "sound": "capture",
+     "haptic": "capture"
+    }
+   ]
+  },
+  "MotionQuitter": {
+   "title": "Quitter le jeu → accueil",
+   "cues": [
+    {
+     "t_ms": 1000,
+     "sound": "select",
+     "haptic": "select"
+    },
+    {
+     "t_ms": 1300,
+     "sound": "quit_prompt"
+    },
+    {
+     "t_ms": 2150,
+     "sound": "quit_confirm"
+    }
+   ]
+  },
+  "MotionCategories": {
+   "title": "Catégories (LB / RB)",
+   "cues": [
+    {
+     "t_ms": 1100,
+     "sound": "category_next",
+     "haptic": "category"
+    },
+    {
+     "t_ms": 3100,
+     "sound": "category_next",
+     "haptic": "category"
+    },
+    {
+     "t_ms": 5100,
+     "sound": "category_prev",
+     "haptic": "category"
+    },
+    {
+     "t_ms": 6500,
+     "sound": "category_prev",
+     "haptic": "category"
+    }
+   ]
+  },
+  "MotionOptions": {
+   "title": "Options (Y)",
+   "cues": [
+    {
+     "t_ms": 900,
+     "sound": "sheet_open"
+    },
+    {
+     "t_ms": 1850,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 2350,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 3150,
+     "sound": "tab_switch"
+    },
+    {
+     "t_ms": 3750,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 4150,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 4550,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 5150,
+     "sound": "toggle_off"
+    },
+    {
+     "t_ms": 6300,
+     "sound": "sheet_close"
+    }
+   ]
+  },
+  "MotionRecharge": {
+   "title": "Recharge console éteinte",
+   "cues": [
+    {
+     "t_ms": 1000,
+     "sound": "charging_start"
+    },
+    {
+     "t_ms": 5000,
+     "sound": "charging_stop"
+    }
+   ]
+  },
+  "MotionAppairage": {
+   "title": "Appairage (code PIN)",
+   "cues": [
+    {
+     "t_ms": 900,
+     "sound": "pairing_code"
+    },
+    {
+     "t_ms": 5200,
+     "sound": "pairing_success",
+     "haptic": "pairing_ok"
+    },
+    {
+     "t_ms": 6100,
+     "sound": "select",
+     "haptic": "select"
+    }
+   ]
+  },
+  "MotionSalon": {
+   "title": "Mode salon (TV)",
+   "cues": [
+    {
+     "t_ms": 1400,
+     "sound": "tv_connected"
+    },
+    {
+     "t_ms": 6600,
+     "sound": "tv_disconnected"
+    }
+   ]
+  },
+  "MotionReveilPC": {
+   "title": "Réveil du PC à distance",
+   "cues": [
+    {
+     "t_ms": 1150,
+     "sound": "host_wake_send"
+    },
+    {
+     "t_ms": 1350,
+     "sound": "connecting_loop",
+     "loop_until_ms": 4300
+    },
+    {
+     "t_ms": 4300,
+     "sound": "host_online"
+    }
+   ]
+  },
+  "MotionReseau": {
+   "title": "Changement de réseau",
+   "cues": [
+    {
+     "t_ms": 1200,
+     "sound": "network_cellular"
+    },
+    {
+     "t_ms": 4600,
+     "sound": "network_quality_down"
+    },
+    {
+     "t_ms": 8200,
+     "sound": "network_restored"
+    }
+   ]
+  },
+  "MotionJaquettes": {
+   "title": "Chargement des jaquettes",
+   "cues": [
+    {
+     "t_ms": 1350,
+     "sound": "library_ready"
+    }
+   ]
+  },
+  "MotionFavori": {
+   "title": "Ajout aux favoris",
+   "cues": [
+    {
+     "t_ms": 1080,
+     "sound": "favorite_add",
+     "haptic": "favorite"
+    },
+    {
+     "t_ms": 4080,
+     "sound": "favorite_remove"
+    }
+   ]
+  },
+  "MotionMiseAJour": {
+   "title": "Mise à jour système",
+   "cues": [
+    {
+     "t_ms": 6000,
+     "sound": "update_restart"
+    },
+    {
+     "t_ms": 7400,
+     "sound": "update_installed"
+    }
+   ]
+  },
+  "MotionAlertes": {
+   "title": "Alertes critiques",
+   "cues": [
+    {
+     "t_ms": 800,
+     "sound": "battery_critical",
+     "haptic": "battery_critical"
+    },
+    {
+     "t_ms": 5400,
+     "sound": "controller_disconnected",
+     "haptic": "pad_lost"
+    },
+    {
+     "t_ms": 8400,
+     "sound": "controller_connected"
+    }
+   ]
+  },
+  "MotionClavier": {
+   "title": "Saisie au clavier",
+   "cues": [
+    {
+     "t_ms": 600,
+     "sound": "sheet_open"
+    },
+    {
+     "t_ms": 1150,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 1450,
+     "sound": "nav_move_fast",
+     "haptic": "nav"
+    },
+    {
+     "t_ms": 1850,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 2150,
+     "sound": "nav_move_fast",
+     "haptic": "nav"
+    },
+    {
+     "t_ms": 2550,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 2800,
+     "sound": "nav_move_fast",
+     "haptic": "nav"
+    },
+    {
+     "t_ms": 3150,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 3400,
+     "sound": "nav_move_fast",
+     "haptic": "nav"
+    },
+    {
+     "t_ms": 3800,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 4450,
+     "sound": "tab_switch"
+    },
+    {
+     "t_ms": 4850,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 5150,
+     "sound": "nav_move_fast",
+     "haptic": "nav"
+    },
+    {
+     "t_ms": 5650,
+     "sound": "nav_move_fast",
+     "haptic": "nav"
+    },
+    {
+     "t_ms": 6050,
+     "sound": "nav_move_fast",
+     "haptic": "nav"
+    },
+    {
+     "t_ms": 6500,
+     "sound": "back",
+     "haptic": "back"
+    },
+    {
+     "t_ms": 7100,
+     "sound": "select",
+     "haptic": "select"
+    },
+    {
+     "t_ms": 7300,
+     "sound": "connecting_loop",
+     "loop_until_ms": 7900
+    },
+    {
+     "t_ms": 7900,
+     "sound": "host_online"
+    }
+   ]
+  },
+  "MotionSetupFin": {
+   "title": "Fin de configuration → accueil",
+   "cues": [
+    {
+     "t_ms": 700,
+     "sound": "select",
+     "haptic": "select"
+    },
+    {
+     "t_ms": 1300,
+     "sound": "update_installed"
+    },
+    {
+     "t_ms": 3400,
+     "sound": "idle_exit"
+    }
+   ]
+  },
+  "MotionAlimentation": {
+   "title": "Appui long → menu → redémarrage",
+   "cues": [
+    {
+     "t_ms": 1900,
+     "sound": "sheet_open"
+    },
+    {
+     "t_ms": 2700,
+     "sound": "focus_tick"
+    },
+    {
+     "t_ms": 3300,
+     "sound": "select",
+     "haptic": "select"
+    },
+    {
+     "t_ms": 3600,
+     "sound": "update_restart"
+    },
+    {
+     "t_ms": 4500,
+     "sound": "boot"
+    }
+   ]
+  },
+  "MotionAccent": {
+   "title": "Accent tiré de la jaquette",
+   "cues": [
+    {
+     "t_ms": 3000,
+     "sound": "nav_move_1",
+     "haptic": "nav"
+    },
+    {
+     "t_ms": 6000,
+     "sound": "nav_move_2",
+     "haptic": "nav"
+    }
+   ]
+  },
+  "MotionInterruption": {
+   "title": "Animations interrompues",
+   "cues": [
+    {
+     "t_ms": 600,
+     "sound": "sheet_open"
+    },
+    {
+     "t_ms": 900,
+     "sound": "sheet_close"
+    }
+   ]
+  },
+  "MotionReduite": {
+   "title": "Réduire les animations",
+   "cues": [
+    {
+     "t_ms": 600,
+     "sound": "quit_prompt"
+    },
+    {
+     "t_ms": 3200,
+     "sound": "notification"
+    }
+   ]
+  }
+ }
+}

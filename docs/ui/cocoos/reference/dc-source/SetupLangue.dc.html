@@ -1,0 +1,43 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Première configuration — Langue</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&family=Noto+Sans+JP:wght@400;600&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+button{cursor:default}
+@keyframes cocoAurora{0%{transform:translate(0,0) scale(1)}100%{transform:translate(-80px,40px) scale(1.15)}}
+@keyframes cocoSpin{to{transform:rotate(360deg)}}
+@keyframes cocoShimmer{0%{transform:translateX(-120%)}100%{transform:translateX(220%)}}
+
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', 'Noto Sans JP', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: -140px; animation: cocoAurora 24s ease-in-out infinite alternate">
+<div style="position: absolute; left: 260px; top: 560px; width: 1000px; height: 560px; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in oklab, var(--accent) 30%, transparent), transparent); filter: blur(50px)"></div>
+<div style="position: absolute; left: 900px; top: 60px; width: 640px; height: 460px; border-radius: 50%; background: radial-gradient(closest-side, rgba(110,155,255,0.16), transparent); filter: blur(60px)"></div>
+</div>
+<svg aria-hidden="true" width="1280" height="800" style="position: absolute; left: 0; top: 0; opacity: 0.07; mix-blend-mode: overlay"><filter id="grainLa"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"></feTurbulence><feColorMatrix type="saturate" values="0"></feColorMatrix></filter><rect width="1280" height="800" filter="url(#grainLa)"></rect></svg>
+
+<h1 style="position: absolute; left: 0; right: 0; top: 96px; margin: 0; text-align: center; font-size: 36px; font-weight: 600; letter-spacing: -0.03em; line-height: 1.2">Choisissez votre langue</h1>
+<p style="position: absolute; left: 290px; right: 290px; top: 148px; margin: 0; text-align: center; font-size: 15px; font-weight: 500; line-height: 1.5; color: rgba(245,245,247,0.6)">Vous pourrez la changer plus tard dans Réglages › Général.</p>
+<div style="position: absolute; left: 360px; top: 214px; width: 560px"><div style="border-radius: 20px; background: rgba(255,255,255,0.07); border: 1px solid rgba(255,255,255,0.06); overflow: hidden"><div style="height: 52px; padding: 0 18px; display: flex; align-items: center; gap: 12px; background: rgba(255,255,255,0.14);"><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 16px; font-weight: 600">Français</span></span><span style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: rgba(245,245,247,0.6)"><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M4.5 10.5l3.6 3.6L15.5 6.5" stroke="var(--accent)" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"></path></svg></span></div><div style="height: 1px; margin-left: 18px; background: rgba(255,255,255,0.08)"></div><div style="height: 52px; padding: 0 18px; display: flex; align-items: center; gap: 12px; "><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 16px; font-weight: 500">English</span></span><span style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: rgba(245,245,247,0.6)"></span></div><div style="height: 1px; margin-left: 18px; background: rgba(255,255,255,0.08)"></div><div style="height: 52px; padding: 0 18px; display: flex; align-items: center; gap: 12px; "><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 16px; font-weight: 500">Español</span></span><span style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: rgba(245,245,247,0.6)"></span></div><div style="height: 1px; margin-left: 18px; background: rgba(255,255,255,0.08)"></div><div style="height: 52px; padding: 0 18px; display: flex; align-items: center; gap: 12px; "><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 16px; font-weight: 500">Deutsch</span></span><span style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: rgba(245,245,247,0.6)"></span></div><div style="height: 1px; margin-left: 18px; background: rgba(255,255,255,0.08)"></div><div style="height: 52px; padding: 0 18px; display: flex; align-items: center; gap: 12px; "><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 16px; font-weight: 500">Italiano</span></span><span style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: rgba(245,245,247,0.6)"></span></div><div style="height: 1px; margin-left: 18px; background: rgba(255,255,255,0.08)"></div><div style="height: 52px; padding: 0 18px; display: flex; align-items: center; gap: 12px; "><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 16px; font-weight: 500">Português</span></span><span style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: rgba(245,245,247,0.6)"></span></div><div style="height: 1px; margin-left: 18px; background: rgba(255,255,255,0.08)"></div><div style="height: 52px; padding: 0 18px; display: flex; align-items: center; gap: 12px; "><span style="flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px"><span style="font-size: 16px; font-weight: 500">日本語</span></span><span style="display: flex; align-items: center; gap: 10px; font-size: 14px; font-weight: 500; color: rgba(245,245,247,0.6)"></span></div></div><div style="margin-top: 16px; display: flex; justify-content: center; gap: 8px; font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.55)">Région France · clavier AZERTY · format 24 h</div></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 34px; display: flex; justify-content: center; gap: 26px; font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.6)"><span style="display: flex; align-items: center; gap: 8px"><span style="min-width: 22px; height: 22px; padding: 0; box-sizing: border-box; border-radius: 11px; border: 1px solid rgba(245,245,247,0.45); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #F5F5F7">A</span>Choisir</span><span style="display: flex; align-items: center; gap: 8px"><span style="min-width: 22px; height: 22px; padding: 0; box-sizing: border-box; border-radius: 11px; border: 1px solid rgba(245,245,247,0.45); display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: #F5F5F7">B</span>Retour</span></div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  renderVals() {
+    return { accent: this.props.accent ?? '#F2802A' };
+  }
+}
+</script>
+</body>
+</html>

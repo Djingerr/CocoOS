@@ -1,0 +1,88 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Première configuration — Bonjour</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&family=Noto+Sans+JP:wght@300;600&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+button{cursor:default}
+@keyframes cocoAurora{0%{transform:translate(0,0) scale(1)}100%{transform:translate(-80px,40px) scale(1.15)}}
+@keyframes cocoBreath{0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(245,245,247,0.0)}50%{transform:scale(1.04);box-shadow:0 0 0 8px rgba(245,245,247,0.08)}}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', 'Noto Sans JP', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: -140px; animation: cocoAurora 24s ease-in-out infinite alternate">
+<div style="position: absolute; left: 260px; top: 420px; width: 1000px; height: 600px; border-radius: 50%; background: radial-gradient(closest-side, color-mix(in oklab, var(--accent) 40%, transparent), transparent); filter: blur(50px); opacity: {{glow}}; transition: opacity 1600ms ease"></div>
+<div style="position: absolute; left: 900px; top: 80px; width: 640px; height: 460px; border-radius: 50%; background: radial-gradient(closest-side, rgba(110,155,255,0.2), transparent); filter: blur(60px)"></div>
+<div style="position: absolute; left: 60px; top: 60px; width: 520px; height: 380px; border-radius: 50%; background: radial-gradient(closest-side, rgba(242,128,42,0.12), transparent); filter: blur(60px)"></div>
+</div>
+<svg aria-hidden="true" width="1280" height="800" style="position: absolute; left: 0; top: 0; opacity: 0.07; mix-blend-mode: overlay"><filter id="grainHi"><feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2" stitchTiles="stitch"></feTurbulence><feColorMatrix type="saturate" values="0"></feColorMatrix></filter><rect width="1280" height="800" filter="url(#grainHi)"></rect></svg>
+
+<div style="position: absolute; left: 0; right: 0; top: 300px; height: 140px">
+<sc-for list="{{words}}" as="w" hint-placeholder-count="7">
+<div lang="{{w.lang}}" style="position: absolute; left: 0; right: 0; top: 0; text-align: center; font-size: 112px; line-height: 140px; font-weight: {{w.wght}}; letter-spacing: {{w.ls}}em; opacity: {{w.op}}; filter: blur({{w.blur}}px); transform: translateY({{w.ty}}px) scale({{w.sc}}); transition: {{w.tr}}">{{w.text}}</div>
+</sc-for>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 96px; display: flex; flex-direction: column; align-items: center; gap: 18px; opacity: {{cta.op}}; transform: translateY({{cta.ty}}px); transition: opacity 800ms ease, transform 900ms cubic-bezier(.32,.72,0,1)">
+<span style="width: 52px; height: 52px; border-radius: 50%; background: #F5F5F7; color: #000; display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700; animation: cocoBreath 2.4s ease-in-out infinite">A</span>
+<span style="font-size: 15px; font-weight: 500; color: rgba(245,245,247,0.6)">Appuyez pour commencer</span>
+</div>
+<div style="position: absolute; left: 56px; bottom: 40px; font-size: 13px; font-weight: 600; letter-spacing: -0.01em; color: rgba(245,245,247,0.4)">Coco<span style="color: var(--accent)">OS</span></div>
+<div style="position: absolute; right: 56px; bottom: 40px; display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 500; color: rgba(245,245,247,0.4)"><svg width="20" height="14" viewBox="0 0 22 16" aria-hidden="true"><path d="M6 2h10a4 4 0 0 1 3.9 3.1l1 4.6a2.2 2.2 0 0 1-3.8 1.9L15 9.5H7l-2.1 2.1a2.2 2.2 0 0 1-3.8-1.9l1-4.6A4 4 0 0 1 6 2z" fill="none" stroke="rgba(245,245,247,0.5)" stroke-width="1.3" stroke-linejoin="round"></path></svg>Manette intégrée prête</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 15000 }), 50);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const W = [['Bonjour', 'fr'], ['Hello', 'en'], ['Hola', 'es'], ['Hallo', 'de'], ['Ciao', 'it'], ['こんにちは', 'ja'], ['Olá', 'pt']];
+    const STEP = 1700, START = 500;
+    const cur = t < START ? -1 : Math.min(W.length - 1, Math.floor((t - START) / STEP));
+    const local = t - START - cur * STEP;
+    const end = START + W.length * STEP;      // after the last word, Bonjour returns and stays
+    const final = t >= end;
+    const words = W.map((w, i) => {
+      let state = 'before';
+      if (final || cur < 0) state = i === 0 ? 'on' : 'after';
+      else if (i < cur || (i === cur && local > STEP - 450)) state = 'after';
+      else if (i === cur) state = 'on';
+      const on = state === 'on';
+      return {
+        text: w[0], lang: w[1],
+        op: on ? 1 : 0,
+        blur: on ? 0 : 14,
+        wght: on ? 600 : 200,
+        ls: on ? -0.045 : 0.06,
+        ty: on ? 0 : (state === 'before' ? 18 : -14),
+        sc: on ? 1 : (state === 'before' ? 0.96 : 1.02),
+        tr: on
+          ? 'opacity 700ms ease, filter 800ms ease, transform 1100ms cubic-bezier(.32,.72,0,1), font-weight 1200ms cubic-bezier(.32,.72,0,1), letter-spacing 1200ms cubic-bezier(.32,.72,0,1)'
+          : 'opacity 380ms ease-in, filter 380ms ease-in, transform 420ms cubic-bezier(.4,0,1,1), font-weight 400ms ease, letter-spacing 400ms ease'
+      };
+    });
+    return {
+      accent: this.props.accent ?? '#F2802A',
+      words: words,
+      glow: final ? 1 : 0.55,
+      cta: true ? { op: 1, ty: 0 } : { op: 0, ty: 14 }
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,119 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Motion — Alertes critiques</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+@keyframes cocoCloud{0%{transform:translateX(0)}100%{transform:translateX(-300px)}}
+@keyframes cocoWalk{0%,100%{transform:translateY(0)}50%{transform:translateY(-6px)}}
+@keyframes cocoPan{0%{transform:translateX(0)}100%{transform:translateX(-120px)}}
+@keyframes cocoBlink{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes cocoRock{0%,100%{transform:rotate(-5deg)}50%{transform:rotate(5deg)}}
+@keyframes cocoSpin{to{transform:rotate(360deg)}}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: -60px; filter: {{frame}}; transition: filter 480ms cubic-bezier(.32,.72,0,1)">
+<div style="position: absolute; inset: 0; background: linear-gradient(180deg, #7FB6DE 0%, #BFDDF0 46%, #6E9F55 47%, #4C7A39 70%, #3A2B1D 100%)"></div>
+<div style="position: absolute; left: 1040px; top: 120px; width: 90px; height: 90px; border-radius: 50%; background: radial-gradient(circle, #FFF6D6 0%, rgba(255,246,214,0) 70%)"></div>
+<div style="position: absolute; left: 0; top: 140px; width: 1800px; height: 120px; animation: cocoCloud 16s linear infinite alternate; animation-play-state: {{play}}">
+<div style="position: absolute; left: 240px; top: 10px; width: 180px; height: 40px; background: rgba(255,255,255,0.85)"></div>
+<div style="position: absolute; left: 700px; top: 50px; width: 240px; height: 44px; background: rgba(255,255,255,0.8)"></div>
+<div style="position: absolute; left: 1180px; top: 0; width: 160px; height: 36px; background: rgba(255,255,255,0.85)"></div>
+</div>
+<div style="position: absolute; left: 0; bottom: 0; width: 1600px; height: 60%; animation: cocoPan 12s ease-in-out infinite alternate; animation-play-state: {{play}}">
+<div style="position: absolute; inset: 0; background: #3F6B2F; clip-path: polygon(0 40%, 12% 30%, 24% 42%, 38% 22%, 52% 38%, 66% 26%, 80% 40%, 100% 30%, 100% 100%, 0 100%)"></div>
+<div style="position: absolute; left: 0; right: 0; bottom: 0; height: 56%; background: #5A4128; clip-path: polygon(0 30%, 20% 24%, 40% 34%, 60% 20%, 80% 32%, 100% 22%, 100% 100%, 0 100%)"></div>
+</div>
+<div style="position: absolute; left: 650px; top: 470px; width: 36px; height: 72px; background: #2E4E7A; animation: cocoWalk .6s ease-in-out infinite; animation-play-state: {{play}}"><div style="position: absolute; left: 4px; top: -28px; width: 28px; height: 28px; background: #C9A27A"></div></div>
+<span style="position: absolute; left: 0; right: 0; top: 420px; text-align: center; font-size: 12px; font-weight: 500; color: rgba(255,255,255,0.7)">[Flux vidéo du jeu]</span>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; top: 22px; display: flex; justify-content: center; pointer-events: none">
+<div role="alert" style="display: flex; align-items: center; gap: 14px; height: 64px; padding: 0 22px 0 12px; border-radius: 32px; background: rgba(28,28,30,0.8); border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 14px 36px rgba(0,0,0,0.4); backdrop-filter: blur(30px) saturate(1.6); -webkit-backdrop-filter: blur(30px) saturate(1.6); white-space: nowrap; opacity: {{bat.op}}; transform: translateY({{bat.ty}}px) scale({{bat.sc}}); transition: {{bat.tr}}">
+<span style="width: 44px; height: 44px; border-radius: 50%; background: rgba(255,255,255,0.1); display: flex; align-items: center; justify-content: center">
+<svg width="26" height="13" viewBox="0 0 27 13" aria-hidden="true"><rect x="0.5" y="0.5" width="23" height="12" rx="3.5" fill="none" stroke="#F5F5F7" stroke-opacity="0.7"></rect><rect x="2" y="2" width="2.6" height="9" rx="1.2" style="fill: var(--accent); animation: cocoBlink 1.2s ease-in-out infinite"></rect><rect x="24.8" y="4.5" width="1.6" height="4" rx="0.8" fill="#F5F5F7" fill-opacity="0.7"></rect></svg>
+</span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600">Batterie très faible · 5 %</span><span style="font-size: 12px; font-weight: 500; color: rgba(245,245,247,0.62)">Branchez la console. Mise en veille dans 2 min.</span></span>
+</div>
+</div>
+
+<div role="alertdialog" aria-label="{{padTitle}}" style="position: absolute; left: 430px; top: 230px; width: 420px; box-sizing: border-box; padding: 32px 28px 28px; border-radius: 32px; background: rgba(44,44,46,0.84); border: 1px solid rgba(255,255,255,0.1); box-shadow: 0 30px 80px rgba(0,0,0,0.5); backdrop-filter: blur(40px) saturate(1.6); -webkit-backdrop-filter: blur(40px) saturate(1.6); display: flex; flex-direction: column; align-items: center; text-align: center; opacity: {{pad.op}}; transform: scale({{pad.sc}}); transition: {{pad.tr}}">
+<div style="position: relative; width: 84px; height: 64px">
+<svg width="84" height="61" viewBox="0 0 22 16" aria-hidden="true" style="position: absolute; left: 0; top: 2px; animation: {{rock}}; transform-origin: 50% 60%"><path d="M6 2h10a4 4 0 0 1 3.9 3.1l1 4.6a2.2 2.2 0 0 1-3.8 1.9L15 9.5H7l-2.1 2.1a2.2 2.2 0 0 1-3.8-1.9l1-4.6A4 4 0 0 1 6 2z" fill="none" stroke="#F5F5F7" stroke-width="0.9" stroke-linejoin="round"></path><path d="M7 4.5v3M5.5 6h3" stroke="#F5F5F7" stroke-width="0.9" stroke-linecap="round"></path><circle cx="15" cy="5" r="0.7" fill="#F5F5F7"></circle><circle cx="16.6" cy="6.8" r="0.7" fill="#F5F5F7"></circle></svg>
+<span style="position: absolute; right: -6px; bottom: -6px; width: 30px; height: 30px; border-radius: 50%; background: var(--accent); display: flex; align-items: center; justify-content: center; box-shadow: 0 0 0 3px rgba(44,44,46,1); opacity: {{okBadge.op}}; transform: scale({{okBadge.sc}}); transition: {{okBadge.tr}}"><svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M5.5 10.5l3 3L14.5 7" fill="none" stroke="#FFFFFF" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"></path></svg></span>
+</div>
+<div style="position: relative; width: 100%; height: 76px; margin-top: 20px">
+<sc-for list="{{padTexts}}" as="x" hint-placeholder-count="2">
+<div style="position: absolute; left: 0; right: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: {{x.op}}; transform: translateY({{x.ty}}px); filter: blur({{x.blur}}px); transition: opacity 320ms ease, transform 480ms cubic-bezier(.32,.72,0,1), filter 320ms ease">
+<span style="font-size: 20px; font-weight: 600; letter-spacing: -0.02em">{{x.title}}</span>
+<span style="font-size: 14px; font-weight: 500; line-height: 1.5; color: rgba(245,245,247,0.65); white-space: pre-line">{{x.body}}</span>
+</div>
+</sc-for>
+</div>
+<div style="margin-top: 14px; display: flex; align-items: center; gap: 10px; font-size: 13px; font-weight: 500; color: rgba(245,245,247,0.55); opacity: {{searchOp}}; transition: opacity 250ms ease">
+<svg width="16" height="16" viewBox="0 0 18 18" aria-hidden="true" style="animation: cocoSpin 1s linear infinite"><circle cx="9" cy="9" r="7" fill="none" stroke-width="2.4" style="stroke: {{track}}"></circle><circle cx="9" cy="9" r="7" fill="none" stroke-width="2.4" stroke-linecap="round" stroke-dasharray="12 32" style="stroke: var(--accent)"></circle></svg>
+Recherche de la manette…
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 12000 }), 50);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const accent = this.props.accent ?? '#F2802A';
+    const E = 'cubic-bezier(.32,.72,0,1)';
+    const batOn = t >= 800 && t < 4400;
+    const padOn = t >= 5400 && t < 9700;
+    const paused = t >= 5400 && t < 9900;
+    const back = t >= 8400;
+    const padTexts = [
+      { title: 'Manette déconnectée', body: 'Le jeu est en pause.\nReconnectez la manette pour reprendre.' },
+      { title: 'Manette reconnectée', body: 'Reprise du jeu…' }
+    ].map((x, i) => {
+      const cur = back ? 1 : 0;
+      return { title: x.title, body: x.body, op: i === cur ? 1 : 0, ty: i === cur ? 0 : (i < cur ? -10 : 10), blur: i === cur ? 0 : 5 };
+    });
+    return {
+      accent: accent,
+      track: 'color-mix(in oklab, ' + accent + ' 25%, transparent)',
+      play: paused ? 'paused' : 'running',
+      frame: paused ? 'blur(24px) brightness(0.55) saturate(1.1)' : 'blur(0px) brightness(1) saturate(1)',
+      bat: {
+        op: batOn ? 1 : 0,
+        ty: batOn ? 0 : -24,
+        sc: batOn ? 1 : 0.9,
+        tr: batOn ? 'opacity 240ms ease, transform 640ms cubic-bezier(.3,1.25,.4,1)' : 'opacity 280ms ease-in, transform 360ms cubic-bezier(.4,0,1,1)'
+      },
+      pad: {
+        op: padOn ? 1 : 0,
+        sc: padOn ? 1 : 0.94,
+        tr: padOn ? 'opacity 260ms ease 150ms, transform 560ms cubic-bezier(.3,1.25,.4,1) 150ms' : 'opacity 220ms ease, transform 260ms ease'
+      },
+      padTitle: back ? 'Manette reconnectée' : 'Manette déconnectée',
+      padTexts: padTexts,
+      rock: back ? 'none' : 'cocoRock 1.6s ease-in-out infinite',
+      okBadge: { op: back ? 1 : 0, sc: back ? 1 : 0.3, tr: back ? 'opacity 150ms ease, transform 560ms cubic-bezier(.3,1.7,.4,1)' : 'none' },
+      searchOp: back ? 0 : 1
+    };
+  }
+}
+</script>
+</body>
+</html>

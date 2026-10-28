@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Motion — Mise à jour système</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div style="position: absolute; inset: 0; opacity: {{scene.op}}; filter: blur({{scene.blur}}px); transform: scale({{scene.sc}}); transition: {{scene.tr}}">
+<div aria-hidden="true" style="position: absolute; left: 626px; top: 320px; width: 160px; height: 160px; border-radius: 50%; background: radial-gradient(circle, var(--accent) 0%, rgba(0,0,0,0) 65%); filter: blur(24px); opacity: {{glow}}; transition: opacity 500ms ease"></div>
+<span style="position: absolute; right: 601.7px; top: 369.66px; height: 64px; font-size: 64px; font-weight: 600; letter-spacing: -1.28px; line-height: 64px; white-space: nowrap">Coco</span>
+<span style="position: absolute; left: 732.4px; top: 369.66px; height: 64px; font-size: 64px; font-weight: 600; letter-spacing: -1.28px; line-height: 64px; white-space: nowrap; color: var(--accent)">S</span>
+<div role="progressbar" aria-label="Installation" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{pct}}" style="position: absolute; left: 681.35px; top: 375.35px; width: 49.3px; height: 49.3px">
+<div style="position: absolute; inset: 0; box-sizing: border-box; border: 8.8px solid {{track}}; border-radius: 50%"></div>
+<svg width="49.3" height="49.3" viewBox="0 0 49.3 49.3" aria-hidden="true" style="position: absolute; inset: 0"><circle cx="24.65" cy="24.65" r="20.25" fill="none" stroke-width="8.8" stroke-dasharray="127.23" transform="rotate(-90 24.65 24.65)" style="stroke: var(--accent); stroke-dashoffset: {{off}}; transition: {{offTr}}"></circle></svg>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 476px; height: 90px">
+<sc-for list="{{texts}}" as="x" hint-placeholder-count="2">
+<div style="position: absolute; left: 0; right: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 6px; opacity: {{x.op}}; transform: translateY({{x.ty}}px); filter: blur({{x.blur}}px); transition: opacity 360ms ease, transform 520ms cubic-bezier(.32,.72,0,1), filter 360ms ease">
+<span style="font-size: 16px; font-weight: 600">{{x.title}}</span>
+<span style="font-size: 14px; font-weight: 500; color: rgba(245,245,247,0.6); font-variant-numeric: tabular-nums">{{x.sub}}</span>
+<span style="margin-top: 10px; font-size: 12px; font-weight: 500; color: rgba(245,245,247,0.4)">{{x.note}}</span>
+</div>
+</sc-for>
+</div>
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 11000 }), 50);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const accent = this.props.accent ?? '#F2802A';
+    const seg = (a, b, va, vb) => (t <= a ? va : (t >= b ? vb : va + (vb - va) * ((t - a) / (b - a))));
+    let p;
+    if (t < 600) p = 0;
+    else if (t < 2200) p = seg(600, 2200, 0, 0.34);
+    else if (t < 3000) p = seg(2200, 3000, 0.34, 0.38);
+    else if (t < 5200) p = seg(3000, 5200, 0.38, 0.92);
+    else if (t < 6000) p = seg(5200, 6000, 0.92, 1);
+    else p = 1;
+    const phaseA = t < 6600;
+    const phaseB = t >= 7400 && t < 10200;
+    const visible = (t >= 150 && phaseA) || phaseB;
+    const restarting = t >= 6000 && t < 6600;
+    const pct = Math.round(p * 100);
+    const which = phaseB ? 2 : (restarting ? 1 : 0);
+    const T = [
+      { title: 'Mise à jour vers CocoOS 1.2', sub: 'Installation · ' + pct + ' %', note: 'Ne débranchez pas et n’éteignez pas la console' },
+      { title: 'Mise à jour installée', sub: 'Redémarrage…', note: '' },
+      { title: 'CocoOS 1.2 est installé', sub: 'Votre console est à jour', note: '' }
+    ];
+    const texts = T.map((x, i) => Object.assign({}, x, { op: i === which && visible ? 1 : 0, ty: i === which ? 0 : (i < which ? -10 : 10), blur: i === which ? 0 : 5 }));
+    const C = 127.23;
+    return {
+      accent: accent,
+      track: 'color-mix(in oklab, ' + accent + ' 25%, transparent)',
+      off: phaseB ? 0 : C * (1 - p),
+      offTr: t < 600 || (t >= 7000 && t < 7400) ? 'none' : 'stroke-dashoffset 140ms linear',
+      pct: pct,
+      glow: restarting || (phaseB && t < 8400) ? 0.55 : 0.18,
+      texts: texts,
+      scene: visible
+        ? { op: 1, blur: 0, sc: 1, tr: 'opacity 600ms ease, filter 600ms ease, transform 800ms cubic-bezier(.32,.72,0,1)' }
+        : { op: 0, blur: 8, sc: 0.97, tr: 'opacity 550ms ease-in, filter 550ms ease-in, transform 550ms ease-in' }
+    };
+  }
+}
+</script>
+</body>
+</html>

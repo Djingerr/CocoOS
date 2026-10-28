@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Motion — Accent tiré de la jaquette</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+@keyframes cocoLive{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</helmet>
+<div style="--accent: {{acc}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<sc-for list="{{bgs}}" as="b" hint-placeholder-count="3">
+<div aria-hidden="true" style="position: absolute; inset: -100px; background: {{b.art}}; filter: blur(100px) saturate(1.1); opacity: {{b.op}}; transition: opacity 900ms cubic-bezier(.32,.72,0,1)"></div>
+</sc-for>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.85) 75%)"></div>
+
+<div style="position: absolute; left: 72px; top: 34px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">Coco<span style="color: {{acc}}; transition: color 900ms ease">OS</span></div>
+<div style="position: absolute; top: 30px; right: 56px; display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px; border-radius: 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); font-size: 13px; font-weight: 600"><span style="width: 6px; height: 6px; border-radius: 50%; background: {{acc}}; transition: background 900ms ease; animation: cocoLive 2.4s ease-in-out infinite"></span>PC-Salon<span style="color: rgba(245,245,247,0.55); font-weight: 500">4 ms</span></div>
+
+<div style="position: absolute; left: 0; top: 0; width: 1280px; height: 560px; perspective: 900px">
+<sc-for list="{{covers}}" as="c" hint-placeholder-count="5">
+<div style="position: absolute; left: {{c.left}}px; top: {{c.top}}px; width: {{c.w}}px; height: {{c.h}}px; z-index: {{c.z}}; border-radius: 12px; background: {{c.art}}; box-shadow: 0 30px 60px rgba(0,0,0,0.5); opacity: {{c.op}}; transform: rotateY({{c.rot}}deg); transition: {{c.tr}}"></div>
+</sc-for>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; top: 470px; height: 84px">
+<sc-for list="{{titles}}" as="x" hint-placeholder-count="3">
+<div style="position: absolute; left: 0; right: 0; top: 0; display: flex; flex-direction: column; align-items: center; gap: 8px; opacity: {{x.op}}; transform: translateY({{x.ty}}px); filter: blur({{x.blur}}px); transition: opacity 300ms ease, transform 480ms cubic-bezier(.32,.72,0,1), filter 300ms ease">
+<span style="font-size: 40px; font-weight: 600; letter-spacing: -0.035em">{{x.title}}</span>
+<span style="font-size: 14px; font-weight: 500; color: rgba(245,245,247,0.6)">{{x.meta}}</span>
+</div>
+</sc-for>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 572px; display: flex; flex-direction: column; align-items: center; gap: 18px">
+<div style="width: 260px; display: flex; flex-direction: column; gap: 8px">
+<div style="height: 4px; border-radius: 2px; background: rgba(255,255,255,0.12); overflow: hidden"><div style="height: 100%; width: {{pct}}%; border-radius: 2px; background: {{acc}}; transition: background 900ms ease, width 700ms cubic-bezier(.32,.72,0,1)"></div></div>
+<span style="text-align: center; font-size: 12px; font-weight: 500; color: rgba(245,245,247,0.6)">{{progress}}</span>
+</div>
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 26px 0 11px; border: none; border-radius: 26px; background: #F5F5F7; color: #000; font-family: inherit; font-size: 17px; font-weight: 600"><span style="width: 30px; height: 30px; border-radius: 50%; background: #000; color: #F5F5F7; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700; box-shadow: 0 0 0 2px {{acc}}; transition: box-shadow 900ms ease">A</span>Reprendre</button>
+</div>
+
+<div style="position: absolute; right: 40px; bottom: 36px; width: 280px; box-sizing: border-box; padding: 16px; border-radius: 20px; background: rgba(30,30,32,0.72); border: 1px solid rgba(255,255,255,0.1); backdrop-filter: blur(30px); -webkit-backdrop-filter: blur(30px); display: flex; flex-direction: column; gap: 10px">
+<span style="font-size: 11px; font-weight: 600; letter-spacing: 0.06em; color: rgba(245,245,247,0.5)">ACCENT TIRÉ DE LA JAQUETTE</span>
+<div style="display: flex; align-items: center; gap: 12px">
+<span style="width: 36px; height: 36px; border-radius: 10px; background: {{acc}}; transition: background 900ms ease"></span>
+<span style="display: flex; flex-direction: column; gap: 2px"><span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">{{accHex}}</span><span style="font-size: 12px; font-weight: 500; color: rgba(245,245,247,0.55)">{{accWhy}}</span></span>
+</div>
+</div>
+<div aria-hidden="true" style="position: absolute; inset: 0; z-index: 60; background: #000; pointer-events: none; opacity: {{curtain}}; transition: opacity 300ms ease"></div>
+<div style="position: absolute; left: 40px; bottom: 36px; width: 360px; font-size: 12px; font-weight: 500; line-height: 1.5; color: rgba(245,245,247,0.5)">Couleur dominante la plus saturée de la jaquette, éclaircie jusqu’à 4,5:1 sur le noir. Transition de 900 ms sur le fond, le point en ligne, la progression et le logo. Option : Réglages › Général › Accent du jeu.</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 9000 }), 60);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const G = [
+      { title: 'Minecraft', meta: 'Mojang Studios · 2011 · Bac à sable', acc: '#7BC96F', why: 'vert de l’herbe', pct: 62, prog: 'Monde « Coco » · 62 % des succès',
+        art: 'radial-gradient(circle at 30% 25%, #5E8F4E 0%, transparent 45%), radial-gradient(circle at 70% 78%, #6B4A2F 0%, transparent 50%), radial-gradient(circle at 82% 18%, #7FA6C8 0%, transparent 38%), linear-gradient(160deg, #1E2A1C 0%, #14110D 100%)' },
+      { title: 'Hollow Knight', meta: 'Team Cherry · 2017 · Metroidvania', acc: '#8FB3DA', why: 'bleu de Dirtmouth', pct: 38, prog: '38 % du jeu terminé',
+        art: 'radial-gradient(circle at 35% 30%, #7FA3C9 0%, transparent 42%), radial-gradient(circle at 70% 75%, #22365C 0%, transparent 55%), linear-gradient(160deg, #1A2540 0%, #06080E 100%)' },
+      { title: 'Forza Horizon 5', meta: 'Playground Games · 2021 · Course', acc: '#FFA24D', why: 'orange du couchant', pct: 81, prog: '81 % des épreuves',
+        art: 'radial-gradient(circle at 70% 25%, #FFB347 0%, transparent 40%), radial-gradient(circle at 30% 70%, #D8345F 0%, transparent 50%), linear-gradient(160deg, #4A1747 0%, #12081A 100%)' }
+    ];
+    const cur = Math.floor(t / 3000) % 3;
+    const g = G[cur];
+    const S = [[240, 340, 0], [190, 269, 250], [160, 227, 430]];
+    const order = [-2, -1, 0, 1, 2];
+    const covers = [0, 1, 2, 3, 4].map((i) => {
+      // cover i sits at offset (i - 1 - cur) so the carousel walks right
+      const gi = (i + 3) % 3;
+      const o = i - 1 - cur;
+      const k = Math.min(2, Math.abs(o)), s = S[k];
+      const cx = 640 + Math.sign(o) * s[2];
+      return { art: G[gi].art, w: s[0], h: s[1], left: Math.round(cx - s[0] / 2), top: 436 - s[1], z: 10 - k,
+        rot: o === 0 ? 0 : -Math.sign(o) * (38 + (k - 1) * 6), op: Math.abs(o) > 2 ? 0 : [1, 0.6, 0.38][k],
+        tr: t < 150 ? 'none' : 'left 520ms cubic-bezier(.32,.72,0,1), top 520ms cubic-bezier(.32,.72,0,1), width 520ms cubic-bezier(.32,.72,0,1), height 520ms cubic-bezier(.32,.72,0,1), transform 520ms cubic-bezier(.32,.72,0,1), opacity 400ms ease' };
+    });
+    return {
+      curtain: t >= 8700 || t < 120 ? 1 : 0,
+      acc: g.acc, accHex: g.acc, accWhy: g.why, pct: g.pct, progress: g.prog,
+      bgs: G.map((x, i) => ({ art: x.art, op: i === cur ? 1 : 0 })),
+      covers: covers,
+      titles: G.map((x, i) => ({ title: x.title, meta: x.meta, op: i === cur ? 1 : 0, ty: i === cur ? 0 : 10, blur: i === cur ? 0 : 5 }))
+    };
+  }
+}
+</script>
+</body>
+</html>

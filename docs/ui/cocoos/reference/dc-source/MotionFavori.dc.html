@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<title>Motion — Ajout aux favoris</title>
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Sora:wght@100..700&display=swap">
+<style>
+body{margin:0;background:#000}
+a{color:#F5F5F7;text-decoration:none}a:hover{color:#FFFFFF}
+button{cursor:default}
+@keyframes cocoBgPan{0%{transform:scale(1.25) translate(0,0)}100%{transform:scale(1.34) translate(-30px,16px)}}
+@keyframes cocoLive{0%,100%{opacity:.35}50%{opacity:1}}
+</style>
+</helmet>
+<div style="--accent: {{accent}}; width: 1280px; height: 800px; background: #000; position: relative; overflow: hidden; font-family: 'Sora', sans-serif; color: #F5F5F7">
+<div aria-hidden="true" style="position: absolute; inset: -100px; background: {{art}}; filter: blur(100px) saturate(1.1); animation: cocoBgPan 60s ease-in-out infinite alternate"></div>
+<div aria-hidden="true" style="position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 40%, rgba(0,0,0,0.25) 0%, rgba(0,0,0,0.85) 75%)"></div>
+<div style="position: absolute; left: 0; top: 0; width: 1280px; height: 560px">
+<sc-for list="{{covers}}" as="c" hint-placeholder-count="7">
+<div style="position: absolute; left: {{c.left}}px; top: {{c.top}}px; width: {{c.w}}px; height: {{c.h}}px; z-index: {{c.z}}; transform: {{c.transform}}; filter: {{c.filter}}">
+<div style="position: absolute; inset: 0; border-radius: 12px; overflow: hidden; background: {{c.art}}; box-shadow: {{c.shadow}}">
+<div style="position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.5), rgba(0,0,0,0) 45%)"></div>
+<span style="position: absolute; left: 12px; right: 12px; bottom: 12px; font-size: 12px; font-weight: 600">{{c.title}}</span>
+</div>
+<div aria-hidden="true" style="position: absolute; left: 0; top: calc(100% + 6px); width: 100%; height: 100%; border-radius: 12px; overflow: hidden; transform: scaleY(-1); background: {{c.art}}; -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0) 18%); mask-image: linear-gradient(to top, rgba(0,0,0,0.24) 0%, rgba(0,0,0,0) 18%)"></div>
+</div>
+</sc-for>
+<div aria-hidden="true" style="position: absolute; z-index: 20; left: 710px; top: 108px; width: 38px; height: 38px; border-radius: 50%; border: 2px solid var(--accent); box-sizing: border-box; opacity: {{ring.op}}; transform: scale({{ring.sc}}); transition: {{ring.tr}}"></div>
+<div aria-hidden="true" style="position: absolute; z-index: 21; left: 710px; top: 108px; width: 38px; height: 38px; border-radius: 50%; background: rgba(28,28,30,0.72); border: 1px solid rgba(255,255,255,0.14); box-sizing: border-box; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); display: flex; align-items: center; justify-content: center; opacity: {{badge.op}}; transform: scale({{badge.sc}}); transition: {{badge.tr}}">
+<svg width="18" height="18" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 16.5s-6-3.7-6-8.2A3.3 3.3 0 0 1 10 6a3.3 3.3 0 0 1 6 2.3c0 4.5-6 8.2-6 8.2z" style="fill: var(--accent)"></path></svg>
+</div>
+</div>
+<div style="position: absolute; left: 0; right: 0; top: 516px; display: flex; flex-direction: column; align-items: center">
+<span style="font-size: 48px; font-weight: 600; letter-spacing: -0.04em; line-height: 1.05">Minecraft</span>
+<span style="margin-top: 10px; font-size: 15px; font-weight: 500; color: rgba(245,245,247,0.62)">Mojang Studios · 2011 · Bac à sable</span>
+<div style="margin-top: 26px; display: flex; gap: 12px">
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 26px 0 11px; border: none; border-radius: 26px; background: #F5F5F7; color: #000; font-family: inherit; font-size: 17px; font-weight: 600"><span style="width: 30px; height: 30px; border-radius: 50%; background: #000; color: #F5F5F7; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 700">A</span>Jouer</button>
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 22px 0 11px; border: 1px solid rgba(255,255,255,0.12); border-radius: 26px; background: rgba(255,255,255,0.12); color: #F5F5F7; font-family: inherit; font-size: 15px; font-weight: 600"><span style="width: 28px; height: 28px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.5); display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 600">Y</span>Options</button>
+<button style="display: flex; align-items: center; gap: 10px; height: 52px; padding: 0 22px 0 11px; border: 1px solid rgba(255,255,255,0.12); border-radius: 26px; background: rgba(255,255,255,0.12); color: #F5F5F7; font-family: inherit; font-size: 15px; font-weight: 600; transform: scale({{btn.sc}}); transition: {{btn.tr}}">
+<span style="position: relative; width: 28px; height: 28px; box-sizing: border-box; border-radius: 50%; border: 1px solid rgba(245,245,247,0.5); display: flex; align-items: center; justify-content: center"><svg width="15" height="15" viewBox="0 0 20 20" aria-hidden="true" style="transform: scale({{btn.hs}}); transition: transform 460ms cubic-bezier(.3,1.6,.4,1)"><path d="M10 16.5s-6-3.7-6-8.2A3.3 3.3 0 0 1 10 6a3.3 3.3 0 0 1 6 2.3c0 4.5-6 8.2-6 8.2z" stroke-width="1.7" stroke-linejoin="round" style="fill: {{btn.fill}}; stroke: {{btn.stroke}}; transition: fill 200ms ease, stroke 200ms ease"></path></svg></span>Favori</button>
+</div>
+</div>
+<div style="position: absolute; left: 72px; top: 34px; font-size: 20px; font-weight: 600; letter-spacing: -0.02em">Coco<span style="color: var(--accent)">OS</span></div>
+<div style="position: absolute; top: 30px; right: 56px; display: flex; align-items: center; gap: 18px">
+<div style="display: flex; align-items: center; gap: 8px; height: 32px; padding: 0 14px; border-radius: 16px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); font-size: 13px; font-weight: 600"><span style="width: 6px; height: 6px; border-radius: 50%; background: var(--accent); animation: cocoLive 2.4s ease-in-out infinite"></span>PC-Salon<span style="color: rgba(245,245,247,0.55); font-weight: 500">4 ms</span></div>
+<span style="font-size: 15px; font-weight: 600; font-variant-numeric: tabular-nums">{{time}}</span>
+</div>
+
+<div style="position: absolute; left: 0; right: 0; bottom: 36px; display: flex; justify-content: center; pointer-events: none">
+<div role="status" style="display: flex; align-items: center; gap: 10px; height: 44px; padding: 0 18px 0 14px; border-radius: 22px; background: rgba(28,28,30,0.78); border: 1px solid rgba(255,255,255,0.12); box-shadow: 0 12px 30px rgba(0,0,0,0.35); backdrop-filter: blur(30px) saturate(1.6); -webkit-backdrop-filter: blur(30px) saturate(1.6); font-size: 13px; font-weight: 600; white-space: nowrap; opacity: {{toast.op}}; transform: translateY({{toast.ty}}px) scale({{toast.sc}}); transition: {{toast.tr}}">
+<svg width="16" height="16" viewBox="0 0 20 20" aria-hidden="true"><path d="M10 16.5s-6-3.7-6-8.2A3.3 3.3 0 0 1 10 6a3.3 3.3 0 0 1 6 2.3c0 4.5-6 8.2-6 8.2z" stroke-width="1.7" stroke-linejoin="round" style="fill: {{toast.fill}}; stroke: var(--accent)"></path></svg>{{toast.text}}
+</div>
+</div>
+
+<div style="position: absolute; z-index: 45; left: 32px; bottom: 32px; display: flex; align-items: center; gap: 10px; height: 40px; padding: 0 16px 0 8px; border-radius: 20px; background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.14); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); font-size: 13px; font-weight: 600; opacity: {{keyOp}}; transform: translateY({{keyTy}}px); transition: opacity 200ms ease, transform 300ms cubic-bezier(.32,.72,0,1)">
+<span style="width: 26px; height: 26px; border-radius: 50%; background: #F5F5F7; color: #000; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 700">X</span>{{keyLabel}}
+</div>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"accent":{"editor":"color","default":"#F2802A","options":["#F2802A","#F5F5F7","#6E9BFF"]},"$preview":{"width":1280,"height":800}}'>
+class Component extends DCLogic {
+  componentDidMount() {
+    this._start = Date.now();
+    this._tick = setInterval(() => this.setState({ t: (Date.now() - this._start) % 7000 }), 40);
+  }
+  componentWillUnmount() {
+    clearInterval(this._tick);
+  }
+  renderVals() {
+    const t = (this.state && this.state.t) || 0;
+    const d = new Date();
+    const pad = (n) => String(n).padStart(2, '0');
+    const accent = this.props.accent ?? '#F2802A';
+    const fav = t >= 1200 && t < 4200;
+    const ART = {
+      mc: 'radial-gradient(circle at 30% 25%, #5E8F4E 0%, transparent 45%), radial-gradient(circle at 70% 78%, #6B4A2F 0%, transparent 50%), radial-gradient(circle at 82% 18%, #7FA6C8 0%, transparent 38%), linear-gradient(160deg, #1E2A1C 0%, #14110D 100%)',
+      hk: 'radial-gradient(circle at 35% 30%, #7FA3C9 0%, transparent 42%), radial-gradient(circle at 70% 75%, #22365C 0%, transparent 55%), linear-gradient(160deg, #1A2540 0%, #06080E 100%)',
+      fh: 'radial-gradient(circle at 70% 25%, #FFB347 0%, transparent 40%), radial-gradient(circle at 30% 70%, #D8345F 0%, transparent 50%), linear-gradient(160deg, #4A1747 0%, #12081A 100%)',
+      ce: 'radial-gradient(circle at 40% 30%, #F49AC1 0%, transparent 42%), radial-gradient(circle at 65% 75%, #6C4BD1 0%, transparent 52%), linear-gradient(160deg, #2B1B4F 0%, #0C0818 100%)',
+      sv: 'radial-gradient(circle at 30% 30%, #F6D55C 0%, transparent 40%), radial-gradient(circle at 65% 70%, #6DBE45 0%, transparent 52%), linear-gradient(160deg, #2F6B3A 0%, #0E1E10 100%)',
+      er: 'radial-gradient(circle at 50% 30%, #E8C46A 0%, transparent 38%), radial-gradient(circle at 40% 80%, #5C4520 0%, transparent 52%), linear-gradient(160deg, #2A2214 0%, #0A0805 100%)',
+      ha: 'radial-gradient(circle at 45% 30%, #FF6B4A 0%, transparent 40%), radial-gradient(circle at 60% 78%, #8A1C1C 0%, transparent 52%), linear-gradient(160deg, #2A0B0B 0%, #090303 100%)'
+    };
+    const order = [['Hades', 'ha'], ['Celeste', 'ce'], ['Hollow Knight', 'hk'], ['Minecraft', 'mc'], ['Forza Horizon 5', 'fh'], ['Stardew Valley', 'sv'], ['Elden Ring', 'er']];
+    const S = [[240, 340, 0, 1], [190, 269, 250, 0.6], [160, 227, 430, 0.38], [140, 198, 580, 0.2]];
+    const covers = order.map((x, i) => {
+      const o = i - 3;
+      const k = Math.abs(o);
+      const z = S[k];
+      const sg = Math.sign(o);
+      const cx = 640 + sg * z[2];
+      return {
+        title: x[0], art: ART[x[1]], w: z[0], h: z[1], left: Math.round(cx - z[0] / 2), top: 436 - z[1], z: 10 - k,
+        transform: 'perspective(900px) rotateY(' + (o === 0 ? 0 : -sg * (38 + (k - 1) * 6)) + 'deg)',
+        filter: 'brightness(' + z[3] + ')',
+        shadow: o === 0 ? '0 40px 90px rgba(0,0,0,0.6), 0 0 0 1px rgba(255,255,255,0.12)' : '0 20px 40px rgba(0,0,0,0.5)'
+      };
+    });
+    let ring;
+    if (t >= 1200 && t < 1260) ring = { op: 0.8, sc: 1, tr: 'opacity 60ms ease, transform 60ms ease' };
+    else if (t >= 1260 && t < 2400) ring = { op: 0, sc: 2.4, tr: 'opacity 650ms ease-out, transform 650ms cubic-bezier(.32,.72,0,1)' };
+    else ring = { op: 0, sc: 0.8, tr: 'none' };
+    const press = (t >= 1080 && t < 1220) || (t >= 4080 && t < 4220);
+    const addToast = t >= 1300 && t < 2800;
+    const remToast = t >= 4300 && t < 5600;
+    const toastOn = addToast || remToast;
+    const keyA = t >= 950 && t < 1450;
+    const keyB = t >= 3950 && t < 4450;
+    return {
+      accent: accent,
+      art: ART.mc,
+      time: pad(d.getHours()) + ':' + pad(d.getMinutes()),
+      covers: covers,
+      ring: ring,
+      badge: {
+        op: fav ? 1 : 0,
+        sc: fav ? 1 : 0.2,
+        tr: fav ? 'opacity 150ms ease, transform 560ms cubic-bezier(.3,1.7,.4,1)' : 'opacity 200ms ease 60ms, transform 240ms cubic-bezier(.4,0,1,1)'
+      },
+      btn: {
+        sc: press ? 0.94 : 1,
+        tr: press ? 'transform 110ms ease-out' : 'transform 480ms cubic-bezier(.3,1.6,.4,1)',
+        fill: fav ? accent : 'transparent',
+        stroke: fav ? accent : '#F5F5F7',
+        hs: fav ? 1 : 0.9
+      },
+      toast: {
+        op: toastOn ? 1 : 0,
+        ty: toastOn ? 0 : 14,
+        sc: toastOn ? 1 : 0.94,
+        tr: toastOn ? 'opacity 240ms ease, transform 560ms cubic-bezier(.3,1.3,.4,1)' : 'opacity 260ms ease-in, transform 300ms ease-in',
+        text: t >= 3500 ? 'Retiré des favoris' : 'Ajouté aux favoris',
+        fill: t >= 3500 ? 'transparent' : accent
+      },
+      keyOp: keyA || keyB ? 1 : 0,
+      keyTy: keyA || keyB ? 0 : 8,
+      keyLabel: keyB ? 'Retirer' : 'Favori'
+    };
+  }
+}
+</script>
+</body>
+</html>
