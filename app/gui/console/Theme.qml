@@ -2,8 +2,9 @@ pragma Singleton
 import QtQuick
 import "Spring.js" as Spring
 
-// Jetons de design de l'UI console (écran « Ambiant »).
-// Source de vérité : docs/ui/ambiant/AMBIANT-BRIEF.md + ambiant-prototype.html.
+// Jetons de design de l'UI console. Direction CocoOS (docs/ui/cocoos/tokens.json,
+// SPEC.md §1) par-dessus l'« Ambiant » d'origine (docs/ui/ambiant/) : un jeton qui désigne
+// la même chose garde son nom, seule sa valeur suit CocoOS.
 // Aucune valeur en dur dans les composants : couleurs, tailles, durées et
 // courbes passent toutes par ce fichier.
 //
@@ -29,14 +30,84 @@ QtObject {
     readonly property color accent: "#F2802A"
     // Jeton `onAccent` du brief : QML réserve les noms `on<Majuscule>` aux
     // gestionnaires de signal, d'où ce nom.
-    readonly property color inkOnAccent: "#160B03"
-    readonly property color ink: "#F2F0EC"
-    readonly property color ink2: "#A19D97"
-    readonly property color ink3: "#7C7973"          // indications discrètes (chevrons, glyphes d'aide)
-    readonly property color ok: "#69D08E"            // hôte connecté, réseau bon
+    readonly property color inkOnAccent: "#1B0E04"   // accent-ink
+    readonly property color ink: "#F5F5F7"
+    readonly property color ink2: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.6)   // ink-secondary : métadonnées, valeurs
+    readonly property color ink3: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.5)   // ink-tertiary : libellés, aides (12 px au moins)
+    readonly property color inkOnLight: "#000000"    // texte posé sur ink (pastille Jouer, ligne au focus)
+    readonly property color ok: "#69D08E"            // réseau bon (statistiques en jeu seulement, SPEC §1)
     readonly property color fair: "#E8C547"          // réseau moyen (latence ou gigue)
-    readonly property color poor: "#E5574F"          // réseau mauvais
+    readonly property color poor: "#FF453A"          // réseau mauvais
+    readonly property color danger: poor             // hors ligne, batterie critique : toujours avec un mot
     readonly property color background: "#000000"    // noir pur (OLED)
+    readonly property color blue: "#6E9BFF"          // accent alternatif, halos d'ambiance
+    readonly property color accentTrack: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.25)  // piste sous une progression
+    readonly property color accentSoft: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.22)   // fond des badges « Prêt »
+
+    // --- Verres CocoOS : toujours avec le flou blur* correspondant et un contour hairlineStrong ---
+    readonly property color glassPill: Qt.rgba(1, 1, 1, 0.08)      // barre du haut, onglets (blurPill)
+    readonly property color glassGroup: Qt.rgba(1, 1, 1, 0.07)     // listes groupées
+    readonly property color glassRaised: Qt.rgba(1, 1, 1, 0.12)    // bouton secondaire, touches de fonction
+    readonly property color glassSheet: Qt.rgba(30 / 255, 30 / 255, 32 / 255, 0.82)   // feuilles (blurSheet)
+    readonly property color glassDialog: Qt.rgba(44 / 255, 44 / 255, 46 / 255, 0.84)  // dialogues centrés, menus
+    readonly property color glassHud: Qt.rgba(40 / 255, 40 / 255, 42 / 255, 0.62)     // au-dessus du jeu
+    readonly property color hairline: Qt.rgba(1, 1, 1, 0.08)       // séparateurs, décalés de space4
+    readonly property color hairlineStrong: Qt.rgba(1, 1, 1, 0.12) // contour des verres
+    readonly property color focusRow: Qt.rgba(1, 1, 1, 0.14)       // ligne au focus (texte en 600)
+    readonly property color keyChar: Qt.rgba(1, 1, 1, 0.11)        // touches de caractères
+    readonly property color keyFn: Qt.rgba(1, 1, 1, 0.055)         // touches de fonction
+    readonly property color toggleOff: Qt.rgba(120 / 255, 120 / 255, 128 / 255, 0.36)
+    readonly property color segmentTrack: Qt.rgba(118 / 255, 118 / 255, 128 / 255, 0.24)
+    readonly property color segmentActive: "#636366"
+    // Flous (px du canevas), faits une fois sur une image réduite (MultiEffect.blurMax adapté).
+    readonly property int blurPill: 30
+    readonly property int blurSheet: 40
+    readonly property int blurBackdrop: 100
+
+    // --- Rayons et espacements CocoOS ---
+    readonly property int radiusCoverS: 8            // petites jaquettes en grille
+    readonly property int radiusCover: 12            // jaquettes du carrousel et de la fiche
+    readonly property int radiusKey: 14              // touches du clavier
+    readonly property int radiusGroup: 20            // listes groupées, cartes
+    readonly property int radiusSheet: 32            // feuilles, clavier
+    readonly property int radiusDialog: 36           // dialogues centrés
+    readonly property int radiusPill: 999            // pastilles, boutons, onglets
+    readonly property int space1: 4
+    readonly property int space2: 8
+    readonly property int space3: 12
+    readonly property int space4: 18                 // retrait intérieur des lignes et séparateurs
+    readonly property int space5: 22                 // entre deux groupes
+    readonly property int space6: 28                 // marge intérieure des feuilles
+    readonly property int marginScreen: 72           // marge gauche (logo, titres)
+    readonly property int marginStatus: 56           // marge droite de la barre d'état, aides
+
+    // --- Typographie CocoOS (Sora) : { size, weight, lineHeight, spacing } ; spacing en px
+    //     à cette taille (interlettrage em × taille) ---
+    function textStyle(size, weight, lineHeight, em) {
+        return { size: size, weight: weight, lineHeight: lineHeight, spacing: em * size }
+    }
+    readonly property var textDisplay: textStyle(76, 600, 1.05, -0.045)   // titre sur la fiche, la veille
+    readonly property var textTitleXl: textStyle(40, 600, 1.1, -0.035)
+    readonly property var textTitleL: textStyle(36, 600, 1.2, -0.03)      // étape de la configuration
+    readonly property var textTitleM: textStyle(30, 600, 1.2, -0.03)      // en-tête de feuille, état vide
+    readonly property var textTitleS: textStyle(20, 600, 1.3, -0.02)      // logo texte, titres de bloc
+    readonly property var textButton: textStyle(17, 600, 1.2, 0)
+    readonly property var textRow: textStyle(16, 500, 1.3, 0)             // 600 au focus
+    readonly property var textBody: textStyle(15, 500, 1.5, 0)
+    readonly property var textCaption: textStyle(13, 500, 1.4, 0)         // barre du haut, aides
+    readonly property var textLabel: textStyle(12, 600, 1.3, 0.06)        // section, en capitales
+    readonly property var textMicro: textStyle(11, 500, 1.3, 0.04)        // légendes, unités
+    readonly property var textGlyph: textStyle(11, 700, 1, 0)             // lettre d'un glyphe
+
+    // --- Durées et courbes CocoOS (MotionCourbes). Une sortie est plus courte que l'entrée. ---
+    readonly property int durPress: 110              // appui (échelle 0,92 à 0,94)
+    readonly property int durFocus: 210              // déplacement du focus
+    readonly property int durExit: 260               // fermer une feuille, une bannière
+    readonly property int durEnter: 560              // ouvrir une feuille, un dialogue
+    readonly property int durScene: 900              // changer de scène
+    readonly property var curveMain: [0.32, 0.72, 0, 1, 1, 1]         // par défaut : déplacements, fondus, panneaux
+    readonly property var curveSpring: [0.3, 1.25, 0.4, 1, 1, 1]      // ce qui arrive : dialogues, bannières, focus
+    readonly property var curveSpringStrong: [0.3, 1.6, 0.4, 1, 1, 1] // relâchement d'un bouton
 
     // --- Courbes ---
     readonly property int easeOut: Easing.OutCubic
@@ -47,7 +118,7 @@ QtObject {
     //     courbes, le prototype fait foi) ---
     readonly property var curveOut: [0.22, 1, 0.36, 1, 1, 1]      // fondus, remplissages (BezierSpline)
     readonly property var curveInOut: [0.65, 0, 0.35, 1, 1, 1]    // reflet
-    readonly property var curveExit: [0.4, 0, 1, 1, 1, 1]         // sortie d'un texte remplacé
+    readonly property var curveExit: [0.4, 0, 1, 1, 1, 1]         // ce qui part (ease-exit CocoOS)
     // Ressorts physiques du prototype (raideur, amortissement, masse 1), en courbe pour
     // Easing.BezierSpline et durée (cf. Spring.js) : { curve, duration }.
     readonly property var springSnappy: reducedMotion ? reducedSpring : Spring.make(380, 28)   // ≈ 394 ms, dépasse de 4 % : focus, chiffres
@@ -55,7 +126,7 @@ QtObject {
     readonly property var springGentle: reducedMotion ? reducedSpring : Spring.make(220, 24)   // ≈ 460 ms, 1 % : île, formes
     // Appui (Pressable) : A enfoncé, l'élément s'écrase en pressDuration (curveOut) ;
     // relâché, il revient avec springBouncy, et l'action part.
-    readonly property int pressDuration: 90
+    readonly property int pressDuration: durPress
     readonly property real pressScale: 0.955         // bouton (Jouer)
     readonly property real pressRowScale: 0.985      // ligne d'un panneau (options, dialog)
     // Survol à la souris (HoverArea) : une liste y amène sa sélection ; un bouton grandit à
