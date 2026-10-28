@@ -1,5 +1,177 @@
 # Prochaines étapes
 
+## Refonte CocoOS — reconnaissance (phase 0, 2026-10-28)
+
+Brief : `docs/ui/cocoos/CLAUDE_BRIEF.md` (+ `SPEC.md`, `DESIGN_SYSTEM.md`, `tokens.json`).
+Branche : `feat/cocoos-ui`, créée depuis `console-ui` (`c9ba4bf6`), rebasée sur `console-ui` après la
+fusion de `feat/idle-screen` (`17a7882d`). Aucun code écrit.
+
+### Ce qui a été fait
+- Lu `CLAUDE.md`, le brief, la spec, le design system, `tokens.json`, `manifest.json`, `haptics.json`,
+  `cues.json`, `mock/library.mock.json`, et les sources `dc-source` qu'il fallait pour trancher.
+- Regardé les 59 planches de `reference/png/` (la carte de navigation d'abord). Pour les animations, la
+  dernière image dit peu (`MotionClavier`, `MotionExtinction`, `MotionVeille` sont noires) : les phases
+  suivantes travailleront sur `filmstrip/` et `video/`.
+- Harnais Ambiant (`docs/ui/ambiant/harness/`) : **15 suites, 140 tests, tous verts** (`tst_ConsoleHome`
+  47 tests en 64 s, `tst_GameShelf` 15, `tst_StatusBar` 8…). `shot.sh` capture bien en 1280 × 800 ;
+  `docs/ui/cocoos/tools/compare.py` marche (accueil Ambiant contre `AccueilCarrousel` : 35,8 / 255, écart
+  attendu, ce sont deux directions différentes).
+
+### Versions et modules
+| | Poste (Fedora 43) | Orange Pi 5B |
+|---|---|---|
+| Qt | 6.10.3 | inconnue (carte pas installée) ; on suppose ≥ 6.6, déjà exigé par la console |
+| `QtQuick.Effects` (`MultiEffect`) | présent, déjà utilisé (4 fichiers) | à vérifier au transfert |
+| `QtQuick.Shapes` | présent, déjà utilisé | idem |
+| `QtMultimedia` (`SoundEffect`) | présent, déjà utilisé | idem (`qml6-module-qtmultimedia`) |
+| `QtQuick3D` | présent, **inutile** : le carrousel se fait en `Matrix4x4` (SPEC §5.1) | — |
+| `qsb` | `/usr/lib64/qt6/bin/qsb` | — |
+
+Repères : Ubuntu 24.04 / Debian 12 livrent Qt 6.4 (pas de `MultiEffect`), Debian 13 livre 6.8. Rien de
+bloquant ici (décision du 2026-10-27 : l'Orange Pi plus tard).
+
+### Contradictions dans le pack (ordre du brief appliqué : PNG > dc-source > SPEC > tokens)
+| Point | Valeurs | Retenu |
+|---|---|---|
+| Titre sous le carrousel | `tokens.json` `title-xl` 40 px ; SPEC et `AccueilCarrousel.dc.html` 48 px | 48 px (jeton `textTitleXl` à 48 pour l'accueil, à confirmer) |
+| Transition de l'accent du jeu | SPEC 600 ms ; `MotionAccent.dc.html` 900 ms | 900 ms |
+| Nombre de sons | `DESIGN_SYSTEM.md` 59 + 6 ; `manifest.json` 68 (62 + 6) | le manifest |
+| Délai de l'écran de veille | SPEC « 5 min » ; Marco le 2026-10-27 : 120 s par défaut | **question** |
+| X à l'accueil | carte : X → Recherche ; SPEC §4 : rien ; `MotionFavori` : bouton « Favori » à l'accueil ; aujourd'hui X épingle | **question** |
+| Quitter le jeu (menu en jeu) | `MotionQuitter` : dialogue Annuler / Quitter ; Marco le 2026-10-23 : appui maintenu, sans page de confirmation | **question** |
+| Menu d'alimentation | `MenuAlimentation` : A confirme ; aujourd'hui redémarrer / éteindre demandent l'appui maintenu | **question** |
+| Réseau en cours de partie | `MotionReseau` : « Wi-Fi retrouvé · Retour en 1080p · 20 Mb/s » ; `CLAUDE.md` §12 : aucune renégociation en cours de partie | **question** |
+| Code d'appairage | `MotionAppairage` : « Dans Apollo, sur PC-Salon, saisissez ce code » (PIN Moonlight, saisi sur le PC) ; Companion : code affiché par le PC, saisi sur la console | **question** |
+
+### Plan fichier par fichier
+Tout reste dans `app/gui/console/` sauf mention. « Couture » = fichier upstream.
+
+| Zone (phase) | Fichiers | Jetons / ressources manquants | Données manquantes | Couture |
+|---|---|---|---|---|
+| **Jetons** (1) | `Theme.qml` modifié | valeurs changées : `ink` `#F5F5F7`, `ink2` / `ink3` en rgba 0,6 / 0,5, `inkOnAccent` `#1B0E04`, `poor` `#FF453A` + alias `danger`, `pressDuration` 90 → 110. Nouveaux : `glassPill/Group/Raised/Sheet/Dialog/Hud`, `hairline`, `hairlineStrong`, `focusRow`, `keyChar`, `keyFn`, `toggleOff`, `segmentTrack`, `segmentActive`, `accentTrack`, `accentSoft`, `blue`, `inkOnLight`, `radiusCoverS…radiusPill`, `blurPill/Sheet/Backdrop`, `durPress/Focus/Exit/Enter/Scene`, `curveMain/Spring/SpringStrong` (`curveExit` existe déjà, même valeur), styles `textDisplay…textGlyph`, marges `marginScreen` 72 / `marginStatus` 56 | — | non |
+| Ombres (1) | `shadows/*.png` + `harness/make-shadows.py` étendu | `shadow-cover`, `shadow-glass`, `shadow-focus` ; `grain_256.png`, `cover_shadow_626x760.png`, `placeholder_cover_600x848.png` copiés | — | ajout de lignes au `.qrc` (cf. question ressources) |
+| **Sons** (1) | `Sounds.qml` (table d'alias SPEC §2, rotation `nav_move_1/2/3`, `nav_move_fast` ≤ 11/s), `SoundBank.qml` (préchargement après `BootSplash`, ambiances en boucle avec fondu 1,8 s / 0,9 s), `sounds/` (68 WAV) | — | — | `.qrc` (cf. question : 57 Mo) |
+| Sons dans le flux (1 ou 6) | `backend/streammenu.cpp` | les sons SDL ne sont chargés que s'ils sont en **44,1 kHz mono** (`loadSounds`) : le nouveau pack (48 kHz stéréo) serait ignoré en silence → ouvrir le périphérique SDL en 48 kHz stéréo, nouveaux noms (`ingame_menu_*`, `focus_tick`, `slider_*`, `volume_*`, `capture`, alertes) | — | non (fichier maison) |
+| **Vibrations** (1) | `backend/inputstatus.{h,cpp}`, `backend/streammenu.cpp` (`StreamMenu::rumble` : table fixe à remplacer par le lecteur de motifs), `motion/haptics.json` embarqué | réglage `ConsoleUi/rumble` (booléen) → Off / Légères / Fortes, en gardant l'ancienne clé comme valeur par défaut | moteurs de la manette intégrée (GP2040-CE) inconnus | non |
+| Harnais (1) | `docs/ui/cocoos/harness/` : `Harness.qml`, `shot.sh`, démos ; **réutilise** `docs/ui/ambiant/harness/stubs/` par `-I` au lieu de les copier | jaquettes de remplacement depuis `mock/` | — | non |
+| **Accueil** (2) | `HomeScreen.qml` (refondu), nouveaux `CoverFlow.qml` et `CategoryTabs.qml` (réutilise `ElasticIndicator`), `HeroBlock.qml` réduit (titre centré, méta, PEGI, A Jouer / Y Options), `StatusBar.qml` (logo, onglets au centre, pastille PC à point `accent` qui respire, heure, Wi-Fi, batterie), `BackdropLayer.qml` (fond flouté 100 px une fois sur image réduite, vignettage, grain 7 %), `ControllerLegend.qml` (aide en bas), `Library.js` (catégorie **Apps** = les utilitaires aujourd'hui écartés ; saut alphabétique au-delà de 30 jeux), `GameShelf.qml` **retiré** à la fin de la phase (et `tst_GameShelf` adapté à `CoverFlow`) | `cocoLive` 2,4 s, `cocoSheen` 10 s, géométrie des emplacements du carrousel | **jaquettes 600 × 848** : la Companion sert `cover` (Playnite) ; aujourd'hui seuls les jeux absents d'Apollo l'utilisent, les autres prennent la jaquette Apollo 600 × 800 (recadrée à 0,706) ; **éditeur** (`publishers[0]`) déjà là, **PEGI** (`ageRatings`) déjà là | non. Note : L2 / R2 sautent aujourd'hui de dix vignettes (`InputStatus.triggerPressed`), ils deviennent le saut alphabétique |
+| États vides (2, 5) | `MessageScreen.qml` restylé ; « Aucun favori » et « PC hors ligne » posés sur le carrousel (pas à la place du héros) | — | — | non |
+| **Fiche** (3) | `GamePage.qml` refondu (jaquette 3D à gauche, texte à droite), transition depuis `CoverFlow` | sons `fiche_open/close`, `favorite_add/remove` | voir « Données manquantes » | non |
+| **Options** (4) | `OptionsSheet.qml` (1 400 lignes) : restylé, pas réécrit — feuille 492 px, onglets segmentés Stream / Console, profil en segments, ligne « Tous les réglages » | — | « Priorité : Image » et « Écran virtuel » de la maquette n'existent ni dans `StreamProfiles.js` ni dans `StreamingPreferences` | non |
+| **Réglages** (4) | nouveau `settings/SettingsScreen.qml` + une page par rubrique (`WifiPage`, `ControllersPage`, `DisplaySoundPage`, `GeneralPage`) ; icônes SVG extraites des `dc-source` dans `icons/` | tuiles de couleur des rubriques | voir « Questions » (5G, Bluetooth, luminosité auto, couleurs, chaleur le soir, sortie audio, mise à jour, nom de la console) | non pour l'interface ; **backends neufs** pour Bluetooth (BlueZ par D-Bus), sortie audio (`wpctl`), bande Wi-Fi et débit du lien (NetworkManager, déjà là), stockage (`QStorageInfo`) |
+| Clavier (4) | `OnScreenKeyboard.qml` restylé ; accents à l'appui long, curseur LB/RB, dernier caractère visible 1 s, R3 affiche | — | — | non |
+| **Recherche** (4) | nouveau `SearchScreen.qml` (filtre en JS sur titres, éditeurs, genres ; recherches récentes dans `ConsoleUi/recentSearches`) | — | — | non |
+| **Lancement / quitter** (5) | `LaunchScreen.qml`, `StreamCurtain.qml`, `ConsoleHome.qml` (enchaînement, retour de la jaquette dans le carrousel) | `connecting_loop` | — | non |
+| **PC injoignable, réveil, choix du PC** (5) | `ConsoleHome.qml`, nouveau `HostPicker.qml` (menu sous la pastille du PC) | — | **plusieurs PC** : `CompanionClient` ne suit qu'un seul host ; nombre de jeux par PC ; état « en veille » vs « introuvable » (Moonlight ne distingue que en ligne / hors ligne + MAC connue) | non |
+| **Par-dessus le jeu** (6) | `backend/streampainter.{h,cpp}` (nouveaux dessins : tuiles, curseurs verticaux, statistiques détaillées / compactes, HUD, alertes), `backend/streammenu.cpp` (navigation 2D dans la grille de tuiles, au lieu de la liste) ; `harness/streammenu-shot.cpp`, `streammenu-rows.cpp` | flou du fond déjà là | **minutes de jeu** (« En pause · 1 h 24 min ») : durée depuis le lancement d'ici, déjà connue de l'accueil | **risque** : touches volume / power pendant le flux (cf. questions) ; tout le reste passe par les coutures existantes |
+| **Démarrage** (7) | `BootSplash.qml`, `BootTimeline.js` (+ `tst_BootTimeline` étendu) : nouvelle sortie (O → jaquette du carrousel, éventail) | — | — | non |
+| Veille / réveil / extinction / alimentation (7) | `SleepScreen.qml` → remplacé, nouveau `PowerMenu.qml`, `SystemStatus.power()` existant | sons `sleep`, `wake`, `shutdown` | — | **risque** : appui court / long sur power (cf. questions) |
+| Écran de veille (7) | rebaser `feat/idle-screen` (`idle/`), écrans mis aux références `Veille*` 1280 × 800 ; `amb_veille` / `amb_repos` | — | téléchargements (désormais dans le protocole : `DOWNLOAD_STATE`) | non |
+| Mise à jour, recharge, mode salon, LED (7) | interfaces derrière un signal du harnais seulement | — | mécanisme de mise à jour, matériel | à définir |
+| **Première configuration** (8) | nouveau `setup/` (Bonjour, Langue, Wi-Fi, PC, code, Bibliothèque, Tout est prêt), réutilise `WifiSetup`, `OnScreenKeyboard`, `CompanionPairing` ; marqueur `ConsoleUi/setupDone` existant | code QR | URL d'installation d'Apollo + HostCompanion ; progression « 132 / 214 » des jaquettes (connue côté console : médias en cache / jeux) | non. Le code QR demande un générateur (fichier unique `qrcodegen`, MIT) ou une image fixe |
+| **Accent** (9) | `backend/ambientcolor.cpp` (bornes de luminance et saturation de `MotionAccent`), `Theme.accent` qui suit le jeu ; accent choisi (orange, blanc, bleu, vert, rose) dans `ConsoleUi/accent` | — | — | non |
+| Traduction (chaque phase) | `languages/qml_en.ts` / `.qm` | — | — | non |
+
+### Données manquantes côté Companion (`GameInfo`, `../HostCompanion/docs/protocol.md` §4)
+Présent et déjà lu par `CompanionClient.games()` : nom, description (HTML), développeurs, éditeurs, date
+de sortie, genres, temps de jeu (s), dernière partie, installé, `ageRatings` (PEGI), `installSizeBytes`,
+`source` (store), médias `cover` / `bg` / `logo` / `icon`.
+
+| Affiché dans les maquettes | Où | Dans Playnite | Dans l'API |
+|---|---|---|---|
+| Note critique « 93 / 100 » | Fiche | `CriticScore` (et `CommunityScore`) | **absent** |
+| Modes « Solo · Multijoueur · Manette » | Fiche | `Features` | **absent** |
+| Plateformes « Xbox · PC » (ligne « Bibliothèque ») | Fiche | `Platforms` (+ `Source`) | `source` seulement |
+| Favori, écrit aussi dans Playnite | Fiche, onglet Favoris | `Favorite` | **absent** : les favoris sont locaux (`ConsoleUi`, `Library.js`), rien n'est écrit dans Playnite aujourd'hui (la SPEC dit « comme aujourd'hui » : c'est faux) |
+| Progression « 38 % du jeu terminé », « 62 % des succès » | `MotionAccent` | `CompletionStatus` (sans pourcentage) ; succès via extension | **absent** |
+| Nombre de jeux par PC « 214 jeux » | `ChoixPC`, `SetupPC` | — | calculable (`games.length`) pour le PC appairé seulement |
+| Jeux non installés (préférence de la configuration) | `SetupBibliotheque` | `IsInstalled` | présent |
+
+Sans réponse, ces champs restent **masqués** (règle « on retire, on ne remplace pas » de `CasLimites`).
+
+### Questions pour Coco
+**Organisation**
+1. `feat/idle-screen` n'est pas fusionnée dans `console-ui`, et `next_steps.md` n'existe que sur elle :
+   ce fichier-ci (nouveau sur `feat/cocoos-ui`) entrera en conflit avec le sien. Les deux branches touchent
+   aussi `ConsoleHome.qml` (l'écran de veille y remplace `SleepScreen`). Je propose de fusionner
+   `feat/idle-screen` dans `console-ui` puis de rebaser `feat/cocoos-ui` dessus **avant la phase 1**.
+   D'accord ?
+2. Le pack fait 92 Mo (`sounds/` 55 Mo, `reference/` 37 Mo). Je propose de versionner `docs/ui/cocoos/`
+   sauf `reference/video/` (ou tout, si le poids ne te gêne pas). Lequel ?
+3. Les fichiers de la console sont déclarés dans `app/qml.qrc`, embarqué **aussi par le build vanilla**.
+   Ajouter 57 Mo de sons (dont 38 Mo d'ambiances) y alourdirait Moonlight vanilla. Je propose un
+   `gui/console/console.qrc` à part, ajouté par une ligne dans le scope `embedded` de `app.pro` (couture
+   existante), pour les nouveaux sons et images seulement. D'accord ? Et les ambiances : embarquées, ou
+   installées à côté du binaire ?
+
+**Décisions qui contredisent l'existant**
+4. Écran de veille : 120 s par défaut (ta décision du 27/10) ou 5 min (SPEC) ?
+5. X à l'accueil : Recherche (carte de navigation), Favori (`MotionFavori`), ou rien (SPEC §4) ? Et comment
+   ouvre-t-on la Recherche sinon ?
+6. Quitter le jeu depuis le menu en jeu : dialogue Annuler / Quitter (`MotionQuitter`) ou ton appui
+   maintenu sans confirmation (23/10) ?
+7. Menu d'alimentation : A suffit (`MenuAlimentation`) ou appui maintenu pour Redémarrer / Éteindre ?
+8. `MotionReseau` montre la qualité qui remonte en cours de partie (« Retour en 1080p · 20 Mb/s »), ce
+   qu'Apollo non modifié ne permet pas sans couper le flux (§12). On garde la bannière sans ce détail ?
+9. Configuration, étape « code » : la maquette fait saisir un code **dans Apollo** (PIN Moonlight).
+   Avec le Companion, le PC affiche le code et la console le saisit, puis le PIN Moonlight part tout seul.
+   Quel écran : celui de la maquette (cas sans Companion) et `CompanionPairing` restylé (cas normal) ?
+10. Le carrousel affiche des jaquettes 600 × 848 : on prend la jaquette Playnite du Companion pour tous les
+    jeux (et celle d'Apollo seulement à défaut), d'accord ?
+
+**Données (côté HostCompanion)**
+11. Ajouter à `GameInfo` : `criticScore`, `features`, `platforms`, `favorite` (+ une route pour écrire le
+    favori dans Playnite) ? Sinon ces éléments restent masqués. La progression (`MotionAccent`) : on
+    l'abandonne ?
+
+**Matériel et système**
+12. Appui court / long sur power : logind (`HandlePowerKey=ignore` + inhibiteur, la console lit la touche)
+    ou firmware GP2040-CE ? Pendant un flux, la touche arrive à SDL : la router vers le menu demanderait
+    d'étendre la couture `keyboard.cpp`.
+13. Touches de volume sur le dessus : quel périphérique (GP2040-CE, gpio-keys) ? Même question de couture
+    pendant le flux. La luminosité / le volume par logind et `wpctl` (déjà là) suffisent-ils ?
+14. Veille (power court) pendant un jeu : « stream en pause côté PC » n'existe pas dans Moonlight ; une
+    suspension coupe la session. On ferme le flux proprement, ou on éteint seulement l'écran ?
+15. Manette déconnectée : « jeu en pause » = carte par-dessus le flux et entrées bloquées (le jeu continue
+    sur le PC) ?
+16. Moteurs de vibration sur la manette intégrée ? Mécanisme de mise à jour de CocoOS (paquet, image A/B) ?
+    Recharge console éteinte, mode salon, LED : l'interface seulement, derrière un signal du harnais ?
+
+**Réglages présents dans les maquettes mais sans fonction aujourd'hui** (à garder, masquer ou faire)
+17. Réseau mobile 5G (et « Basculer en 5G si le Wi-Fi tombe ») — pas de modem : masqué ?
+18. Bluetooth : liste et association de manettes (backend BlueZ à écrire), « Tester les boutons et les
+    sticks » (aucune maquette de l'écran de test).
+19. Écran : luminosité automatique (capteur ?), couleurs Naturelles / Vives, chaleur le soir (demande le
+    compositeur, gamescope) ; Son : sortie audio (`wpctl`, faisable).
+20. Général : mise à jour logicielle (dépend de 16), nom de la console (« Console de Coco »), version
+    « CocoOS 1.2 » (d'où vient le numéro ?), vider le cache des jaquettes (faisable).
+21. Rubriques sans maquette : Notifications, Batterie, Accessibilité (réduire les animations y irait),
+    Confidentialité, PC et streaming, Bibliothèque. Je propose : Batterie, Accessibilité, PC et streaming et
+    Bibliothèque avec les réglages qui existent déjà ; Notifications et Confidentialité masquées.
+22. Options › Stream : « Priorité : Image » et « Écran virtuel » n'existent pas. Masqués ?
+23. Configuration : 7 langues dans la maquette, la console n'a que français et anglais. On n'affiche que ces
+    deux-là ? « Installer Apollo et HostCompanion » : quelle URL dans le code QR ?
+24. `amb_accueil` (fond musical de l'accueil, « désactivé par défaut ») n'a pas de réglage dans les
+    maquettes : on l'oublie ?
+
+### Réponses de Coco (2026-10-28)
+- **Q1** : `feat/idle-screen` fusionnée dans `console-ui` (avance rapide, `eb72a861`), puis
+  `feat/cocoos-ui` rebasée dessus. L'écran de veille de la phase 7 part donc de ce qui est déjà là.
+- **Q4** : veille après **5 min** par défaut (`Theme.idleSeconds` 300, commit `17a7882d` sur
+  `console-ui`) ; réglable dans les options.
+- **Q6** : quitter le jeu reste à l'**appui maintenu**, sans dialogue (on ne reprend pas celui de
+  `MotionQuitter`).
+- **Q7** : menu d'alimentation : **A suffit** (comme `MenuAlimentation`).
+- **Q8** : **pas de changement de qualité en cours de partie** pour l'instant ; les bannières réseau de
+  `MotionReseau` restent sans « Retour en 1080p · 20 Mb/s ». À reprendre plus tard (chantier §12).
+- **Q5** (X à l'accueil) : pas d'avis. Par défaut, **X reste « Favori »** (comportement actuel, bouton de
+  `MotionFavori`) ; l'accès à la Recherche se tranchera en phase 4 (proposition : ≡, libre à l'accueil).
+
+Restent ouvertes : Q2 et Q3 (bloquent la phase 1), Q9 à Q24 (phases suivantes).
+
+### Porte de la phase 0
+Section écrite. **J'attends les réponses de Coco avant la phase 1.**
+
 ## Écran de veille — reconnaissance (phase 0, 2026-10-27)
 
 Brief : `docs/design/idle/CLAUDE_BRIEF.md`. Branche : `feat/idle-screen` (depuis `console-ui`).
