@@ -541,6 +541,16 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   `parity.sh` ; `--network 5g`, `--pad playstation`, `--size 2560x1600`). Journal : « [console-ui] Veille après N s d'inactivité (état) ». ⚠️ Pas vu à la
   manette ni sur l'écran de la carte ; performance (flou d'entrée, `IdleTheme.entryBlur`) à mesurer sur
   l'Orange Pi (phase 6 du brief).
+- 🚧 **Refonte CocoOS (depuis le 2026-10-28, branche `feat/cocoos-ui`)** — cible : `docs/ui/cocoos/`
+  (`CLAUDE_BRIEF.md` d'abord, puis `SPEC.md`, `DESIGN_SYSTEM.md`, `tokens.json` ; 59 planches dans
+  `reference/`, le PNG fait foi). L'interface passe d'« Ambiant » à CocoOS écran par écran, en
+  10 phases à porte ; suivi, décisions de Marco et questions ouvertes dans `next_steps.md`.
+  Phase 0 (reconnaissance) ✅. Phase 1 (fondations) ✅ : jetons CocoOS dans `Theme.qml` (verres,
+  rayons, styles de texte, durées, courbes ; `ink*` et `poor` à leurs nouvelles valeurs), pack de
+  68 sons dans `console.qrc` (embarqué par le build `embedded` seulement, alias des anciens noms),
+  vibrations par motifs (`backend/haptics`, réglage Off / Légères / Fortes), harnais
+  `docs/ui/cocoos/harness/`. Décisions : veille après 5 min ; quitter le jeu reste à l'appui
+  maintenu ; menu d'alimentation : A suffit ; pas de changement de qualité en cours de partie.
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
   télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
   Côté console uniquement (Apollo reste non modifié).
@@ -1031,6 +1041,40 @@ XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import
 - `tst_GameShelf::test_springMatchesPrototype` mesure le temps réel. Ses échecs « à froid » (écart
   0,0828) venaient d'une mesure lancée juste après la reconstruction des vignettes par `init()`
   (étagère déjà sur 0, quand le test précédent y finit) : il attend désormais 500 ms (20 sur 20).
+
+### Harnais CocoOS (`docs/ui/cocoos/harness/`)
+
+Il réutilise celui d'Ambiant (fenêtre, `shot.sh`, faux modules de `stubs/`) : le `Harness.qml`
+d'Ambiant accepte `base=` (dossier de la vue). Ce dossier n'apporte que les données et les vues
+CocoOS.
+
+```bash
+cd docs/ui/cocoos/harness
+./shot.sh /tmp/a.png view=LibraryDemo                  # capture GPU d'une vue de ce dossier
+python3 ../tools/compare.py ../reference/png/AccueilCarrousel.png /tmp/a.png /tmp/diff.png
+./make-art.py                                           # jaquettes et fonds abstraits de art/ (d'après ../mock/)
+QML_XHR_ALLOW_FILE_READ=1 QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -input tst_Sounds.qml   # idem tst_Mock
+g++ -std=c++17 -fPIC -I../../../../app/gui/console/backend tst_haptics.cpp \
+    ../../../../app/gui/console/backend/haptics.cpp $(pkg-config --cflags --libs Qt6Core) -o /tmp/tst_haptics && /tmp/tst_haptics
+```
+
+- `Mock.js` met `../mock/library.mock.json` au format `GameInfo` du Companion ; un champ absent du
+  mock reste absent (cas limites) ; `Mock.expand(jeux, 214)` pour la grande bibliothèque.
+- Les vues lisent `../mock/` en local : `QML_XHR_ALLOW_FILE_READ=1` (posé par `shot.sh`).
+- `app/gui/console/haptics.json` est une copie de `motion/haptics.json` : `tst_haptics` vérifie
+  qu'ils ne divergent pas.
+
+### Build vanilla hors source (vérifier qu'il reste intact)
+
+Pour ne pas écraser le build `embedded` du dépôt, compiler le vanilla dans un dossier à part.
+L'espace de « CONSOLE DIY » fait perdre à qmake la dépendance des objets à leurs `.moc` de
+source (`boxartmanager.moc: No such file or directory`) : les générer d'abord.
+
+```bash
+mkdir /tmp/vanilla && cd /tmp/vanilla && qmake6 "<dépôt>/moonlight-qt.pro"
+make -j$(nproc)    # échoue sur les .moc : puis
+(cd app && make -f Makefile.Release compiler_moc_source_make_all) && make -j$(nproc)
+```
 
 ### Dépendances d'exécution de l'UI console
 

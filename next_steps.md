@@ -170,7 +170,50 @@ Sans réponse, ces champs restent **masqués** (règle « on retire, on ne rempl
 Restent ouvertes : Q2 et Q3 (bloquent la phase 1), Q9 à Q24 (phases suivantes).
 
 ### Porte de la phase 0
-Section écrite. **J'attends les réponses de Coco avant la phase 1.**
+✅ **Passée** (2026-10-28) : réponses de Coco ci-dessus, plus Q2 (le pack est versionné en entier,
+vidéos comprises) et Q3 (`console.qrc` à part, ajouté par le scope `embedded` d'`app.pro`).
+
+## Refonte CocoOS — phase 1, fondations (2026-10-28)
+
+Un commit par sous-étape :
+- **Jetons** (`Theme.qml`) : tout `tokens.json` (verres, contours, rayons, espacements, styles de
+  texte `text*` = { size, weight, lineHeight, spacing }, durées `dur*`, courbes `curveMain`,
+  `curveSpring`, `curveSpringStrong`) ; `ink` `#F5F5F7`, `ink2` / `ink3` en rgba 0,6 / 0,5,
+  `inkOnAccent` `#1B0E04`, `poor` `#FF453A` + `danger`, `pressDuration` = `durPress` (110 ms).
+  L'interface Ambiant prend donc déjà les nouvelles encres.
+- **Sons** : les 68 WAV du pack dans `app/gui/console/sounds/`, déclarés dans
+  `app/gui/console/console.qrc` (préfixe `/gui/console`, chemins inchangés pour le QML et SDL),
+  ajouté par `RESOURCES +=` dans le scope `embedded` d'`app.pro` ; les anciens sons sortent de
+  `qml.qrc` (le vanilla passe de 0,7 Mo de sons à rien). `Sounds.qml` : table d'alias SPEC §2,
+  `played(nom du pack)`, `ambiance(nom)`. `SoundBank.qml` : préchargement des sons ponctuels,
+  rotation `nav_move_1/2/3`, `nav_move_fast` ≤ 11/s, **`connecting_loop` en boucle** (oublié par le
+  SoundBank de référence, attrapé par `tst_Sounds`), ambiances `amb_*` lues à la demande en fondu
+  croisé 1,8 s / 0,9 s. Niveau commun `Theme.soundVolume` 0,8 (celui de la référence) ; corrections
+  `brightness_tick` −3 dB, `slider_tick` −2 dB. Menu en jeu (SDL) : 48 kHz stéréo et noms du pack
+  (`ingame_menu_*`, `focus_tick`, `volume_*`, `brightness_tick`, `slider_limit`, `hold_*`, `select`,
+  `nav_edge`). `make-sounds.py` retiré. Démarrage : `boot-open` → `boot`, `boot-close` muet, sortie
+  de veille du `BootSplash` → `wake` (calage fin en phase 7).
+- **Vibrations** : `backend/haptics.{h,cpp}` (Qt seul) découpe les 14 motifs en pas de 10 ms ;
+  `StreamMenu::rumble(son, intensité)` les joue par un minuteur SDL, à l'accueil comme en jeu (un
+  nouveau motif coupe le précédent). `category_prev` prend le motif de `category_next`. Réglage
+  « Vibrations » : Off / Légères (défaut) / Fortes → `ConsoleUi/haptics` 0 / 0,6 / 1 ; l'ancienne
+  clé `rumble` est ignorée. Conséquence du pack : `deny` et `launch_start` ne vibrent plus
+  (`launch_ready` si).
+- **Harnais** `docs/ui/cocoos/harness/` : `shot.sh` (passe par celui d'Ambiant, `base=`), `Mock.js`
+  (mock → `GameInfo`, grande bibliothèque de A à Z), `make-art.py` + `art/` (jaquettes 600 × 848
+  et fonds abstraits, Factorio sans), vue de contrôle `LibraryDemo`.
+- Traduction : « Off », « Légères », « Fortes » → Off, Light, Strong.
+
+### Porte de la phase 1
+- Build `embedded` : ✅ (binaire 48 → 105 Mo, les sons), démarre sans erreur QML (hors réseau).
+- Build vanilla : ✅ hors source, sans `CONSOLE_UI`, sans sons ni `haptics` (39 Mo), démarre
+  (avertissements upstream habituels de `main.qml`).
+- Tests : ✅ les 17 suites existantes (Ambiant + veille), `tst_Sounds` 6/6, `tst_Mock` 6/6,
+  `tst_haptics` « ok » (et il échoue bien sur un découpage faux).
+- Reportés à la phase où ils servent : ombres pré-rendues CocoOS (`shadow-cover`…), copie de
+  `grain_256.png` et de la jaquette de secours.
+- ⚠️ **À écouter / sentir par Coco** : le niveau du nouveau pack (0,8) à l'accueil et dans le menu en
+  jeu, et les vibrations Légères / Fortes à la manette (aucune n'a été ressentie).
 
 ## Écran de veille — reconnaissance (phase 0, 2026-10-27)
 
