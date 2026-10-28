@@ -11,6 +11,7 @@ import "../../../../app/gui/console"
 //
 // Arguments (clé=valeur, après « -- ») :
 //   view   nom de la vue à charger (fichier <view>.qml de ce dossier)
+//   base   dossier de la vue s'il n'est pas celui-ci (URL finie par « / » : harnais CocoOS)
 //   out    chemin du PNG à écrire ; la fenêtre se ferme ensuite
 //   delay  attente avant la capture, en ms (1500 par défaut)
 //   size   taille de la fenêtre, « 960x600 » par exemple (1280x800 par défaut)
@@ -47,7 +48,7 @@ Window {
         anchors.fill: parent
         focus: true
         onStatusChanged: if (status === Loader.Error) Qt.exit(1)
-        Component.onCompleted: if (win.args.view) setSource(win.args.view + ".qml", { args: win.args })
+        Component.onCompleted: if (win.args.view) setSource((win.args.base || "") + win.args.view + ".qml", { args: win.args })
     }
 
     Timer {
