@@ -214,38 +214,91 @@ QtObject {
     readonly property int curtainBreath: 1400        // période de la respiration du O
     readonly property real curtainBreathScale: 1.08
 
-    // --- Fond (BackdropLayer) ---
+    // --- Fond (BackdropLayer) : l'art du jeu flouté (AccueilCarrousel, MotionNavigation) ---
     readonly property int backdropDebounce: 140      // attente après le dernier déplacement
-    readonly property int backdropFade: 560          // fondu croisé, easeOut
+    readonly property int backdropFade: 900          // fondu croisé d'un jeu à l'autre
     readonly property int backdropHold: 700          // délai avant de vider l'ancien calque
-    // Dérive lente : de driftScaleFrom à driftScaleTo + décalage, puis retour.
-    readonly property real driftScaleFrom: 1.03
-    readonly property real driftScaleTo: 1.09
-    readonly property point driftShift: Qt.point(-0.01, -0.006)   // fraction de la taille du fond
-    readonly property point driftOrigin: Qt.point(0.60, 0.45)     // centre du zoom, idem
-    readonly property int driftDuration: 30000       // un aller, InOutSine
-    // Voile de lisibilité : trois dégradés noirs superposés.
-    readonly property Gradient scrimLeft: Gradient {         // de gauche à droite
-        orientation: Gradient.Horizontal
-        GradientStop { position: 0.00; color: Qt.rgba(0, 0, 0, 0.84) }
-        GradientStop { position: 0.30; color: Qt.rgba(0, 0, 0, 0.58) }
-        GradientStop { position: 0.58; color: Qt.rgba(0, 0, 0, 0.10) }
-        GradientStop { position: 0.72; color: Qt.rgba(0, 0, 0, 0) }
-    }
-    readonly property Gradient scrimBottom: Gradient {       // de bas en haut
-        GradientStop { position: 0.56; color: Qt.rgba(0, 0, 0, 0) }
-        GradientStop { position: 0.78; color: Qt.rgba(0, 0, 0, 0.50) }
-        GradientStop { position: 1.00; color: Qt.rgba(0, 0, 0, 0.92) }
-    }
-    // Teinte ambiante (couleur dominante du fond) : elle colore le bas du voile, en fondu
-    // d'un jeu à l'autre.
-    readonly property real ambientTintBottom: 0.20   // opacité de la teinte au bas de l'écran
-    readonly property real ambientTintStart: 0.55    // hauteur (part de l'écran) où elle commence
-    readonly property int ambientFade: 700
-    readonly property Gradient scrimTop: Gradient {          // de haut en bas
-        GradientStop { position: 0.00; color: Qt.rgba(0, 0, 0, 0.50) }
-        GradientStop { position: 0.16; color: Qt.rgba(0, 0, 0, 0) }
-    }
+    readonly property int backdropInset: 100         // l'image déborde de l'écran (inset : -100px)
+    // Copie réduite de l'image (écran + débord, 1480 × 1000 → 1/10), floutée une fois : le
+    // blur(100px) de la maquette y vaut une dizaine de pixels.
+    readonly property size backdropBlurSize: Qt.size(148, 100)
+    readonly property int backdropBlurMax: 32
+    // Dérive lente (cocoBgPan) : de backdropPanScaleFrom à To et décalage (px), aller-retour.
+    readonly property real backdropPanScaleFrom: 1.25
+    readonly property real backdropPanScaleTo: 1.34
+    readonly property point backdropPanShift: Qt.point(-30, 16)
+    readonly property int driftDuration: 60000       // un aller, InOutSine
+    // Vignettage radial vers le noir (ellipse à 50 % 40 %) et grain en « overlay ».
+    readonly property real vignetteIn: 0.25
+    readonly property real vignetteOut: 0.85
+    readonly property real vignetteOutEmpty: 0.9     // état vide (EtatFavorisVide)
+    readonly property real grainOpacity: 0.07
+    readonly property int grainSize: 256             // côté de images/grain.png
+
+    // --- Carrousel 3D (CoverFlow ; AccueilCarrousel, MotionNavigation, MotionJaquettes) ---
+    // Emplacement par distance k au centre : [largeur, hauteur, décalage x, luminosité] ;
+    // au-delà de 3, la jaquette s'efface (k = 4). Rotation : coverAngles[k], vers le centre.
+    readonly property var coverSlots: [[240, 340, 0, 1], [190, 269, 250, 0.6], [160, 227, 430, 0.38],
+                                       [140, 198, 580, 0.2], [140, 198, 720, 0.2]]
+    readonly property var coverAngles: [0, 38, 44, 50, 56]
+    readonly property int coverFloor: 436            // bas des jaquettes, px du canevas
+    readonly property int coverPerspective: 900
+    readonly property int coverAreaHeight: 560       // hauteur du carrousel (fondus des bords)
+    readonly property int coverEdgeFade: 160         // fondus noirs des bords…
+    readonly property real coverEdgeFadeAlpha: 0.75  // …à 75 % contre le bord
+    // Déplacement d'un cran : ressort léger ; maintenu (pas de navFastStep), plus vif et sans rebond.
+    readonly property int coverMove: 640
+    readonly property var curveCoverMove: [0.3, 1.12, 0.4, 1, 1, 1]
+    readonly property int coverMoveFast: 230
+    readonly property var curveCoverFast: [0.25, 0.1, 0.25, 1, 1, 1]
+    readonly property int navFastStep: 190           // flèche maintenue : une jaquette toutes les 190 ms
+    readonly property int coverBump: 34              // butée : tout le carrousel recule de 34 px…
+    readonly property int coverBumpOut: 200
+    readonly property int coverBumpBack: 170         // …puis revient
+    // Dessin d'une jaquette (shaders/Cover.frag).
+    readonly property real coverGloss: 0.12          // reflet en biais, blanc à 12 %
+    readonly property real coverShade: 0.55          // dégradé bas des latérales (lisibilité du titre)
+    readonly property real coverRing: 0.12           // filet clair de la jaquette centrale
+    readonly property int coverReflectGap: 6         // reflet au sol : sous la jaquette, à 6 px…
+    readonly property real coverReflectAlpha: 0.24   // …24 % contre elle…
+    readonly property real coverReflectSpan: 0.18    // …et effacé sur 18 % de sa hauteur
+    readonly property int coverShadowPad: 150        // débord de shadows/cover.png (jaquette de 240)
+    readonly property int coverSideShadowPad: 70     // …et de shadows/coverSide.png (jaquette de 190)
+    readonly property int coverTitleSize: 12         // titre des latérales, Sora 600, deux lignes
+    readonly property int coverTitleInset: 10
+    readonly property real coverTitleLineHeight: 1.15
+    // Balayage de la jaquette centrale (cocoSheen) : toutes les 10 s, la bande traverse
+    // entre 55 % et 85 % du cycle.
+    readonly property int sheenPeriod: 10000
+    // Chargement (MotionJaquettes) : squelette de verre balayé (shimmerPeriod), puis l'image
+    // apparaît (fondu coverRevealFade, échelle coverRevealZoom → 1 et flou coverRevealBlur → 0).
+    readonly property int shimmerPeriod: 1500
+    readonly property int coverRevealFade: 500
+    readonly property int coverRevealMove: 700
+    readonly property real coverRevealZoom: 1.04
+    readonly property real coverRevealBlur: 8
+    // Jaquette composée (pas d'image) : dégradé sourd d'une teinte (celle du fond du jeu, sinon
+    // une des six de secours choisie par le nom), éditeur en libellé, titre en Sora 600. Tailles
+    // de CasLimites (jaquette de 96 de large), à l'échelle de la jaquette.
+    readonly property var composedHues: [30, 90, 150, 210, 270, 330]
+    readonly property var composedLevels: [[0.22, 0.29], [0.24, 0.13], [0.25, 0.06]]   // [saturation, luminosité] haut, milieu, bas
+    readonly property real composedLabelSize: 7 / 96
+    readonly property real composedTitleSize: 14 / 96
+    readonly property real composedInset: 10 / 96
+    // Changement de catégorie (MotionCategories) : le carrousel qui arrive glisse de 140 px,
+    // flou de 8 px, et apparaît (fondu après categoryEnterDelay).
+    readonly property int categorySlide: 140
+    readonly property real categoryBlur: 8
+    readonly property int categoryEnterMove: 640     // curveMain
+    readonly property int categoryEnterDelay: 110
+    readonly property int categoryEnterFade: 380
+        // Saut alphabétique (CasLimites) : au-delà de coverJumpMin jeux, RT / LT.
+    readonly property int coverJumpMin: 31
+    readonly property int letterBoxSize: 88
+    readonly property int letterBoxRadius: 24
+    readonly property int letterSize: 46
+    readonly property int letterShow: 900            // la lettre reste, le carrousel flou
+    readonly property real letterBlur: 3
 
     // --- Barre haute (StatusBar) ---
     readonly property int topBarY: 26

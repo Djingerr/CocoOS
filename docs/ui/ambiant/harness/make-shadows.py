@@ -22,6 +22,10 @@ SHADOWS = {
     "thumb": (108, 144, 10, 18, 40, -12, 0.90, 78),
     # Île de notification (Theme.islandSize, islandRadius) : 0 14px 34px -8px, 80 %.
     "island": (340, 72, 28, 14, 34, -8, 0.80, 65),
+    # Jaquettes du carrousel CocoOS (Theme.coverSlots, radiusCover) : la centrale
+    # 0 40px 90px, 60 % ; les latérales 0 20px 40px, 50 % (AccueilCarrousel).
+    "cover": (240, 340, 12, 40, 90, 0, 0.60, 150),
+    "coverSide": (190, 269, 12, 20, 40, 0, 0.50, 70),
 }
 
 

@@ -165,7 +165,6 @@ FocusScope {
             opacity: root.entered ? 1 : 0
             zoom: root.launching ? Theme.launchBackdropZoom : 1
             unveiled: root.launching
-            tint: root.ambientTint ? root.ambient : "transparent"
             Behavior on opacity {
                 NumberAnimation {
                     duration: root.entered ? Theme.entryCardFade : 0

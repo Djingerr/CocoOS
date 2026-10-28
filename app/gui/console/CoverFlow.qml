@@ -1,0 +1,516 @@
+import QtQuick
+import QtQuick.Effects
+
+// Carrousel 3D de l'accueil CocoOS (AccueilCarrousel, MotionNavigation, MotionJaquettes,
+// CasLimites) : la jaquette sélectionnée au centre, les autres de part et d'autre, plus
+// petites, tournées vers elle en perspective et assombries, avec leur reflet au sol.
+// Présentation pure, aucune dépendance Moonlight. Remplace l'étagère « Ambiant »
+// (GameShelf) avec la même interface pour HomeScreen.
+//
+// Chaque jaquette suit une seule valeur, `position` (le jeu au centre, fractionnaire en
+// mouvement) : sa place, sa taille, sa rotation et sa luminosité s'interpolent entre les
+// emplacements de Theme.coverSlots. Un nouvel appui relance l'animation de `position`
+// depuis là où elle en est (interruptible, MotionInterruption).
+// Modèle : rôles `name`, `boxart` (jaquette Apollo) et, s'ils existent, `cover` (jaquette
+// Playnite, préférée), `publisher` (jaquette composée). Remplit son parent : x = 0 est le
+// bord du canevas, y = 0 son haut.
+FocusScope {
+    id: root
+
+    property alias model: repeater.model
+    readonly property alias count: repeater.count
+    property int currentIndex: 0
+    property int direction: 1            // sens du dernier déplacement (+1 : vers la droite)
+    property string runningName: ""      // (étagère Ambiant : le jeu en cours ; pas de marque ici)
+    property bool shown: true
+    property int enterStep: 0            // (étagère Ambiant : cascade d'entrée)
+    property bool pressing: false        // A enfoncé
+    readonly property bool focused: activeFocus
+
+    signal launchRequested(int index)
+    signal detailsRequested()
+    signal upRequested()
+    signal collectionRequested(int direction)
+
+    // La jaquette centrale, sur le canevas : l'écran de lancement en part.
+    readonly property rect activeRect: Qt.rect(width / 2 - Theme.coverSlots[0][0] / 2,
+                                               Theme.coverFloor - Theme.coverSlots[0][1],
+                                               Theme.coverSlots[0][0], Theme.coverSlots[0][1])
+
+    // --- Position animée ---
+    property real position: currentIndex
+    property bool fast: false            // flèche maintenue : pas rapides, sans rebond
+    property real bump: 0                // butée : tout le carrousel recule
+    property int lastIndex: 0
+    property bool completed: false
+
+    onCurrentIndexChanged: {
+        if (currentIndex !== lastIndex)
+            direction = currentIndex > lastIndex ? 1 : -1
+        lastIndex = currentIndex
+        if (!completed || Theme.reducedMotion) {
+            slide.stop()
+            position = currentIndex
+            return
+        }
+        slide.duration = fast ? Theme.coverMoveFast : Theme.coverMove
+        slide.easing.bezierCurve = fast ? Theme.curveCoverFast : Theme.curveCoverMove
+        slide.to = currentIndex
+        slide.restart()
+    }
+    NumberAnimation {
+        id: slide
+        target: root; property: "position"
+        easing.type: Easing.BezierSpline
+    }
+    Component.onCompleted: {
+        lastIndex = currentIndex
+        position = currentIndex
+        completed = true
+    }
+    // (count vaut 0 tant que le modèle n'est pas chargé : ne pas y perdre la sélection.)
+    onCountChanged: if (count > 0 && currentIndex >= count) currentIndex = count - 1
+
+    // Déplace la sélection d'un cran ; en bout de liste, le carrousel bute.
+    function move(dir) {
+        var next = currentIndex + dir
+        if (next < 0 || next >= count) {
+            bumpAnim.stop()
+            bumpOut.to = -dir * Theme.coverBump
+            bumpAnim.start()
+            Sounds.play("edge")
+            return
+        }
+        currentIndex = next
+        Sounds.play(fast ? "nav_move_fast" : "nav_move")
+    }
+    SequentialAnimation {
+        id: bumpAnim
+        NumberAnimation {
+            id: bumpOut
+            target: root; property: "bump"
+            duration: Theme.coverBumpOut
+            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveCoverFast
+        }
+        NumberAnimation {
+            target: root; property: "bump"; to: 0
+            duration: Theme.coverBumpBack
+            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveCoverFast
+        }
+    }
+
+    // --- Saut alphabétique (RT / LT, CasLimites) : au-delà de Theme.coverJumpMin jeux, à la
+    //     première jaquette de la lettre suivante (ou de la précédente). ---
+    function initial(i) {
+        var name = repeater.itemAt(i) ? repeater.itemAt(i).name : ""
+        var c = name.normalize("NFD").replace(/[̀-ͯ]/g, "").charAt(0).toUpperCase()
+        return /[A-Z]/.test(c) ? c : "#"
+    }
+    function jump(dir) {
+        if (count < Theme.coverJumpMin)
+            return
+        var letter = initial(currentIndex)
+        var i = currentIndex
+        while (i + dir >= 0 && i + dir < count && initial(i + dir) === letter)
+            i += dir
+        i += dir
+        if (i < 0 || i >= count) {
+            move(dir)                    // plus de lettre de ce côté : la butée
+            return
+        }
+        if (dir < 0) {                   // la première jaquette de la lettre précédente
+            var previous = initial(i)
+            while (i > 0 && initial(i - 1) === previous)
+                i--
+        }
+        currentIndex = i
+        letterBox.letter = initial(i)
+        letterBox.flash()
+        Sounds.play("tab_switch", "category_next")
+    }
+
+    // --- Changement de catégorie (MotionCategories) : le carrousel arrive du côté demandé ---
+    property real slideX: 0
+    property real slideBlur: 0
+    property real slideOpacity: 1
+    function slideIn(dir) {
+        if (Theme.reducedMotion) return
+        categoryAnim.stop()
+        slideX = dir * Theme.categorySlide
+        slideBlur = Theme.categoryBlur
+        slideOpacity = 0
+        categoryAnim.start()
+    }
+    ParallelAnimation {
+        id: categoryAnim
+        NumberAnimation {
+            target: root; property: "slideX"; to: 0
+            duration: Theme.categoryEnterMove
+            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
+        }
+        SequentialAnimation {
+            PauseAnimation { duration: Theme.categoryEnterDelay }
+            ParallelAnimation {
+                NumberAnimation { target: root; property: "slideOpacity"; to: 1; duration: Theme.categoryEnterFade }
+                NumberAnimation { target: root; property: "slideBlur"; to: 0; duration: Theme.categoryEnterFade }
+            }
+        }
+    }
+
+    // --- Balayage de la jaquette centrale (cocoSheen) ---
+    property real sheen: -2
+    SequentialAnimation on sheen {
+        running: root.shown && !Theme.reducedMotion
+        loops: Animation.Infinite
+        PropertyAction { value: -1.6 }
+        PauseAnimation { duration: Theme.sheenPeriod * 0.55 }
+        NumberAnimation {
+            to: 4.2; duration: Theme.sheenPeriod * 0.3
+            easing.type: Easing.BezierSpline; easing.bezierCurve: [0.42, 0, 0.58, 1, 1, 1]
+        }
+        PauseAnimation { duration: Theme.sheenPeriod * 0.15 }
+    }
+
+    // Emplacement à la distance k (0 à 4, fractionnaire) : interpolé entre ceux de Theme.
+    function slotAt(k) {
+        var i = Math.min(Math.floor(k), 3), f = k - i
+        var a = Theme.coverSlots[i], b = Theme.coverSlots[i + 1]
+        var mix = function(j) { return a[j] + (b[j] - a[j]) * f }
+        return { w: mix(0), h: mix(1), dx: mix(2), brightness: mix(3),
+                 angle: Theme.coverAngles[i] + (Theme.coverAngles[i + 1] - Theme.coverAngles[i]) * f }
+    }
+    // perspective(900px) rotateY(deg), autour du centre d'un élément w × h (comme en CSS).
+    function tilt(w, h, deg) {
+        var a = deg * Math.PI / 180, c = Math.cos(a), s = Math.sin(a) / Theme.coverPerspective
+        var cx = w / 2, cy = h / 2
+        return Qt.matrix4x4(c + cx * s, 0, 0, cx - c * cx - cx * cx * s,
+                            cy * s, 1, 0, -cy * cx * s,
+                            0, 0, 1, 0,
+                            s, 0, 0, 1 - s * cx)
+    }
+    // Teinte d'une jaquette composée : une des six de secours, choisie par le nom.
+    function composedHue(name) {
+        var h = 0
+        for (var i = 0; i < name.length; i++)
+            h = (h * 31 + name.charCodeAt(i)) % 9973
+        return Theme.composedHues[h % Theme.composedHues.length] / 360
+    }
+
+    // --- Manette et clavier ---
+    PadRepeat {
+        id: pad
+        keys: [Qt.Key_Left, Qt.Key_Right]
+        interval: Theme.navFastStep
+        minimum: Theme.navFastStep
+        step: 0
+        onTriggered: function(key) {
+            root.fast = pad.repeats > 0
+            root.move(key === Qt.Key_Left ? -1 : 1)
+        }
+        onHeldKeyChanged: if (heldKey === 0) root.fast = false
+    }
+    Keys.onPressed: function(event) {
+        if ((event.key === Qt.Key_Left || event.key === Qt.Key_Right) && (event.modifiers & Qt.ShiftModifier)) {
+            event.accepted = true
+            root.jump(event.key === Qt.Key_Left ? -1 : 1)
+            return
+        }
+        if (event.key === Qt.Key_PageUp || event.key === Qt.Key_PageDown) {
+            event.accepted = true
+            if (!event.isAutoRepeat) root.collectionRequested(event.key === Qt.Key_PageUp ? -1 : 1)
+            return
+        }
+        pad.press(event)
+    }
+    Keys.onReleased: function(event) {
+        pad.release(event)
+        if (pressing && !event.isAutoRepeat && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)) {
+            root.launchRequested(currentIndex)   // (d'abord : un lancement garde le bouton enfoncé)
+            pressing = false
+        }
+    }
+    Keys.onUpPressed: root.upRequested()
+    Keys.onDownPressed: root.detailsRequested()
+    Keys.onReturnPressed: function(event) { if (!event.isAutoRepeat) pressing = true }
+    Keys.onEnterPressed: function(event) { if (!event.isAutoRepeat) pressing = true }
+    onActiveFocusChanged: if (!activeFocus) { pad.stop(); pressing = false }
+
+    // Molette : une jaquette par cran (les pavés tactiles s'additionnent).
+    property real wheelRest: 0
+    MouseArea {
+        anchors.fill: parent
+        acceptedButtons: Qt.NoButton
+        onWheel: function(wheel) {
+            var delta = wheel.angleDelta.x !== 0 ? -wheel.angleDelta.x : wheel.angleDelta.y
+            root.wheelRest += delta
+            while (Math.abs(root.wheelRest) >= 120) {
+                root.move(root.wheelRest > 0 ? -1 : 1)
+                root.wheelRest -= root.wheelRest > 0 ? 120 : -120
+            }
+        }
+    }
+
+    // --- Les jaquettes ---
+    Item {
+        id: strip
+        width: root.width
+        height: Theme.coverAreaHeight
+        x: root.slideX
+        opacity: (root.shown ? 1 : 0) * root.slideOpacity
+        Behavior on opacity { enabled: !categoryAnim.running; NumberAnimation { duration: Theme.entryCardFade } }
+        // Flou d'ensemble seulement le temps d'un saut de lettre ou d'un changement de catégorie.
+        readonly property real blurPx: Math.max(root.slideBlur, letterBox.shown ? Theme.letterBlur : 0)
+        layer.enabled: blurPx > 0 && GraphicsInfo.api !== GraphicsInfo.Software
+        layer.effect: MultiEffect { blurEnabled: true; blurMax: 16; blur: strip.blurPx / 16 }
+
+        Repeater {
+            id: repeater
+            delegate: Item {
+                id: slot
+
+                required property int index
+                required property var model
+                readonly property string name: model.name || ""
+                readonly property url art: model.cover ? model.cover : (model.boxart || "")
+                readonly property real o: index - root.position
+                readonly property real k: Math.min(Math.abs(o), 4)
+                readonly property real side: Math.min(k, 1)          // 0 au centre, 1 sur les côtés
+                readonly property var place: root.slotAt(k)
+
+                visible: Math.abs(o) < 4
+                x: root.width / 2 + Math.sign(o) * place.dx + root.bump - place.w / 2
+                y: Theme.coverFloor - place.h
+                width: place.w
+                height: place.h
+                z: 10 - k
+                opacity: k <= 3 ? 1 : 4 - k
+                transform: Matrix4x4 { matrix: root.tilt(slot.width, slot.height, -Math.sign(slot.o) * slot.place.angle) }
+
+                // Ombres portées (pré-rendues), centrale et latérale en fondu.
+                Image {
+                    readonly property real f: slot.width / Theme.coverSlots[0][0]
+                    x: -Theme.coverShadowPad * f; y: -Theme.coverShadowPad * f
+                    width: slot.width + 2 * Theme.coverShadowPad * f
+                    height: slot.height + 2 * Theme.coverShadowPad * f
+                    source: "shadows/cover.png"
+                    opacity: 1 - slot.side
+                    visible: opacity > 0
+                }
+                Image {
+                    readonly property real f: slot.width / Theme.coverSlots[1][0]
+                    x: -Theme.coverSideShadowPad * f; y: -Theme.coverSideShadowPad * f
+                    width: slot.width + 2 * Theme.coverSideShadowPad * f
+                    height: slot.height + 2 * Theme.coverSideShadowPad * f
+                    source: "shadows/coverSide.png"
+                    opacity: slot.side
+                    visible: opacity > 0
+                }
+
+                Loader {
+                    anchors.fill: parent
+                    active: slot.visible
+                    sourceComponent: slot.art.toString() !== "" ? artCover : composedCover
+                }
+
+                // Jaquette d'après son image : un passage de shader (et un pour son reflet).
+                Component {
+                    id: artCover
+                    Item {
+                        id: cover
+                        property real reveal: 0
+                        property real zoom: 1
+                        property real blurPx: 0
+                        property real shimmer: -1.2
+
+                        Image {
+                            id: picture
+                            source: slot.art
+                            visible: false
+                            asynchronous: true
+                            smooth: true
+                            mipmap: true
+                            sourceSize.width: Math.round(Theme.coverSlots[0][0] * Math.max(1, Theme.scale) * 1.5)
+                            // Déjà là (cache) : aucune apparition ; sinon le fondu de MotionJaquettes.
+                            Component.onCompleted: if (status === Image.Ready) cover.reveal = 1
+                            onStatusChanged: if (status === Image.Ready && cover.reveal === 0) appear.start()
+                        }
+                        ParallelAnimation {
+                            id: appear
+                            NumberAnimation { target: cover; property: "reveal"; from: 0; to: 1; duration: Theme.coverRevealFade }
+                            NumberAnimation {
+                                target: cover; property: "zoom"; from: Theme.coverRevealZoom; to: 1
+                                duration: Theme.coverRevealMove
+                                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
+                            }
+                            NumberAnimation { target: cover; property: "blurPx"; from: Theme.coverRevealBlur; to: 0; duration: Theme.coverRevealFade }
+                        }
+                        NumberAnimation on shimmer {
+                            running: cover.reveal < 1 && !Theme.reducedMotion
+                            from: -1.2; to: 2.6; loops: Animation.Infinite
+                            duration: Theme.shimmerPeriod; easing.type: Easing.InOutSine
+                        }
+
+                        ShaderEffect {
+                            id: face
+                            anchors.fill: parent
+                            readonly property size coverSize: Qt.size(width, height)
+                            readonly property real itemHeight: height
+                            readonly property real radius: Theme.radiusCover
+                            readonly property real dim: 1 - slot.place.brightness
+                            readonly property real gloss: Theme.coverGloss
+                            readonly property real shade: Theme.coverShade * slot.side
+                            readonly property real ring: Theme.coverRing * (1 - slot.side)
+                            readonly property real sheen: slot.k < 0.5 ? root.sheen : -2
+                            readonly property real shimmer: cover.shimmer
+                            readonly property real reveal: cover.reveal
+                            readonly property real zoom: cover.zoom
+                            readonly property real blurPx: cover.blurPx
+                            readonly property real mirror: 0
+                            readonly property real mirrorAlpha: Theme.coverReflectAlpha
+                            readonly property real mirrorSpan: Theme.coverReflectSpan
+                            readonly property var source: picture
+                            fragmentShader: "shaders/Cover.frag.qsb"
+                        }
+                        ShaderEffect {
+                            y: parent.height + Theme.coverReflectGap
+                            width: parent.width
+                            height: parent.height * Theme.coverReflectSpan
+                            readonly property size coverSize: face.coverSize
+                            readonly property real itemHeight: height
+                            readonly property real radius: Theme.radiusCover
+                            readonly property real dim: face.dim
+                            readonly property real gloss: 0
+                            readonly property real shade: 0
+                            readonly property real ring: 0
+                            readonly property real sheen: -2
+                            readonly property real shimmer: -2
+                            readonly property real reveal: cover.reveal
+                            readonly property real zoom: 1
+                            readonly property real blurPx: 0
+                            readonly property real mirror: 1
+                            readonly property real mirrorAlpha: Theme.coverReflectAlpha
+                            readonly property real mirrorSpan: Theme.coverReflectSpan
+                            readonly property var source: picture
+                            fragmentShader: "shaders/Cover.frag.qsb"
+                        }
+                        // Titre des latérales, sur le dégradé bas.
+                        Text {
+                            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: Theme.coverTitleInset }
+                            text: slot.name
+                            visible: slot.side > 0
+                            opacity: slot.side
+                            color: Qt.rgba(Theme.ink.r * slot.place.brightness, Theme.ink.g * slot.place.brightness,
+                                           Theme.ink.b * slot.place.brightness, 1)
+                            font.family: Theme.fontUi
+                            font.pixelSize: Theme.coverTitleSize
+                            font.weight: Font.DemiBold
+                            lineHeight: Theme.coverTitleLineHeight
+                            wrapMode: Text.Wrap
+                            maximumLineCount: 2
+                            elide: Text.ElideRight
+                        }
+                    }
+                }
+
+                // Jaquette composée (CasLimites) : dégradé sourd, éditeur, titre.
+                Component {
+                    id: composedCover
+                    Item {
+                        readonly property real hue: root.composedHue(slot.name)
+                        readonly property real unit: width
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Theme.radiusCover
+                            gradient: Gradient {
+                                GradientStop { position: 0; color: Qt.hsla(hue, Theme.composedLevels[0][0], Theme.composedLevels[0][1], 1) }
+                                GradientStop { position: 0.55; color: Qt.hsla(hue, Theme.composedLevels[1][0], Theme.composedLevels[1][1], 1) }
+                                GradientStop { position: 1; color: Qt.hsla(hue, Theme.composedLevels[2][0], Theme.composedLevels[2][1], 1) }
+                            }
+                        }
+                        Text {
+                            x: Theme.composedInset * unit; y: x
+                            width: parent.width - 2 * x
+                            text: (slot.model.publisher || "").toUpperCase()
+                            color: Theme.ink2
+                            font.family: Theme.fontUi
+                            font.pixelSize: Theme.composedLabelSize * unit
+                            font.weight: Font.DemiBold
+                            font.letterSpacing: 0.08 * font.pixelSize
+                            elide: Text.ElideRight
+                        }
+                        Text {
+                            anchors { left: parent.left; right: parent.right; bottom: parent.bottom; margins: Theme.composedInset * unit }
+                            text: slot.name
+                            color: Theme.ink
+                            font.family: Theme.fontUi
+                            font.pixelSize: Theme.composedTitleSize * unit
+                            font.weight: Font.DemiBold
+                            font.letterSpacing: -0.03 * font.pixelSize
+                            lineHeight: 1.05
+                            wrapMode: Text.Wrap
+                            maximumLineCount: 3
+                            elide: Text.ElideRight
+                        }
+                        Rectangle {
+                            anchors.fill: parent
+                            radius: Theme.radiusCover
+                            color: "black"
+                            opacity: 1 - slot.place.brightness
+                            border.width: 1
+                            border.color: Qt.rgba(1, 1, 1, Theme.coverRing * (1 - slot.side))
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Fondus noirs des bords.
+    Rectangle {
+        width: Theme.coverEdgeFade; height: Theme.coverAreaHeight
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop { position: 0; color: Qt.rgba(0, 0, 0, Theme.coverEdgeFadeAlpha) }
+            GradientStop { position: 1; color: "transparent" }
+        }
+    }
+    Rectangle {
+        x: root.width - width
+        width: Theme.coverEdgeFade; height: Theme.coverAreaHeight
+        gradient: Gradient {
+            orientation: Gradient.Horizontal
+            GradientStop { position: 0; color: "transparent" }
+            GradientStop { position: 1; color: Qt.rgba(0, 0, 0, Theme.coverEdgeFadeAlpha) }
+        }
+    }
+
+    // Lettre du saut alphabétique, dans un carré de verre au centre.
+    Rectangle {
+        id: letterBox
+        property string letter: ""
+        property bool shown: false
+        function flash() { shown = true; letterHide.restart() }
+        Timer { id: letterHide; interval: Theme.letterShow; onTriggered: letterBox.shown = false }
+
+        width: Theme.letterBoxSize; height: width
+        radius: Theme.letterBoxRadius
+        x: (root.width - width) / 2
+        y: Theme.coverFloor - Theme.coverSlots[0][1] / 2 - height / 2
+        z: 20
+        color: Theme.glassDialog
+        border.color: Theme.hairlineStrong
+        opacity: shown ? 1 : 0
+        scale: shown ? 1 : 0.86
+        Behavior on opacity { NumberAnimation { duration: Theme.durFocus } }
+        Behavior on scale { NumberAnimation { duration: Theme.durFocus; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveSpring } }
+        Text {
+            anchors.centerIn: parent
+            text: letterBox.letter
+            color: Theme.ink
+            font.family: Theme.fontUi
+            font.pixelSize: Theme.letterSize
+            font.weight: Font.DemiBold
+            font.letterSpacing: -0.03 * font.pixelSize
+        }
+    }
+}

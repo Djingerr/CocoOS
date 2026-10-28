@@ -7,8 +7,8 @@ import QtQuick
 // pour une boucle (fondu croisé), ambiance("") pour l'arrêter.
 // Les anciens noms (« Ambiant ») restent valides par alias (SPEC §2).
 // Coupés par défaut : c'est l'application (ConsoleHome) qui les active, pas le harnais ni les tests.
-// played(name) est émis même sons coupés, avec le nom du pack : l'accueil en tire les
-// vibrations de la manette (motion/haptics.json).
+// played(name) est émis même sons coupés, avec le nom du pack (ou celui du `haptic` donné) :
+// l'accueil en tire les vibrations de la manette (motion/haptics.json).
 // Les sons eux-mêmes sont dans SoundBank.qml, chargé à part : si QtMultimedia
 // manque sur la machine, l'interface fonctionne, simplement sans son.
 QtObject {
@@ -29,11 +29,13 @@ QtObject {
         return aliases[name] !== undefined ? aliases[name] : name
     }
 
-    function play(name) {
+    // `haptic` : le son dont la vibration accompagne celui-ci, s'il diffère (le saut de lettre
+    // du carrousel sonne tab_switch et vibre comme une catégorie, category_next).
+    function play(name, haptic) {
         name = resolve(name)
         if (name === "")
             return
-        played(name)
+        played(haptic || name)
         if (bank.item)
             bank.item.play(name)
     }

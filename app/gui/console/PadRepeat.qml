@@ -11,6 +11,12 @@ Item {
     id: root
 
     property var keys: []            // touches prises en charge
+    // Rythme : premier délai, puis l'intervalle, resserré de `step` à chaque répétition
+    // jusqu'à `minimum` (le carrousel CocoOS garde un pas fixe : step 0).
+    property int delay: Theme.repeatDelay
+    property int interval: Theme.repeatInterval
+    property int minimum: Theme.repeatMin
+    property int step: Theme.repeatStep
     signal triggered(int key)        // à l'appui, puis à chaque répétition
 
     property int heldKey: 0
@@ -26,7 +32,7 @@ Item {
         heldKey = event.key
         repeats = 0
         triggered(heldKey)
-        timer.interval = Theme.repeatDelay
+        timer.interval = root.delay
         timer.restart()
         return true
     }
@@ -47,7 +53,7 @@ Item {
         onTriggered: {
             root.repeats++
             root.triggered(root.heldKey)
-            interval = Math.max(Theme.repeatMin, Theme.repeatInterval - root.repeats * Theme.repeatStep)
+            interval = Math.max(root.minimum, root.interval - root.repeats * root.step)
             restart()
         }
     }

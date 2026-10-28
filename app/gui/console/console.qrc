@@ -5,6 +5,11 @@
 <RCC>
     <qresource prefix="/gui/console">
         <file>haptics.json</file>
+        <file>images/grain.png</file>
+        <file>shaders/Backdrop.frag.qsb</file>
+        <file>shaders/Cover.frag.qsb</file>
+        <file>shadows/cover.png</file>
+        <file>shadows/coverSide.png</file>
         <file>sounds/amb_accueil.wav</file>
         <file>sounds/amb_appairage.wav</file>
         <file>sounds/amb_mise_a_jour.wav</file>

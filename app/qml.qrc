@@ -42,6 +42,7 @@
         <file>gui/console/SwapBox.qml</file>
         <file>gui/console/ButtonGlyph.qml</file>
         <file>gui/console/BackdropLayer.qml</file>
+        <file>gui/console/CoverFlow.qml</file>
         <file>gui/console/HeroBlock.qml</file>
         <file>gui/console/GameShelf.qml</file>
         <file>gui/console/HomeScreen.qml</file>
