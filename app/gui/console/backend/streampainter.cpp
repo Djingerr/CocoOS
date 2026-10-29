@@ -128,6 +128,14 @@ const qreal SHOT_BOTTOM = 32;
 const qreal SHOT_BORDER = 3;             // filet clair (20 px à l'échelle de l'image entière)
 const qreal SHOT_RADIUS = 12;
 const QColor SHOT_LABEL_FILL(28, 28, 30, qRound(0.72 * 255));
+const qreal HUD_WIDTH = 220;
+const qreal HUD_TOP = 14;
+const qreal HUD_SIDE = 120;              // de son bord d'écran (à gauche, à droite)
+const qreal HUD_THIN = 10;
+const qreal HUD_THICK = 48;
+const qreal HUD_BUMP_HEIGHT = 6;         // en butée : 6 px moins haute…
+const qreal HUD_BUMP_WIDTH = 0.07;       // …et 7 % plus large
+const QColor HUD_FILL(40, 40, 42, qRound(0.62 * 255));
 
 // Les tailles sont en points sur une image à 72 ppp (1 point = 1 pixel) : QFont
 // n'accepte que des tailles de pixel entières, le canevas a des demi-pixels.
@@ -1217,9 +1225,81 @@ void drawShot(QPainter& p, const StreamPainter::Overlay& o, qreal width)
 
 }
 
+namespace {
+
+// Le haut-parleur du HUD (20 × 20) : corps, deux ondes selon le niveau, ou barré à 0.
+void drawSpeaker(QPainter& p, QPointF topLeft, qreal level, const QColor& color)
+{
+    p.save();
+    p.translate(topLeft);
+    QPainterPath body;
+    body.moveTo(3, 7.5); body.lineTo(6, 7.5); body.lineTo(10, 4.3); body.lineTo(10, 15.7);
+    body.lineTo(6, 12.5); body.lineTo(3, 12.5); body.closeSubpath();
+    p.setPen(Qt::NoPen);
+    p.setBrush(color);
+    p.drawPath(body);
+    p.setBrush(Qt::NoBrush);
+    p.setPen(QPen(color, 1.7, Qt::SolidLine, Qt::RoundCap));
+    if (level <= 0) {
+        p.drawLine(QPointF(13, 7), QPointF(18, 13));
+        p.drawLine(QPointF(18, 7), QPointF(13, 13));
+    }
+    else {
+        p.drawArc(QRectF(10.55 - 3.5, 10 - 3.5, 7, 7), int(45.6 * 16), int(-91.2 * 16));
+        if (level >= 0.5) {
+            p.drawArc(QRectF(10.6 - 7, 10 - 7, 14, 14), int(45.6 * 16), int(-91.2 * 16));
+        }
+    }
+    p.restore();
+}
+
+void drawVolumeHud(QPainter& p, const StreamPainter::Overlay& o, qreal width)
+{
+    if (o.hudShow <= 0) {
+        return;
+    }
+    const qreal expand = curve(o.hudExpand, QPointF(0.3, 1.3), QPointF(0.4, 1));
+    // Butée : 140 ms pour s'étirer, puis le retour au ressort (520 ms).
+    const qreal rise = 140.0 / 660;
+    const qreal bump = o.hudBump >= 1 ? 0 : o.hudBump < rise ? ease(QEasingCurve::OutQuad, o.hudBump / rise)
+                     : 1 - curve((o.hudBump - rise) / (1 - rise), QPointF(0.3, 1.5), QPointF(0.4, 1));
+    const qreal height = HUD_THIN + (HUD_THICK - HUD_THIN) * expand - HUD_BUMP_HEIGHT * bump * o.hudExpand;
+    const qreal left = o.hudPosition == 1 ? (width - HUD_WIDTH) / 2 : o.hudPosition == 2 ? width - HUD_SIDE - HUD_WIDTH : HUD_SIDE;
+    const QRectF box(left, HUD_TOP - 40 * (1 - curveSpring(o.hudShow)), HUD_WIDTH, height);
+    p.save();
+    p.setOpacity(qMin<qreal>(1, o.hudShow * 3));
+    const qreal origin = o.hudBumpRight ? box.left() : box.right();
+    p.translate(origin, 0);
+    p.scale(1 + HUD_BUMP_WIDTH * bump, 1);
+    p.translate(-origin, 0);
+    QPainterPath capsule;
+    capsule.addRoundedRect(box, height / 2, height / 2);
+    p.setPen(Qt::NoPen);
+    p.setBrush(HUD_FILL);
+    p.drawPath(capsule);
+    p.setClipPath(capsule);
+    p.fillRect(QRectF(box.x(), box.y(), box.width() * qBound<qreal>(0, o.hudLevel, 1), box.height()), INK);
+    p.setClipping(false);
+    p.setBrush(Qt::NoBrush);
+    p.setPen(QPen(QColor(255, 255, 255, qRound(0.12 * 255)), 1));
+    p.drawRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), height / 2 - 0.5, height / 2 - 0.5);
+    // L'icône, dans la capsule épaisse : sombre dès que le remplissage la recouvre.
+    if (o.hudExpand > 0) {
+        p.setOpacity(p.opacity() * qMin<qreal>(1, o.hudExpand * 420 / 180));
+        const qreal s = 0.6 + 0.4 * expand;
+        const QPointF c(box.x() + 14 + 10, box.center().y());
+        p.translate(c);
+        p.scale(s, s);
+        drawSpeaker(p, QPointF(-10, -10), o.hudLevel, o.hudLevel >= 0.2 ? INK_DARK : INK);
+    }
+    p.restore();
+}
+
+}
+
 bool StreamPainter::overlayShown(const Overlay& o)
 {
-    return (o.stats.mode != Stats::Hidden && o.stats.total >= 0 && o.statsOpacity > 0)
+    return o.hudShow > 0 || (o.stats.mode != Stats::Hidden && o.stats.total >= 0 && o.statsOpacity > 0)
         || (!o.banner.title.isEmpty() && o.bannerIn > 0 && o.bannerOut < 1)
         || o.pauseShow > 0 || o.backdropShow > 0 || o.flash > 0
         || (!o.shot.image.isNull() && o.shotOut < 1) || o.shotLabel > 0;
@@ -1231,7 +1311,7 @@ QImage StreamPainter::paintOverlay(const Overlay& o, QSize screen)
         return QImage();
     }
     const qreal scale = screen.height() / CANVAS_HEIGHT;
-    const bool statsOnly = !(o.bannerIn > 0 && o.bannerOut < 1) && o.pauseShow <= 0 && o.backdropShow <= 0
+    const bool statsOnly = o.hudShow <= 0 && !(o.bannerIn > 0 && o.bannerOut < 1) && o.pauseShow <= 0 && o.backdropShow <= 0
                         && o.flash <= 0 && (o.shot.image.isNull() || o.shotOut >= 1) && o.shotLabel <= 0;
     QImage image = canvasImage(QSize(1, 1));
     if (statsOnly) {   // juste le coin des statistiques
@@ -1255,5 +1335,6 @@ QImage StreamPainter::paintOverlay(const Overlay& o, QSize screen)
     drawShot(p, o, width);
     drawPause(p, o, width);
     drawBanner(p, o, width);
+    drawVolumeHud(p, o, width);
     return image;
 }

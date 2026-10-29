@@ -101,6 +101,7 @@ FocusScope {
         // profils, les réglages à part d'un jeu. Éteint, l'essentiel seulement.
         property bool advancedSettings: false
         property string recentSearches: "[]"   // recherches récentes, la dernière en tête (JSON)
+        property string volumeHud: "left"      // indicateur du volume : left, center, right
         property string preferredHost: ""      // PC choisi (ChoixPC) ; vide : le premier trouvé
     }
 
@@ -209,6 +210,24 @@ FocusScope {
         }
     }
     Keys.onEscapePressed: homeScreen.dismissNotification()     // accueil : sinon rien à fermer
+    // Touches de volume de la console (dans le jeu : keyboard.cpp) : ±5 %, et la capsule (MotionHud).
+    Shortcut { sequence: "Volume Up"; autoRepeat: true; onActivated: home.volumeKey(1) }
+    Shortcut { sequence: "Volume Down"; autoRepeat: true; onActivated: home.volumeKey(-1) }
+    function volumeKey(direction) {
+        if (SystemStatus.volume < 0) return
+        var value = SystemStatus.volume
+        var floor = Math.floor(value / 5) * 5
+        var next = Math.max(0, Math.min(100, direction > 0 ? floor + 5 : (value === floor ? floor - 5 : floor)))
+        volumeHud.level = next / 100
+        volumeHud.press(direction, next === value)
+        if (next === value) {
+            Sounds.play("volume_limit")
+            return
+        }
+        SystemStatus.setVolume(next)
+        Sounds.play("volume_tick")
+        rearmSleep()
+    }
     // Ctrl + Maj + Alt + Tab : le bouton Home au clavier, d'où que soit le focus (aussi en
     // jeu : keyboard.cpp). Avec Maj, Qt reçoit Tab comme Backtab.
     Shortcut {
@@ -1439,7 +1458,9 @@ FocusScope {
 
         optionChoices = { res: res, fps: fps.map(function(f) { return { label: "" + f, value: f } }),
                           rateAuto: hdr, advanced: hdr, codec: codec, hdr: hdr,
-                          sleep: sleep, buttons: buttons, sounds: sounds, rumble: rumble, motion: motion, language: language }
+                          sleep: sleep, buttons: buttons, sounds: sounds, rumble: rumble, motion: motion, language: language,
+                          volumeHud: [ { label: qsTr("À gauche"), value: "left" }, { label: qsTr("Au centre"), value: "center" },
+                                       { label: qsTr("À droite"), value: "right" } ] }
         // `toggle` : deux options [désactivé, activé], affichées en interrupteur.
         var row = function(key, label, index, toggle) {
             return { key: key, label: label, index: index, toggle: toggle === true,
@@ -1551,6 +1572,9 @@ FocusScope {
                 current.profile = StreamProfiles.DEFAULT
                 writeSettings(shown, current)
             }
+        } else if (key === "volumeHud") {
+            consoleConfig.volumeHud = choice.value
+            volumeHud.press(0, false)       // (pour la voir à sa place)
         } else if (key === "sounds") {
             consoleConfig.sounds = choice.value
             Sounds.enabled = choice.value
@@ -1998,6 +2022,9 @@ FocusScope {
             screenRows.push({ key: "volume", label: qsTr("Volume"), slider: true, icons: ["speaker-low", "speaker"],
                               value: SystemStatus.volume, min: 0, max: 100, stops: percentStops,
                               format: qsTr("%1 %"), group: "sound", section: qsTr("Son") })
+        if (SystemStatus.volume >= 0)
+            screenRows.push({ key: "volumeHud", label: qsTr("Indicateur du volume"), choice: true, options: labels(c.volumeHud),
+                              index: indexOf(c.volumeHud, consoleConfig.volumeHud), group: "sound" })
         screenRows.push({ key: "sounds", label: qsTr("Sons de l'interface"), toggle: true, options: labels(c.sounds),
                           index: consoleConfig.sounds ? 1 : 0, group: "sound", section: qsTr("Son"),
                           footnote: qsTr("Les sons de l'interface ne s'entendent jamais par-dessus le jeu, sauf le volume, les captures et les alertes.") })
@@ -2217,6 +2244,12 @@ FocusScope {
             startDown: function() { return InputStatus.startHeld() }
             onChosen: function(index, query) { home.searchChosen(index, query) }
             onClosed: homeScreen.forceActiveFocus()
+        }
+        VolumeHud {
+            id: volumeHud
+            z: 10
+            position: consoleConfig.volumeHud
+            level: SystemStatus.volume / 100
         }
         HostPicker {
             id: hostPicker

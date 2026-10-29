@@ -37,6 +37,7 @@ QtObject {
     readonly property color ink2: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.6)   // ink-secondary : métadonnées, valeurs
     readonly property color ink3: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.5)   // ink-tertiary : libellés, aides (12 px au moins)
     readonly property color inkOnLight: "#000000"    // texte posé sur ink (pastille Jouer, ligne au focus)
+    readonly property color inkDark: "#1C1C1E"       // icônes sur une surface claire (curseurs remplis)
     readonly property color ok: "#69D08E"            // réseau bon (statistiques en jeu seulement, SPEC §1)
     readonly property color fair: "#E8C547"          // réseau moyen (latence ou gigue)
     readonly property color poor: "#FF453A"          // réseau mauvais
@@ -1308,6 +1309,32 @@ QtObject {
     readonly property int pickerPlus: 14
     readonly property int pickerSeparatorLeft: 36
     readonly property color pickerFocus: Qt.rgba(1, 1, 1, 0.14)
+
+    // --- Volume (MotionHud) : capsule en haut (aussi dans le jeu, streampainter) ---
+    readonly property int hudWidth: 220
+    readonly property int hudTop: 14
+    readonly property int hudSide: 120               // de son bord d'écran (à gauche, à droite)
+    readonly property int hudHiddenShift: 40
+    readonly property int hudThin: 10
+    readonly property int hudThick: 48
+    readonly property color hudFill: Qt.rgba(40 / 255, 40 / 255, 42 / 255, 0.62)
+    readonly property int hudShow: 160
+    readonly property int hudHide: 260
+    readonly property int hudMove: 520               // curveSpring
+    readonly property int hudExpand: 420             // curveHudExpand
+    readonly property int hudCollapse: 300           // curveMain
+    readonly property var curveHudExpand: [0.3, 1.3, 0.4, 1, 1, 1]
+    readonly property int hudLevelMove: 260          // curveMain
+    readonly property int hudBumpRise: 140           // en butée : elle s'étire…
+    readonly property int hudBumpBack: 520           // …et revient au ressort
+    readonly property var curveHudBump: [0.3, 1.5, 0.4, 1, 1, 1]
+    readonly property real hudBumpWidth: 0.07
+    readonly property int hudBumpHeight: 6
+    readonly property int hudHold: 1400              // sans appui : elle s'amincit…
+    readonly property int hudLinger: 600             // …puis part
+    readonly property int hudIconLeft: 14
+    readonly property int hudIconFade: 180
+    readonly property int hudIconMove: 300
 
     // --- Retour d'un jeu (MotionQuitter) : l'image se réduit en jaquette, l'accueil revient ---
     readonly property int returnFrameDelay: 80

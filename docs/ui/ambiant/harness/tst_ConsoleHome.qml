@@ -404,6 +404,29 @@ Item {
             tryCompare(screen, "count", 10)
         }
 
+        // Touches de volume (MotionHud) : ±5 %, la capsule paraît en haut ; en butée, le volume ne
+        // bouge plus ; sa place se règle dans Réglages › Écran et son.
+        function test_5g_volumeKeys() {
+            var hud = find(home, "bumpRight")
+            SystemStatus.volume = 72
+            home.volumeKey(1)
+            compare(SystemStatus.volume, 75)
+            verify(hud.shown && hud.expanded)
+            compare(hud.position, "left")
+            home.volumeKey(-1)
+            home.volumeKey(-1)
+            compare(SystemStatus.volume, 65)
+            SystemStatus.volume = 100
+            home.volumeKey(1)
+            compare(SystemStatus.volume, 100)           // en butée
+            tryCompare(hud, "bump", 0, 1500)
+            home.applySetting("volumeHud", 2)           // à droite
+            compare(hud.position, "right")
+            tryCompare(hud, "shown", false, Theme.hudHold + Theme.hudLinger + 800)
+            home.applySetting("volumeHud", 0)
+            SystemStatus.volume = 75
+        }
+
         function test_6_companionLaunchWithUpdate() {
             CompanionClient.paired = true
             CompanionClient.eventsConnected = true

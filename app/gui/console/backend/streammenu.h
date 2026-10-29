@@ -55,6 +55,8 @@ void onAxis(uint8_t axis, int16_t value);
 // `button` à 0 : un simple déplacement.
 void onPointer(int x, int y, int button, bool pressed);
 void toggleStats();
+// Touches de volume de la console (keyboard.cpp) : ±5 %, la capsule en haut (MotionHud).
+void volumeKey(int direction);
 // Capture d'écran de l'image du jeu (bouton Partager de la manette, ligne du menu), dans
 // Images/CocoOS ; un avis (ou la ligne du menu) dit si elle est enregistrée.
 void screenshot();

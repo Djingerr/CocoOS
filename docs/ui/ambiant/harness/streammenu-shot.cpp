@@ -157,6 +157,14 @@ int main(int argc, char* argv[])
             overlay.shotLabel = number("label", 1);
             overlay.shotOut = number("shotOut", 0);
         }
+        // hud=0..1 (le niveau du volume) : la capsule ; expand=, hudBump= (butée), position=0|1|2.
+        if (opt.contains(QStringLiteral("hud"))) {
+            overlay.hudLevel = number("hud", 0.5);
+            overlay.hudShow = number("hudShow", 1);
+            overlay.hudExpand = number("expand", 1);
+            overlay.hudBump = number("hudBump", 1);
+            overlay.hudPosition = int(number("position", 0));
+        }
         const QImage layer = StreamPainter::paintOverlay(overlay, screen);
         // Posé sur l'image du jeu (game=…), comme Moonlight le compose.
         image = still.isNull() ? QImage(screen, QImage::Format_ARGB32_Premultiplied)

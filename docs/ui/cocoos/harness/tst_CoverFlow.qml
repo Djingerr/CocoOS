@@ -109,7 +109,8 @@ Item {
         // Fiche ouverte : la jaquette centrale va à la place de la fiche, les autres s'effacent.
         function test_detailMovesTheCentralCover() {
             flow.detailOpen = true
-            tryCompare(flow, "detail", 1, Theme.ficheOpen + 200)
+            // (exactement 1 : tryCompare compare les nombres à peu près)
+            tryVerify(function() { return flow.detail === 1 }, Theme.ficheOpen + 200)
             var central = null, other = null
             for (var i = 0; i < flow.children.length && !central; i++) {
                 var strip = flow.children[i]

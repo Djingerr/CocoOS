@@ -74,6 +74,14 @@ struct Overlay {
     qreal shotFly = 0;              // 0 plein écran → 1 vignette en place
     qreal shotLabel = 0;            // l'étiquette : 0 absente, 1 posée
     qreal shotOut = 0;              // 0 → 1 : la vignette part à gauche
+    // Volume (MotionHud) : capsule de 220 px en haut, fine puis épaisse pendant les appuis,
+    // remplie de gauche à droite ; en butée, elle s'étire du côté poussé.
+    qreal hudLevel = 0;             // 0 à 1
+    qreal hudShow = 0;              // 0 absente (40 px plus haut), 1 posée
+    qreal hudExpand = 0;            // 0 fine (10 px), 1 épaisse (48 px)
+    qreal hudBump = 1;              // butée : 0 → 1 sur 660 ms (s'étire, puis revient)
+    bool hudBumpRight = true;       // étirée vers la droite (en montant) ou la gauche
+    int hudPosition = 0;            // 0 à gauche, 1 au centre, 2 à droite
 };
 
 // Une tuile du centre de contrôle (JeuControle). Clés, dans l'ordre de la grille : resume,

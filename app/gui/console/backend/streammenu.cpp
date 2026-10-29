@@ -75,6 +75,16 @@ const int SHOT_FLY = 640;
 const int SHOT_OUT = 420;
 const Uint32 SHOT_HOLD = 2700;
 const int BATTERY_CRITICAL = 5;     // %, sur batterie : la bannière « Batterie très faible »
+// Volume (MotionHud) : la capsule paraît (160 ms), s'épaissit (420, après 120) ; sans appui
+// pendant HUD_HOLD, elle s'amincit (300), puis part (260, après 120).
+const int HUD_SHOW = 160;
+const int HUD_HIDE = 260;
+const int HUD_EXPAND = 420;
+const int HUD_COLLAPSE = 300;
+const int HUD_BUMP = 660;
+const Uint32 HUD_HOLD = 1400;
+const Uint32 HUD_LINGER = 600;      // fine, encore un instant
+const char* HUD_SETTING = "ConsoleUi/volumeHud";
 const int VALUE_STEP = 5;           // volume, luminosité : ← / → de 5 % (la souris aussi, par crans de 5)
 const int SLIDER_MOVE = 160;        // la poignée rejoint la nouvelle valeur, OutCubic
 const int BRIGHTNESS_MIN = 5;       // SystemStatus.setBrightness : jamais tout à fait noir
@@ -217,6 +227,11 @@ QString s_shotTitle;
 Anim s_flash, s_shotFly, s_shotLabel, s_shotOut;
 SDL_TimerID s_shotTimer = 0;
 bool s_batteryLow = false;              // batterie de la console très faible : déjà dit
+// Volume (MotionHud) : la capsule en haut, aux touches de volume de la console.
+Anim s_hudShow, s_hudExpand, s_hudBump;
+bool s_hudBumpRight = true;
+int s_hudPosition = 0;                  // réglage ConsoleUi/volumeHud : left, center, right
+SDL_TimerID s_hudTimer = 0;
 std::atomic<bool> s_shotWanted { false };   // une capture d'écran attend la prochaine image
 QString s_shotSub;                      // sous-titre de la tuile Capture (« Capture… »…) ; vide : l'habituel
 int s_poorSeconds = 0;                  // réseau mauvais depuis… (s), bon depuis…
@@ -416,7 +431,8 @@ bool animating(Uint32 now)
     for (const Anim* anim : { &s_openMs, &s_closing, &s_veil, &s_blurMix, &s_swap, &s_statsFade, &s_curtain,
                               &s_hold, &s_holdDone, &s_volumeAnim, &s_brightnessAnim, &s_powerMix,
                               &s_bannerIn, &s_bannerOut, &s_pauseShow, &s_pauseBack, &s_pauseBackdrop,
-                              &s_flash, &s_shotFly, &s_shotLabel, &s_shotOut }) {
+                              &s_flash, &s_shotFly, &s_shotLabel, &s_shotOut,
+                              &s_hudShow, &s_hudExpand, &s_hudBump }) {
         if (anim->running(now)) {
             return true;
         }
@@ -437,7 +453,8 @@ void freeze(Uint32 now)
     for (Anim* anim : { &s_openMs, &s_closing, &s_veil, &s_blurMix, &s_swap, &s_statsFade, &s_curtain,
                         &s_hold, &s_holdDone, &s_volumeAnim, &s_brightnessAnim, &s_powerMix,
                         &s_bannerIn, &s_bannerOut, &s_pauseShow, &s_pauseBack, &s_pauseBackdrop,
-                        &s_flash, &s_shotFly, &s_shotLabel, &s_shotOut }) {
+                        &s_flash, &s_shotFly, &s_shotLabel, &s_shotOut,
+                        &s_hudShow, &s_hudExpand, &s_hudBump }) {
         anim->set(anim->at(now));
     }
     for (QVector<Anim>* list : { &s_highlight, &s_powerHighlight }) {
@@ -657,6 +674,12 @@ Uint32 tick(Uint32, void*)
         overlay.shotFly = s_shotFly.at(now);
         overlay.shotLabel = s_shotLabel.at(now);
         overlay.shotOut = s_shotOut.at(now);
+        overlay.hudLevel = qMax(0.0, s_volumeAnim.at(now) / 100);
+        overlay.hudShow = s_hudShow.at(now);
+        overlay.hudExpand = s_hudExpand.at(now);
+        overlay.hudBump = s_hudBump.at(now);
+        overlay.hudBumpRight = s_hudBumpRight;
+        overlay.hudPosition = s_hudPosition;
     }
 
     // Le menu (ouvert ou en train de se fermer), sinon ce qui est par-dessus le jeu, sinon rien.
@@ -1017,6 +1040,45 @@ void padsChanged(int count)
         requestRender();
     }
     s_pads = count;
+}
+
+// Volume : sans appui pendant HUD_HOLD, la capsule s'amincit, puis part.
+Uint32 hudStep(Uint32, void*)
+{
+    QMutexLocker locker(&s_lock);
+    const Uint32 now = SDL_GetTicks();
+    if (s_hudExpand.to > 0) {
+        s_hudExpand.go(0, HUD_COLLAPSE, now, QEasingCurve::OutCubic);
+        s_hudTimer = SDL_AddTimer(HUD_LINGER, hudStep, nullptr);
+    }
+    else {
+        s_hudTimer = 0;
+        s_hudShow.go(0, HUD_HIDE, now, QEasingCurve::InCubic, 120);
+    }
+    requestRender();
+    return 0;
+}
+
+// Un appui : la capsule paraît et s'épaissit ; en butée (`limit`), elle s'étire du côté poussé.
+void hudPress(int direction, bool limit)
+{
+    const Uint32 now = SDL_GetTicks();
+    if (s_hudShow.to < 1) {
+        s_hudShow.go(1, s_reducedMotion ? 200 : HUD_SHOW, now);
+    }
+    if (s_hudExpand.to < 1) {
+        s_hudExpand.go(1, s_reducedMotion ? 200 : HUD_EXPAND, now, QEasingCurve::Linear, s_reducedMotion ? 0 : 120);
+    }
+    if (limit && !s_reducedMotion) {
+        s_hudBumpRight = direction > 0;
+        s_hudBump.set(0);
+        s_hudBump.go(1, HUD_BUMP, now);
+    }
+    if (s_hudTimer != 0) {
+        SDL_RemoveTimer(s_hudTimer);
+    }
+    s_hudTimer = SDL_AddTimer(HUD_HOLD, hudStep, nullptr);
+    requestRender();
 }
 
 // Capture d'écran (MotionCapture) : un flash, l'image se réduit en vignette en bas à gauche,
@@ -1505,7 +1567,12 @@ void StreamMenu::prepare(const QString& game, const QStringList& powerActions, c
     s_banner = StreamPainter::Banner();
     s_bannerIn.set(0);
     s_bannerOut.set(0);
-    for (SDL_TimerID* timer : { &s_bannerTimer, &s_pauseTimer, &s_shotTimer }) {
+    s_hudShow.set(0);
+    s_hudExpand.set(0);
+    s_hudBump.set(1);
+    const QString hud = QSettings().value(HUD_SETTING, QStringLiteral("left")).toString();
+    s_hudPosition = hud == QLatin1String("center") ? 1 : hud == QLatin1String("right") ? 2 : 0;
+    for (SDL_TimerID* timer : { &s_bannerTimer, &s_pauseTimer, &s_shotTimer, &s_hudTimer }) {
         if (*timer != 0) {
             SDL_RemoveTimer(*timer);
             *timer = 0;
@@ -1628,6 +1695,40 @@ void StreamMenu::onButton(uint8_t button, bool pressed)
         s_finishPending = false;
     }
     finishLeave();
+}
+
+void StreamMenu::volumeKey(int direction)
+{
+    int value = -1;
+    {
+        QMutexLocker locker(&s_lock);
+        attach();
+        if (s_volume < 0) {
+            return;
+        }
+        const int floor = s_volume / VALUE_STEP * VALUE_STEP;
+        const int wanted = direction > 0 ? floor + VALUE_STEP : (s_volume == floor ? floor - VALUE_STEP : floor);
+        if (s_open) {
+            value = setValue(VOLUME, wanted, false);   // la tuile du volume suit
+        }
+        else {
+            if (!s_screen.isValid()) {
+                s_screen = screenSize();
+            }
+            const int next = qBound(0, wanted, 100);
+            hudPress(direction, next == s_volume);
+            if (next != s_volume) {
+                s_volume = next;
+                s_volumeAnim.go(next, SLIDER_MOVE * 260 / 160, SDL_GetTicks(), QEasingCurve::OutCubic);
+                value = next;
+                play("volume_tick");
+            }
+            else {
+                play("volume_limit");
+            }
+        }
+    }
+    applySetting(VOLUME, value);
 }
 
 void StreamMenu::screenshot()

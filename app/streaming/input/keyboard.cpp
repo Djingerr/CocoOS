@@ -255,6 +255,15 @@ void SdlInputHandler::handleKeyEvent(SDL_KeyboardEvent* event)
     }
 
 #ifdef CONSOLE_UI
+    // The console's volume keys set the console's volume (with its on-screen
+    // indicator), never the PC's.
+    if (event->keysym.scancode == SDL_SCANCODE_VOLUMEUP || event->keysym.scancode == SDL_SCANCODE_VOLUMEDOWN) {
+        if (event->state == SDL_PRESSED) {
+            StreamMenu::volumeKey(event->keysym.scancode == SDL_SCANCODE_VOLUMEUP ? 1 : -1);
+        }
+        return;
+    }
+
     // The in-game menu has the keyboard: arrows move, Enter / Space confirm,
     // Escape / Backspace go back. Nothing reaches the PC while it is open.
     if (StreamMenu::isOpen()) {
