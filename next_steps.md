@@ -299,6 +299,81 @@ Oui pour les quatre : « Ajouter un PC » mènera à SetupPC (phase 8) ; plus de
 Select + L1 + R1 » sur l'écran de lancement ; « En veille » (réveillable) / « hors ligne » comme
 proposé ; messages d'échec de Moonlight à reformuler plus tard.
 
+## Refonte CocoOS — phase 8, première configuration (2026-10-29)
+
+Trois commits : les écrans (`setup/`, ajouts à `SettingsList`, `13200044`), leur branchement dans `ConsoleHome`
+(avec les tests, `2825e5ed`), ce suivi.
+
+- **Parcours** (`setup/SetupFlow`, plein écran par-dessus l'accueil, qui attend dessous) : Bonjour →
+  Langue → Wi-Fi → PC → code → Bibliothèque → « Tout est prêt » → l'accueil revient en éventail
+  (style « boot »). B revient d'une étape. Marqueur `ConsoleUi/setupDone` (inchangé) ; les anciens
+  écrans « Bienvenue » et « Connexion à Internet » (`MessageScreen`) sont retirés. Les écrans
+  d'attente hors configuration (recherche du PC, liaisons) restent.
+- **Bonjour** (`SetupHello`, SetupBonjour) : « Bonjour », Hello, Hola, Hallo, Ciao, こんにちは, Olá,
+  un mot toutes les 1,7 s (entre flou, petit et bas ; sort flou vers le haut), le A qui respire,
+  « CocoOS » et « Manette intégrée prête » (dès qu'une manette est là). Ambiance `amb_appairage`.
+- **Langue** (SetupLangue) : Français, English (Q44), coche orange ; la ligne dessous suit la langue
+  (« Région France · clavier AZERTY · format 24 h », en anglais « QWERTY keyboard · 24-hour clock »).
+- **Wi-Fi** (SetupWifi) : les réseaux de `WifiSetup` (la bande n'est écrite que pour deux réseaux
+  au nom presque pareil, comme la maquette ; `frequency` ajoutée), cadenas, signal, coche sur le
+  réseau connecté (A dessus : étape suivante) ; mot de passe au clavier ; « Autre réseau… » : son
+  nom puis son mot de passe (réseau masqué : `hidden` ajouté au profil NetworkManager). Échec :
+  sous la liste, en rouge. Sans NetworkManager, ou en ligne par câble, l'étape est sautée. « Utiliser la 5G » : Q46.
+- **PC** (SetupPC) : les PC vus par Moonlight, détail « Apollo · HostCompanion · Playnite · IP » et
+  pastille « Prêt » quand le HostCompanion découvert est sur ce PC (même adresse ou même nom),
+  « Apollo seulement · … » et « Sans jaquettes » sinon, « Hors ligne » (A : réveil et message).
+  « Ajouter avec une adresse IP » (clavier en clair, `ComputerManager.addNewHostManually`, échec
+  sous la liste). Y actualise. « Installer Apollo et HostCompanion » : Q45. Adresse :
+  `SystemStatus.hostAddress` (ajouté).
+- **Code** (`SetupPair`, MotionAppairage) : sans Companion, les 4 chiffres d'Apollo (l'appairage
+  automatique existant, qui n'attend plus que le PC choisi pendant la configuration) ; avec un
+  Companion à appairer, d'abord son code à 6 chiffres saisi ici (mêmes cases, ↑ ↓ ← →, hors
+  maquette), puis il transmet le code d'Apollo tout seul. Associé : les cases se rejoignent, la
+  coche, « … est associé », A Continuer. Un PC déjà appairé passe directement à la coche.
+- **Bibliothèque** (`SetupLibrary`, SetupBibliotheque) : 18 places de jaquettes (les arrivées en
+  fondu, les autres scintillent), « Jaquettes et informations n / total » (Companion : jeux dont la
+  jaquette est en cache ; sans Companion : les apps d'Apollo), titre « … est prête » une fois tout
+  là. Préférences : couleur d'accent (`ConsoleUi/accent`, Q47), sons, jeux non installés
+  (`ConsoleUi/showUninstalled`, Q48), mise en veille. ≡ (Start) ou le bouton : Commencer.
+- **Fin** (`SetupFinish`, MotionSetupFin) : la configuration s'efface en se floutant, l'anneau
+  orange se trace, « Tout est prêt. Bienvenue dans CocoOS. », puis l'accueil.
+- **« Ajouter un PC »** (ChoixPC, Q29) : la configuration s'ouvre sur le choix du PC ; B la referme,
+  « Continuer » après le code ramène à l'accueil sur ce PC.
+- **Réglages › Général › « Réinitialiser la console »** (appui maintenu) : PC (Moonlight et
+  Companion), favoris, jeux récents, réglages par jeu, recherches, accent oubliés ; retour à
+  Bonjour (Q51).
+- `SettingsList` : `check`, `pill`, `swatches`, `height` et `tile.size` (une ligne) ; la bande et le
+  cadenas d'un réseau passent après la valeur.
+
+### Porte de la phase 8
+- Écart moyen : **SetupBonjour** 4,0 / 255, **SetupLangue** 4,5, **SetupWifi** 3,7, **SetupPC**
+  3,6, **SetupBibliotheque** 6,4 (jaquettes du harnais). Harnais : `SetupDemo` (`step=`).
+- **MotionAppairage** (`step=pair paired=5200`) et **MotionSetupFin** (`step=library finish=700`) :
+  filmés, mêmes étapes que les planches.
+- Parcours complet sur une conf vierge : `tst_ConsoleHome::test_9l_firstRunSetup` (Bonjour →
+  Français → Wi-Fi avec mot de passe, échec puis succès → PC → code → préférences → Start → accueil),
+  `test_9la` (« Ajouter un PC », adresse IP refusée, B), `test_9lb` (réinitialisation).
+- Tests : 21 suites vertes (`tst_ConsoleHome` 61 ; `test_9o` ne dépend plus de la vitesse de la machine) ; anglais complet (627 textes).
+- ⚠️ **À valider par Coco** : le parcours à la manette sur une conf vierge
+  (`XDG_CONFIG_HOME=$(mktemp -d) ./app/moonlight`), contre le vrai PC (code Apollo, puis code
+  Companion), et un vrai réseau Wi-Fi (jamais essayé : la connexion elle-même).
+
+### Questions pour Coco (phase 8)
+44. Langues : la maquette en propose sept, la console n'a que le français et l'anglais (Q23) : seules
+    ces deux-là sont proposées. D'accord ?
+45. « Installer Apollo et HostCompanion · Code QR » : masquée tant qu'il n'y a pas d'adresse (Q23).
+    Laquelle, et un générateur de QR (`qrcodegen`, MIT, un fichier) ou une image fixe ?
+46. « Utiliser la 5G » : masquée tant qu'il n'y a pas de modem (ModemManager, plus tard).
+47. Couleur d'accent : le choix est enregistré (`ConsoleUi/accent`), l'interface ne le suit qu'à la
+    phase 9. D'accord pour le laisser dès maintenant ?
+48. Jeux non installés : la maquette les montre masqués par défaut ; la console les affiche
+    (téléchargement depuis la console, déjà là). Défaut : affichés ou masqués ?
+49. « Manette intégrée prête » paraît dès qu'une manette est branchée (on ne sait pas si elle est
+    intégrée) ; sans manette, rien. D'accord ?
+50. こんにちは demande une police japonaise sur la carte (`fonts-noto-cjk`), sinon des carrés. À
+    ajouter à l'image, ou retirer ce mot ?
+51. Réinitialiser : les réseaux Wi-Fi et les réglages du flux restent. Tout effacer ?
+
 ## Refonte CocoOS — phase 7, système (2026-10-29)
 
 Sept commits : menu d'alimentation et touche power (`c6896a6a`), veille et réveil (`98c849a1`),

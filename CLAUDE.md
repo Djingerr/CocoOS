@@ -585,6 +585,13 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   éventail, nouvelle sortie du démarrage (`BootUnfold` : le O se déplie en jaquette), mise à jour
   (`UpdateScreen`), recharge et mode salon (`ChargingScreen`, `TvScreen`, interface seule).
   ⚠️ Porte : à essayer à la manette (next_steps.md, questions 39 à 43).
+  Phase 8 (première configuration) : `setup/SetupFlow` remplace les écrans « Bienvenue » et
+  « Connexion à Internet » : Bonjour, Langue, Wi-Fi (réseau masqué compris), PC (vus sur le réseau,
+  ajout par adresse IP), code (Apollo, ou d'abord celui du HostCompanion), Bibliothèque
+  (jaquettes qui arrivent, préférences), « Tout est prêt », l'accueil en éventail. « Ajouter un
+  PC » (ChoixPC) l'ouvre sur le choix du PC ; Réglages › Général › « Réinitialiser la console »
+  y ramène. ⚠️ Porte : le parcours à la manette sur une conf vierge, contre le vrai PC
+  (next_steps.md, questions 44 à 51).
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
   télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
   Côté console uniquement (Apollo reste non modifié).
@@ -695,8 +702,9 @@ Fichiers (dans `app/gui/console/`) :
   donne la manette)
 - `OptionsSheet.qml` — feuille « Options » (bouton Y) : verre collé à droite (flou de l'accueil),
   onglets Stream / Console en contrôle segmenté, une `SettingsList` par onglet ; sans état propre
-- `SettingsList.qml` — liste groupée CocoOS (options, réglages) : cartes sous leur intitulé,
-  interrupteurs, choix segmentés, curseurs, carte du profil, appui maintenu ; trois gabarits
+- `SettingsList.qml` — liste groupée CocoOS (options, réglages, configuration) : cartes sous leur
+  intitulé, interrupteurs, choix segmentés, curseurs, carte du profil, appui maintenu, coche,
+  pastille d'état, pastilles de couleur ; trois gabarits
   (`Theme.listSheet`, `listSettings`, `listMenu`)
 - `settings/SettingsScreen.qml` — Réglages plein écran : menu des rubriques, page à droite
   (lignes construites par `ConsoleHome.refreshSettings`)
@@ -721,6 +729,11 @@ Fichiers (dans `app/gui/console/`) :
 - `BootUnfold.qml` — sortie du démarrage : le O de BootSplash se déplie en jaquette (Demarrage)
 - `RingLogo.qml`, `UpdateScreen.qml` — « CocoOS » dont le O est l'anneau ; écran de mise à jour
 - `ChargingScreen.qml`, `TvScreen.qml` — recharge console éteinte, mode salon (interface seule)
+- `setup/` — première configuration (SPEC 5.9) : `SetupFlow` (les étapes, le décor, l'en-tête
+  « PREMIÈRE CONFIGURATION · n SUR 3 » ; Langue, Wi-Fi et PC sont des `SettingsList`),
+  `SetupHello` (Bonjour), `SetupPair` (code Apollo ou HostCompanion, MotionAppairage),
+  `SetupLibrary` (jaquettes, progression, préférences), `SetupFinish` (MotionSetupFin) ; branchée
+  dans `ConsoleHome` (`setupFlow`, `chooseSetupHost`, `resetConsole`)
 - `Sounds.qml`, `SoundBank.qml`, `sounds/` — sons de l'interface (singleton `Sounds.play("nav_move")`,
   pack CocoOS de 68 sons dans `console.qrc`, embarqué par le build `embedded` seulement ; table
   d'alias des anciens noms ; `Sounds.ambiance("amb_veille")` pour une boucle)
