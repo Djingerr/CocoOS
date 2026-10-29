@@ -574,7 +574,12 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   Annuler), y compris les échecs du flux de Moonlight (le dialog Material de `StreamSegue` est
   vidé) ; PC hors ligne (`OfflineState`, carrousel grisé) ; réveil dans la pastille du PC (En
   veille, Réveil de …, est en ligne) ; choix du PC (`HostPicker`, `ConsoleUi/preferredHost`).
-  ⚠️ Porte : un vrai lancement contre le PC (next_steps.md, questions 29 à 32).
+  ⚠️ Porte : un vrai lancement contre le PC (next_steps.md, questions 29 à 32 : oui pour les quatre).
+  Phase 6 (par-dessus le jeu, QPainter) : le menu en jeu devient le centre de contrôle (grille de
+  tuiles, curseurs verticaux, carte d'alimentation), statistiques détaillées ou compactes,
+  bannière en haut (batterie, manette, réseau), carte « Manette déconnectée », capture en
+  vignette, indicateur du volume (touches de volume, aussi à l'accueil : `VolumeHud.qml`).
+  ⚠️ Porte : à essayer dans un vrai flux (next_steps.md, questions 33 à 38).
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
   télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
   Côté console uniquement (Apollo reste non modifié).
@@ -630,7 +635,8 @@ On veut pouvoir **suivre les commits du repo officiel de moonlight** sans douleu
   scope `embedded`. Liste : `app.pro`, `qml.qrc`, `main.cpp` (enregistrement des singletons,
   rôle PipeWire des sons), `streaming/input/gamepad.cpp` (Home ouvre le menu en jeu, boutons
   et stick routés vers lui, combinaison des statistiques, Partager = capture d'écran), `streaming/input/keyboard.cpp` +
-  `input.{h,cpp}` (Ctrl+Alt+Maj+Tab ouvre le menu en jeu, touches routées vers lui),
+  `input.{h,cpp}` (Ctrl+Alt+Maj+Tab ouvre le menu en jeu, touches routées vers lui, touches de
+  volume gardées pour la console),
   `streaming/input/mouse.cpp` (souris libérée et routée vers le menu en jeu),
   `streaming/session.cpp` (chaque `SDL_QUIT` passe d'abord par le rideau, `interceptQuit`), `streaming/video/overlaymanager.{h,cpp}`
   (`setOverlaySurface` : une image toute faite sur l'overlay de débogage, dont le texte
@@ -703,6 +709,8 @@ Fichiers (dans `app/gui/console/`) :
 - `PillButton.qml` — bouton en pilule (A clair, Y / B de verre) des écrans d'échec et hors ligne
 - `OfflineState.qml` — état « PC hors ligne » de l'accueil (EtatHorsLigne)
 - `HostPicker.qml` — choix du PC (ChoixPC), sous la pastille du PC
+- `VolumeHud.qml` — indicateur du volume (MotionHud), aux touches de volume ; le même dans le jeu
+  (`streampainter`)
 - `Sounds.qml`, `SoundBank.qml`, `sounds/` — sons de l'interface (singleton `Sounds.play("nav_move")`,
   pack CocoOS de 68 sons dans `console.qrc`, embarqué par le build `embedded` seulement ; table
   d'alias des anciens noms ; `Sounds.ambiance("amb_veille")` pour une boucle)

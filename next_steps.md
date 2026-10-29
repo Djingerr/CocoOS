@@ -294,6 +294,83 @@ choix du PC (`e74e988e`).
 32. Les échecs du flux de Moonlight restent techniques (« La connexion au flux a échoué (RTSP
     handshake, erreur 10060). ») : à reformuler cas par cas plus tard ?
 
+### Réponses de Coco (2026-10-29, phase 5)
+Oui pour les quatre : « Ajouter un PC » mènera à SetupPC (phase 8) ; plus de rappel « Start +
+Select + L1 + R1 » sur l'écran de lancement ; « En veille » (réveillable) / « hors ligne » comme
+proposé ; messages d'échec de Moonlight à reformuler plus tard.
+
+## Refonte CocoOS — phase 6, par-dessus le jeu (2026-10-29)
+
+Quatre commits : centre de contrôle (`fcc825dd`), statistiques (`deb9b6a2`), alertes, manette et
+capture (`5ed2d3b2`), indicateur du volume (`07eddd7a`). Tout en QPainter (`streampainter`),
+piloté par `streammenu` ; une seule ligne de couture en plus, dans `keyboard.cpp` (déjà listée).
+
+- **Centre de contrôle** (JeuControle, MotionMenuJeu) : grille de 8 colonnes sous un en-tête
+  (jaquette, « En pause · 1 h 24 min » depuis le lancement d'ici, PC et latence, heure,
+  batterie) : Reprendre (claire, glyphe A), Luminosité et Volume (curseurs verticaux qui se
+  remplissent depuis le bas ; ce qu'ils recouvrent passe en sombre), Capture, Statistiques,
+  Accueil, Quitter le jeu (maintenu, remplissage orange puis « Fermeture du jeu »), Veille,
+  Alimentation. Entrée en cascade (35 ms d'écart, ressort 560 ms), sortie plus courte ; anneau et
+  léger agrandissement de la tuile en focus. ◀ ▶ (et le stick) passent de tuile en tuile, ▲ ▼
+  règlent un curseur (répétition tenue) ; souris : survol, clic, curseur glissé. Une tuile
+  indisponible (pas de luminosité, pas de veille) est estompée et sautée. Fond : l'image du jeu
+  floutée et assombrie, comme avant.
+- **Alimentation** (MenuAlimentation, en jeu) : carte centrée « Batterie 82 % · environ 3 h 10 »,
+  Mise en veille / Redémarrer / Éteindre en pastilles (◀ ▶, A suffit : Q7), « Le stream en cours
+  sera fermé proprement avant l'arrêt. » ; B revient à la grille.
+- **Statistiques** (StatsOverlay) : carte détaillée (latence totale = réseau + encodage sur le PC
+  + décodage, en grand, sa qualité, sa courbe sur 24 s ; l'image, le débit, les images perdues,
+  la batterie) ou pastille compacte. La tuile passe de Masquées à Détaillées puis Compactes
+  (`ConsoleUi/streamStats` : 0, 1, 2 ; l'ancien « true » vaut Détaillées) ; aussi Select + L1 +
+  R1 + X. Elles s'effacent derrière le centre de contrôle.
+- **Bannière** (MotionAlertes, MotionReseau) : en haut au centre, au ressort, 3,6 s : « Batterie
+  très faible · 5 % » (la console sur batterie, lue par SDL), « Manette presque vide », « Réseau
+  instable » (10 s mauvais). Remplace l'avis en haut à droite.
+- **Manette déconnectée** : plus aucune manette (il y en avait une) : carte centrale sur l'image
+  floutée, « Recherche de la manette… » ; revenue : coche orange, « Manette reconnectée », « Reprise
+  du jeu… », puis tout s'efface.
+- **Capture** (MotionCapture) : flash, l'image se réduit en vignette en bas à gauche (filet clair),
+  « Capture enregistrée · sur la console », puis elle part à gauche. Dans le menu, la tuile le dit.
+- **Volume** (MotionHud) : les touches de volume (KEY_VOLUMEUP / DOWN) règlent le volume de la
+  console de 5 % et font paraître la capsule en haut (fine, puis épaisse pendant les appuis,
+  étirée en butée) ; à l'accueil (`VolumeHud.qml`) comme dans le jeu (même dessin ; dans le jeu, le
+  PC ne les reçoit plus : `keyboard.cpp`). Place : Réglages › Écran et son › Indicateur du volume.
+- Harnais : `streammenu-shot.cpp` réécrit (page=menu|power|stats|overlay ; focus, open, closing,
+  hold, powerMix, compact, banner, pause, back, shot, hud…), `streammenu-rows.cpp` vérifie
+  `tileAt`, `sliderAt`, `powerAt` contre le dessin. Tests : `tst_ConsoleHome` (55) avec les touches
+  de volume ; `tst_CoverFlow` attend la valeur exacte (échec intermittent corrigé).
+
+### Porte de la phase 6
+- **JeuControle** : 11,9 / 255 (fond de démo flouté différent) ; mise en page, tuiles, en-tête et
+  légende conformes. **MenuAlimentation** (en jeu) : 10,0 / 255.
+- **MotionMenuJeu** : entrée en cascade, focus qui passe de tuile en tuile, volume qui monte,
+  sortie : mêmes étapes (`open=`, `closing=`).
+- **StatsOverlay** : carte et pastille à l'identique (chiffres de la maquette).
+- **MotionHud**, **MotionCapture**, **MotionAlertes** (batterie, manette) : images clés conformes ;
+  **MotionReseau** : seule la forme de la bannière (voir 37).
+- Tests : 21 suites vertes ; build `embedded` ; anglais complet (526 textes) ;
+  `streammenu-rows` « ok ».
+- ⚠️ **À valider par Coco dans un vrai flux** : Home → le centre de contrôle (◀ ▶, ▲ ▼ sur les
+  curseurs, A, B, Quitter maintenu, Alimentation), Statistiques (trois états), Partager (capture),
+  une manette débranchée puis rebranchée, les touches de volume (si le laptop les laisse passer :
+  sous KDE, Plasma les prend d'abord). Fluidité à mesurer sur l'Orange Pi (images pleine taille
+  pendant les animations, comme avant).
+
+### Questions pour Coco (phase 6)
+33. Les curseurs du centre de contrôle se règlent avec ▲ ▼ (MotionMenuJeu : ▲ « Volume + »), et
+    ◀ ▶ changent de tuile ; la légende dit donc « ▲▼ Régler » au lieu du « ◀▶ Régler » de
+    JeuControle. D'accord ?
+34. Capture : la maquette dit « Sur le PC » / « sur PC-Salon » ; la console l'enregistre chez elle
+    (Images/CocoOS), d'où « Sur la console ». Faut-il plutôt l'envoyer au PC (via le Companion) ?
+35. Manette déconnectée : « Le jeu est en pause. » est retiré (Moonlight ne met pas le jeu en pause
+    sur le PC ; cf. Q15). Faut-il mettre le flux en pause, ou laisser ainsi ?
+36. Touches de volume : j'ai pris les touches standard de Linux (KEY_VOLUMEUP / DOWN, celles de
+    gpio-keys ou d'un clavier) : cf. Q13 pour le vrai périphérique.
+37. MotionReseau (« Wi-Fi perdu · passage en 4G », « Qualité ajustée », « Wi-Fi retrouvé ») attend
+    le module 5G et le changement de qualité en partie (Q8) : seule « Réseau instable » existe.
+38. « Batterie très faible » : la maquette ajoute « Mise en veille dans 2 min » ; la console ne se
+    met pas en veille d'elle-même à 5 %. On l'ajoute ?
+
 ## Refonte CocoOS — phase 4, options, réglages, clavier, recherche (2026-10-29)
 
 - **Liste groupée** (`SettingsList.qml`, nouveau) : la liste commune des options et des réglages,
