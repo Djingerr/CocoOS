@@ -50,8 +50,8 @@ FocusScope {
     // la barre haute, le bloc titre et l'aide s'effacent.
     property bool menuShown: false
     // Le retour de l'accueil (`launching` repasse à faux) : "game" (MotionQuitter), "wake"
-    // (MotionVeille : plus vif, de moins loin) ou "idle" (MotionReveil : après l'écran de veille,
-    // les jaquettes s'ouvrent en éventail depuis le centre).
+    // (MotionVeille : plus vif, de moins loin), "idle" (MotionReveil : après l'écran de veille,
+    // les jaquettes s'ouvrent en éventail depuis le centre) ou "boot" (Demarrage, plus lent).
     property string returnStyle: "game"
     // Ses minutages : délais, durées, décalages de chaque bloc (Theme.return*, wake*, idle*).
     readonly property var ret: returnStyle === "wake" ? {
@@ -60,6 +60,12 @@ FocusScope {
             TitleDelay: Theme.wakeTitleDelay, RiseFade: Theme.wakeRiseFade, RiseMove: Theme.wakeRiseMove,
             RiseShift: Theme.wakeRiseShift, BarDelay: Theme.wakeBarDelay, BarFade: Theme.wakeBarFade,
             BarMove: Theme.wakeBarMove, BarShift: Theme.wakeBarShift, HelpDelay: Theme.wakeBarDelay }
+        : returnStyle === "boot" ? {
+            CoverDelay: Theme.bootCoverDelay, CoverStagger: Theme.bootCoverStagger, CoverMove: Theme.bootCoverMove,
+            CoverFade: Theme.bootCoverMove, CoverGather: 1, CoverScale: Theme.bootCoverScale,
+            TitleDelay: Theme.bootTitleDelay, RiseFade: Theme.bootRise, RiseMove: Theme.bootRise,
+            RiseShift: Theme.returnRiseShift, BarDelay: Theme.bootBarDelay, BarFade: Theme.bootRise,
+            BarMove: Theme.bootRise, BarShift: Theme.returnBarShift, HelpDelay: Theme.bootHelpDelay }
         : returnStyle === "idle" ? {
             CoverDelay: Theme.idleCoverDelay, CoverStagger: Theme.idleCoverStagger, CoverMove: Theme.idleCoverMove,
             CoverFade: Theme.idleCoverMove, CoverGather: 1, CoverScale: Theme.idleCoverScale,
@@ -230,6 +236,8 @@ FocusScope {
         readonly property bool away: root.launching
         // Au départ, il glisse de `leaveShift` ; une fois effacé, il se place à `shift` pour revenir.
         property real dy: 0
+        // (créé déjà caché, au démarrage : prêt à revenir)
+        Component.onCompleted: if (away) { opacity = 0; dy = Theme.reducedMotion ? 0 : shift }
         onAwayChanged: {
             leave.stop(); back.stop()
             if (away) leave.restart(); else back.restart()

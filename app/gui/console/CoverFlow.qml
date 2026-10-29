@@ -348,6 +348,8 @@ FocusScope {
                                       : leaving ? Theme.launchCoverFade : root.gatherFade
                     awayAnim.start()
                 }
+                // (créée pendant que l'accueil est caché, au démarrage : déjà partie, prête à revenir)
+                Component.onCompleted: if (leaving && !central) { away = 1; faded = 1 }
                 SequentialAnimation {
                     id: awayAnim
                     PauseAnimation { id: awayWait }

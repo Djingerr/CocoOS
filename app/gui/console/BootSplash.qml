@@ -20,6 +20,10 @@ FocusScope {
     property Item statusBarLogo: null        // logo de la barre haute, cible de la sortie
     property bool autoStart: true            // démarre seul dès que les polices sont là
     property bool loop: false                // debug : rejoue la séquence sans entrer dans l'accueil
+    // CocoOS (Demarrage) : pas de vol jusqu'à la barre haute ; à la sortie, la séquence s'arrête
+    // sur le logo au repos et BootUnfold prend le relais (le O se déplie en jaquette).
+    property bool unfold: false
+    readonly property Item restLogo: logo    // ce logo au repos, pour le relais
 
     signal exitStarted()                     // E + 250 ms : l'accueil commence son entrée
     signal finished()                        // fin de la sortie
@@ -97,6 +101,16 @@ FocusScope {
             driveStatusLogo()
         if (loop && t >= endAt) {
             start()
+            return
+        }
+        if (unfold && mode === "cold" && !loop && !exitAnnounced && t >= exitAt) {
+            exitAnnounced = true
+            entryOpen = true
+            exitStarted()                    // (encore `running` : BootUnfold sait qu'il doit jouer)
+            skipping = false
+            running = false
+            done = true
+            finished()
             return
         }
         if (!loop && !exitAnnounced && t >= entryAt) {

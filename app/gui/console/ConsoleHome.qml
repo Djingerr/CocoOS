@@ -922,6 +922,7 @@ FocusScope {
     }
 
     // --- Extinction et redémarrage (MotionExtinction) : l'animation, puis logind ---
+    property bool bootHidden: true       // jusqu'au dépliement du O (BootUnfold)
     property string shutdownAction: ""
     function shutDown(key) {
         if (shutdownScreen.active) return
@@ -1941,11 +1942,13 @@ FocusScope {
 
         // L'accueil entre quand l'animation de démarrage en est à sa sortie ; le logo de
         // la barre haute n'apparaît qu'une fois celui du démarrage arrivé à sa place.
-        entryAllowed: bootSplash.entryOpen
+        // Démarrage (Demarrage) : l'accueil est là dès le départ, caché (`bootHidden`) ; BootUnfold
+        // le fait revenir en éventail. La sortie de veille du système garde l'entrée d'Ambiant.
+        entryAllowed: bootSplash.mode === "wake" ? bootSplash.entryOpen : true
         // Un jeu prend l'écran, ou en revient : l'accueil s'efface puis revient (MotionQuitter).
         // (sous l'écran de veille aussi : il revient en éventail à sa sortie, MotionReveil)
         launching: launchScreen.covering || streamCurtain.covering || home.sleeping || shutdownScreen.active
-                   || sleepScreen.asleep
+                   || sleepScreen.asleep || home.bootHidden
         statusLogoShown: !bootSplash.visible || bootSplash.mode === "wake"
 
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
@@ -2467,6 +2470,18 @@ FocusScope {
             }
         }
 
+        // Sortie du démarrage : relais de BootSplash.
+        BootUnfold {
+            id: bootUnfold
+            anchors.fill: parent
+            z: 2
+            onUnfolding: {
+                homeScreen.returnStyle = "boot"
+                homeScreen.leaveStyle = "spread"
+                home.bootHidden = false
+            }
+        }
+
         // Extinction et redémarrage : par-dessus l'accueil.
         ShutdownScreen {
             id: shutdownScreen
@@ -2498,6 +2513,18 @@ FocusScope {
             systemReady: home.bootReady && t >= fakeDelay
             stepText: home.bootStep
             statusBarLogo: homeScreen.statusLogo
+            unfold: true
+            onExitStarted: {
+                if (mode !== "cold") return
+                if (!running) {                 // (fin immédiate : tests, rien à montrer)
+                    home.bootHidden = false
+                    return
+                }
+                var tile = shelfModel.count > 0 ? shelfModel.get(Math.min(homeScreen.currentIndex, shelfModel.count - 1)) : null
+                bootUnfold.origin = tile && !homeScreen.staged ? homeScreen.activeThumbRect : Qt.rect(0, 0, 0, 0)
+                bootUnfold.cover = tile ? (tile.cover || tile.boxart || "") : ""
+                bootUnfold.start(restLogo)
+            }
             onSoundCue: function(name) { Sounds.play(mode === "wake" ? "wake" : "boot-" + name) }
             onFinished: {
                 console.info("[console-ui] Démarrage (" + mode + ") : " + Math.round(t) + " ms"

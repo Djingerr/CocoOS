@@ -1040,31 +1040,27 @@ Item {
         // Fin de l'animation de démarrage : l'accueil n'entre qu'à E + 250, et le logo
         // vole jusqu'à celui de la barre haute, au pixel près (BOOT_ANIMATION.md §11.6).
         Component { id: freshHome; ConsoleHome { anchors.fill: parent } }
-        function test_9o_bootLogoLandsOnTheTopBarLogo() {
+        // Démarrage (Demarrage) : l'accueil est là, caché, pendant l'animation du O ; à sa sortie,
+        // BootUnfold prend le relais (le O se déplie en jaquette), puis l'accueil revient en
+        // éventail (returnStyle « boot »).
+        function test_9o_bootUnfoldsIntoTheCover() {
             var h = createTemporaryObject(freshHome, window)
             var sp = h.splash
             var screen2 = find(h, "ready")
             tryVerify(function() { return sp.running && sp.readyAt >= 0 }, 10000)
-            // Le temps avance à la main, depuis l'instant où le système est prêt (sur une machine
-            // chargée, le temps réel pouvait dépasser la sortie avant qu'on le fige).
+            // Le temps avance à la main, depuis l'instant où le système est prêt.
             sp.running = false
             sp.t = sp.readyAt
-            var E = sp.exitAt
-            sp.advance(E + 200 - sp.t)
-            verify(!screen2.entryAllowed)
-            verify(!screen2.statusLogoShown)                // le vrai logo attend le relais
-            sp.advance(100)                                 // E + 300
-            verify(screen2.entryAllowed)
-            sp.advance(E + Boot.T.exitDur - 0.01 - sp.t)    // fin du vol
-            var flying = find(sp, "letters"), bar = screen2.statusLogo
-            var a = flying.mapToItem(null, 0, 0), b = flying.mapToItem(null, flying.width, flying.height)
-            var c = bar.mapToItem(null, 0, 0), d = bar.mapToItem(null, bar.width, bar.height)
-            ;[[a.x, c.x], [a.y, c.y], [b.x, d.x], [b.y, d.y]].forEach(function(p) {
-                verify(Math.abs(p[0] - p[1]) <= 1, "écart au relais : " + p[0] + " / " + p[1])
-            })
-            sp.advance(1)
-            verify(!sp.visible)
-            verify(screen2.statusLogoShown)                 // même image : le vrai logo prend le relais
+            sp.advance(sp.exitAt - 1 - sp.t)
+            verify(h.bootHidden && screen2.launching)       // caché sous l'animation
+            verify(!sp.done)
+            sp.running = true                               // (BootUnfold ne joue que s'il tourne)
+            sp.advance(2)                                   // la sortie : le relais
+            verify(sp.done)
+            verify(h.bootHidden)                            // le O glisse d'abord au centre…
+            tryVerify(function() { return !h.bootHidden }, Theme.bootUnfoldMove + 1000)   // …puis se déplie
+            compare(screen2.returnStyle, "boot")
+            verify(!screen2.launching)
         }
 
         // Sortie de veille : l'accueil rentre, le logo de la barre haute respire puis

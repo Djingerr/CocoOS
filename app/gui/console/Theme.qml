@@ -1368,6 +1368,21 @@ QtObject {
     readonly property int wakeBarMove: 500
     readonly property int wakeBarShift: -8
 
+    // --- Sortie du démarrage (Demarrage) : le O devient l'anneau, se déplie en jaquette ---
+    readonly property int bootWordFade: 600          // « Coco » et « S » s'effacent…
+    readonly property int bootUnfoldMove: 800        // …le O glisse au centre, puis se déplie (curveMain)
+    readonly property int bootBlackDelay: 400        // le noir se lève sur l'accueil
+    readonly property int bootBlackFade: 1800
+    readonly property int bootHandover: 150          // la jaquette du carrousel, dessous, prend le relais
+    readonly property int bootCoverDelay: 400        // éventail : + 200 ms par rang, 1,2 s, depuis 0,8
+    readonly property int bootCoverStagger: 200
+    readonly property int bootCoverMove: 1200
+    readonly property real bootCoverScale: 0.8
+    readonly property int bootTitleDelay: 1400       // le titre monte (1 s)…
+    readonly property int bootRise: 1000
+    readonly property int bootBarDelay: 2000         // …la barre haute descend…
+    readonly property int bootHelpDelay: 2400        // …l'aide paraît
+
     // --- Sortie de l'écran de veille (MotionReveil) : les jaquettes s'ouvrent en éventail ---
     readonly property int idleCoverDelay: 380        // + 70 ms par rang, depuis le centre
     readonly property int idleCoverStagger: 70

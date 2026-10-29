@@ -143,6 +143,7 @@
         <file>gui/console/VolumeHud.qml</file>
         <file>gui/console/PowerMenu.qml</file>
         <file>gui/console/ShutdownScreen.qml</file>
+        <file>gui/console/BootUnfold.qml</file>
         <file>gui/console/icons/pc-offline.svg</file>
         <file>gui/console/icons/plus.svg</file>
         <file>gui/console/icons/game-play.svg</file>
