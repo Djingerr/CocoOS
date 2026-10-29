@@ -937,6 +937,7 @@ FocusScope {
         if (!shutdownScreen.active) return
         console.info("[console-ui] Alimentation : " + shutdownAction + " sans effet, retour à l'accueil")
         homeScreen.returnStyle = "wake"
+        homeScreen.leaveStyle = "spread"
         shutdownScreen.active = false
         homeScreen.forceActiveFocus()
     }
@@ -1942,7 +1943,9 @@ FocusScope {
         // la barre haute n'apparaît qu'une fois celui du démarrage arrivé à sa place.
         entryAllowed: bootSplash.entryOpen
         // Un jeu prend l'écran, ou en revient : l'accueil s'efface puis revient (MotionQuitter).
+        // (sous l'écran de veille aussi : il revient en éventail à sa sortie, MotionReveil)
         launching: launchScreen.covering || streamCurtain.covering || home.sleeping || shutdownScreen.active
+                   || sleepScreen.asleep
         statusLogoShown: !bootSplash.visible || bootSplash.mode === "wake"
 
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
@@ -2525,6 +2528,7 @@ FocusScope {
             anchors.fill: parent
             z: 1
             status: home.idleStatus
+            onAsleepChanged: if (asleep) homeScreen.returnStyle = "idle"
             onWoke: function(resuming) {
                 var item = home.focusBeforeSleep
                 home.focusBeforeSleep = null
@@ -2534,7 +2538,7 @@ FocusScope {
                 // A sur « Appuyez sur A pour reprendre » : le flux du jeu en cours repart.
                 var index = resuming && home.runningGame !== "" ? home.findAppIndexByName(home.runningGame) : -1
                 if (index >= 0) home.launchApp(index)
-                else home.playWake()
+                else Sounds.play("idle_exit")       // l'accueil revient en éventail (returnStyle "idle")
             }
         }
 

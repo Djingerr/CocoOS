@@ -36,6 +36,7 @@ import "Mock.js" as Mock
 // « Connexion à PC-Salon… »), fail, retry.
 //   time      heure affichée (21:42 par défaut)
 //   picker    1 : le choix du PC ouvert, PC-Bureau sous la manette (ChoixPC)
+//   idlein, idleout (actions) : l'écran de veille (son fond), puis la sortie (MotionReveil)
 //   shutdown, sleep, wake (actions) : extinction (MotionExtinction), mise en veille et réveil
 //             (MotionVeille)
 //   power     1 : le menu d'alimentation (MenuAlimentation) ; powerFocus=0..2 ; action hold
@@ -128,7 +129,14 @@ HomeScreen {
     backdrop: game && game.background && backdropArrived ? game.background : ""
 
     // --- Lancement, échec et retour d'un jeu ---
-    launching: launchScreen.covering || curtain.covering || shutdown.active || demo.napping && demo.dozed
+    launching: launchScreen.covering || curtain.covering || shutdown.active || demo.napping && demo.dozed || demo.idling
+    property bool idling: false
+    // (l'écran de veille, réduit à son fond noir : idlein / idleout, MotionReveil)
+    Rectangle {
+        anchors.fill: parent; z: 8; color: "black"
+        opacity: demo.idling ? 1 : 0
+        Behavior on opacity { NumberAnimation { duration: 380 } }
+    }
     property bool dozed: false
     LaunchScreen {
         id: launchScreen
@@ -325,6 +333,8 @@ HomeScreen {
             shutdown.start()
         }
         else if (action === "sleep") { napping = true; doze.start() }
+        else if (action === "idlein") { returnStyle = "idle"; idling = true }
+        else if (action === "idleout") idling = false
         else if (action === "wake") { returnStyle = "wake"; napping = false; dozed = false }
         else if (action === "press") { pressed = true; Sounds.play("launch") }
         else if (action === "launch") {

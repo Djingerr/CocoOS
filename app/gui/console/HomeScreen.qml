@@ -49,10 +49,29 @@ FocusScope {
     // Un menu centré par-dessus (choix du PC, menu d'alimentation) : le carrousel s'assombrit sous
     // la barre haute, le bloc titre et l'aide s'effacent.
     property bool menuShown: false
-    // Le retour de l'accueil (`launching` repasse à faux) : "game" (MotionQuitter) ou "wake"
-    // (MotionVeille : plus vif, de moins loin).
+    // Le retour de l'accueil (`launching` repasse à faux) : "game" (MotionQuitter), "wake"
+    // (MotionVeille : plus vif, de moins loin) ou "idle" (MotionReveil : après l'écran de veille,
+    // les jaquettes s'ouvrent en éventail depuis le centre).
     property string returnStyle: "game"
-    readonly property bool wakeStyle: returnStyle === "wake"
+    // Ses minutages : délais, durées, décalages de chaque bloc (Theme.return*, wake*, idle*).
+    readonly property var ret: returnStyle === "wake" ? {
+            CoverDelay: 0, CoverStagger: Theme.wakeCoverStagger, CoverMove: Theme.wakeCoverMove,
+            CoverFade: Theme.wakeCoverFade, CoverGather: Theme.wakeCoverGather, CoverScale: Theme.wakeCoverScale,
+            TitleDelay: Theme.wakeTitleDelay, RiseFade: Theme.wakeRiseFade, RiseMove: Theme.wakeRiseMove,
+            RiseShift: Theme.wakeRiseShift, BarDelay: Theme.wakeBarDelay, BarFade: Theme.wakeBarFade,
+            BarMove: Theme.wakeBarMove, BarShift: Theme.wakeBarShift, HelpDelay: Theme.wakeBarDelay }
+        : returnStyle === "idle" ? {
+            CoverDelay: Theme.idleCoverDelay, CoverStagger: Theme.idleCoverStagger, CoverMove: Theme.idleCoverMove,
+            CoverFade: Theme.idleCoverMove, CoverGather: 1, CoverScale: Theme.idleCoverScale,
+            TitleDelay: Theme.idleTitleDelay, RiseFade: Theme.idleRise, RiseMove: Theme.idleRise,
+            RiseShift: Theme.returnRiseShift, BarDelay: Theme.idleBarDelay, BarFade: Theme.idleBarMove,
+            BarMove: Theme.idleBarMove, BarShift: Theme.returnBarShift, HelpDelay: Theme.idleHelpDelay }
+        : {
+            CoverDelay: Theme.returnCoverDelay, CoverStagger: Theme.returnCoverStagger, CoverMove: Theme.returnCoverMove,
+            CoverFade: Theme.returnCoverFade, CoverGather: Theme.returnCoverGather, CoverScale: Theme.returnCoverScale,
+            TitleDelay: Theme.returnTitleDelay, RiseFade: Theme.returnRiseFade, RiseMove: Theme.returnRiseMove,
+            RiseShift: Theme.returnRiseShift, BarDelay: Theme.returnBarDelay, BarFade: Theme.returnBarFade,
+            BarMove: Theme.returnBarMove, BarShift: Theme.returnBarShift, HelpDelay: Theme.returnBarDelay }
     // Le départ (`launching` passe à vrai) : "spread" (un jeu : les voisines s'écartent) ou
     // "collapse" (l'extinction : elles se replient vers le centre, en rapetissant).
     property string leaveStyle: "spread"
@@ -316,10 +335,10 @@ FocusScope {
                 z: 2
                 anchors { top: parent.top; left: parent.left; right: parent.right }
                 height: status.implicitHeight
-                shift: root.wakeStyle ? Theme.wakeBarShift : Theme.returnBarShift
-                returnDelay: root.wakeStyle ? Theme.wakeBarDelay : Theme.returnBarDelay
-                returnFade: root.wakeStyle ? Theme.wakeBarFade : Theme.returnBarFade
-                returnMove: root.wakeStyle ? Theme.wakeBarMove : Theme.returnBarMove
+                shift: root.ret.BarShift
+                returnDelay: root.ret.BarDelay
+                returnFade: root.ret.BarFade
+                returnMove: root.ret.BarMove
 
                 StatusBar {
                     id: status
@@ -372,12 +391,12 @@ FocusScope {
                     focus: !root.staged && !root.detailOpen && !sheet.opened && !root.heroFocused && !root.statusFocused
                     shown: root.entered
                     launching: root.launching
-                    gatherDelay: root.wakeStyle ? 0 : Theme.returnCoverDelay
-                    gatherStagger: root.wakeStyle ? Theme.wakeCoverStagger : Theme.returnCoverStagger
-                    gatherMove: root.wakeStyle ? Theme.wakeCoverMove : Theme.returnCoverMove
-                    gatherFade: root.wakeStyle ? Theme.wakeCoverFade : Theme.returnCoverFade
-                    gatherAmount: root.collapseStyle ? 1 : root.wakeStyle ? Theme.wakeCoverGather : Theme.returnCoverGather
-                    gatherScale: root.collapseStyle ? Theme.shutdownCoverScale : root.wakeStyle ? Theme.wakeCoverScale : Theme.returnCoverScale
+                    gatherDelay: root.ret.CoverDelay
+                    gatherStagger: root.ret.CoverStagger
+                    gatherMove: root.ret.CoverMove
+                    gatherFade: root.ret.CoverFade
+                    gatherAmount: root.collapseStyle ? 1 : root.ret.CoverGather
+                    gatherScale: root.collapseStyle ? Theme.shutdownCoverScale : root.ret.CoverScale
                     leaveGather: root.collapseStyle
                     greyed: root.hostOffline
                     detailOpen: root.detailOpen
@@ -413,11 +432,11 @@ FocusScope {
 
                     LaunchFade {
                     anchors.fill: parent
-                    shift: root.wakeStyle ? Theme.wakeRiseShift : Theme.returnRiseShift
+                    shift: root.ret.RiseShift
                     leaveShift: Theme.launchHomeShift
-                    returnDelay: root.wakeStyle ? Theme.wakeTitleDelay : Theme.returnTitleDelay
-                    returnFade: root.wakeStyle ? Theme.wakeRiseFade : Theme.returnRiseFade
-                    returnMove: root.wakeStyle ? Theme.wakeRiseMove : Theme.returnRiseMove
+                    returnDelay: root.ret.TitleDelay
+                    returnFade: root.ret.RiseFade
+                    returnMove: root.ret.RiseMove
 
                     HeroBlock {
                         id: hero
@@ -473,9 +492,9 @@ FocusScope {
             // (au retour d'un jeu, elle revient avec la barre haute)
             LaunchFade {
                 anchors.fill: parent
-                returnDelay: root.wakeStyle ? Theme.wakeBarDelay : Theme.returnBarDelay
-                returnFade: root.wakeStyle ? Theme.wakeBarFade : Theme.returnBarFade
-                returnMove: root.wakeStyle ? Theme.wakeBarMove : Theme.returnBarMove
+                returnDelay: root.ret.HelpDelay
+                returnFade: root.ret.BarFade
+                returnMove: root.ret.BarMove
                 HomeHelp {
                     anchors.horizontalCenter: parent.horizontalCenter
                     y: Theme.canvasHeight - Theme.helpBottom - height
@@ -489,11 +508,11 @@ FocusScope {
             // PC hors ligne : son message, ses boutons et sa légende.
             LaunchFade {
                 anchors.fill: parent
-                shift: root.wakeStyle ? Theme.wakeRiseShift : Theme.returnRiseShift
+                shift: root.ret.RiseShift
                 leaveShift: Theme.launchHomeShift
-                returnDelay: root.wakeStyle ? Theme.wakeTitleDelay : Theme.returnTitleDelay
-                returnFade: root.wakeStyle ? Theme.wakeRiseFade : Theme.returnRiseFade
-                returnMove: root.wakeStyle ? Theme.wakeRiseMove : Theme.returnRiseMove
+                returnDelay: root.ret.TitleDelay
+                returnFade: root.ret.RiseFade
+                returnMove: root.ret.RiseMove
                 OfflineState {
                     id: offlineState
                     anchors.fill: parent

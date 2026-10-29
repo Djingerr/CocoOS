@@ -1368,6 +1368,17 @@ QtObject {
     readonly property int wakeBarMove: 500
     readonly property int wakeBarShift: -8
 
+    // --- Sortie de l'écran de veille (MotionReveil) : les jaquettes s'ouvrent en éventail ---
+    readonly property int idleCoverDelay: 380        // + 70 ms par rang, depuis le centre
+    readonly property int idleCoverStagger: 70
+    readonly property int idleCoverMove: 800         // (curveMain ; fondu de même durée)
+    readonly property real idleCoverScale: 0.84
+    readonly property int idleTitleDelay: 520        // le titre monte de 18 px
+    readonly property int idleRise: 650
+    readonly property int idleBarDelay: 450          // la barre haute descend de 10 px
+    readonly property int idleBarMove: 600
+    readonly property int idleHelpDelay: 760
+
     // --- Extinction et redémarrage (MotionExtinction) ---
     readonly property int shutdownBlack: 700         // le noir monte pendant que l'accueil se replie
     readonly property int shutdownCollapse: 700      // puis la jaquette devient l'anneau…

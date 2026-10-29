@@ -460,6 +460,20 @@ Item {
             verify(!screen.napping)
         }
 
+        // Écran de veille : l'accueil est caché dessous ; à la sortie, il revient en éventail
+        // (MotionReveil, returnStyle « idle »).
+        function test_5j_idleExitFansTheCovers() {
+            sleepScreen.sleep()
+            verify(sleepScreen.asleep)
+            verify(screen.launching)
+            compare(screen.returnStyle, "idle")
+            keyClick(Qt.Key_Down)                         // une touche : la sortie
+            verify(!sleepScreen.asleep)
+            verify(!screen.launching)
+            keyClick(Qt.Key_Right)
+            compare(screen.currentIndex, 1)
+        }
+
         function test_6_companionLaunchWithUpdate() {
             CompanionClient.paired = true
             CompanionClient.eventsConnected = true
