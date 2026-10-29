@@ -38,8 +38,11 @@ class SystemStatus : public QObject
     // vide, ou pleine en charge), watts (puissance qui sort ou entre), status (celui du
     // noyau : "Charging", "Discharging", "Full", "Not charging") }.
     Q_PROPERTY(QVariantMap batteryDetails READ batteryDetails NOTIFY changed)
-    // Réseau Wi-Fi associé : { ssid, strength (0 à 100), secured } ; vide sans Wi-Fi.
+    // Réseau Wi-Fi associé : { ssid, strength (0 à 100), secured, frequency (MHz),
+    // bitrate (débit du lien, Mb/s ; 0 s'il est inconnu) } ; vide sans Wi-Fi.
     Q_PROPERTY(QVariantMap wifi READ wifi NOTIFY changed)
+    // Nom de la console (celui de la machine), pour les Réglages.
+    Q_PROPERTY(QString deviceName READ deviceName CONSTANT)
     // Actions d'alimentation que logind autorise sans mot de passe, parmi
     // "suspend", "reboot", "poweroff" (lues une fois, par start()).
     Q_PROPERTY(QStringList powerActions READ powerActions NOTIFY changed)
@@ -62,6 +65,9 @@ public:
     int signalStrength() const { return m_signalStrength; }
     QVariantMap batteryDetails() const { return m_batteryDetails; }
     QVariantMap wifi() const { return m_wifi; }
+    QString deviceName() const;
+    // Place libre sur le disque du système, en octets (-1 si inconnue) : lue à la demande.
+    Q_INVOKABLE qint64 freeStorage() const;
     QStringList powerActions() const { return m_powerActions; }
     int latencyMs() const { return m_latencyMs; }
     int jitterMs() const { return m_jitterMs; }

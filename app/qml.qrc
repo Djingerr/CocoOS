@@ -36,6 +36,21 @@
         <file>gui/console/BootSplash.qml</file>
         <file>gui/console/icons/pin.svg</file>
         <file>gui/console/icons/settings.svg</file>
+        <file>gui/console/icons/accessibility.svg</file>
+        <file>gui/console/icons/battery.svg</file>
+        <file>gui/console/icons/chevron.svg</file>
+        <file>gui/console/icons/console.svg</file>
+        <file>gui/console/icons/dot.svg</file>
+        <file>gui/console/icons/gamepad.svg</file>
+        <file>gui/console/icons/general.svg</file>
+        <file>gui/console/icons/lock.svg</file>
+        <file>gui/console/icons/monitor.svg</file>
+        <file>gui/console/icons/moon.svg</file>
+        <file>gui/console/icons/speaker-low.svg</file>
+        <file>gui/console/icons/speaker.svg</file>
+        <file>gui/console/icons/sun.svg</file>
+        <file>gui/console/icons/wifi.svg</file>
+        <file>gui/console/icons/wifi-weak.svg</file>
         <file>gui/console/shadows/island.png</file>
         <file>gui/console/Appear.qml</file>
         <file>gui/console/SwapBox.qml</file>
@@ -105,6 +120,8 @@
         <file>gui/console/Spring.js</file>
         <file>gui/console/StreamProfiles.js</file>
         <file>gui/console/OptionsSheet.qml</file>
+        <file>gui/console/SettingsList.qml</file>
+        <file>gui/console/settings/SettingsScreen.qml</file>
         <file>gui/console/LaunchScreen.qml</file>
         <file>gui/console/Sounds.qml</file>
         <file>gui/console/SoundBank.qml</file>

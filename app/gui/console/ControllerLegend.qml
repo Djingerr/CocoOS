@@ -9,6 +9,8 @@ Row {
 
     property var hints: []
     property bool pressing: false        // A enfoncé : son entrée s'écrase (Pressable)
+    property int textSize: Theme.legendSize
+    property int glyphGap: Theme.legendGlyphGap
     signal triggered(string glyph)
 
     spacing: Theme.legendGap
@@ -23,7 +25,7 @@ Row {
             down: root.pressing && modelData.glyph === "A" || area.pressed
             Row {
                 id: hint
-                spacing: Theme.legendGlyphGap
+                spacing: root.glyphGap
                 ButtonGlyph {
                     label: modelData.glyph; ink: entry.ink
                     Behavior on ink { ColorAnimation { duration: Theme.hoverFade } }
@@ -32,7 +34,7 @@ Row {
                     anchors.verticalCenter: parent.verticalCenter
                     text: modelData.label
                     color: entry.ink
-                    font.family: Theme.fontUi; font.pixelSize: Theme.legendSize
+                    font.family: Theme.fontUi; font.pixelSize: root.textSize; font.weight: Font.Medium
                     Behavior on color { ColorAnimation { duration: Theme.hoverFade } }
                 }
             }

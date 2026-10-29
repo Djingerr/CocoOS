@@ -144,25 +144,29 @@ void InputStatus::pollButtons()
 
 void InputStatus::refreshControllers()
 {
-    QString layout;
-    int battery = -1;
-    int count = 0;
+    QVariantList controllers;
     if (SDL_WasInit(SDL_INIT_GAMECONTROLLER)) {
         for (int i = 0; i < SDL_NumJoysticks(); i++) {
             if (!SDL_IsGameController(i)) {
                 continue;
             }
-            if (count++ > 0) {
-                continue;       // famille et batterie : celles de la première
-            }
-            layout = layoutForType(SDL_GameControllerTypeForIndex(i));
             SDL_Joystick* joystick = SDL_JoystickFromInstanceID(SDL_JoystickGetDeviceInstanceID(i));
-            if (joystick != nullptr) {
-                battery = batteryForPowerLevel(SDL_JoystickCurrentPowerLevel(joystick));
-            }
+            const char* name = SDL_GameControllerNameForIndex(i);
+            controllers.append(QVariantMap {
+                { QStringLiteral("name"), QString::fromUtf8(name != nullptr ? name : "") },
+                { QStringLiteral("family"), layoutForType(SDL_GameControllerTypeForIndex(i)) },
+                { QStringLiteral("battery"), joystick != nullptr
+                      ? batteryForPowerLevel(SDL_JoystickCurrentPowerLevel(joystick)) : -1 },
+            });
         }
     }
-    if (layout != m_layout || battery != m_controllerBattery || count != m_controllerCount) {
+    // Famille et batterie : celles de la première.
+    const QVariantMap first = controllers.isEmpty() ? QVariantMap() : controllers.first().toMap();
+    const QString layout = first.value(QStringLiteral("family")).toString();
+    const int battery = first.value(QStringLiteral("battery"), -1).toInt();
+    const int count = controllers.size();
+    if (controllers != m_controllers) {
+        m_controllers = controllers;
         m_layout = layout;
         m_controllerBattery = battery;
         m_controllerCount = count;

@@ -32,8 +32,10 @@ Item {
         heldKey = event.key
         repeats = 0
         triggered(heldKey)
-        timer.interval = root.delay
-        timer.restart()
+        if (heldKey !== 0) {         // (l'appelant a pu arrêter la répétition : stop())
+            timer.interval = root.delay
+            timer.restart()
+        }
         return true
     }
     function release(event) {
@@ -53,6 +55,7 @@ Item {
         onTriggered: {
             root.repeats++
             root.triggered(root.heldKey)
+            if (root.heldKey === 0) return
             interval = Math.max(root.minimum, root.interval - root.repeats * root.step)
             restart()
         }

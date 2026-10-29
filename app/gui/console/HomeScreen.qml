@@ -114,7 +114,7 @@ FocusScope {
     // la partie s'arrête ou qu'un lancement commence.
     property alias optionTabs: sheet.tabs            // [{ label, rows }]
     readonly property alias optionRows: sheet.rows   // lignes de l'onglet affiché
-    property alias optionsHost: sheet.hostName       // PC que le panneau propose d'oublier
+    property alias optionsSubtitle: sheet.subtitle   // « PC-Salon · connecté · 4 ms »
     // Un autre panneau latéral (ConsoleDialog) est ouvert par-dessus l'accueil.
     property bool panelOpen: false
 
@@ -122,7 +122,7 @@ FocusScope {
     signal quitRequested()                           // Quitter la partie, tenu jusqu'au bout
     signal optionChanged(string key, int index)
     signal optionAction(string key)
-    signal forgetRequested()
+    signal forgetRequested()                         // « Oublier ce PC », maintenu jusqu'au bout
     signal favoriteRequested()                       // X sur l'étagère
     signal detailsRequested()                        // bas sur l'étagère : la fiche du jeu
     // Collections de l'étagère : leurs libellés (masquées s'il n'y en a qu'une) et celle
@@ -185,213 +185,249 @@ FocusScope {
         scale: Theme.scale
         transformOrigin: Item.TopLeft
 
-        BackdropLayer {
-            id: backdropLayer
+        // L'accueil recule derrière la feuille d'options (MotionOptions) : il rétrécit autour
+        // de Theme.recedeOrigin, s'assombrit et s'arrondit.
+        Item {
+            id: homeLayer
             anchors.fill: parent
-            driftEnabled: root.driftAllowed && idle.running && !root.launching && !sheet.opened && !Theme.reducedMotion
-            opacity: root.entered ? 1 : 0
-            zoom: root.launching ? Theme.launchBackdropZoom : 1
-            unveiled: root.launching
-            vignetteAt: Qt.point(Theme.vignetteAt.x + (Theme.vignetteAtFiche.x - Theme.vignetteAt.x) * root.detail,
-                                 Theme.vignetteAt.y + (Theme.vignetteAtFiche.y - Theme.vignetteAt.y) * root.detail)
-            vignetteIn: Theme.vignetteIn + (Theme.vignetteInFiche - Theme.vignetteIn) * root.detail
-            vignetteOut: Theme.vignetteOut + (Theme.vignetteOutFiche - Theme.vignetteOut) * root.detail
-            Behavior on opacity {
+            property real recede: sheet.opened ? 1 : 0
+            Behavior on recede {
                 NumberAnimation {
-                    duration: root.entered ? Theme.entryCardFade : 0
-                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveEmph
+                    duration: Theme.reducedMotion ? Theme.reducedSpring.duration : sheet.opened ? Theme.recedeIn : Theme.recedeOut
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
                 }
             }
-            Behavior on zoom { NumberAnimation { duration: Theme.backdropZoomDuration; easing.type: Theme.easeOut } }
-        }
+            transform: Scale {
+                origin.x: homeLayer.width * Theme.recedeOrigin.x
+                origin.y: homeLayer.height * Theme.recedeOrigin.y
+                xScale: 1 - (1 - Theme.recedeScale) * homeLayer.recede * (Theme.reducedMotion ? 0 : 1)
+                yScale: xScale
+            }
 
-        // Favoris vide : son état (et son fond) à la place du carrousel, sous la barre haute.
-        EmptyFavorites {
-            anchors.fill: parent
-            visible: opacity > 0
-            opacity: root.favoritesEmpty && root.entered && !root.staged ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: Theme.entryTextFade } }
-            onRecentRequested: root.recentRequested()
-        }
-
-        // Chaque bloc est enveloppé deux fois : pour son entrée, puis pour son
-        // effacement à chaque lancement d'un jeu. La barre haute fait entrer ses textes
-        // elle-même (son logo arrive de l'animation de démarrage).
-        Appear {
-            anchors { top: parent.top; left: parent.left; right: parent.right }
-            height: status.implicitHeight
-            shown: !root.launching
-            hiddenY: 0
-            hideDuration: Theme.launchHide
-            animateInitially: false
-
-            StatusBar {
-                id: status
+            BackdropLayer {
+                id: backdropLayer
                 anchors.fill: parent
-                focus: root.statusFocused && !root.staged && !sheet.opened
-                onLeaveRequested: {
-                    root.statusFocused = false
-                    Sounds.play("move")
+                driftEnabled: root.driftAllowed && idle.running && !root.launching && !sheet.opened && !Theme.reducedMotion
+                opacity: root.entered ? 1 : 0
+                zoom: root.launching ? Theme.launchBackdropZoom : 1
+                unveiled: root.launching
+                vignetteAt: Qt.point(Theme.vignetteAt.x + (Theme.vignetteAtFiche.x - Theme.vignetteAt.x) * root.detail,
+                                     Theme.vignetteAt.y + (Theme.vignetteAtFiche.y - Theme.vignetteAt.y) * root.detail)
+                vignetteIn: Theme.vignetteIn + (Theme.vignetteInFiche - Theme.vignetteIn) * root.detail
+                vignetteOut: Theme.vignetteOut + (Theme.vignetteOutFiche - Theme.vignetteOut) * root.detail
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: root.entered ? Theme.entryCardFade : 0
+                        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveEmph
+                    }
                 }
-                onActivated: function(key) {
-                    if (key === "settings") sheet.open(1)
-                    else root.systemRequested(key)
-                }
-                systemShown: !sheet.opened && !root.panelOpen
-                contentShown: root.entryAllowed
-                notificationsAllowed: root.notificationsAllowed && root.settled && root.statusLogoShown
-                                      && !sheet.opened && !root.panelOpen && !root.launching && !root.detailOpen
-                logoFade: 1 - root.detail
+                Behavior on zoom { NumberAnimation { duration: Theme.backdropZoomDuration; easing.type: Theme.easeOut } }
             }
 
-            // Catégories, au centre de la barre haute.
-            CategoryTabs {
-                id: tabs
-                anchors.horizontalCenter: parent.horizontalCenter
-                y: Theme.tabsTop
-                labels: root.collectionLabels
-                currentIndex: root.collectionIndex
-                visible: labels.length > 1 && opacity > 0
-                opacity: (root.entryAllowed ? 1 : 0) * (1 - root.detail)
-                transform: Translate { y: -8 * root.detail }
-                Behavior on opacity { enabled: root.detail === 0; NumberAnimation { duration: Theme.entryTextFade } }
-                onRequested: function(delta) { root.collectionRequested(delta) }
-            }
-        }
-
-        // Le carrousel (fondus des bords compris) : il descend au lancement d'un jeu.
-        Appear {
-            width: parent.width; height: parent.height
-            shown: !root.launching && !root.staged
-            hiddenY: Theme.launchShelfShift
-            hideDuration: Theme.launchHide
-            animateInitially: false
-
-            CoverFlow {
-                id: shelf
+            // Favoris vide : son état (et son fond) à la place du carrousel, sous la barre haute.
+            EmptyFavorites {
                 anchors.fill: parent
-                // La manette va au carrousel, à l'écran de message ou au panneau ouvert :
-                // le focus suit ces liaisons, il revient seul à la fermeture.
-                focus: !root.staged && !root.detailOpen && !sheet.opened && !root.heroFocused && !root.statusFocused
-                shown: root.entered
-                detailOpen: root.detailOpen
-                onLaunchRequested: function(index) { root.launchRequested(index) }
-                onDetailsRequested: root.detailsRequested()
-                onUpRequested: {
-                    if (hero.running) root.heroFocused = true
-                    else if (status.keys.length > 0) root.statusFocused = true
-                    else return
-                    Sounds.play("move")
-                }
-                Keys.onMenuPressed: root.favoriteRequested()      // bouton X
-                onCollectionRequested: function(direction) { root.collectionRequested(direction) }
+                visible: opacity > 0
+                opacity: root.favoritesEmpty && root.entered && !root.staged ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: Theme.entryTextFade } }
+                onRecentRequested: root.recentRequested()
             }
-        }
 
-        Appear {
-            y: Theme.homeTitleTop
-            width: parent.width; height: hero.implicitHeight
-            shown: root.entered && !root.favoritesEmpty
-            hiddenY: 0
-            hideDuration: 0
-            fadeDuration: Theme.entryTextFade
-            fadeEasing: Easing.OutCubic
-
+            // Chaque bloc est enveloppé deux fois : pour son entrée, puis pour son
+            // effacement à chaque lancement d'un jeu. La barre haute fait entrer ses textes
+            // elle-même (son logo arrive de l'animation de démarrage).
             Appear {
-                anchors.fill: parent
-                shown: !root.launching && !root.staged
-                hiddenX: Theme.launchHeroShift
+                anchors { top: parent.top; left: parent.left; right: parent.right }
+                height: status.implicitHeight
+                shown: !root.launching
                 hiddenY: 0
                 hideDuration: Theme.launchHide
                 animateInitially: false
 
-                HeroBlock {
-                    id: hero
-                    width: parent.width
-                    // Fiche ouverte : le bloc titre part vers le haut en fondu (220 ms), et revient
-                    // après 300 ms quand elle se referme (MotionFiche).
-                    opacity: root.detailOpen ? 0 : 1
-                    property real lift: root.detailOpen ? -Theme.homeLeaveTravel : 0
-                    transform: Translate { y: hero.lift }
-                    Behavior on opacity {
-                        SequentialAnimation {
-                            PauseAnimation { duration: root.detailOpen ? 0 : Theme.homeReturnDelay }
-                            NumberAnimation { duration: root.detailOpen ? Theme.ficheOut : Theme.homeReturn }
-                        }
-                    }
-                    Behavior on lift {
-                        SequentialAnimation {
-                            PauseAnimation { duration: root.detailOpen ? 0 : Theme.homeReturnDelay }
-                            NumberAnimation {
-                                duration: root.detailOpen ? Theme.ficheOut + 100 : Theme.homeReturnMove
-                                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
-                            }
-                        }
-                    }
-                    focus: root.heroFocused && !root.statusFocused && !root.staged && !sheet.opened
-                    meta: root.meta
-                    pegi: root.pegi
-                    axis: root.categoryDirection !== 0 ? "x" : "y"
-                    direction: root.categoryDirection !== 0 ? root.categoryDirection : shelf.direction
-                    fast: shelf.fast
-                    held: shelf.pressing
-                    animated: root.entered
-                    actionsShown: root.entered
-                    onPlayRequested: root.launchRequested(shelf.currentIndex)
-                    onQuitRequested: root.quitRequested()
+                StatusBar {
+                    id: status
+                    anchors.fill: parent
+                    focus: root.statusFocused && !root.staged && !sheet.opened
                     onLeaveRequested: {
-                        root.heroFocused = false
+                        root.statusFocused = false
                         Sounds.play("move")
                     }
-                    onUpRequested: {
-                        root.statusFocused = true
-                        Sounds.play("move")
+                    onActivated: function(key) {
+                        if (key === "settings") sheet.open(1)
+                        else root.systemRequested(key)
                     }
-                    onHoldHintRequested: root.toast(qsTr("Maintenez A pour quitter la partie"))
-                    onOptionsRequested: sheet.open()
-                    onFavoriteRequested: root.favoriteRequested()
+                    systemShown: !sheet.opened && !root.panelOpen
+                    contentShown: root.entryAllowed
+                    notificationsAllowed: root.notificationsAllowed && root.settled && root.statusLogoShown
+                                          && !sheet.opened && !root.panelOpen && !root.launching && !root.detailOpen
+                    logoFade: 1 - root.detail
+                }
+
+                // Catégories, au centre de la barre haute.
+                CategoryTabs {
+                    id: tabs
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: Theme.tabsTop
+                    labels: root.collectionLabels
+                    currentIndex: root.collectionIndex
+                    visible: labels.length > 1 && opacity > 0
+                    opacity: (root.entryAllowed ? 1 : 0) * (1 - root.detail)
+                    transform: Translate { y: -8 * root.detail }
+                    Behavior on opacity { enabled: root.detail === 0; NumberAnimation { duration: Theme.entryTextFade } }
+                    onRequested: function(delta) { root.collectionRequested(delta) }
                 }
             }
-        }
 
-        // Aide en bas : « ◀ ▶ Parcourir   ↓ Plus d'infos ».
-        HomeHelp {
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: Theme.canvasHeight - Theme.helpBottom - height
-            lit: shelf.heldDirection
-            opacity: root.entered && !root.launching && !root.staged && !root.favoritesEmpty && !root.detailOpen
-                     && !favBanner.shown ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: Theme.entryTextFade } }
-        }
+            // Le carrousel (fondus des bords compris) : il descend au lancement d'un jeu.
+            Appear {
+                width: parent.width; height: parent.height
+                shown: !root.launching && !root.staged
+                hiddenY: Theme.launchShelfShift
+                hideDuration: Theme.launchHide
+                animateInitially: false
 
-        Toast { id: toastItem }
+                CoverFlow {
+                    id: shelf
+                    anchors.fill: parent
+                    // La manette va au carrousel, à l'écran de message ou au panneau ouvert :
+                    // le focus suit ces liaisons, il revient seul à la fermeture.
+                    focus: !root.staged && !root.detailOpen && !sheet.opened && !root.heroFocused && !root.statusFocused
+                    shown: root.entered
+                    detailOpen: root.detailOpen
+                    onLaunchRequested: function(index) { root.launchRequested(index) }
+                    onDetailsRequested: root.detailsRequested()
+                    onUpRequested: {
+                        if (hero.running) root.heroFocused = true
+                        else if (status.keys.length > 0) root.statusFocused = true
+                        else return
+                        Sounds.play("move")
+                    }
+                    Keys.onMenuPressed: root.favoriteRequested()      // bouton X
+                    onCollectionRequested: function(direction) { root.collectionRequested(direction) }
+                }
+            }
 
-        // La fiche du jeu (GamePage), par-dessus le carrousel.
-        FocusScope {
-            id: detailStage
-            anchors.fill: parent
-            focus: root.detailOpen && !sheet.opened
-        }
+            Appear {
+                y: Theme.homeTitleTop
+                width: parent.width; height: hero.implicitHeight
+                shown: root.entered && !root.favoritesEmpty
+                hiddenY: 0
+                hideDuration: 0
+                fadeDuration: Theme.entryTextFade
+                fadeEasing: Easing.OutCubic
 
-        FavoriteBanner {
-            id: favBanner
-            anchors.horizontalCenter: parent.horizontalCenter
-            y: Theme.canvasHeight - Theme.bannerBottom - height
-        }
+                Appear {
+                    anchors.fill: parent
+                    shown: !root.launching && !root.staged
+                    hiddenX: Theme.launchHeroShift
+                    hiddenY: 0
+                    hideDuration: Theme.launchHide
+                    animateInitially: false
 
-        FocusScope {
-            id: stage
-            anchors.fill: parent
-            focus: root.staged && !sheet.opened
+                    HeroBlock {
+                        id: hero
+                        width: parent.width
+                        // Fiche ouverte : le bloc titre part vers le haut en fondu (220 ms), et revient
+                        // après 300 ms quand elle se referme (MotionFiche).
+                        opacity: root.detailOpen ? 0 : 1
+                        property real lift: root.detailOpen ? -Theme.homeLeaveTravel : 0
+                        transform: Translate { y: hero.lift }
+                        Behavior on opacity {
+                            SequentialAnimation {
+                                PauseAnimation { duration: root.detailOpen ? 0 : Theme.homeReturnDelay }
+                                NumberAnimation { duration: root.detailOpen ? Theme.ficheOut : Theme.homeReturn }
+                            }
+                        }
+                        Behavior on lift {
+                            SequentialAnimation {
+                                PauseAnimation { duration: root.detailOpen ? 0 : Theme.homeReturnDelay }
+                                NumberAnimation {
+                                    duration: root.detailOpen ? Theme.ficheOut + 100 : Theme.homeReturnMove
+                                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
+                                }
+                            }
+                        }
+                        focus: root.heroFocused && !root.statusFocused && !root.staged && !sheet.opened
+                        meta: root.meta
+                        pegi: root.pegi
+                        axis: root.categoryDirection !== 0 ? "x" : "y"
+                        direction: root.categoryDirection !== 0 ? root.categoryDirection : shelf.direction
+                        fast: shelf.fast
+                        held: shelf.pressing
+                        animated: root.entered
+                        actionsShown: root.entered
+                        onPlayRequested: root.launchRequested(shelf.currentIndex)
+                        onQuitRequested: root.quitRequested()
+                        onLeaveRequested: {
+                            root.heroFocused = false
+                            Sounds.play("move")
+                        }
+                        onUpRequested: {
+                            root.statusFocused = true
+                            Sounds.play("move")
+                        }
+                        onHoldHintRequested: root.toast(qsTr("Maintenez A pour quitter la partie"))
+                        onOptionsRequested: sheet.open()
+                        onFavoriteRequested: root.favoriteRequested()
+                    }
+                }
+            }
+
+            // Aide en bas : « ◀ ▶ Parcourir   ↓ Plus d'infos ».
+            HomeHelp {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: Theme.canvasHeight - Theme.helpBottom - height
+                lit: shelf.heldDirection
+                opacity: root.entered && !root.launching && !root.staged && !root.favoritesEmpty && !root.detailOpen
+                         && !favBanner.shown ? 1 : 0
+                Behavior on opacity { NumberAnimation { duration: Theme.entryTextFade } }
+            }
+
+            Toast { id: toastItem }
+
+            // La fiche du jeu (GamePage), par-dessus le carrousel.
+            FocusScope {
+                id: detailStage
+                anchors.fill: parent
+                focus: root.detailOpen && !sheet.opened
+            }
+
+            FavoriteBanner {
+                id: favBanner
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: Theme.canvasHeight - Theme.bannerBottom - height
+            }
+
+            FocusScope {
+                id: stage
+                anchors.fill: parent
+                focus: root.staged && !sheet.opened
+            }
+
+            // Assombri, et coins arrondis : un cadre noir dont le bord intérieur s'arrondit.
+            Rectangle {
+                anchors.fill: parent
+                color: Theme.background
+                opacity: Theme.recedeDim * homeLayer.recede
+            }
+            Rectangle {
+                visible: homeLayer.recede > 0
+                x: -Theme.recedeFrame; y: -Theme.recedeFrame
+                width: parent.width + 2 * Theme.recedeFrame; height: parent.height + 2 * Theme.recedeFrame
+                radius: Theme.recedeFrame + Theme.recedeRadius * homeLayer.recede
+                color: "transparent"
+                border.width: Theme.recedeFrame; border.color: Theme.background
+            }
         }
 
         OptionsSheet {
             id: sheet
             anchors.fill: parent
+            backdrop: homeLayer
             connected: status.connected
             onChanged: function(key, index) { root.optionChanged(key, index) }
             onActionRequested: function(key) { root.optionAction(key) }
-            onForgetConfirmed: root.forgetRequested()
+            onHoldCompleted: function(key) { if (key === "forget") root.forgetRequested() }
             onClosed: idle.restart()
         }
     }

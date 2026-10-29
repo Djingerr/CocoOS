@@ -42,6 +42,9 @@ Item {
         Component.onCompleted: {
             setupDone = demo.args.setup !== "1"
             if (demo.args.nonet === "1") WifiSetup.online = false
+            if (demo.args.pads === "1")     // deux manettes branchées (ReglagesManettes)
+                InputStatus.controllers = [ { name: "Manette intégrée", family: "xbox", battery: -1 },
+                                            { name: "Xbox Wireless Controller", family: "xbox", battery: 2 } ]
             if (demo.args.logos === "1") {
                 CompanionClient.logos = { "game-1": Qt.resolvedUrl("art/logo-elden.png").toString() }
                 CompanionClient.libraryChanged()
@@ -113,6 +116,8 @@ Item {
             else if (action === "wifi") home.openWifi()
             else if (action === "options") screen.options.open()
             else if (action === "tab") screen.options.switchTab(1)
+            else if (action.indexOf("settings:") === 0) home.openSettings(action.slice(9))   // Réglages, sur cette rubrique
+            else if (action === "content") demo.find(home, "contentFocused").focusContent(true)
             else if (action.indexOf("net:") === 0) home.chooseNetwork(action.slice(4))
             else if (action === "hold" || action === "release") {      // A tenu / lâché (appui maintenu)
                 var held = home.Window.activeFocusItem

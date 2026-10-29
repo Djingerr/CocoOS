@@ -13,6 +13,8 @@
 #include <QDBusReply>
 #include <QProcess>
 #include <QRegularExpression>
+#include <QStorageInfo>
+#include <QSysInfo>
 #include <QTcpSocket>
 
 namespace {
@@ -301,11 +303,24 @@ QVariantMap SystemStatus::readWifi()
         return {
             { QStringLiteral("ssid"), QString::fromUtf8(apIface.property("Ssid").toByteArray()) },
             { QStringLiteral("strength"), strength.toInt() },
+            { QStringLiteral("frequency"), apIface.property("Frequency").toUInt() },
+            { QStringLiteral("bitrate"), wireless.property("Bitrate").toUInt() / 1000 },
             { QStringLiteral("secured"), (apIface.property("Flags").toUInt() & NM_AP_FLAGS_PRIVACY) ||
                                          apIface.property("WpaFlags").toUInt() || apIface.property("RsnFlags").toUInt() },
         };
     }
     return {};
+}
+
+QString SystemStatus::deviceName() const
+{
+    return QSysInfo::machineHostName();
+}
+
+qint64 SystemStatus::freeStorage() const
+{
+    QStorageInfo root = QStorageInfo::root();
+    return root.isValid() ? root.bytesAvailable() : -1;
 }
 
 void SystemStatus::probeHost(QObject* computerManager, const QString& hostName)

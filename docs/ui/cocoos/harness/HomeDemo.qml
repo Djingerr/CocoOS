@@ -27,7 +27,8 @@ import "Mock.js" as Mock
 //   start     décalage du script, en ms (laisser l'accueil finir son entrée)
 //   loading   1 : jaquettes et fond arrivent comme dans MotionJaquettes (squelettes d'abord)
 //   fiche     1 : la fiche du jeu au centre ouverte d'entrée (FicheEditoriale)
-// Actions (script) en plus : down (la fiche), up (la referme), x (favori).
+// Actions (script) en plus : down (la fiche), up (la referme), x (favori), y / b (la feuille
+// d'options), key-down, key-up, key-left, key-right, key-a, key-lb, key-rb (dans la feuille).
 //   time      heure affichée (21:42 par défaut)
 HomeScreen {
     id: demo
@@ -122,8 +123,43 @@ HomeScreen {
     batteryDetails: ({ minutes: 190, watts: 6.8, status: "Discharging" })
     wifi: ({ ssid: "Livebox-7A3C", strength: 86, secured: true })
     timeText: args.time || "21:42"
-    optionsHost: "PC-Salon"
-    optionTabs: [{ label: "Stream", rows: [] }, { label: "Console", rows: [] }]
+    optionsSubtitle: "PC-Salon · connecté · 4 ms"
+    // La feuille d'options des maquettes (OptionsFeuille, MotionOptions) ; les choix s'appliquent ici.
+    property var opt: ({ profile: 2, advanced: 1, res: 0, fps: 1, rate: 10, codec: 0, brightness: 100, volume: 40,
+                         sleep: 0, sounds: 1, motion: 0, language: 0 })
+    onOptionChanged: function(key, value) {
+        var next = Object.assign({}, opt)
+        next[key] = value
+        opt = next
+    }
+    optionTabs: {
+        var o = opt, adv = function(r) { r.advanced = true; r.group = "advanced"; return r }
+        return [
+            { label: "Stream", rows: [
+                { key: "profile", label: "Profil", segments: true, group: "profile", section: "Profil de stream",
+                  options: ["Compétitif", "Équilibré", "Qualité", "Éco", "Manuel"], index: o.profile,
+                  footnote: "Réseau faible : le profil descend automatiquement de deux crans.",
+                  description: "La plus belle image, quand le réseau suit.",
+                  stats: [{ label: "Résolution", value: ["720p", "1080p"][o.res] }, { label: "Images/s", value: ["30", "60", "90", "120"][o.fps] },
+                          { label: "Débit", value: o.rate + " Mb/s" }, { label: "Priorité", value: "Image" }] },
+                { key: "advanced", label: "Réglages avancés", toggle: true, revealsAdvanced: true, group: "advanced",
+                  section: "Avancé", options: ["Désactivés", "Activés"], index: o.advanced },
+                adv({ key: "res", label: "Résolution", options: ["720p", "1080p"], index: o.res }),
+                adv({ key: "fps", label: "Images par seconde", options: ["30", "60", "90", "120"], index: o.fps }),
+                adv({ key: "rate", label: "Débit", slider: true, value: o.rate, min: 5, max: 150, stops: [10, 20, 40, 80], format: "%1 Mb/s" }),
+                adv({ key: "codec", label: "Codec", options: ["Auto", "H.264", "HEVC", "AV1"], index: o.codec }),
+                { key: "forget", label: "Oublier ce PC", hold: true, doneLabel: "PC oublié", group: "pc" } ] },
+            { label: "Console", rows: [
+                { key: "brightness", label: "Luminosité", slider: true, value: o.brightness, min: 5, max: 100, stops: [25, 50, 75],
+                  format: "%1 %", group: "screen", section: "Écran et son" },
+                { key: "volume", label: "Volume", slider: true, value: o.volume, min: 0, max: 100, stops: [25, 50, 75],
+                  format: "%1 %", group: "screen" },
+                { key: "sleep", label: "Veille après", options: ["30 s", "1 min", "2 min", "5 min"], index: o.sleep,
+                  group: "console", section: "Console" },
+                { key: "sounds", label: "Sons", toggle: true, options: ["Coupés", "Activés"], index: o.sounds, group: "console" },
+                { key: "motion", label: "Réduire les animations", toggle: true, options: ["Non", "Oui"], index: o.motion, group: "console" },
+                { key: "language", label: "Langue", options: ["Français", "English"], index: o.language, group: "console" } ] } ]
+    }
 
     function switchCategory(direction) {
         var next = collectionIndex + direction
@@ -193,6 +229,17 @@ HomeScreen {
         else if (action === "down") fiche.open()
         else if (action === "up") fiche.close()
         else if (action === "x") toggleFavorite()
+        else if (action === "y") options.open()
+        else if (action === "b") options.close()
+        else if (action.indexOf("key-") === 0) {       // touches de la feuille : key-down, key-rb, key-a…
+            var keys = { down: Qt.Key_Down, up: Qt.Key_Up, left: Qt.Key_Left, right: Qt.Key_Right,
+                         rb: Qt.Key_PageDown, lb: Qt.Key_PageUp }
+            var k = action.slice(4)
+            if (k === "a") { options.list.pressing = true; options.list.pressing = false; options.list.activate() }
+            else if (k === "rb" || k === "lb") options.switchTab(k === "rb" ? 1 : -1)
+            else if (k === "down" || k === "up") options.list.step(k === "down" ? 1 : -1)
+            else options.list.change(k === "right" ? 1 : -1, false)
+        }
         else if (action === "backdrop") backdropArrived = true
         else if (action === "ready") Sounds.play("library_ready")
         else if (action.indexOf("arrive:") === 0) {

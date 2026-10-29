@@ -19,6 +19,7 @@
 #include <QString>
 #include <QStringList>
 #include <QTimer>
+#include <QVariantList>
 
 class InputStatus : public QObject
 {
@@ -32,6 +33,8 @@ class InputStatus : public QObject
     Q_PROPERTY(int controllerBattery READ controllerBattery NOTIFY controllersChanged)
     // Manettes branchées (l'île de notification de la barre haute en suit les arrivées).
     Q_PROPERTY(int controllerCount READ controllerCount NOTIFY controllersChanged)
+    // Les manettes branchées, dans l'ordre de SDL : { name, family, battery (0 à 3, -1) }.
+    Q_PROPERTY(QVariantList controllers READ controllers NOTIFY controllersChanged)
 
 public:
     explicit InputStatus(QObject* parent = nullptr);
@@ -39,6 +42,7 @@ public:
     QString layout() const { return m_layout; }
     int controllerBattery() const { return m_controllerBattery; }
     int controllerCount() const { return m_controllerCount; }
+    QVariantList controllers() const { return m_controllers; }
 
     // Menu en jeu (StreamMenu) : le nom du jeu, les actions d'alimentation et les
     // glyphes à montrer, avant chaque flux ; au retour, l'action choisie ("home",
@@ -82,4 +86,5 @@ private:
     QString m_layout;
     int m_controllerBattery = -1;
     int m_controllerCount = 0;
+    QVariantList m_controllers;
 };

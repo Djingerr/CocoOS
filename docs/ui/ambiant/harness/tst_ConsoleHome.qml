@@ -120,7 +120,7 @@ Item {
             p.autoAdjustBitrate = true; p.bitrateKbps = 30000    // profil du premier démarrage
             home.refreshOptions()
             var shown = function(key) { var r = fluxRow(key); return r.options[r.index] }
-            var hidden = function(key) { return sheet.isHidden(sheet.rows.indexOf(fluxRow(key))) }
+            var hidden = function(key) { return sheet.list.isHidden(sheet.rows.indexOf(fluxRow(key))) }
 
             keyClick(Qt.Key_Hangup)                 // bouton Y
             verify(sheet.opened)
@@ -131,7 +131,7 @@ Item {
             keyClick(Qt.Key_Down)                   // « Réglages avancés »…
             compare(sheet.rows[sheet.current].key, "advanced")
             keyClick(Qt.Key_Down)                   // …puis « Oublier ce PC » : les lignes repliées sont sautées
-            compare(sheet.current, sheet.rows.length)
+            compare(sheet.rows[sheet.current].key, "forget")
             keyClick(Qt.Key_Up)
             keyClick(Qt.Key_Return)                 // A : les réglages avancés
             compare(shown("advanced"), "Activé")
@@ -364,9 +364,9 @@ Item {
         function test_9b_soundsSetting() {
             keyClick(Qt.Key_Hangup)
             keyClick(Qt.Key_PageDown)                       // onglet Console (R1)
-            for (var i = 0; i < 4; i++) keyClick(Qt.Key_Down)
-            var row = screen.optionRows[4]
-            var sons = function() { return screen.optionRows[4].index }
+            for (var i = 0; i < 3; i++) keyClick(Qt.Key_Down)
+            var row = screen.optionRows[3]
+            var sons = function() { return screen.optionRows[3].index }
             compare(row.label, "Sons")
             verify(row.toggle)                              // un interrupteur
             compare(row.options[row.index], "Activés")
@@ -396,14 +396,14 @@ Item {
         function test_9b_languageSetting() {
             keyClick(Qt.Key_Hangup)
             keyClick(Qt.Key_PageDown)                       // onglet Console (R1)
-            for (var i = 0; i < 6; i++) keyClick(Qt.Key_Down)
+            for (var i = 0; i < 5; i++) keyClick(Qt.Key_Down)
             var retranslations = StreamingPreferences.retranslations
-            compare(screen.optionRows[6].label, "Langue")
-            compare(screen.optionRows[6].options[screen.optionRows[6].index], "Français")
+            compare(screen.optionRows[5].label, "Langue")
+            compare(screen.optionRows[5].options[screen.optionRows[5].index], "Français")
             keyClick(Qt.Key_Right)
             compare(StreamingPreferences.language, StreamingPreferences.LANG_EN)
             compare(StreamingPreferences.retranslations, retranslations + 1)
-            compare(screen.optionRows[6].options[screen.optionRows[6].index], "English")
+            compare(screen.optionRows[5].options[screen.optionRows[5].index], "English")
             compare(home.humanSize(1.5 * 1024 * 1024 * 1024), "1.5 Go")   // virgule → point
             keyClick(Qt.Key_Left)
             compare(StreamingPreferences.language, StreamingPreferences.LANG_FR)
@@ -423,8 +423,8 @@ Item {
         function test_9b_reduceMotion() {
             keyClick(Qt.Key_Hangup)
             keyClick(Qt.Key_PageDown)                       // onglet Console (R1)
-            for (var i = 0; i < 5; i++) keyClick(Qt.Key_Down)
-            compare(screen.optionRows[5].label, "Réduire les animations")
+            for (var i = 0; i < 4; i++) keyClick(Qt.Key_Down)
+            compare(screen.optionRows[4].label, "Réduire les animations")
             verify(!Theme.reducedMotion)
             verify(Theme.springSnappy.duration > Theme.reducedSpring.duration)
             keyClick(Qt.Key_Return)                         // A bascule, au relâché
@@ -437,14 +437,17 @@ Item {
             keyClick(Qt.Key_Escape)
         }
 
-        // Onglet Console : luminosité, volume, veille de l'écran, boutons. L1 / R1
+        // Onglet Console (OptionsFeuille) : « Écran et son » (luminosité, volume), puis
+        // « Console » (veille, sons, animations, langue) et « Tous les réglages ». L1 / R1
         // (InputStatus) changent d'onglet.
         function test_9c_consoleSettings() {
             keyClick(Qt.Key_Hangup)
             InputStatus.bumperPressed(1)
             compare(screen.optionRows.map(function(r) { return r.label }),
-                    ["Luminosité", "Volume", "Mise en veille après", "Boutons", "Sons", "Réduire les animations",
-                     "Langue", "Wi-Fi"])
+                    ["Luminosité", "Volume", "Veille après", "Sons", "Réduire les animations", "Langue",
+                     "Tous les réglages"])
+            compare(screen.optionRows.map(function(r) { return r.group }),
+                    ["screen", "screen", "console", "console", "console", "console", "console"])
             verify(screen.optionRows[0].slider && screen.optionRows[1].slider)   // des curseurs
             keyClick(Qt.Key_Right)                          // luminosité 60 → 61 %
             compare(SystemStatus.brightness, 61)
@@ -453,13 +456,58 @@ Item {
             compare(SystemStatus.volume, 74)
             keyClick(Qt.Key_Down); keyClick(Qt.Key_Right)   // veille : 5 → 10 min
             compare(screen.optionRows[2].options[screen.optionRows[2].index], "10 min")
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Right); keyClick(Qt.Key_Right)   // Boutons : PlayStation
-            compare(Theme.buttonLayout, "playstation")
-            keyClick(Qt.Key_Left); keyClick(Qt.Key_Left)    // Auto : sans manette, Xbox
-            compare(Theme.buttonLayout, "xbox")
-            InputStatus.bumperPressed(-1)                   // retour à l'onglet Flux
+            InputStatus.bumperPressed(-1)                   // retour à l'onglet Stream
             compare(screen.optionRows[0].label, "Profil")
             keyClick(Qt.Key_Escape)
+        }
+
+        // « Tous les réglages » : les Réglages plein écran, menu à gauche, page à droite. La page
+        // suit la rubrique ; → (ou LB / RB) y entre, B revient au menu puis referme. Ce qui y est
+        // réglé est écrit dans la conf, relue telle quelle au démarrage suivant.
+        function test_9c_allSettings() {
+            var settings = find(home, "contentFocused")
+            keyClick(Qt.Key_Hangup)
+            InputStatus.bumperPressed(1)
+            for (var i = 0; i < 6; i++) keyClick(Qt.Key_Down)
+            compare(screen.optionRows[screen.options.current].key, "settings")
+            keyClick(Qt.Key_Return)
+            verify(settings.opened && !screen.options.opened)
+            verify(screen.panelOpen)
+            compare(settings.pages.map(function(p) { return p.key }),
+                    ["wifi", "pads", "pc", "screen", "battery", "sleep", "general", "accessibility"])
+            compare(settings.pages[settings.page].label, "Wi-Fi")
+            compare(settings.rows[0].label, "Maison")       // le réseau connecté, en carte
+            verify(settings.rows[0].info)
+            keyClick(Qt.Key_Down)                           // Bluetooth et manettes : sa page suit
+            compare(settings.rows.map(function(r) { return r.label }), ["Glyphes à l'écran", "Vibrations"])
+            keyClick(Qt.Key_Right)                          // → : dans la page
+            verify(settings.contentFocused)
+            keyClick(Qt.Key_Right); keyClick(Qt.Key_Right)  // Glyphes : Xbox, puis PlayStation
+            compare(Theme.buttonLayout, "playstation")
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Left)    // Vibrations : Légères → Off
+            compare(settings.rows[1].options[settings.rows[1].index], "Off")
+            keyClick(Qt.Key_Escape)                         // B : au menu
+            verify(!settings.contentFocused && settings.opened)
+            for (i = 0; i < 4; i++) keyClick(Qt.Key_Down)   // Mise en veille
+            compare(settings.pages[settings.page].key, "sleep")
+            keyClick(Qt.Key_PageDown)                       // RB : dans la page
+            keyClick(Qt.Key_Right)                          // 5 → 10 min
+            compare(settings.pages[settings.page].value, "10 min")
+            keyClick(Qt.Key_PageUp)                         // LB : au menu
+            keyClick(Qt.Key_Escape)                         // B : refermé, l'accueil reprend la main
+            verify(!settings.opened && !screen.panelOpen)
+
+            // La conf, relue comme au démarrage suivant (Settings l'écrit un peu après).
+            wait(Theme.confWriteDelay)
+            var conf = Qt.createQmlObject('import QtCore; Settings { category: "ConsoleUi"; property string buttonLayout; '
+                                          + 'property real haptics; property int idleSeconds }', home)
+            compare([conf.buttonLayout, conf.haptics, conf.idleSeconds], ["playstation", 0, 600])
+            conf.destroy()
+            home.applyOption("buttons", 0)                  // (remis : Auto, légères, 5 min)
+            home.applyOption("rumble", 1)
+            home.applyOption("sleep", 3)
+            keyClick(Qt.Key_Right)
+            compare(screen.currentIndex, 1)
         }
 
         // Le Companion est découvert mais pas appairé : son écran de code remplace
@@ -795,31 +843,21 @@ Item {
             verify(screen.staged)
             keyClick(Qt.Key_Return)                         // « Commencer »
             verify(home.welcomed && !home.setupDone)
-            keyClick(Qt.Key_Return)                         // « Choisir un réseau »
-            var sheet = null
-            var walk = function(from) {
-                for (var i = 0; i < from.children.length && !sheet; i++) {
-                    var c = from.children[i]
-                    if (c.tabs !== undefined && c.title === "Wi-Fi") sheet = c
-                    else walk(c)
-                }
-            }
-            walk(home)
-            verify(sheet && sheet.opened)
+            keyClick(Qt.Key_Return)                         // « Choisir un réseau » : Réglages › Wi-Fi
+            var sheet = find(home, "contentFocused")
+            verify(sheet.opened && sheet.contentFocused)
             compare(sheet.rows.map(function(r) { return r.label }), ["Maison", "Voisins", "Café"])
-            verify(sheet.rows[0].checked && !sheet.rows[1].checked)  // le réseau connecté est coché…
-            keyClick(Qt.Key_Return)                         // …et le choisir à nouveau est refusé…
-            verify(sheet.opened)
+            verify(sheet.rows[0].info && !sheet.rows[1].info)   // le réseau connecté : sa carte
+            keyClick(Qt.Key_Return)                         // (rien à y faire)
             compare(WifiSetup.lastConnect, null)
-            verify(sheet.hintShown)                         // …avec pourquoi, sous la liste
-            compare(sheet.hint, "La console est déjà connectée à ce réseau.")
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)  // « Voisins » : protégé, inconnu
-            verify(!sheet.opened)
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)  // « Voisins » : protégé, inconnu → le clavier
+            verify(sheet.opened && !sheet.activeFocus)
             keyClick(Qt.Key_S); keyClick(Qt.Key_E); keyClick(Qt.Key_C); keyClick(Qt.Key_R)
             keyClick(Qt.Key_E); keyClick(Qt.Key_T); keyClick(Qt.Key_1); keyClick(Qt.Key_2)
             keyClick(Qt.Key_Return)
             compare(WifiSetup.lastConnect.ssid, "Voisins")
             compare(WifiSetup.lastConnect.password, "secret12")
+            verify(!sheet.opened)
             WifiSetup.online = true                         // connecté : la suite du démarrage
             verify(home.setupDone)
             verify(!screen.staged)
@@ -1003,10 +1041,10 @@ Item {
             p.width = 1920; p.height = 1080; p.fps = 30
             p.autoAdjustBitrate = false; p.bitrateKbps = 30000
             home.refreshOptions()
-            compare(sheet.numberParts("40 %").n, 40)
-            compare(sheet.numberParts("40 %").suffix, " %")
-            compare(sheet.numberParts("120").n, 120)
-            compare(sheet.numberParts("Natif 2560×1600"), null)
+            compare(sheet.list.numberParts("40 %").n, 40)
+            compare(sheet.list.numberParts("40 %").suffix, " %")
+            compare(sheet.list.numberParts("120").n, 120)
+            compare(sheet.list.numberParts("Natif 2560×1600"), null)
 
             var values = []
             var record = function(key, value) { if (key === "rate") values.push([Date.now(), value]) }
@@ -1024,21 +1062,21 @@ Item {
             var at40 = values.findIndex(function(v) { return v[1] === 40 })
             verify(at40 > 0, "arrêt sur 40 : " + values.map(function(v) { return v[1] }))
             verify(values[at40 + 1][0] - values[at40][0] >= Theme.sliderStopHold - 30, "arrêté sur 40")
-            verify(sheet.pulseStop === 40 || sheet.pulseStop === 80, "un cran franchi pulse")
+            verify(sheet.list.pulseStop === 40 || sheet.list.pulseStop === 80, "un cran franchi pulse")
 
             // À la souris : la poignée suit le pointeur, accrochée à un cran proche ; au-delà
             // du bout, la butée s'étire, et revient au relâché.
             var slider = function() { return screen.optionRows[sheet.current] }
             var track = 384, at = function(mbps) { return track * (mbps - 5) / 145 }
-            sheet.dragTo(slider(), at(39), track)
+            sheet.list.dragTo(slider(), at(39), track)
             compare(p.bitrateKbps, 40000)                   // 39 : accroché au cran 40
-            sheet.dragTo(slider(), at(66), track)
+            sheet.list.dragTo(slider(), at(66), track)
             compare(p.bitrateKbps, 66000)
-            sheet.dragTo(slider(), track + Theme.sliderDragSpan, track)
+            sheet.list.dragTo(slider(), track + Theme.sliderDragSpan, track)
             compare(p.bitrateKbps, 150000)
-            compare(sheet.rubberX, Theme.sliderDragRubber / 2)
-            sheet.dragEnd()
-            tryCompare(sheet, "rubberX", 0, 1500)
+            compare(sheet.list.rubberX, Theme.sliderDragRubber / 2)
+            sheet.list.dragEnd()
+            tryCompare(sheet.list, "rubberX", 0, 1500)
             var area = null                                 // et un vrai clic, au milieu de la piste
             var walk = function(from) {
                 for (var i = 0; i < from.children.length && !area; i++) {
@@ -1055,30 +1093,30 @@ Item {
             p.bitrateKbps = 150000; home.refreshOptions()
             keyClick(Qt.Key_Right)                          // au bout : la butée
             compare(p.bitrateKbps, 150000)
-            tryVerify(function() { return sheet.rubberX > 0 }, 300)
-            tryCompare(sheet, "rubberX", 0, 1500)
+            tryVerify(function() { return sheet.list.rubberX > 0 }, 300)
+            tryCompare(sheet.list, "rubberX", 0, 1500)
             goTo("fps")                                     // images par seconde, déjà à 30
             keyClick(Qt.Key_Left)
             compare(p.fps, 30)
-            tryVerify(function() { return sheet.rubberX < 0 }, 300)
-            tryCompare(sheet, "rubberX", 0, 1500)
+            tryVerify(function() { return sheet.list.rubberX < 0 }, 300)
+            tryCompare(sheet.list, "rubberX", 0, 1500)
             keyClick(Qt.Key_Escape)
         }
 
-        // Changer une valeur ne fait pas bouger le soulignement des onglets (la liste des
-        // réglages est reconstruite à chaque changement, pas les onglets).
+        // Changer une valeur ne fait pas bouger la pastille des onglets (les lignes sont
+        // reconstruites à chaque changement, pas les onglets).
         function test_9u_tabUnderlineStaysWhenAValueChanges() {
             keyClick(Qt.Key_Hangup)
             keyClick(Qt.Key_PageDown)                       // onglet Console
-            var underline = find(screen.options, "targetLeft")
-            wait(800)                                       // posé sur « Console »
-            var left = underline.leftEdge, moved = 0
+            var pill = screen.options.tabPill
+            wait(800)                                       // posée sur « Console »
+            var left = pill.x, moved = 0
             verify(left > 0)
-            var watch = function() { moved = Math.max(moved, Math.abs(underline.leftEdge - left)) }
-            underline.leftEdgeChanged.connect(watch)
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Left)    // volume : -10 %
+            var watch = function() { moved = Math.max(moved, Math.abs(pill.x - left)) }
+            pill.xChanged.connect(watch)
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Left)    // volume : -1 %
             wait(600)
-            underline.leftEdgeChanged.disconnect(watch)
+            pill.xChanged.disconnect(watch)
             compare(moved, 0)
             keyClick(Qt.Key_Right)
             keyClick(Qt.Key_Escape)
@@ -1098,7 +1136,7 @@ Item {
             compare(shown("streamProfile"), "Équilibré")
             var chosen = Profiles.launchSettings("balanced", home.profileContext())
             compare(row("streamProfile").stats[0].value, chosen.height + "p")
-            compare(row("streamProfile").stats[3].value, "équilibre")
+            compare(row("streamProfile").stats[3].value, "Équilibre")
             verify(row("res").auto && row("fps").auto && row("rate").auto)
             verify(row("rateAuto").hidden)                  // le profil choisit le débit
 
@@ -1111,10 +1149,10 @@ Item {
 
             SystemStatus.latencyMs = 90                     // réseau mauvais
             home.refreshOptions()
-            compare(row("streamProfile").note, "Réseau faible : deux crans plus bas")
+            compare(row("streamProfile").footnote, "Réseau faible : le profil descend automatiquement de deux crans.")
             SystemStatus.latencyMs = 9
             home.refreshOptions()
-            compare(row("streamProfile").note, "")
+            compare(row("streamProfile").footnote, "")
 
             home.applyOption("advanced", 1)
             keyClick(Qt.Key_Hangup)                         // toucher la définition : Manuel
@@ -1168,12 +1206,12 @@ Item {
             var row = function() { return fluxRow("streamProfile") }
             var shown = function() { return row().options[row().index] }
             home.applyOption("advanced", 0)
-            home.applyOption("streamProfile", 3)            // Économie, la dernière case visible
+            home.applyOption("streamProfile", 3)            // Éco, la dernière case visible
             compare(row().hiddenOptions, [4])
             keyClick(Qt.Key_Hangup)
             goTo("streamProfile")
             keyClick(Qt.Key_Right)                          // pas de Manuel au bout : la butée
-            compare(shown(), "Économie")
+            compare(shown(), "Éco")
             home.applyOption("advanced", 1)
             compare(row().hiddenOptions, [])
             keyClick(Qt.Key_Right)
@@ -1218,7 +1256,7 @@ Item {
 
         // Barre haute : haut depuis l'étagère (ou le héros) donne la manette à ses icônes
         // (Wi-Fi, batterie, réglages) ; l'icône choisie ouvre sa fiche, A agit : réglages →
-        // options sur l'onglet Console, Wi-Fi → liste des réseaux ; bas ou B la rendent.
+        // options sur l'onglet Console, Wi-Fi → Réglages › Wi-Fi ; bas ou B la rendent.
         // La barre CocoOS n'a pas d'engrenage : haut depuis le carrousel donne la batterie.
         function test_9y_statusBarIcons() {
             var bar = screen.statusBar
@@ -1233,11 +1271,12 @@ Item {
             keyClick(Qt.Key_Left)
             compare(bar.cardKey, "wifi")
             var scans = WifiSetup.scans
-            keyClick(Qt.Key_Return)                         // la liste des réseaux
+            keyClick(Qt.Key_Return)                         // Réglages › Wi-Fi
             compare(WifiSetup.scans, scans + 1)
             verify(screen.panelOpen)
             compare(bar.cardKey, "")                        // fiches masquées sous un panneau
-            keyClick(Qt.Key_Escape)
+            keyClick(Qt.Key_Escape)                         // B : au menu des réglages…
+            keyClick(Qt.Key_Escape)                         // …puis refermés
             tryVerify(function() { return !screen.panelOpen && bar.activeFocus })
             keyClick(Qt.Key_Escape)                         // B rend la manette à l'étagère
             verify(screen.shelf.activeFocus)

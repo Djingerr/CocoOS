@@ -8,7 +8,10 @@ QtObject {
     property bool charging: false
     property int signalStrength: 4
     property var batteryDetails: ({ minutes: 194, watts: 6.8, status: "Discharging" })
-    property var wifi: ({ ssid: "Maison-5G", strength: 86, secured: true })
+    property var wifi: ({ ssid: "Maison-5G", strength: 86, secured: true, frequency: 5180, bitrate: 866 })
+    property string deviceName: "Console de Coco"
+    property double free: 44023414784       // 41 Go libres
+    function freeStorage() { return free }
     property var powerActions: ["suspend", "reboot", "poweroff"]
     property string lastPower: ""
     // Réseau vers le PC : sondé quand ConsoleHome le demande (`probed`).
@@ -19,6 +22,7 @@ QtObject {
     property int volume: 75
 
     signal changed()
+    signal networkChanged()
     signal resumed()
 
     property bool started: false

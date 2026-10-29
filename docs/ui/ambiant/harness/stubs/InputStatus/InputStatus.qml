@@ -9,6 +9,7 @@ QtObject {
     property string layout: ""
     property int controllerBattery: -1
     property int controllerCount: 0
+    property var controllers: []         // [{ name, family, battery }]
     property string streamExit: ""
     property var streamMenu: null
 

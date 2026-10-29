@@ -14,6 +14,7 @@ import WifiSetup 1.0
 import AmbientColor 1.0
 
 import "idle"
+import "settings"
 import "Format.js" as Format
 import "Library.js" as Library
 import "StreamProfiles.js" as StreamProfiles
@@ -1262,25 +1263,25 @@ FocusScope {
         // Luminosité et volume : des curseurs (comme le débit), en %.
         var percentSlider = function(key, label, value, min) {
             return { key: key, label: label, slider: true, value: value, min: min, max: 100,
-                     stops: percentStops, format: qsTr("%1 %") }
+                     stops: percentStops, format: qsTr("%1 %"), group: "screen", section: qsTr("Écran et son") }
         }
         if (SystemStatus.brightness >= 0)
             consoleRows.push(percentSlider("brightness", qsTr("Luminosité"), SystemStatus.brightness, brightnessMin))
         if (SystemStatus.volume >= 0)
             consoleRows.push(percentSlider("volume", qsTr("Volume"), SystemStatus.volume, 0))
-        consoleRows.push(row("sleep", qsTr("Mise en veille après"),
+        consoleRows.push(row("sleep", qsTr("Veille après"),
                              Math.max(0, sleep.findIndex(function(c) { return c.value === consoleConfig.idleSeconds }))))
-        consoleRows.push(row("buttons", qsTr("Boutons"),
-                             Math.max(0, buttons.findIndex(function(c) { return c.value === consoleConfig.buttonLayout }))))
         consoleRows.push(row("sounds", qsTr("Sons"), consoleConfig.sounds ? 1 : 0, true))
-        if (InputStatus.controllerCount > 0)
-            consoleRows.push(row("rumble", qsTr("Vibrations"),
-                                 Math.max(0, rumble.findIndex(function(c) { return c.value === consoleConfig.haptics }))))
         consoleRows.push(row("motion", qsTr("Réduire les animations"), consoleConfig.reduceMotion ? 1 : 0, true))
         consoleRows.push(row("language", qsTr("Langue"), english ? 1 : 0))
-        if (WifiSetup.available)
-            consoleRows.push({ key: "wifi", label: qsTr("Wi-Fi"), action: true,
-                               value: WifiSetup.currentNetwork !== "" ? WifiSetup.currentNetwork : qsTr("Non connecté") })
+        consoleRows.push({ key: "settings", label: qsTr("Tous les réglages"), action: true })
+
+        // (le reste de l'onglet : une carte « Console »)
+        consoleRows.forEach(function(r) {
+            if (r.group) return
+            r.group = "console"
+            r.section = qsTr("Console")
+        })
 
         optionChoices.profile = [ { label: qsTr("Réglages communs"), value: false },
                                   { label: qsTr("Réglages à part"), value: true } ]
@@ -1289,11 +1290,11 @@ FocusScope {
                                      : []
         // Profil de flux : le sélecteur, et sous lui ce que le profil demandera.
         var profileNames = { competitive: qsTr("Compétitif"), balanced: qsTr("Équilibré"), quality: qsTr("Qualité"),
-                             saver: qsTr("Économie"), manual: qsTr("Manuel") }
+                             saver: qsTr("Éco"), manual: qsTr("Manuel") }
         var gigabytes = StreamProfiles.gigabytesPerHour(e.bitrateKbps)
         var gigabytesText = gigabytes.toLocaleString(Qt.locale(english ? "en_US" : "fr_FR"), "f", 1)
-        var priority = { competitive: qsTr("latence"), balanced: qsTr("équilibre"), quality: qsTr("image"),
-                         saver: qsTr("≈ %1 Go/h").arg(gigabytesText), manual: qsTr("vos réglages") }
+        var priority = { competitive: qsTr("Latence"), balanced: qsTr("Équilibre"), quality: qsTr("Image"),
+                         saver: qsTr("≈ %1 Go/h").arg(gigabytesText), manual: qsTr("Vos réglages") }
         // Sans les réglages avancés : une phrase simple à la place des chiffres.
         var description = {
             competitive: qsTr("Le plus réactif : toutes les images de l'écran, pour les jeux rapides."),
@@ -1304,30 +1305,35 @@ FocusScope {
         var drop = chosen && s.profile !== "saver" ? StreamProfiles.networkDrop(context.quality) : 0
         var streamProfileRow = {
             key: "streamProfile", label: qsTr("Profil"), segments: true,
+            group: "profile", section: qsTr("Profil de stream"),
             options: StreamProfiles.KEYS.map(function(k) { return profileNames[k] }),
             index: Math.max(0, StreamProfiles.KEYS.indexOf(s.profile)),
             // Manuel n'a de sens qu'avec les réglages avancés (ceux d'un jeu d'avant les profils
             // le gardent tant qu'on n'en choisit pas un autre).
             hiddenOptions: consoleConfig.advancedSettings || s.profile === "manual"
                            ? [] : [StreamProfiles.KEYS.indexOf("manual")],
-            note: drop === 1 ? qsTr("Réseau moyen : un cran plus bas")
-                : drop === 2 ? qsTr("Réseau faible : deux crans plus bas") : "",
+            footnote: drop === 1 ? qsTr("Réseau moyen : le profil descend automatiquement d'un cran.")
+                    : drop === 2 ? qsTr("Réseau faible : le profil descend automatiquement de deux crans.") : "",
             description: description[s.profile] || "",
-            stats: [ { label: qsTr("Définition"), value: e.height + "p" },
+            stats: [ { label: qsTr("Résolution"), value: e.height + "p" },
                      { label: qsTr("Images/s"), value: "" + e.fps },
                      { label: qsTr("Débit"), value: qsTr("%1 Mb/s").arg(mbps) },
                      { label: qsTr("Priorité"), value: priority[s.profile] || "" } ] }
         // Les lignes restent toutes là (aucune ne prend la place d'une autre) : `advanced`, elles
         // n'apparaissent qu'avec les réglages avancés ; `hidden`, elles restent repliées.
         // `auto` : grisées, choisies par le profil (les toucher passe en Manuel).
-        var advanced = function(r) { r.advanced = true; return r }
+        var advanced = function(r) { r.advanced = true; r.group = "advanced"; return r }
         var byProfile = function(r) { r.auto = chosen !== null; return advanced(r) }
         var rateAuto = advanced(row("rateAuto", qsTr("Débit automatique"), optionAutoBitrate ? 1 : 0, true))
         rateAuto.hidden = chosen !== null
+        // Oublier ce PC (son appairage Moonlight et Companion) : A maintenu.
+        var forgetRow = activeHostName !== ""
+            ? [ { key: "forget", label: qsTr("Oublier ce PC"), hold: true, doneLabel: qsTr("PC oublié"), group: "pc" } ] : []
         optionTabs = [
-            { label: qsTr("Flux"), rows: [
+            { label: qsTr("Stream"), rows: [
                 streamProfileRow,
                 { key: "advanced", label: qsTr("Réglages avancés"), toggle: true, revealsAdvanced: true,
+                  group: "advanced", section: qsTr("Avancé"),
                   index: consoleConfig.advancedSettings ? 1 : 0, options: optionChoices.advanced.map(function(c) { return c.label }) }
             ].concat(profileRow.map(advanced), [
                 byProfile(row("res", qsTr("Résolution"), res.findIndex(same(e.width, e.height)))),
@@ -1339,7 +1345,7 @@ FocusScope {
                 // (un ancien réglage « HEVC HDR » est montré comme HEVC)
                 advanced(row("codec", qsTr("Codec"), codecIndex >= 0 ? codecIndex : 2)),
                 advanced(row("hdr", qsTr("HDR"), s.enableHdr ? 1 : 0, true))
-            ]) },
+            ], forgetRow) },
             { label: qsTr("Console"), rows: consoleRows }
         ]
     }
@@ -1592,7 +1598,11 @@ FocusScope {
         notificationsAllowed: !sleepScreen.asleep && !streamCurtain.covering
 
         optionTabs: home.optionTabs
-        optionsHost: home.activeHostName
+        // « PC-Salon · connecté · 4 ms » sous le titre de la feuille d'options.
+        optionsSubtitle: home.activeHostName === "" ? ""
+            : [home.activeHostName, connected ? qsTr("connecté") : qsTr("hors ligne")]
+                .concat(connected && SystemStatus.latencyMs >= 0 ? [qsTr("%1 ms").arg(SystemStatus.latencyMs)] : [])
+                .join(" · ")
 
         // L'accueil entre quand l'animation de démarrage en est à sa sortie ; le logo de
         // la barre haute n'apparaît qu'une fois celui du démarrage arrivé à sa place.
@@ -1602,7 +1612,7 @@ FocusScope {
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
                 || welcomeScreen.shown || networkScreen.shown
         detailOpen: gamePage.shown
-        panelOpen: confirmDialog.opened || homeMenu.opened || wifiSheet.opened || downloadMenu.opened
+        panelOpen: confirmDialog.opened || homeMenu.opened || settingsScreen.opened || downloadMenu.opened
 
         onLaunchRequested: function(index) {
             var tile = shelfModel.get(index)
@@ -1623,17 +1633,14 @@ FocusScope {
         onQuitRequested: home.quitRunningGame()
         onOptionChanged: function(key, index) { home.applyOption(key, index) }
         onOptionAction: function(key) {
-            if (key === "wifi") {
+            if (key === "settings") {
                 options.close()
-                home.openWifi()
+                home.openSettings("")
             }
         }
-        // Oublier ce PC : son appairage Moonlight ET celui du Companion.
         onForgetRequested: {
             options.close()
-            CompanionClient.forgetHost()
-            if (home.activeComputerIndex >= 0)
-                home.computerModel.deleteComputer(home.activeComputerIndex)
+            home.forgetHost()
         }
     }
 
@@ -1716,19 +1723,158 @@ FocusScope {
             setupDone = true
     }
 
-    // --- Wi-Fi : la liste des réseaux (un panneau d'options), puis le mot de passe ---
-    property string wifiTarget: ""      // réseau en cours de connexion
+    // Oublier ce PC : son appairage Moonlight ET celui du Companion.
+    function forgetHost() {
+        CompanionClient.forgetHost()
+        if (home.activeComputerIndex >= 0)
+            home.computerModel.deleteComputer(home.activeComputerIndex)
+    }
 
-    readonly property var wifiRows: WifiSetup.networks.map(function(n) {
-        // Le réseau connecté : coché, et le choisir à nouveau est refusé (avec pourquoi).
-        return { key: n.ssid, label: n.ssid, bars: n.bars, action: true, checked: n.active, locked: n.active,
-                 hint: n.active ? qsTr("La console est déjà connectée à ce réseau.") : "",
-                 value: n.active ? qsTr("Connecté") : n.known ? qsTr("Enregistré") : n.secured ? "" : qsTr("Ouvert") }
-    })
+    // --- Réglages plein écran (« Tous les réglages » des options) ---
+    property var settingsPages: []
+    function openSettings(key) {
+        refreshSettings()
+        settingsScreen.open(key)
+    }
+    // Les rubriques et leurs lignes, lues dans la conf console, le système et les manettes.
+    // Une rubrique sans réglage qui existe n'apparaît pas (Réseau mobile, Bibliothèque,
+    // Notifications, Confidentialité : cf. next_steps.md).
+    function refreshSettings() {
+        if (!optionChoices.sleep) refreshOptions()
+        var c = optionChoices, pages = []
+        var indexOf = function(list, value) { return Math.max(0, list.findIndex(function(o) { return o.value === value })) }
+        var labels = function(list) { return list.map(function(o) { return o.label }) }
+
+        if (WifiSetup.available) {
+            var rows = [], w = SystemStatus.wifi || {}
+            if (WifiSetup.currentNetwork !== "") {
+                var band = w.frequency > 5900 ? qsTr("6 GHz") : w.frequency > 4900 ? qsTr("5 GHz")
+                         : w.frequency > 0 ? qsTr("2,4 GHz") : ""
+                var quality = w.strength >= 70 ? qsTr("signal excellent") : w.strength >= 40 ? qsTr("signal bon")
+                            : w.strength !== undefined ? qsTr("signal faible") : ""
+                rows.push({ key: "wifi:current", info: true, label: WifiSetup.currentNetwork, group: "current",
+                            tile: { color: Theme.setTileWifi, icon: "wifi" },
+                            sub: [qsTr("Connecté"), band, quality].filter(Boolean).join(" · "),
+                            stats: [ w.strength !== undefined ? { label: qsTr("Signal"), value: qsTr("%1 %").arg(w.strength) } : null,
+                                     w.bitrate > 0 ? { label: qsTr("Lien"), value: qsTr("%1 Mb/s").arg(w.bitrate) } : null,
+                                     SystemStatus.latencyMs >= 0 ? { label: qsTr("Vers le PC"), value: qsTr("%1 ms").arg(SystemStatus.latencyMs) } : null
+                                   ].filter(Boolean) })
+            }
+            WifiSetup.networks.filter(function(n) { return !n.active }).forEach(function(n) {
+                rows.push({ key: "wifi:" + n.ssid, label: n.ssid, action: true, chevron: false, lock: n.secured,
+                            bars: n.bars, group: "others", section: qsTr("Autres réseaux"), sectionBusy: WifiSetup.scanning })
+            })
+            pages.push({ key: "wifi", label: qsTr("Wi-Fi"), tile: { color: Theme.setTileWifi, icon: "wifi" },
+                         value: WifiSetup.currentNetwork, group: "network", rows: rows })
+        }
+
+        var pads = InputStatus.controllers.map(function(pad, i) {
+            return { key: "pad:" + i, label: pad.name || qsTr("Manette"), sub: qsTr("Joueur %1").arg(i + 1),
+                     tile: { color: Theme.listTileDark, icon: "gamepad" }, group: "pads", section: qsTr("Connectées"),
+                     battery: pad.battery >= 0 ? Math.round(pad.battery / 3 * 100) : undefined }
+        })
+        pages.push({ key: "pads", label: qsTr("Bluetooth et manettes"), tile: { color: Theme.setTilePads, icon: "gamepad" },
+                     value: pads.length > 0 ? "" + pads.length : "", group: "network",
+                     rows: pads.concat([
+                         { key: "buttons", label: qsTr("Glyphes à l'écran"), choice: true, options: labels(c.buttons),
+                           index: indexOf(c.buttons, consoleConfig.buttonLayout), group: "controls", section: qsTr("Commandes") },
+                         { key: "rumble", label: qsTr("Vibrations"), choice: true, options: labels(c.rumble),
+                           index: indexOf(c.rumble, consoleConfig.haptics), group: "controls" } ]) })
+
+        if (activeHostName !== "")
+            pages.push({ key: "pc", label: qsTr("PC et streaming"), tile: { color: Theme.accent, icon: "monitor" },
+                         value: activeHostName, group: "pc",
+                         rows: [ { key: "pc:host", label: activeHostName, group: "pc",
+                                   sub: activeHostOnline ? [qsTr("Connecté")].concat(SystemStatus.latencyMs >= 0
+                                                          ? [qsTr("%1 ms").arg(SystemStatus.latencyMs)] : []).join(" · ")
+                                                       : qsTr("Hors ligne"),
+                                   tile: { color: Theme.accent, icon: "monitor" } },
+                                 { key: "forget", label: qsTr("Oublier ce PC"), hold: true, doneLabel: qsTr("PC oublié"), group: "pc" } ] })
+
+        var screenRows = []
+        if (SystemStatus.brightness >= 0)
+            screenRows.push({ key: "brightness", label: qsTr("Luminosité"), slider: true, icons: ["dot", "sun"],
+                              value: SystemStatus.brightness, min: brightnessMin, max: 100, stops: percentStops,
+                              format: qsTr("%1 %"), group: "screen", section: qsTr("Écran") })
+        if (SystemStatus.volume >= 0)
+            screenRows.push({ key: "volume", label: qsTr("Volume"), slider: true, icons: ["speaker-low", "speaker"],
+                              value: SystemStatus.volume, min: 0, max: 100, stops: percentStops,
+                              format: qsTr("%1 %"), group: "sound", section: qsTr("Son") })
+        screenRows.push({ key: "sounds", label: qsTr("Sons de l'interface"), toggle: true, options: labels(c.sounds),
+                          index: consoleConfig.sounds ? 1 : 0, group: "sound", section: qsTr("Son"),
+                          footnote: qsTr("Les sons de l'interface ne s'entendent jamais par-dessus le jeu, sauf le volume, les captures et les alertes.") })
+        pages.push({ key: "screen", label: qsTr("Écran et son"), tile: { color: Theme.setTileScreen, icon: "sun" },
+                     group: "device", rows: screenRows })
+
+        if (SystemStatus.batteryPercent >= 0) {
+            var d = SystemStatus.batteryDetails || {}, charging = SystemStatus.charging
+            pages.push({ key: "battery", label: qsTr("Batterie"), tile: { color: Theme.setTileBattery, icon: "battery" },
+                         value: qsTr("%1 %").arg(SystemStatus.batteryPercent), group: "device",
+                         rows: [ { key: "battery:state", label: qsTr("État"), group: "battery",
+                                   value: charging ? qsTr("En charge") : d.status === "Full" ? qsTr("Chargée")
+                                        : d.status === "Not charging" ? qsTr("Branchée, sans charger") : qsTr("Sur batterie") },
+                                 { key: "battery:time", label: charging ? qsTr("Pleine dans") : qsTr("Autonomie restante"),
+                                   value: Format.duration(d.minutes), group: "battery", hidden: !(d.minutes >= 0) },
+                                 { key: "battery:power", label: charging ? qsTr("Puissance de charge") : qsTr("Consommation"),
+                                   value: d.watts > 0 ? qsTr("%1 W").arg(Format.decimal(d.watts)) : "",
+                                   group: "battery", hidden: !(d.watts > 0) } ] })
+        }
+
+        var sleepIndex = indexOf(c.sleep, consoleConfig.idleSeconds)
+        pages.push({ key: "sleep", label: qsTr("Mise en veille"), tile: { color: Theme.setTileSleep, icon: "moon" },
+                     value: c.sleep[sleepIndex].label, group: "device",
+                     rows: [ { key: "sleep", label: qsTr("Veille après"), options: labels(c.sleep), index: sleepIndex, group: "sleep" } ] })
+
+        pages.push({ key: "general", label: qsTr("Général"), tile: { color: Theme.setTileGeneral, icon: "general" },
+                     group: "system",
+                     rows: [ { key: "about:name", label: qsTr("Nom"), value: SystemStatus.deviceName, group: "about",
+                               section: qsTr("À propos") },
+                             { key: "about:version", label: qsTr("Version"), group: "about",
+                               value: qsTr("CocoOS · moonlight-qt %1").arg(Qt.application.version) } ] })
+        pages.push({ key: "accessibility", label: qsTr("Accessibilité"), tile: { color: Theme.setTileScreen, icon: "accessibility" },
+                     group: "system",
+                     rows: [ { key: "motion", label: qsTr("Réduire les animations"), toggle: true, options: labels(c.motion),
+                               index: consoleConfig.reduceMotion ? 1 : 0, group: "motion" } ] })
+        settingsPages = pages
+    }
+    // Les réglages suivent ce qui change dessous tant qu'ils sont ouverts.
+    Connections {
+        target: SystemStatus
+        enabled: settingsScreen.opened
+        function onChanged() { home.refreshSettings() }
+        function onNetworkChanged() { home.refreshSettings() }
+    }
+    Connections {
+        target: InputStatus
+        enabled: settingsScreen.opened
+        function onControllersChanged() { home.refreshSettings() }
+    }
+    Connections {
+        target: WifiSetup
+        enabled: settingsScreen.opened
+        function onNetworksChanged() { home.refreshSettings() }
+        function onStateChanged() { home.refreshSettings() }
+    }
+    function applySetting(key, value) {
+        if (key === "forget") {
+            settingsScreen.close()
+            forgetHost()
+            return
+        }
+        applyOption(key, value)
+        refreshSettings()
+    }
+    function settingAction(key) {
+        if (key.indexOf("wifi:") === 0) chooseNetwork(key.slice(5))
+    }
+
+    // --- Wi-Fi : la page Wi-Fi des réglages, puis le mot de passe ---
+    property string wifiTarget: ""      // réseau en cours de connexion
 
     function openWifi() {
         WifiSetup.scan()
-        wifiSheet.open()
+        openSettings("wifi")
+        settingsScreen.focusContent(true)
     }
 
     function chooseNetwork(ssid) {
@@ -1737,15 +1883,14 @@ FocusScope {
         wifiTarget = ssid
         if (network.secured && !network.known) {
             keyboard.prompt = qsTr("Mot de passe de %1").arg(ssid)
-            keyboard.open("")
-            wifiSheet.close()           // (B sur le clavier vide y ramène)
+            keyboard.open("")           // (par-dessus les réglages : B sur le clavier vide y ramène)
         } else {
             connectWifi("")
         }
     }
 
     function connectWifi(password) {
-        wifiSheet.close()
+        settingsScreen.close()
         homeScreen.toast(qsTr("Connexion à %1…").arg(wifiTarget))
         WifiSetup.connectTo(wifiTarget, password)
     }
@@ -1787,26 +1932,38 @@ FocusScope {
         onClosed: homeScreen.forceActiveFocus()
     }
 
-    // Panneau des réseaux : sur le canevas, comme le panneau d'options.
+    // Réglages plein écran : sur le canevas, comme le panneau d'options.
     Item {
         width: home.width / Theme.scale
         height: Theme.canvasHeight
         scale: Theme.scale
         transformOrigin: Item.TopLeft
 
-        OptionsSheet {
-            id: wifiSheet
+        SettingsScreen {
+            id: settingsScreen
             anchors.fill: parent
-            title: qsTr("Wi-Fi")
-            subtitle: WifiSetup.currentNetwork !== "" ? qsTr("Connecté à %1").arg(WifiSetup.currentNetwork)
-                    : WifiSetup.scanning ? qsTr("Recherche des réseaux…") : qsTr("Non connecté")
-            connected: WifiSetup.online
-            tabs: [ { label: qsTr("Wi-Fi"), rows: home.wifiRows } ]
-            onActionRequested: function(key) { home.chooseNetwork(key) }
+            pages: home.settingsPages
+            deviceName: SystemStatus.deviceName
+            deviceInfo: {
+                var free = opened ? SystemStatus.freeStorage() : -1
+                return ["CocoOS"].concat(SystemStatus.batteryPercent >= 0 ? [qsTr("%1 %").arg(SystemStatus.batteryPercent)] : [],
+                                         free >= 0 ? [qsTr("%1 libres").arg(home.humanSize(free))] : []).join(" · ")
+            }
+            timeText: homeScreen.timeText
+            signalStrength: SystemStatus.signalStrength
+            batteryPercent: SystemStatus.batteryPercent
+            onChanged: function(key, value) { home.applySetting(key, value) }
+            onActionRequested: function(key) { home.settingAction(key) }
+            onHoldCompleted: function(key) { home.applySetting(key, 0) }
             onClosed: if (!keyboard.opened) homeScreen.forceActiveFocus()
         }
-        // Tant que le panneau est ouvert, la liste se met à jour.
-        Timer { interval: Theme.wifiRescan; repeat: true; running: wifiSheet.opened; onTriggered: WifiSetup.scan() }
+        // Tant que la page Wi-Fi est ouverte, la liste se met à jour.
+        Timer {
+            interval: Theme.wifiRescan; repeat: true
+            running: settingsScreen.opened && settingsScreen.pages[settingsScreen.page] !== undefined
+                     && settingsScreen.pages[settingsScreen.page].key === "wifi"
+            onTriggered: WifiSetup.scan()
+        }
     }
 
     OnScreenKeyboard {
@@ -1818,7 +1975,7 @@ FocusScope {
             home.connectWifi(text)
             homeScreen.forceActiveFocus()   // le clavier fermé ne doit plus rien avaler
         }
-        onCancelled: home.openWifi()
+        onCancelled: settingsScreen.opened ? settingsScreen.forceActiveFocus() : home.openWifi()
     }
 
     // --- Menu Home : reprendre ou quitter le jeu en cours, veille, redémarrage, extinction ---

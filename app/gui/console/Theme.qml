@@ -25,6 +25,8 @@ QtObject {
     // carte qui ne tiendrait pas ses 60 images par seconde.
     property bool reducedMotion: false
     readonly property var reducedSpring: ({ curve: curveOut, duration: 200 })
+    // Un mouvement CocoOS { curve, duration } ; avec « Réduire les animations » : reducedSpring.
+    function motion(duration, curve) { return reducedMotion ? reducedSpring : { curve: curve, duration: duration } }
 
     // --- Couleurs ---
     readonly property color accent: "#F2802A"
@@ -138,7 +140,6 @@ QtObject {
     readonly property real shelfHoverScale: 1.04
     readonly property real shelfHoverOpacity: 0.8
     readonly property color hoverFill: Qt.rgba(1, 1, 1, 0.08)
-    readonly property int chevronTouch: 8            // marge de clic autour d'un chevron ‹ ›
     // Appui maintenu (HoldFill : actions destructives) : A tenu holdDuration ms remplit la
     // ligne (affiché : progression^holdCurve) ; lâché avant, elle se vide en holdDrain ms.
     // Pleine : un rebond jusqu'à holdBounce (springBouncy.duration, curveOut), puis l'action.
@@ -738,6 +739,176 @@ QtObject {
     readonly property color keyboardKeyFill: Qt.rgba(1, 1, 1, 0.07)
     readonly property int keyboardKeyTextSize: 18    // Sora 500
 
+    // --- Listes groupées CocoOS (SettingsList) : cartes de lignes sous un intitulé ---
+    // Trois gabarits : la feuille d'options (OptionsFeuille), le contenu des réglages
+    // (Reglages*) et leur menu à gauche. Hauteurs : ligne simple, curseur à libellé
+    // (`slider`), curseur à icônes (`icons`), ligne à sous-titre, carte d'information.
+    readonly property var listSheet: ({
+        row: 48, slider: 76, iconSlider: 56, twoLine: 64, info: 80, padH: 16, radius: 18,
+        fill: Qt.rgba(1, 1, 1, 0.06), stroke: "transparent", label: 15, value: 15,
+        valueInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.55), sepInset: 16, sep: hairline,
+        focusFill: Qt.rgba(1, 1, 1, 0.12), focusWeight: Font.DemiBold, valueFocusInk: true,
+        sectionInset: 16, cardGap: 22, tile: 30, tileRadius: 8, gap: 12 })
+    readonly property var listSettings: ({
+        row: 52, slider: 76, iconSlider: 56, twoLine: 64, info: 80, padH: 18, radius: 20,
+        fill: glassGroup, stroke: Qt.rgba(1, 1, 1, 0.06), label: 16, value: 14,
+        valueInk: ink2, sepInset: 18, sep: hairline,
+        focusFill: focusRow, focusWeight: Font.DemiBold, valueFocusInk: false,
+        sectionInset: 18, cardGap: 22, tile: 30, tileRadius: 8, gap: 12 })
+    readonly property var listMenu: ({
+        row: 44, slider: 76, iconSlider: 56, twoLine: 64, info: 80, padH: 14, radius: 16,
+        fill: Qt.rgba(1, 1, 1, 0.06), stroke: "transparent", label: 15, value: 13,
+        valueInk: ink3, sepInset: 56, sep: Qt.rgba(1, 1, 1, 0.07),
+        focusFill: Qt.rgba(1, 1, 1, 0.16), focusWeight: Font.DemiBold, valueFocusInk: false,
+        sectionInset: 14, cardGap: 14, tile: 30, tileRadius: 8, gap: 12, chevron: false })
+    readonly property int listSectionSize: 12        // intitulé : Sora 600, capitales, 0,06 em, ink3
+    readonly property real listSectionSpacing: 0.72
+    readonly property int listSectionHeight: 15
+    readonly property int listSectionBelow: 8        // entre l'intitulé et sa carte
+    readonly property int listNoteTop: 8             // note sous une carte : 12 px, interligne 1,4, ink3
+    readonly property int listNoteSize: 12
+    readonly property real listNoteLineHeight: 1.4
+    readonly property int listFocusFade: 220         // fond de la ligne en focus, couleur de la valeur
+    readonly property int listSubSize: 12            // sous-titre d'une ligne à deux étages (ink 0,55)
+    readonly property int listSubGap: 3
+    readonly property int listChevronGap: 8          // valeur ›
+    readonly property size listChevron: Qt.size(8, 13)
+    readonly property color listTileDark: "#3A3A3C"  // tuile d'une manette
+    readonly property int listIconGap: 10            // cadenas, signal d'un réseau
+    readonly property color listSubInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.55)
+    readonly property size listValueBox: Qt.size(240, 20)
+    readonly property int listSliderLabelTop: 14     // curseur à libellé : libellé et valeur en haut
+    readonly property int listIconSlot: 20           // curseur à icônes : la place de chaque icône
+    readonly property int listSpinner: 13            // roue d'une recherche, à côté d'un intitulé
+    readonly property real listSpinnerStroke: 1.8
+    readonly property color listSpinnerTrack: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.2)
+    readonly property int listSpinTurn: 900
+    readonly property color knob: "#FFFFFF"          // pouce d'un interrupteur, poignée d'un curseur
+    // Interrupteur CocoOS (51 × 31, pouce 27) : le pouce glisse au ressort (.3, 1.35, .4, 1).
+    readonly property size toggleSize: Qt.size(51, 31)
+    readonly property int toggleThumb: 27
+    readonly property int toggleInset: 2
+    readonly property var toggleMove: motion(420, [0.3, 1.35, 0.4, 1, 1, 1])
+    readonly property int toggleFill: 250
+    // Curseur de la feuille : piste 4 px orange, poignée blanche de 20 qui grossit (×1,2) en focus.
+    readonly property int listTrackTop: 14           // sous le libellé
+    readonly property int listTrack: 4
+    readonly property color listRail: Qt.rgba(1, 1, 1, 0.14)
+    readonly property int listKnob: 20
+    readonly property real listKnobFocus: 1.2
+    readonly property var listKnobGrow: motion(260, [0.3, 1.4, 0.4, 1, 1, 1])
+    // Curseur à icônes des réglages : piste 6 px blanche, poignée de 24.
+    readonly property int listIconTrack: 6
+    readonly property int listIconKnob: 24
+    readonly property int listIconSliderGap: 14
+    // Contrôle segmenté : la piste grise, la case choisie blanche à texte noir.
+    readonly property color segmentTrackProfile: Qt.rgba(118 / 255, 118 / 255, 128 / 255, 0.2)
+    readonly property int segmentInlineCell: 92      // une case d'un choix en ligne (Glyphes, Vibrations)
+    readonly property int segmentInlineHeight: 30
+    readonly property int segmentInlineSize: 13
+    readonly property color segmentInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.72)
+    readonly property var segmentMove: motion(320, curveMain)
+    // Carte du profil de flux : sélecteur à 5 cases, puis 4 chiffres.
+    readonly property int profilePadV: 14
+    readonly property int profileSegHeight: 30
+    readonly property int profileSegCellRadius: 7
+    readonly property int profileStatsTop: 14
+    readonly property int profileStatsGap: 12
+    readonly property int profileStatLabel: 11       // ink 0,55
+    readonly property int profileStatValue: 15       // Sora 600
+    readonly property int profileHeight: 112
+    // Carte d'information (réseau connecté) : tuile de 44, chiffres à droite.
+    readonly property int infoTile: 44
+    readonly property int infoTileRadius: 12
+    readonly property int infoTitleSize: 17
+    readonly property int infoSubSize: 13
+    readonly property int infoStatsGap: 22
+    readonly property int infoStatLabel: 11
+    readonly property int infoStatValue: 15
+
+    // --- Feuille d'options CocoOS (OptionsFeuille, MotionOptions) ---
+    readonly property int optWidth: 492
+    readonly property int optMargin: 16              // collée à droite, en haut et en bas
+    readonly property int optPad: 28
+    readonly property int optTitleSize: 30           // Sora 600, −0,03 em, interligne 1,2
+    readonly property int optHostTop: 6              // point + « PC-Salon · connecté · 4 ms » (13 px, ink 0,58)
+    readonly property int optHostSize: 13
+    readonly property int optTabsTop: 20
+    readonly property int optTabsHeight: 40          // piste : 3 + 34 + 3
+    readonly property int optTabsRadius: 12
+    readonly property int optTabRadius: 9
+    readonly property int optTabSize: 14
+    readonly property color optTabInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.6)
+    readonly property var optTabMove: motion(480, [0.3, 1.2, 0.4, 1, 1, 1])
+    readonly property int optTabInkFade: 240
+    readonly property int optGlyphFlash: 400         // LB / RB s'allument à l'appui
+    readonly property int optContentTop: 24          // premier intitulé, sous les onglets
+    readonly property int optPaneShift: 24           // l'onglet qui part glisse de 24 px…
+    readonly property int optPaneFade: 260           // …en s'effaçant (260 ms) ; mouvement 420 ms curveMain
+    readonly property int optPaneMove: 420
+    readonly property int optLegendGap: 22
+    readonly property int optListBottom: 12          // entre la liste et la légende
+    readonly property color optFadeColor: "#161618"  // le verre sur l'accueil assombri (fondus de la liste)
+    readonly property real optClosedOpacity: 0.6     // fermée, elle s'efface jusque-là en glissant
+    readonly property int optFadeIn: 200
+    readonly property int optFadeOut: 300
+    readonly property int optFadeOutDelay: 60
+    readonly property int optGlyphFade: 150
+    readonly property real optBlurScale: 0.25        // flou du verre (blur 40) : copie au quart, floutée…
+    readonly property int optBlurMax: 40             // …de 40 px
+    readonly property real optBlurSaturation: 0.6    // saturate(1.6)
+    readonly property int legendSizeCoco: 13         // légende CocoOS : Sora 500, ink2
+    readonly property int legendGlyphGapCoco: 8
+    readonly property int optSlide: 540              // fermée, elle attend 540 px à droite
+    readonly property var optOpen: motion(620, [0.3, 1.08, 0.4, 1, 1, 1])
+    readonly property var optClose: motion(360, [0.4, 0, 1, 1, 1, 1])
+    // L'accueil recule derrière la feuille : ×0,94 autour de (30 %, 50 %), assombri de moitié,
+    // coins arrondis.
+    readonly property real recedeScale: 0.94
+    readonly property point recedeOrigin: Qt.point(0.3, 0.5)
+    readonly property real recedeDim: 0.5
+    readonly property int recedeRadius: 28
+    readonly property int recedeFrame: 48            // cadre noir qui arrondit ses coins (au-delà de l'écran)
+    readonly property int recedeIn: 600              // curveMain (assombri en 500)
+    readonly property int recedeOut: 420             // curveMain (380)
+
+    // --- Réglages plein écran (Reglages*) ---
+    readonly property int setMenuX: 40
+    readonly property int setTop: 34
+    readonly property int setMenuWidth: 380
+    readonly property int setTitleSize: 32           // « Réglages » : Sora 600, −0,03 em, interligne 40
+    readonly property int setMenuTop: 18             // la carte de la console, sous le titre
+    readonly property int setCardHeight: 72
+    readonly property int setCardIcon: 44
+    readonly property int setDividerX: 444
+    readonly property int setContentX: 476
+    readonly property int setContentTop: 96
+    readonly property int setContentRight: 56
+    readonly property int setPageTitleSize: 26       // Sora 600, −0,025 em
+    readonly property int setLegendBottom: 26
+    readonly property int setLegendGap: 24
+    readonly property color setGlow: Qt.rgba(110 / 255, 155 / 255, 1, 0.08)   // lueur en haut à gauche
+    readonly property rect setGlowRect: Qt.rect(-200, -260, 900, 700)
+    readonly property int setLineHeight: 40          // titres « Réglages » et de la page
+    readonly property color setCardIconFill: "#1C1C1E"
+    readonly property int setDividerInset: 24        // filet vertical entre le menu et la page
+    readonly property color setDivider: Qt.rgba(1, 1, 1, 0.06)
+    readonly property int setStatusTop: 30           // l'heure, le Wi-Fi, la batterie
+    readonly property int setStatusHeight: 32
+    readonly property int setStatusGap: 18
+    readonly property int setContentHeight: 640      // la page défile au-delà, fondue en bas
+    readonly property int setFade: 260               // ouverture / fermeture, en fondu
+    readonly property int setPageFade: 200           // une autre rubrique : sa page en fondu
+    readonly property int confWriteDelay: 700        // Settings (QtCore) écrit la conf un peu après (500 ms)
+    // Tuiles du menu (couleurs des maquettes).
+    readonly property color setTileWifi: "#2F7CF6"
+    readonly property color setTilePads: "#5E5CE6"
+    readonly property color setTileScreen: "#0A84FF"
+    readonly property color setTileBattery: "#30D158"
+    readonly property color setTileSleep: "#5856D6"
+    readonly property color setTileGeneral: "#8E8E93"
+    readonly property color setBadge: "#FF453A"
+
     // --- Panneau d'options (OptionsSheet), bouton Y ---
     readonly property int sheetWidth: 472
     readonly property color sheetFill: Qt.rgba(18 / 255, 18 / 255, 20 / 255, 0.95)
@@ -750,22 +921,12 @@ QtObject {
     readonly property int sheetPadBottom: 34
     readonly property int sheetTitleSize: 26         // Sora 600
     readonly property real sheetTitleSpacing: -0.26  // -0.01 em
-    readonly property int sheetHostTop: 8            // point d'état + nom de l'hôte, sous le titre
     readonly property int sheetHostGap: 8
-    readonly property int sheetHostSize: 14
-    readonly property int sheetTabsTop: 24           // onglets, sous le nom de l'hôte
-    readonly property int sheetTabGap: 18
-    readonly property int sheetTabHeight: 28         // libellé + soulignement orange
-    readonly property int sheetTabSize: 16           // Sora 600 (actif) / 500
     // Un seul soulignement passe d'onglet en onglet (ElasticIndicator) : le bord avant au
     // ressort springSnappy, le bord arrière elasticTrail ms (curveOut) après elasticTrailDelay.
     readonly property int elasticTrail: 420
     readonly property int elasticTrailDelay: 40
-    readonly property int tabInkIn: 220              // libellé qui devient actif (curveOut)…
-    readonly property int tabInkDelay: 90            // …après ce délai ; il s'éteint en sheetFocusFade
-    readonly property int sheetRowsTop: 34
     readonly property int sheetRowHeight: 60
-    readonly property int sheetRowGap: 16            // entre le libellé et la valeur
     // Liste plus haute que le panneau : elle défile (sheetFocusMove, easeOut) pour garder la
     // ligne en focus visible, à sheetScrollMargin près, et s'arrête sheetListBottom au-dessus
     // de la légende ; la zone déborde de sheetViewportBleed (secousse, rebond).
@@ -793,11 +954,8 @@ QtObject {
     readonly property int sheetFocusMove: 220        // easeOut
     readonly property int sheetFocusFade: 160        // couleur du libellé, chevrons
     readonly property int sheetValueSize: 14
-    readonly property size sheetValueBox: Qt.size(136, 20)   // « Natif 2560×1600 » : 119 px
-    readonly property int sheetValueGap: 6           // entre la valeur et ses chevrons
     readonly property int sheetValueSwap: 260        // l'ancienne valeur sort, la nouvelle entre…
     readonly property int sheetValueTravel: 36       // …en glissant de cette distance
-    readonly property int sheetChevronSize: 18
     readonly property int signalBarWidth: 3          // signal d'un réseau Wi-Fi : 4 barres
     readonly property int signalBarStep: 3           // hauteur ajoutée par barre
     readonly property int signalBarGap: 2
@@ -811,27 +969,15 @@ QtObject {
     readonly property int sheetHintSize: 13
     readonly property color sheetHintFill: Qt.rgba(1, 1, 1, 0.06)
     readonly property int sheetHintHold: 3000
-    // Interrupteur d'une ligne à deux états (HDR, Sons) : piste à contour fin, pouce qui
-    // glisse avec springBouncy et s'étire pendant l'appui, orange qui se répand depuis la
-    // place du pouce éteint (prototype « Interrupteurs »).
-    readonly property size switchSize: Qt.size(48, 28)
-    readonly property real switchStroke: 1.5
-    readonly property color switchStrokeColor: Qt.rgba(1, 1, 1, 0.18)
-    readonly property int switchInset: 3             // entre la piste et le pouce
-    readonly property int switchThumb: 22
-    readonly property color switchThumbFocus: "#B6B2AC"   // pouce éteint, ligne en focus : plus clair
+    // Interrupteur (SettingsList) : le pouce s'étire pendant l'appui ; poussé vers l'état déjà
+    // là, il bute.
     readonly property int switchThumbStretch: 28     // pendant l'appui…
     readonly property int switchStretch: 150         // …en tant de ms, curveOut
-    readonly property int switchFillRadius: 62       // disque orange centré sur le pouce éteint…
-    readonly property int switchFill: 320            // …qui grandit en tant de ms, curveOut
-    readonly property int switchInkFade: 220         // couleur du pouce, curveOut
     readonly property int switchBump: 3              // butée : aller-retour de tant de px…
     readonly property int switchBumpDuration: 260    // …en tant de ms, curveOut
     // Coche tracée devant la valeur choisie d'une liste (réseau Wi-Fi connecté) : le glyphe
     // 24 × 24 du prototype, tracé en checkDraw ms (curveOut) après checkDelay, effacé en checkErase.
-    readonly property int checkSize: 22
     readonly property real checkStroke: 2.4          // sur la grille 24 × 24 du glyphe
-    readonly property int checkGap: 16               // entre la coche et le libellé
     readonly property int checkDraw: 300
     readonly property int checkDelay: 60
     readonly property int checkErase: 120
@@ -845,46 +991,19 @@ QtObject {
     readonly property int rubberMax: 16
     readonly property int rubberOut: 80
     readonly property int rubberHold: 130
-    // Curseur (ligne `slider` : le débit), plus haut qu'une ligne : sa piste sous le
-    // libellé. Remplissage et curseur suivent la valeur avec springSnappy.
-    readonly property int sheetSliderRowHeight: 100
-    // Sélecteur de profil (ligne `segments`, prototype « Sélecteur de profil ») : une piste, une
-    // pastille (ElasticIndicator) qui passe d'un choix à l'autre en s'étirant, puis les chiffres
-    // du profil, remplacés en cascade (statsStagger d'écart, comme le swapText du prototype).
-    readonly property int sheetSegmentsRowHeight: 154
-    readonly property int segmentsTop: 50            // la piste, sous le libellé
-    readonly property int segmentsHeight: 40
-    readonly property int segmentsPad: 4
-    readonly property int segmentsRadius: 14
-    readonly property color segmentsTrack: Qt.rgba(1, 1, 1, 0.06)
-    readonly property int segmentsPillRadius: 10
-    readonly property int segmentsLabelSize: 13      // Sora 500 ; chaque case à la largeur de son libellé…
-    readonly property int segmentsLabelMin: 10       // …et, s'ils ne tiennent pas tous, le texte se réduit jusque-là
-    readonly property int statsTop: 12               // les chiffres, sous la piste
-    readonly property int statsGap: 2                // entre l'intitulé et la valeur
-    readonly property int statsLabelSize: 11         // ink3
-    readonly property int statsValueSize: 14         // chiffres tabulaires
+    // Contrôle segmenté : un libellé trop long se réduit jusque-là. Chiffres du profil de
+    // flux : remplacés en cascade (statsStagger d'écart, comme le swapText du prototype).
+    readonly property int segmentsLabelMin: 10
     readonly property int statsValueHeight: 20
     readonly property int statsStagger: 45
-    readonly property var statsWeights: [0.22, 0.2, 0.24, 0.34]   // largeur de chaque chiffre (la priorité, plus longue)
     readonly property int profileTextSize: 13        // description du profil (sans les réglages avancés), ink2
     readonly property int profileTextLineHeight: 18  // deux lignes au plus : la hauteur des chiffres
-    readonly property int sheetNoteSize: 12          // note à droite du libellé (réseau), ink3
-    readonly property int sliderTrackY: 66           // centre de la piste, depuis le haut de la ligne
-    readonly property int sliderRailHeight: 6
-    readonly property color sliderRail: Qt.rgba(1, 1, 1, 0.12)
-    readonly property size sliderThumb: Qt.size(4, 24)
-    readonly property size sliderThumbFocus: Qt.size(6, 32)
-    readonly property int sliderThumbGrow: 220       // curveOut
-    readonly property int sliderHalo: 5              // halo de la poignée quand la ligne a le focus
-    readonly property color sliderHaloFill: Qt.rgba(1, 1, 1, 0.10)
+    readonly property int sliderHalo: 5              // la zone de clic d'un curseur déborde d'autant
     // Un cran franchi pulse : il s'allonge jusqu'à sliderPulseScale (à sliderPulsePeak de la
     // durée) en passant à l'orange, puis revient, en sliderPulse ms (curveOut).
     readonly property int sliderPulse: 440
     readonly property real sliderPulseScale: 1.9
     readonly property real sliderPulsePeak: 0.3
-    readonly property int sliderTickHeight: 10       // crans (stops), sous la piste
-    readonly property int sliderTickGap: 14          // sous la piste, au-delà de la poignée (qui y passe)
     // Maintenu, le pas accélère : sliderSteps[i] à partir de sliderStepAfter[i - 1]
     // répétitions ; il marque un arrêt de sliderStopHold ms sur chaque cran.
     readonly property var sliderSteps: [1, 2, 5]
