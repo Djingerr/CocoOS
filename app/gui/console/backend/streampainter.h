@@ -16,12 +16,18 @@
 
 namespace StreamPainter {
 
-// Statistiques du flux, en haut à gauche : la première ligne en blanc, les autres
-// en gris, `dotLine` précédée du point de qualité du réseau.
+// Statistiques du flux, en haut à gauche (StatsOverlay) : détaillées (latence totale, sa
+// courbe, son détail, l'image, le débit…) ou compactes (une pastille).
 struct Stats {
-    QStringList lines;
-    int dotLine = -1;
-    QColor dot;
+    enum Mode { Hidden, Detailed, Compact };
+    Mode mode = Detailed;
+    QString host;           // « PC-Salon »
+    int total = -1;         // latence totale (ms) ; < 0 : pas encore mesurée
+    QString quality;        // « EXCELLENT »
+    QVector<qreal> history; // latence totale, une valeur par seconde (la courbe)
+    QStringList labels;     // lignes du détail ; "" : un filet
+    QStringList values;
+    QStringList compact;    // la pastille : latence, i/s, débit, batterie
 };
 
 // Un avis bref pendant le jeu, en haut à droite : manette presque vide, réseau instable,

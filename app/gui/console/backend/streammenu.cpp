@@ -69,6 +69,7 @@ const int BRIGHTNESS_MIN = 5;       // SystemStatus.setBrightness : jamais tout 
 const int POOR_SECONDS = 10;        // réseau « mauvais » (Format.networkQuality) aussi longtemps : un avis
 const int POOR_RTT = 50;            // au-delà : mauvais (ms), comme la pastille de l'accueil
 const int POOR_VARIANCE = 15;
+const int STATS_HISTORY = 24;       // la courbe de la latence : les 24 dernières secondes
 // Appui maintenu des confirmations (Theme.hold*, HoldFill.qml) : plein en HOLD_DURATION,
 // affiché progression^HOLD_CURVE, vidé en HOLD_DRAIN si on lâche ; plein, la coche arrive en
 // HOLD_SWAP, puis l'action part après HOLD_FINISH.
@@ -158,7 +159,9 @@ int s_latency = -1;                     // vers le PC (ms), mise à jour par les
 qint64 s_startedAt = 0;                 // début de la partie (ms depuis l'époque) ; 0 : inconnu
 int s_battery = -1;
 QString s_batteryLife;                  // « environ 3 h 10 » (carte d'alimentation)
-std::atomic<bool> s_stats { false };    // statistiques affichées (réglage mémorisé)
+QString s_batteryShort;                 // « 3 h 10 » (statistiques)
+std::atomic<int> s_stats { 0 };         // statistiques : StreamPainter::Stats::Mode (réglage mémorisé)
+QVector<qreal> s_latencyHistory;        // latence totale, une valeur par seconde (la courbe)
 StreamPainter::Stats s_statsView;       // les dernières reçues
 std::atomic<bool> s_wantFrame { false };    // le menu attend une image du jeu
 QImage s_backdrop;                      // l'image du jeu floutée, à la taille de l'écran
@@ -217,9 +220,17 @@ SDL_AudioDeviceID s_audio = 0;
 // Textes du menu, contexte de traduction « StreamMenu » (Text::tr, que lupdate sait lire).
 struct Text { Q_DECLARE_TR_FUNCTIONS(StreamMenu) };
 
-QString statsValue(bool shown)
+QString statsValue(int mode)
 {
-    return shown ? Text::tr("Affichées") : Text::tr("Masquées");
+    return mode == StreamPainter::Stats::Detailed ? Text::tr("Détaillées")
+         : mode == StreamPainter::Stats::Compact ? Text::tr("Compactes") : Text::tr("Masquées");
+}
+
+// Le réglage : 0 masquées, 1 détaillées, 2 compactes (« true » d'avant : détaillées).
+int readStatsMode()
+{
+    const QString value = QSettings().value(STATS_SETTING, 0).toString();
+    return value == QLatin1String("true") ? 1 : qBound(0, value.toInt(), 2);
 }
 
 QString percent(int value)
@@ -665,9 +676,10 @@ void readBattery()
     s_battery = s_system->property("batteryPercent").toInt();
     const int minutes = s_system->property("batteryDetails").toMap().value(QStringLiteral("minutes"), -1).toInt();
     const bool charging = s_system->property("charging").toBool();
-    s_batteryLife = minutes <= 0 || charging ? QString()
-                  : minutes < 60 ? Text::tr("environ %1 min").arg(minutes)
-                  : Text::tr("environ %1 h %2").arg(minutes / 60).arg(minutes % 60, 2, 10, QLatin1Char('0'));
+    s_batteryShort = minutes <= 0 || charging ? QString()
+                   : minutes < 60 ? Text::tr("%1 min").arg(minutes)
+                   : Text::tr("%1 h %2").arg(minutes / 60).arg(minutes % 60, 2, 10, QLatin1Char('0'));
+    s_batteryLife = s_batteryShort.isEmpty() ? QString() : Text::tr("environ %1").arg(s_batteryShort);
 }
 
 void openMenu()
@@ -1006,15 +1018,20 @@ void back()
 void switchStats()
 {
     const Uint32 now = SDL_GetTicks();
+    // Masquées → détaillées → compactes → masquées.
     const QString from = statsValue(s_stats);
-    s_stats = !s_stats;
+    s_stats = (s_stats + 1) % 3;
     QSettings().setValue(STATS_SETTING, s_stats.load());
     if (s_open) {
         swapSub(STATS, from);
     }
-    if (s_stats) {
+    if (s_stats == StreamPainter::Stats::Detailed) {
         s_statsView = StreamPainter::Stats();   // elles apparaîtront avec les premiers chiffres
+        s_statsView.total = -1;
         s_statsFade.set(0);
+    }
+    else if (s_stats == StreamPainter::Stats::Compact) {
+        s_statsView.mode = StreamPainter::Stats::Compact;   // les mêmes chiffres, en pastille
     }
     else {
         s_statsFade.go(0, STATS_FADE, now);
@@ -1188,8 +1205,10 @@ QString codecName(int videoFormat)
     return codec;
 }
 
-// Les chiffres de Moonlight (ffmpeg.cpp, stringifyVideoStats) en quatre lignes.
-StreamPainter::Stats statsView(const VIDEO_STATS& stats, int videoFormat, int width, int height, double megabitsPerSec)
+// Les chiffres de Moonlight (ffmpeg.cpp, stringifyVideoStats) pour la carte (StatsOverlay) :
+// latence totale (réseau, encodage sur le PC, décodage), sa courbe, l'image, le débit, les
+// images perdues, la batterie ; et la pastille compacte. s_lock tenu.
+StreamPainter::Stats statsView(const VIDEO_STATS& stats, int videoFormat, int height, double megabitsPerSec)
 {
     // Nombres à la façon de la langue de l'interface (réglage Langue ; Auto : celle du système).
     const StreamingPreferences::Language language = StreamingPreferences::get()->language;
@@ -1199,26 +1218,60 @@ StreamPainter::Stats statsView(const VIDEO_STATS& stats, int videoFormat, int wi
     auto number = [&](double value) { return locale.toString(value, 'f', 1); };
 
     StreamPainter::Stats view;
-    view.lines.append(Text::tr("%1 × %2 · %3 i/s · %4 · %5 Mb/s").arg(width).arg(height)
-                          .arg(number(stats.decodedFps), codecName(videoFormat), number(megabitsPerSec)));
-    view.dotLine = 1;
-    view.dot = StreamPainter::networkColor(stats.lastRtt, stats.lastRttVariance);
-    view.lines.append(stats.lastRtt != 0 ? Text::tr("Latence réseau %1 ms (± %2 ms)").arg(stats.lastRtt).arg(stats.lastRttVariance)
-                                         : Text::tr("Latence réseau : mesure en cours"));
-    if (stats.totalFrames != 0 && stats.decodedFrames != 0) {
-        view.lines.append(Text::tr("Images perdues : %1 % réseau · %2 % gigue")
-                              .arg(number(100.0 * stats.networkDroppedFrames / stats.totalFrames),
-                                   number(100.0 * stats.pacerDroppedFrames / stats.decodedFrames)));
+    view.mode = StreamPainter::Stats::Mode(s_stats.load());
+    view.host = s_host;
+    const double network = stats.lastRtt;
+    const double encode = stats.framesWithHostProcessingLatency != 0
+                        ? stats.totalHostProcessingLatency / 10.0 / stats.framesWithHostProcessingLatency : 0;
+    const double decode = stats.decodedFrames != 0 ? stats.totalDecodeTimeUs / 1000.0 / stats.decodedFrames : 0;
+    if (stats.lastRtt == 0) {
+        view.total = -1;   // pas encore de mesure du réseau
+        return view;
     }
-    if (stats.decodedFrames != 0 && stats.renderedFrames != 0) {
-        QString times = Text::tr("Décodage %1 ms · Affichage %2 ms")
-                            .arg(number(stats.totalDecodeTimeUs / 1000.0 / stats.decodedFrames),
-                                 number(stats.totalRenderTimeUs / 1000.0 / stats.renderedFrames));
-        if (stats.framesWithHostProcessingLatency != 0) {
-            times += Text::tr(" · PC %1 ms").arg(number(stats.totalHostProcessingLatency / 10.0
-                                                  / stats.framesWithHostProcessingLatency));
-        }
-        view.lines.append(times);
+    view.total = qRound(network + encode + decode);
+    // Les seuils de la pastille de l'accueil (Format.networkQuality).
+    const bool good = stats.lastRtt <= 20 && stats.lastRttVariance <= 5;
+    const bool fair = stats.lastRtt <= 50 && stats.lastRttVariance <= 15;
+    view.quality = (good ? Text::tr("Excellent") : fair ? Text::tr("Correct") : Text::tr("Faible")).toUpper();
+    s_latencyHistory.append(view.total);
+    while (s_latencyHistory.size() > STATS_HISTORY) {
+        s_latencyHistory.removeFirst();
+    }
+    view.history = s_latencyHistory;
+
+    const QString ms = Text::tr("%1 ms");
+    view.labels.append(Text::tr("Réseau"));
+    view.values.append(ms.arg(stats.lastRtt));
+    if (encode > 0) {
+        view.labels.append(Text::tr("Encodage sur le PC"));
+        view.values.append(ms.arg(number(encode)));
+    }
+    if (decode > 0) {
+        view.labels.append(Text::tr("Décodage"));
+        view.values.append(ms.arg(number(decode)));
+    }
+    view.labels.append(QString());
+    view.values.append(QString());
+    const QString codec = codecName(videoFormat);
+    view.labels.append(Text::tr("Image"));
+    view.values.append(Text::tr("%1p · %2 i/s").arg(height).arg(qRound(stats.decodedFps))
+                       + (codec.isEmpty() ? QString() : QStringLiteral(" · ") + codec));
+    view.labels.append(Text::tr("Débit"));
+    view.values.append(Text::tr("%1 Mb/s").arg(number(megabitsPerSec)));
+    if (stats.totalFrames != 0) {
+        view.labels.append(Text::tr("Images perdues"));
+        view.values.append(Text::tr("%1 %").arg(number(100.0 * (stats.networkDroppedFrames + stats.pacerDroppedFrames)
+                                                       / stats.totalFrames)));
+    }
+    if (s_battery >= 0) {
+        view.labels.append(Text::tr("Batterie"));
+        view.values.append(s_batteryShort.isEmpty() ? percent(s_battery)
+                                                    : Text::tr("%1 % · %2").arg(s_battery).arg(s_batteryShort));
+    }
+    view.compact = QStringList { ms.arg(view.total), Text::tr("%1 i/s").arg(qRound(stats.decodedFps)),
+                                 Text::tr("%1 Mb/s").arg(qRound(megabitsPerSec)) };
+    if (s_battery >= 0) {
+        view.compact.append(percent(s_battery));
     }
     return view;
 }
@@ -1298,7 +1351,9 @@ void StreamMenu::prepare(const QString& game, const QStringList& powerActions, c
     s_startedAt = info.value(QStringLiteral("startedAt"), 0).toLongLong();
     s_battery = -1;
     s_batteryLife.clear();
+    s_batteryShort.clear();
     s_system = system;
+    readBattery();
     s_volume = system != nullptr ? system->property("volume").toInt() : -1;
     s_brightness = system != nullptr ? system->property("brightness").toInt() : -1;
     s_volumeAnim.set(s_volume);
@@ -1328,7 +1383,8 @@ void StreamMenu::prepare(const QString& game, const QStringList& powerActions, c
     s_closing.set(0);
     s_powerOpen = false;
     s_powerMix.set(0);
-    s_stats = QSettings().value(STATS_SETTING, false).toBool();
+    s_stats = readStatsMode();
+    s_latencyHistory.clear();
     s_statsView = StreamPainter::Stats();
     s_statsFade.set(0);   // les statistiques apparaissent avec les premiers chiffres
     s_soundsOn = QSettings().value(SOUNDS_SETTING, true).toBool();
@@ -1663,24 +1719,22 @@ bool StreamMenu::wantsStats()
 
 void StreamMenu::updateStats(const VIDEO_STATS& stats, int videoFormat, int width, int height, double megabitsPerSec)
 {
-    {
-        QMutexLocker locker(&s_lock);
-        attach();
-        checkHealth(stats);
-        if (stats.lastRtt != 0) {
-            s_latency = int(stats.lastRtt);
-        }
-        if (!s_stats) {
-            return;
-        }
-    }
-    const StreamPainter::Stats view = statsView(stats, videoFormat, width, height, megabitsPerSec);
+    Q_UNUSED(width);
     QMutexLocker locker(&s_lock);
-    if (!s_stats) {
+    attach();
+    checkHealth(stats);
+    if (stats.lastRtt != 0) {
+        s_latency = int(stats.lastRtt);
+    }
+    if (s_stats == StreamPainter::Stats::Hidden) {
+        return;
+    }
+    const StreamPainter::Stats view = statsView(stats, videoFormat, height, megabitsPerSec);
+    if (view.total < 0) {
         return;
     }
     const Uint32 now = SDL_GetTicks();
-    if (s_statsView.lines.isEmpty()) {
+    if (s_statsView.total < 0 || s_statsView.mode == StreamPainter::Stats::Hidden) {
         s_statsFade.go(1, STATS_FADE, now);
     }
     s_statsView = view;

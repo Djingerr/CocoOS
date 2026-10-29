@@ -8,12 +8,12 @@
 //   QT_QPA_PLATFORM=offscreen /tmp/streammenu-shot /tmp/m.png size=1280x800 backdrop=art/minecraft.jpg
 //
 // page : menu (le centre de contrôle) | power (la carte d'alimentation par-dessus) | stats (hors
-// du menu : les statistiques, et l'avis notice="…" tone=good|warn|bad).
+// du menu : les statistiques, compact=1 en pastille ; l'avis notice="…" tone=good|warn|bad).
 // focus=N : la tuile en focus (0 Reprendre, 1 Luminosité, 2 Volume, 3 Capture, 4 Statistiques,
 // 5 Accueil, 6 Quitter, 7 Veille, 8 Alimentation) ; volume=, brightness= (en %) ; cover=… la
 // jaquette de l'en-tête ; layout=xbox|playstation|nintendo. Une étape d'animation : open=ms
 // (depuis l'ouverture), closing=, veil=, blur=, powerMix=, swap= (avec stats=1 : « Masquées »
-// sort, « Affichées » entre), hold= et holdDone= (focus=6 : l'appui maintenu sur Quitter).
+// sort, « Détaillées » entre), hold= et holdDone= (focus=6 : l'appui maintenu sur Quitter).
 
 #include "streampainter.h"
 
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
         { QStringLiteral("brightness"), QStringLiteral("Luminosité"), QStringLiteral("%1 %").arg(brightness), brightness / 100.0 },
         { QStringLiteral("volume"), QStringLiteral("Volume"), QStringLiteral("%1 %").arg(volume), volume / 100.0 },
         { QStringLiteral("shot"), QStringLiteral("Capture"), QStringLiteral("Sur la console") },
-        { QStringLiteral("stats"), QStringLiteral("Statistiques"), statsShown ? QStringLiteral("Affichées") : QStringLiteral("Masquées") },
+        { QStringLiteral("stats"), QStringLiteral("Statistiques"), statsShown ? QStringLiteral("Détaillées") : QStringLiteral("Masquées") },
         { QStringLiteral("home"), QStringLiteral("Accueil"), QString() },
         { QStringLiteral("quit"), QStringLiteral("Quitter le jeu"), QString() },
         { QStringLiteral("sleep"), QStringLiteral("Veille"), QString() },
@@ -92,14 +92,17 @@ int main(int argc, char* argv[])
     power.note = QStringLiteral("Le stream en cours sera fermé proprement avant l’arrêt.");
     frame.powerMix = page == QLatin1String("power") ? number("powerMix", 1) : 0;
 
-    const int latency = int(number("latency", 12));
+    // Les statistiques de la maquette (StatsOverlay) ; compact=1 : la pastille.
     StreamPainter::Stats stats;
-    stats.lines = QStringList { QStringLiteral("1920 × 1080 · 59,9 i/s · HEVC · 28,4 Mb/s"),
-                                QStringLiteral("Latence réseau %1 ms (± 2 ms)").arg(latency),
-                                QStringLiteral("Images perdues : 0,1 % réseau · 0,0 % gigue"),
-                                QStringLiteral("Décodage 1,8 ms · Affichage 4,2 ms · PC 3,1 ms") };
-    stats.dotLine = 1;
-    stats.dot = StreamPainter::networkColor(latency, 2);
+    stats.mode = opt.value(QStringLiteral("compact")) == QLatin1String("1") ? StreamPainter::Stats::Compact
+                                                                           : StreamPainter::Stats::Detailed;
+    stats.host = QStringLiteral("PC-Salon");
+    stats.total = int(number("latency", 11));
+    stats.quality = QStringLiteral("EXCELLENT");
+    stats.history = { 8, 9, 7, 10, 9, 11, 8, 10, 9, 22, 12, 9, 10, 8, 9, 10, 9, 8, 10, 9, 9 };
+    stats.labels = QStringList { "Réseau", "Encodage sur le PC", "Décodage", "", "Image", "Débit", "Images perdues", "Batterie" };
+    stats.values = QStringList { "4 ms", "3,8 ms", "3,1 ms", "", "720p · 60 i/s · HEVC", "18,4 Mb/s", "0,1 %", "82 % · 3 h 10" };
+    stats.compact = QStringList { "11 ms", "60 i/s", "18 Mb/s", "82 %" };
 
     const QSize screen(size.value(0).toInt(), size.value(1).toInt());
     const QImage game(opt.value(QStringLiteral("backdrop")));
@@ -114,7 +117,9 @@ int main(int argc, char* argv[])
         const QString tone = opt.value(QStringLiteral("tone"));
         notice.tone = tone == QLatin1String("warn") ? StreamPainter::Notice::Warn
                     : tone == QLatin1String("bad") ? StreamPainter::Notice::Bad : StreamPainter::Notice::Good;
-        image = StreamPainter::paintStats(opt.value(QStringLiteral("stats")) == QLatin1String("0") ? StreamPainter::Stats() : stats,
+        StreamPainter::Stats none;
+        none.mode = StreamPainter::Stats::Hidden;
+        image = StreamPainter::paintStats(opt.value(QStringLiteral("stats")) == QLatin1String("0") ? none : stats,
                                           number("opacity", 1), screen, notice, number("noticeOpacity", 1));
     }
     else {

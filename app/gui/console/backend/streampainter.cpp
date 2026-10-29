@@ -95,21 +95,29 @@ const qreal POWER_FROM = 0.96;           // la carte arrive d'une échelle de 0,
 const qreal POWER_RECEDE = 0.7;          // derrière elle, le centre de contrôle s'estompe d'autant
 const qreal LEGEND_BOTTOM = 34;          // légende de la carte : centrée en bas
 
-// Panneau des statistiques (absent du prototype, dans le langage des pastilles).
+// Statistiques (StatsOverlay) : une carte de verre sombre de 300 px, ou une pastille.
 const qreal STATS_MARGIN = 24;
-const qreal STATS_PAD_X = 16;
-const qreal STATS_PAD_Y = 12;
-const qreal STATS_RADIUS = 12;
-const QColor STATS_FILL(0, 0, 0, qRound(0.6 * 255));
-const qreal STATS_TITLE_SIZE = 14;       // Sora 500, la ligne du flux
-const qreal STATS_LINE_SIZE = 13;
-const qreal STATS_LINE_HEIGHT = 1.5;
-const qreal HOST_DOT_SIZE = 7;
-const qreal HOST_DOT_GAP = 8;
+const qreal STATS_WIDTH = 300;
+const qreal STATS_PAD_X = 18;
+const qreal STATS_PAD_Y = 16;
+const qreal STATS_RADIUS = 22;
+const qreal STATS_GAP = 12;
+const QColor STATS_FILL(20, 20, 22, qRound(0.62 * 255));
+const QColor STATS_EDGE(255, 255, 255, qRound(0.12 * 255));
+const qreal STATS_ROW = 16.5;            // Sora 13
+const qreal STATS_ROW_GAP = 7;
+const qreal STATS_SPARK = 30;
+const qreal COMPACT_HEIGHT = 34;
+const qreal COMPACT_PAD = 14;
+const qreal COMPACT_GAP = 14;
+const QColor COMPACT_FILL(20, 20, 22, qRound(0.55 * 255));
+const QColor ACCENT_SOFT(242, 128, 42, qRound(0.22 * 255));   // accent à 22 % (pastille, courbe)
 const qreal NOTICE_HEIGHT = 40;          // l'avis : une pastille sombre, un point, un texte
 const qreal NOTICE_PAD_X = 16;
 const qreal NOTICE_SIZE = 14;            // Sora 500
 const qreal NOTICE_SHIFT = 10;           // il descend d'autant en apparaissant
+const qreal HOST_DOT_SIZE = 7;
+const qreal HOST_DOT_GAP = 8;
 
 // Les tailles sont en points sur une image à 72 ppp (1 point = 1 pixel) : QFont
 // n'accepte que des tailles de pixel entières, le canevas a des demi-pixels.
@@ -202,53 +210,125 @@ void drawGlyph(QPainter& p, QPointF topLeft, const QString& button, const QStrin
     }
 }
 
-QFont statsFont(int line)
-{
-    return line == 0 ? sora(STATS_TITLE_SIZE, QFont::Medium) : sora(STATS_LINE_SIZE);
-}
-
-// Taille du panneau des statistiques, en pixels du canevas.
+// Taille des statistiques, en pixels du canevas.
 QSizeF statsSize(const StreamPainter::Stats& stats, QPaintDevice* device)
 {
-    qreal width = 0, height = 0;
-    for (int i = 0; i < stats.lines.size(); i++) {
-        const QFontMetricsF metrics(statsFont(i), device);
-        const qreal dot = i == stats.dotLine ? HOST_DOT_SIZE + HOST_DOT_GAP : 0;
-        width = qMax(width, dot + metrics.horizontalAdvance(stats.lines[i]));
-        height += metrics.height() * STATS_LINE_HEIGHT;
+    if (stats.mode == StreamPainter::Stats::Compact) {
+        const QFont font = sora(12, QFont::DemiBold);
+        qreal width = 2 * COMPACT_PAD + 6 + 6;
+        for (const QString& item : stats.compact) {
+            width += QFontMetricsF(font, device).horizontalAdvance(item) + COMPACT_GAP;
+        }
+        return QSizeF(width - COMPACT_GAP, COMPACT_HEIGHT);
     }
-    return QSizeF(width + 2 * STATS_PAD_X, height + 2 * STATS_PAD_Y);
+    int rows = 0, rules = 0;
+    for (const QString& label : stats.labels) {
+        label.isEmpty() ? rules++ : rows++;
+    }
+    const qreal grid = rows * STATS_ROW + (rows + rules - 1) * STATS_ROW_GAP + rules;
+    return QSizeF(STATS_WIDTH, 2 * STATS_PAD_Y + 15 + STATS_GAP + 46 + STATS_GAP + STATS_SPARK + STATS_GAP + grid);
 }
 
 void drawStats(QPainter& p, const StreamPainter::Stats& stats, qreal opacity)
 {
-    if (stats.lines.isEmpty() || opacity <= 0) {
+    if (stats.mode == StreamPainter::Stats::Hidden || stats.total < 0 || opacity <= 0) {
         return;
     }
+    p.save();
     p.setOpacity(opacity);
     const QSizeF size = statsSize(stats, p.device());
-    p.setPen(Qt::NoPen);
-    p.setBrush(STATS_FILL);
-    p.drawRoundedRect(QRectF(QPointF(STATS_MARGIN, STATS_MARGIN), size), STATS_RADIUS, STATS_RADIUS);
+    const QRectF box(QPointF(STATS_MARGIN, STATS_MARGIN), size);
+    p.setPen(QPen(STATS_EDGE, 1));
+    const auto text = [&](const QRectF& r, int align, const QString& t, const QFont& f, const QColor& c) {
+        p.setFont(f);
+        p.setPen(c);
+        p.drawText(r, align | Qt::TextSingleLine, t);
+    };
+    const QColor ink2(245, 245, 247, qRound(0.6 * 255));
 
-    qreal y = STATS_MARGIN + STATS_PAD_Y;
-    for (int i = 0; i < stats.lines.size(); i++) {
-        const QFont font = statsFont(i);
-        const qreal lineHeight = QFontMetricsF(font, p.device()).height() * STATS_LINE_HEIGHT;
-        const QRectF line(STATS_MARGIN + STATS_PAD_X, y, size.width() - 2 * STATS_PAD_X, lineHeight);
-        qreal x = line.x();
-        if (i == stats.dotLine) {
-            p.setPen(Qt::NoPen);
-            p.setBrush(stats.dot);
-            p.drawEllipse(QRectF(x, line.center().y() - HOST_DOT_SIZE / 2, HOST_DOT_SIZE, HOST_DOT_SIZE));
-            x += HOST_DOT_SIZE + HOST_DOT_GAP;
+    if (stats.mode == StreamPainter::Stats::Compact) {
+        p.setBrush(COMPACT_FILL);
+        p.drawRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), COMPACT_HEIGHT / 2, COMPACT_HEIGHT / 2);
+        const QFont font = sora(12, QFont::DemiBold);
+        qreal x = box.x() + COMPACT_PAD;
+        p.setPen(Qt::NoPen);
+        p.setBrush(ACCENT);
+        p.drawEllipse(QRectF(x, box.center().y() - 3, 6, 6));
+        x += 12;
+        for (int i = 0; i < stats.compact.size(); i++) {
+            const qreal w = QFontMetricsF(font, p.device()).horizontalAdvance(stats.compact[i]);
+            text(QRectF(x, box.y(), w + 1, box.height()), Qt::AlignLeft | Qt::AlignVCenter, stats.compact[i], font,
+                 i == 0 ? INK : ink2);
+            x += w + COMPACT_GAP;
         }
-        p.setFont(font);
-        p.setPen(i == 0 ? INK : INK2);
-        p.drawText(QRectF(x, line.y(), line.right() - x, lineHeight), Qt::AlignLeft | Qt::AlignVCenter, stats.lines[i]);
-        y += lineHeight;
+        p.restore();
+        return;
     }
-    p.setOpacity(1);
+
+    p.setBrush(STATS_FILL);
+    p.drawRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), STATS_RADIUS, STATS_RADIUS);
+    const qreal x = box.x() + STATS_PAD_X, width = box.width() - 2 * STATS_PAD_X;
+    qreal y = box.y() + STATS_PAD_Y;
+    // « LATENCE TOTALE », le PC
+    text(QRectF(x, y, width, 15), Qt::AlignLeft | Qt::AlignVCenter, QCoreApplication::translate("StreamMenu", "Latence totale").toUpper(),
+         sora(12, QFont::DemiBold, 0.72), QColor(245, 245, 247, qRound(0.55 * 255)));
+    text(QRectF(x, y, width, 15), Qt::AlignRight | Qt::AlignVCenter, stats.host, sora(11, QFont::Medium),
+         QColor(245, 245, 247, qRound(0.45 * 255)));
+    y += 15 + STATS_GAP;
+    // 11 ms, et la qualité
+    const QFont big = sora(38, QFont::DemiBold, -1.14);
+    const QString number = QString::number(stats.total);
+    const qreal numberWidth = QFontMetricsF(big, p.device()).horizontalAdvance(number);
+    text(QRectF(x, y + 3, numberWidth + 2, 46), Qt::AlignLeft | Qt::AlignVCenter, number, big, INK);
+    text(QRectF(x + numberWidth + 6, y + 11, 40, 46), Qt::AlignLeft | Qt::AlignVCenter, QStringLiteral("ms"),
+         sora(15, QFont::Medium), ink2);
+    if (!stats.quality.isEmpty()) {
+        const QFont chip = sora(11, QFont::Bold);
+        const qreal w = QFontMetricsF(chip, p.device()).horizontalAdvance(stats.quality) + 18;
+        const QRectF r(x + width - w, y + 29 - 11, w, 22);
+        p.setPen(Qt::NoPen);
+        p.setBrush(ACCENT_SOFT);
+        p.drawRoundedRect(r, 11, 11);
+        text(r, Qt::AlignCenter, stats.quality, chip, ACCENT);
+    }
+    y += 46 + STATS_GAP;
+    // La courbe de la latence (la dernière valeur à droite, pointée).
+    if (stats.history.size() > 1) {
+        qreal top = 1;
+        for (qreal v : stats.history) top = qMax(top, v);
+        QPainterPath line;
+        for (int i = 0; i < stats.history.size(); i++) {
+            const QPointF pt(x + width * i / (stats.history.size() - 1), y + STATS_SPARK - 22 * stats.history[i] / top);
+            i == 0 ? line.moveTo(pt) : line.lineTo(pt);
+        }
+        QPainterPath area = line;
+        area.lineTo(x + width, y + STATS_SPARK);
+        area.lineTo(x, y + STATS_SPARK);
+        area.closeSubpath();
+        p.setPen(Qt::NoPen);
+        p.setBrush(ACCENT_SOFT);
+        p.drawPath(area);
+        p.setBrush(Qt::NoBrush);
+        p.setPen(QPen(ACCENT, 1.6, Qt::SolidLine, Qt::RoundCap, Qt::RoundJoin));
+        p.drawPath(line);
+        p.setPen(Qt::NoPen);
+        p.setBrush(ACCENT);
+        p.drawEllipse(line.currentPosition(), 2.6, 2.6);
+    }
+    y += STATS_SPARK + STATS_GAP;
+    // Le détail.
+    const QFont row = sora(13, QFont::Medium);
+    for (int i = 0; i < stats.labels.size(); i++) {
+        if (stats.labels[i].isEmpty()) {
+            p.fillRect(QRectF(x, y, width, 1), QColor(255, 255, 255, qRound(0.08 * 255)));
+            y += 1 + STATS_ROW_GAP;
+            continue;
+        }
+        text(QRectF(x, y, width, STATS_ROW), Qt::AlignLeft | Qt::AlignVCenter, stats.labels[i], row, ink2);
+        text(QRectF(x, y, width, STATS_ROW), Qt::AlignRight | Qt::AlignVCenter, stats.values.value(i), row, INK);
+        y += STATS_ROW + STATS_ROW_GAP;
+    }
+    p.restore();
 }
 
 // Une image à 72 ppp (1 point = 1 pixel) et un peintre à l'échelle du canevas.
@@ -836,7 +916,7 @@ int StreamPainter::powerAt(const Power& power, QSize screen, QPointF pos)
 QImage StreamPainter::paintStats(const Stats& stats, qreal opacity, QSize screen,
                                  const Notice& notice, qreal noticeOpacity)
 {
-    const bool showStats = !stats.lines.isEmpty() && opacity > 0;
+    const bool showStats = stats.mode != Stats::Hidden && stats.total >= 0 && opacity > 0;
     const bool showNotice = !notice.text.isEmpty() && noticeOpacity > 0;
     if ((!showStats && !showNotice) || screen.isEmpty()) {
         return QImage();
