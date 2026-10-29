@@ -135,6 +135,9 @@
         <file>gui/console/Search.js</file>
         <file>gui/console/settings/SettingsScreen.qml</file>
         <file>gui/console/LaunchScreen.qml</file>
+        <file>gui/console/LaunchFrame.qml</file>
+        <file>gui/console/LoaderRing.qml</file>
+        <file>gui/console/PillButton.qml</file>
         <file>gui/console/Sounds.qml</file>
         <file>gui/console/SoundBank.qml</file>
         <file>gui/console/fonts/Sora-Regular.ttf</file>

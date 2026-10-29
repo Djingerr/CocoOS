@@ -158,7 +158,7 @@ HomeScreen {
     Timer {
         interval: Theme.launchStep
         repeat: true
-        running: launchScreen.active && launchScreen.progressShown
+        running: launchScreen.active && launchScreen.loaderShown
         onTriggered: {
             if (launchScreen.step < launchScreen.steps.length - 1) {
                 launchScreen.step++

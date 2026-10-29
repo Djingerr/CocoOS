@@ -16,16 +16,12 @@ Item {
     // Dérive lente du fond. La couper la fige sur place, ce qui laisse le GPU
     // au repos (elle redémarre à chaque nouvelle image).
     property bool driftEnabled: true
-    // Zoom d'ensemble (lancement d'un jeu) ; `unveiled` retire le vignettage.
-    property real zoom: 1
-    property bool unveiled: false
     // Vignettage : noir au centre (`vignetteIn`), au-delà de 75 % du rayon (`vignetteOut`),
     // centre en fraction de l'écran (la fiche le décale vers sa jaquette, à gauche).
     property real vignetteIn: Theme.vignetteIn
     property real vignetteOut: Theme.vignetteOut
     property point vignetteAt: Theme.vignetteAt
-    property real vignette: unveiled ? 0 : 1
-    Behavior on vignette { NumberAnimation { duration: Theme.launchScrimFade } }
+    property real vignette: 1                       // 0 : sans vignettage (recherche)
 
     // Calque au premier plan (0 ou 1) ; -1 tant que rien n'est affiché.
     property int front: -1
@@ -193,14 +189,6 @@ Item {
         visible: false
     }
 
-    Item {
-        anchors.fill: parent
-        transform: Scale {
-            origin.x: root.width * Theme.backdropZoomOrigin.x
-            origin.y: root.height * Theme.backdropZoomOrigin.y
-            xScale: root.zoom; yScale: root.zoom
-        }
-        Layer { id: layerA }
-        Layer { id: layerB }
-    }
+    Layer { id: layerA }
+    Layer { id: layerB }
 }

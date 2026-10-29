@@ -14,6 +14,8 @@ ListModel {
     property Component session: Component {
         QtObject {
             signal stageStarting(string stage)
+            signal stageFailed(string stage, int errorCode, string failingPorts)
+            signal displayLaunchError(string text)
             signal connectionStarted()
             signal sessionFinished(int portTestResult)
         }

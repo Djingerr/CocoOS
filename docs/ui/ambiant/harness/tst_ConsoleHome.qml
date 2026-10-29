@@ -26,6 +26,8 @@ Item {
         property int pushes: 0
         function push(item) { pushes++ }
     }
+    // …et y affiche les erreurs de lancement de StreamSegue (vidé par ConsoleHome).
+    QtObject { id: streamSegueErrorDialog; property string text: "" }
 
     ConsoleHome { id: home; anchors.fill: parent; focus: true }
 
@@ -45,10 +47,10 @@ Item {
         }
         readonly property var screen: find(home, "ready")
         // L'écran de lancement vit dans la fenêtre, au-dessus de ConsoleHome.
-        readonly property var launchScreen: find(home.Window.window.contentItem, "progressShown")
+        readonly property var launchScreen: find(home.Window.window.contentItem, "errorTitle")
         readonly property var updateDialog: find(home.Window.window.contentItem, "answered")
         readonly property var sleepScreen: find(home.Window.window.contentItem, "asleep")
-        readonly property var curtain: find(home.Window.window.contentItem, "covering")
+        readonly property var curtain: find(home.Window.window.contentItem, "revealedAt")
         // Les panneaux latéraux de ConsoleHome (confirmation, menu Home), par leur titre.
         function dialog(title) {
             var found = null
@@ -229,12 +231,11 @@ Item {
             compare(stackView.pushes, before)       // le flux attend l'ouverture de l'écran de lancement
             tryCompare(launchScreen, "active", true, 1000)
             verify(screen.launching)
-            verify(launchScreen.fromThumb)              // l'écran part de la vignette du jeu…
-            compare(launchScreen.origin, screen.activeThumbRect)
+            compare(launchScreen.origin, screen.activeThumbRect)   // l'écran part de la jaquette du jeu…
             verify(launchScreen.thumbnail.toString().endsWith("art/minecraft.jpg"))
+            compare(launchScreen.title, "Minecraft")
             tryCompare(launchScreen, "grow", 1, 2000)   // …et finit en plein écran
-            compare(launchScreen.steps.length, 2)
-            compare(launchScreen.steps[0], "Lancement de Minecraft")
+            compare(launchScreen.steps, ["Lancement de Minecraft…", "Connexion au flux vidéo…"])
             keyClick(Qt.Key_Right)                  // la manette n'agit plus sur l'accueil
             compare(screen.currentIndex, 0)
 
@@ -244,20 +245,73 @@ Item {
             var session = home.appModel.lastSession
             session.stageStarting("RTSP handshake")
             verify(!launchScreen.frozen)
-            verify(launchScreen.stepProgress > 0)
 
             compare(InputStatus.streamMenu, ["Minecraft", SystemStatus.powerActions, "xbox"])   // le menu en jeu
             session.connectionStarted()             // le flux est à l'écran
             verify(!launchScreen.active)
             verify(curtain.covering)                // le rideau CocoOS couvre l'accueil, caché
-            verify(curtain.revealed)                // logo à l'écran, sous la fenêtre du flux
-            verify(!screen.entryAllowed)
-            session.sessionFinished(0)              // fin du jeu : l'accueil revient
-            verify(!screen.launching)
+            verify(curtain.revealed)                // l'image du jeu, sous la fenêtre du flux
+            compare(curtain.origin, screen.activeThumbRect)   // elle y retournera
+            verify(screen.launching)
+            session.sessionFinished(0)              // fin du jeu
+            verify(screen.launching)                // (sous le rideau)
             verify(!screen.pressed)
             home.returnedHome()                     // (StreamSegue dépilé)
-            tryCompare(curtain, "covering", false, 3000)   // fin sans action du menu en jeu : il se lève
-            verify(screen.entryAllowed)
+            tryCompare(curtain, "covering", false, 3000)   // fin sans action du menu en jeu : il se lève…
+            verify(!screen.launching)               // …et l'accueil revient (MotionQuitter)
+            tryCompare(curtain, "active", false, 3000)
+        }
+
+        // Le flux ne démarre pas : l'écran de lancement le dit, à la place du dialog d'origine,
+        // et A relance le même jeu (MotionEchec).
+        function test_5c_streamFailureAndRetry() {
+            var before = stackView.pushes
+            ignoreWarning(/.*/)
+            keyClick(Qt.Key_Return)
+            tryCompare(stackView, "pushes", before + 1, 3000)
+            var session = home.appModel.lastSession
+            session.stageFailed("RTSP handshake", 10060, "")
+            streamSegueErrorDialog.text = "Starting RTSP handshake failed: Error 10060"   // (StreamSegue)
+            session.sessionFinished(0)
+            verify(launchScreen.active)
+            compare(launchScreen.errorTitle, "Le lancement a échoué")
+            compare(launchScreen.error, "La connexion au flux a échoué (RTSP handshake, erreur 10060).")
+            compare(streamSegueErrorDialog.text, "")    // pas de dialog « bureau »
+            verify(!launchScreen.canWake)               // le PC répond : rien à réveiller
+            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)   // A : Réessayer
+            compare(launchScreen.error, "")
+            tryCompare(stackView, "pushes", before + 2, 3000)
+            home.appModel.lastSession.stageFailed("RTSP handshake", 10060, "")
+            home.appModel.lastSession.sessionFinished(0)
+            verify(launchScreen.error !== "")
+            keyClick(Qt.Key_Escape)                     // B : Annuler
+            verify(!screen.launching)
+            tryCompare(launchScreen, "active", false, 3000)
+        }
+
+        // PC hors ligne et sans réveil possible : « Connexion à … », « Nouvelle tentative… »,
+        // puis « … ne répond pas » ; s'il revient pendant l'attente, le lancement reprend.
+        function test_5d_unreachablePc() {
+            var pc = home.computerModel, before = stackView.pushes
+            pc.setProperty(0, "wakeable", false)
+            pc.setProperty(0, "online", false)
+            ignoreWarning(/.*/)
+            keyClick(Qt.Key_Return)
+            tryCompare(launchScreen, "active", true, 1000)
+            compare(launchScreen.steps, ["Connexion à Djinger…", "Nouvelle tentative…"])
+            tryCompare(launchScreen, "step", 1, Theme.reachRetry + 500)
+            tryCompare(launchScreen, "errorTitle", "Djinger ne répond pas", Theme.reachRetry + 500)
+            verify(!launchScreen.canWake)
+            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)   // Réessayer…
+            compare(launchScreen.error, "")
+            compare(launchScreen.step, 0)
+            pc.setProperty(0, "online", true)                    // …et le PC répond
+            tryCompare(stackView, "pushes", before + 1, 3000)
+            home.appModel.lastSession.sessionFinished(0)
+            tryCompare(launchScreen, "active", false, 3000)
+            pc.setProperty(0, "wakeable", true)
+            pc.setProperty(0, "online", false)
+            pc.setProperty(0, "online", true)
         }
 
         // Fin du flux : la fenêtre de l'accueil réapparaît noire, avec le logo.
@@ -271,6 +325,7 @@ Item {
             compare(curtain.status, "")
             curtain.dismiss()
             tryCompare(curtain, "covering", false, 3000)   // après son temps minimal
+            tryCompare(curtain, "active", false, 3000)
             win.requestActivate()
         }
 
@@ -292,10 +347,10 @@ Item {
             keyClick(Qt.Key_Right); keyClick(Qt.Key_Return)               // « Mettre à jour »
             compare(CompanionClient.updateAnswers[CompanionClient.updateAnswers.length - 1], true)
             compare(launchScreen.steps.length, 4)
-            compare(launchScreen.steps[1], "Mise à jour de 2,4 Go sur le PC")
+            compare(launchScreen.steps[1], "Mise à jour de 2,4 Go sur le PC…")
             compare(launchScreen.step, 1)
             CompanionClient.updateProgress("s", 50, 1, 2)
-            compare(launchScreen.stepProgress, 0.5)
+            compare(launchScreen.progress, 0.5)         // l'anneau se remplit
             CompanionClient.launchStateChanged("s", "game-0", "ARMING")
             compare(launchScreen.step, 2)
 
@@ -330,6 +385,7 @@ Item {
             keyClick(Qt.Key_Return)
             tryCompare(launchScreen, "active", true, 1000)
             CompanionClient.launchFailed("s", "GAME_NOT_INSTALLED", "Le jeu n'est pas installé sur le PC.")
+            compare(launchScreen.errorTitle, "Le lancement a échoué")
             compare(launchScreen.error, "Le jeu n'est pas installé sur le PC.")
             var cancels = CompanionClient.cancels
             keyClick(Qt.Key_Escape)                 // B ferme l'écran d'erreur, sans rien annuler côté PC
@@ -586,14 +642,14 @@ Item {
             keyClick(Qt.Key_Return)
             compare(pc.wakes, wakes + 1)
             tryCompare(launchScreen, "active", true, 1000)
-            compare(launchScreen.steps[0], "Réveil de Djinger")
+            compare(launchScreen.steps[0], "Réveil de Djinger…")
             compare(launchScreen.step, 0)
             wait(1200)
             compare(stackView.pushes, before)       // rien tant que le PC dort
             pc.setProperty(0, "online", true)
             tryCompare(launchScreen, "step", 2, 2000)   // réveil fait, lancement fait : ouverture du flux
             compare(launchScreen.steps.length, 3)
-            compare(launchScreen.steps[1], "Lancement de " + name)
+            compare(launchScreen.steps[1], "Lancement de " + name + "…")
             tryCompare(stackView, "pushes", before + 1, 2000)
             home.appModel.lastSession.sessionFinished(0)
         }
@@ -709,12 +765,12 @@ Item {
             compare(apps.quits, quits + 1)
             verify(curtain.revealed && curtain.waiting)
             compare(curtain.status, "Fermeture de Hades II…")
-            verify(!screen.entryAllowed)
+            verify(screen.launching)                // l'accueil reste caché
             InputStatus.homePressed()               // la manette reste au rideau
             verify(!dialog("Menu"))
             ComputerManager.quitAppCompleted(null)
             tryCompare(curtain, "covering", false, 3000)   // après son temps minimal
-            verify(screen.entryAllowed)                    // l'accueil rentre
+            verify(!screen.launching)                      // l'accueil revient
             tryCompare(curtain, "visible", false, 3000)
             apps.runningName = ""
             home.homeGuardUntil = 0
@@ -782,7 +838,6 @@ Item {
             var before = stackView.pushes
             keyClick(Qt.Key_Return)
             tryCompare(launchScreen, "active", true, 1000)
-            verify(launchScreen.steps[launchScreen.steps.length - 1].indexOf("p90") > 0)
             tryCompare(stackView, "pushes", before + 1, 3000)
             compare(p.fps, 90)                              // le temps de la session…
             home.appModel.lastSession.sessionFinished(0)

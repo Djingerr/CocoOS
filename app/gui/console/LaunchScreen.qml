@@ -1,68 +1,78 @@
 import QtQuick
+import QtQuick.Effects
 
-// Écran de lancement d'un jeu : son illustration en plein écran, puis un voile
-// et la progression (une ligne d'étape, une barre qui avance par étapes).
-// Présentation pure : l'appelant fournit les étapes et dit où l'on en est.
+// Lancement d'un jeu (MotionLancement) : la jaquette du carrousel grandit jusqu'au plein écran
+// pendant que l'image du jeu la remplace, puis l'anneau, le nom du jeu et l'état (« Réveil de
+// PC-Salon… », « Lancement de Minecraft… », « Connexion au flux vidéo… »). Échec (MotionEchec) :
+// l'anneau secoue et devient « ! », « PC-Salon ne répond pas », A Réessayer / Y Réveiller le PC /
+// B Annuler. Présentation pure : l'appelant fournit les états et dit où l'on en est.
 //
-// Remplit son parent et se dessine, comme HomeScreen, sur un canevas de 800 de
-// haut mis à l'échelle. À poser AU-DESSUS de la pile d'écrans de Moonlight : il
-// doit rester visible pendant que la page de connexion d'origine travaille dessous.
+// Remplit son parent et se dessine, comme HomeScreen, sur un canevas de 800 de haut mis à
+// l'échelle. À poser AU-DESSUS de la pile d'écrans de Moonlight : il reste visible pendant que
+// la page de connexion d'origine travaille dessous.
 FocusScope {
     id: root
 
-    property url image                  // illustration du jeu
-    // Vignette d'où part l'écran : sa place sur le canevas et sa jaquette. Le cadre
-    // grandit de là jusqu'au plein écran ; sans elle (origin vide), simple fondu.
+    property url image                  // image du jeu (fond Playnite)
+    // Jaquette d'où part l'écran : sa place sur le canevas et son image. Sans elle (origin
+    // vide), l'image du jeu apparaît en fondu.
     property rect origin: Qt.rect(0, 0, 0, 0)
     property url thumbnail
-    readonly property bool fromThumb: origin.width > 0
-    property real grow: 1               // 0 = à la place de la vignette, 1 = plein écran
-    property var steps: []              // libellés des étapes, dans l'ordre
-    property int step: 0                // étape en cours
-    // Avancement dans l'étape en cours, de 0 à 1. À 1 (par défaut), la barre va
-    // d'un trait au bout de l'étape ; sinon elle suit cette valeur.
-    property real stepProgress: 1
-    property string error: ""           // non vide : le lancement a échoué, voici pourquoi
-    property bool cancellable: false    // B peut encore annuler
-    property string hint: ""            // indication en bas d'écran, quand B n'a plus d'effet
+    property string title               // nom du jeu, sous l'anneau
+    property var steps: []              // états, dans l'ordre (« Lancement de Minecraft… »)
+    property int step: 0
+    property real progress: -1          // avancement connu de l'étape (mise à jour), sinon -1
+    property bool cancellable: false    // B annule (préparation par le Companion)
+    // Échec : son titre et son explication. Réessayer, et Réveiller le PC si `canWake`.
+    property string error: ""
+    property string errorTitle: ""
+    property bool canWake: false
     // Fige les animations. Moonlight bloque l'interface en préparant son décodeur :
     // mieux vaut une image immobile qu'une animation qui saute.
     property bool frozen: false
 
-    signal opened()                     // l'écran couvre tout, la progression est en place
-    signal cancelRequested()            // B : annulation, ou fermeture après une erreur
+    signal opened()                     // l'écran couvre tout, l'anneau est en place
+    signal cancelRequested()            // B : annulation, ou abandon après un échec
+    signal retryRequested()             // A après un échec
+    signal wakeRequested()              // Y après un échec
 
     property bool active: false
-    property bool progressShown: false
-    property real bar: 0                // remplissage de la barre, de 0 à 1
-    readonly property real barTarget: steps.length > 0 ? Math.min(1, (step + stepProgress) / steps.length) : 0
+    property bool leaving: false        // il retourne à la jaquette : l'accueil revient déjà
+    readonly property bool covering: active && !leaving
+    readonly property bool failed: error !== ""
+    property bool loaderShown: false
+    property bool ready: false          // le flux arrive : l'anneau se remplit, puis s'en va
+    property real grow: 1
+    property real art: 1
 
     visible: active
 
     function open() {
-        outro.stop()
-        shrink.stop()
-        error = ""
-        frozen = false
-        progressShown = false
-        bar = 0
+        intro.stop(); shrink.stop(); outro.stop()
+        error = ""; errorTitle = ""; frozen = false
+        ready = false; loaderShown = false; leaving = false
         content.opacity = 1
-        grow = fromThumb ? 0 : 1
-        art.opacity = fromThumb ? 0 : 1
-        frame.opacity = fromThumb ? 1 : 0
-        shade.opacity = 0
+        grow = frame.fromThumb ? 0 : 1
+        art = frame.fromThumb ? 0 : 1
         active = true
         forceActiveFocus()
         intro.restart()
     }
-    // Disparition immédiate (le flux démarre) ou animée (retour à l'accueil) : parti de la
-    // vignette, il y retourne en rétrécissant ; sinon, en fondu.
+    // Le flux arrive : l'anneau se remplit, puis l'ensemble grandit en se floutant.
+    function complete() {
+        if (!active) return
+        Sounds.stop("connecting_loop")
+        ready = true
+    }
+    // Disparition immédiate (le flux a pris l'écran) ou animée (retour à l'accueil) : partie
+    // de la jaquette, l'image y retourne en rétrécissant ; sinon, en fondu.
     function close(animated) {
         if (!active) return
         intro.stop()
-        barMove.stop()
-        if (animated && fromThumb) {
-            progressShown = false
+        Sounds.stop("connecting_loop")
+        leaving = true
+        if (animated && frame.fromThumb) {
+            loaderShown = false
             shrink.restart()
         } else if (animated) {
             outro.restart()
@@ -71,97 +81,87 @@ FocusScope {
         }
     }
 
-    onBarTargetChanged: advanceBar()
-    onProgressShownChanged: advanceBar()
-
-    // La cible est posée ici, pas par une liaison : elle doit être à jour au
-    // moment précis où l'animation repart.
-    function advanceBar() {
-        if (!progressShown) return
-        barMove.to = barTarget
-        barMove.restart()
+    onLoaderShownChanged: if (loaderShown && !failed && !ready) Sounds.play("connecting_loop")
+    onFailedChanged: {
+        if (failed) {
+            Sounds.stop("connecting_loop")
+            Sounds.play("host_unreachable")
+            shake.restart()
+        } else if (loaderShown) {
+            Sounds.play("connecting_loop")
+        }
     }
 
-    // Tout est avalé : l'accueil, dessous, ne doit pas réagir.
+    // Tout est avalé : l'accueil, dessous, ne doit pas réagir. A agit au relâché.
+    property bool aDown: false
     Keys.onPressed: function(event) {
         event.accepted = true
-        if (event.key === Qt.Key_Escape && !event.isAutoRepeat && (cancellable || error !== ""))
+        if (event.isAutoRepeat) return
+        if (event.key === Qt.Key_Escape && (cancellable || failed))
             cancelRequested()
+        else if (failed && (event.key === Qt.Key_Return || event.key === Qt.Key_Enter))
+            aDown = true
+        else if (failed && root.canWake && event.key === Qt.Key_Hangup)
+            wakeRequested()
     }
-
+    Keys.onReleased: function(event) {
+        event.accepted = true
+        if (event.isAutoRepeat) return
+        if ((event.key === Qt.Key_Return || event.key === Qt.Key_Enter) && aDown) {
+            aDown = false
+            if (failed) {
+                Sounds.play("select")
+                retryRequested()
+            }
+        }
+    }
     ParallelAnimation {
         id: intro
         paused: running && root.frozen
-        // Depuis la vignette : le cadre grandit, l'illustration remplace la jaquette.
         SequentialAnimation {
-            PauseAnimation { duration: root.fromThumb ? 0 : Theme.launchImageDelay }
-            ParallelAnimation {
-                NumberAnimation {
-                    target: frame; property: "opacity"; to: 1
-                    duration: root.fromThumb ? 0 : Theme.launchImageFade
-                }
-                NumberAnimation {
-                    target: root; property: "grow"; to: 1
-                    duration: root.fromThumb ? Theme.launchGrow : 0
-                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springGentle.curve
-                }
-                NumberAnimation {
-                    target: art; property: "opacity"; to: 1
-                    duration: root.fromThumb ? Theme.launchGrow : 0
-                }
-                NumberAnimation {
-                    target: art; property: "scale"; from: root.fromThumb ? 1 : Theme.launchImageZoom; to: 1
-                    duration: Theme.launchImageSettle; easing.type: Theme.easeQuint
-                }
+            PauseAnimation { duration: frame.fromThumb ? Theme.launchFrameDelay : 0 }
+            NumberAnimation {
+                target: root; property: "grow"; to: 1
+                duration: frame.fromThumb ? Theme.motion(Theme.launchFrameGrow, Theme.curveMain).duration : 0
+                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
             }
         }
         SequentialAnimation {
-            PauseAnimation { duration: Theme.launchShadeDelay }
-            NumberAnimation { target: shade; property: "opacity"; from: 0; to: Theme.launchShade; duration: Theme.launchShadeFade }
+            PauseAnimation { duration: Theme.launchArtDelay }
+            NumberAnimation { target: root; property: "art"; to: 1; duration: Theme.launchArtFade }
         }
         SequentialAnimation {
-            PauseAnimation { duration: Theme.launchProgressDelay }
-            ScriptAction { script: { root.progressShown = true; Sounds.play("launch") } }
+            PauseAnimation { duration: Theme.launchLoaderAt }
+            ScriptAction { script: root.loaderShown = true }
         }
         SequentialAnimation {
             PauseAnimation { duration: Theme.launchOpened }
             ScriptAction { script: root.opened() }
         }
     }
-    NumberAnimation {
-        id: barMove
-        target: root; property: "bar"
-        duration: Theme.launchStep; easing.type: Easing.InOutCubic
-        paused: running && root.frozen
-    }
     SequentialAnimation {
         id: outro
-        NumberAnimation { target: content; property: "opacity"; to: 0; duration: Theme.launchClose }
+        NumberAnimation { target: content; property: "opacity"; to: 0; duration: Theme.returnArtFade }
         ScriptAction { script: root.active = false }
     }
+    // Retour (annulation, échec) : comme au retour d'un jeu (MotionQuitter).
     SequentialAnimation {
         id: shrink
-        PauseAnimation { duration: Theme.launchShrinkDelay }
         ParallelAnimation {
-            NumberAnimation {
-                target: root; property: "grow"; to: 0; duration: Theme.launchShrink
-                easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveShrink
+            SequentialAnimation {
+                PauseAnimation { duration: Theme.returnFrameDelay }
+                NumberAnimation {
+                    target: root; property: "grow"; to: 0
+                    duration: Theme.motion(Theme.returnFrameShrink, Theme.curveMain).duration
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
+                }
             }
-            NumberAnimation { target: art; property: "opacity"; to: 0; duration: Theme.launchShrink }
-            NumberAnimation { target: shade; property: "opacity"; to: 0; duration: Theme.launchShrink }
+            SequentialAnimation {
+                PauseAnimation { duration: Theme.returnArtDelay }
+                NumberAnimation { target: root; property: "art"; to: 0; duration: Theme.returnThumbFade }
+            }
         }
         ScriptAction { script: root.active = false }
-    }
-
-    component StageLine: Text {
-        property string value
-        width: Theme.launchProgressWidth; height: Theme.launchStageHeight
-        horizontalAlignment: Text.AlignHCenter
-        verticalAlignment: Text.AlignVCenter
-        text: value
-        color: root.error !== "" ? Theme.accent : Theme.ink
-        elide: Text.ElideRight
-        font.family: Theme.fontUi; font.pixelSize: Theme.launchStageSize
     }
 
     Item {
@@ -171,126 +171,210 @@ FocusScope {
         scale: Theme.scale
         transformOrigin: Item.TopLeft
 
-        // L'illustration, sur fond noir, qui recouvre l'accueil : en fondu, ou en
-        // grandissant depuis la vignette du jeu.
-        Rectangle {
+        LaunchFrame {
             id: frame
-            x: root.origin.x * (1 - root.grow)
-            y: root.origin.y * (1 - root.grow)
-            width: root.origin.width + (parent.width - root.origin.width) * root.grow
-            height: root.origin.height + (parent.height - root.origin.height) * root.grow
-            color: Theme.background
-            opacity: 0
-            clip: true
-
-            Image {
-                anchors.fill: parent
-                visible: root.fromThumb && root.grow < 1
-                source: root.thumbnail
-                fillMode: Image.PreserveAspectCrop
-                asynchronous: false         // déjà en cache : la vignette est à l'écran
-                sourceSize.height: Math.round(Theme.shelfThumbSize.height * Theme.shelfActiveScale * Theme.scale)
-            }
-            Image {
-                id: art
-                anchors.fill: parent
-                transformOrigin: Item.TopLeft
-                source: root.image
-                fillMode: Image.PreserveAspectCrop
-                asynchronous: true
-                // (à la taille de l'écran, pas du cadre qui grandit : elle ne se recharge pas en route)
-                sourceSize.height: Math.round(Theme.canvasHeight * Theme.scale)
-            }
-            Rectangle { id: shade; anchors.fill: parent; color: Theme.background; opacity: 0 }
+            origin: root.origin
+            grow: root.grow
+            thumbnail: root.thumbnail
+            image: root.image
+            art: root.art
+            drift: root.active
+            dim: root.failed ? Theme.failDim : Theme.launchDim
+            Behavior on dim { NumberAnimation { duration: Theme.failDimFade } }
         }
 
-        // La progression
+        // L'anneau, le nom du jeu et l'état ; à l'échec, le « ! », le titre, l'explication et
+        // les boutons. La colonne remonte pour leur faire place.
         Item {
+            id: column
             x: (parent.width - width) / 2
-            y: Theme.launchProgressY
-            width: Theme.launchProgressWidth
-            opacity: root.progressShown ? 1 : 0
-            transform: Translate { y: root.progressShown ? 0 : Theme.launchProgressShift
-                Behavior on y { NumberAnimation { duration: Theme.launchProgressMove; easing.type: Theme.easeQuint } }
-            }
-            Behavior on opacity { NumberAnimation { duration: Theme.launchProgressFade } }
-
-            SwapBox {
-                id: stage
-                width: parent.width; height: Theme.launchStageHeight
-                duration: Theme.launchStageSwap
-                animated: root.progressShown
-                key: root.error !== "" ? qsTr("Le lancement a échoué") : (root.steps[root.step] || "")
-                value: key
-
-                StageLine {}
-                StageLine {}
-            }
-            Rectangle {
-                y: stage.height + Theme.launchTrackTop
-                width: parent.width; height: Theme.launchTrackHeight
-                radius: height / 2
-                visible: root.error === ""
-                color: Theme.launchTrackColor
-                Rectangle {
-                    width: parent.width * root.bar; height: parent.height
-                    radius: parent.radius
-                    color: Theme.accent
+            y: root.failed ? Theme.failColumnTop : Theme.launchColumnTop
+            Behavior on y {
+                NumberAnimation {
+                    duration: Theme.motion(Theme.failRise, Theme.curveMain).duration
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
                 }
             }
-            Text {
-                y: stage.height + Theme.launchMessageTop
-                width: parent.width
-                visible: root.error !== ""
-                text: root.error
-                color: Theme.ink2
-                horizontalAlignment: Text.AlignHCenter
-                wrapMode: Text.WordWrap
-                font.family: Theme.fontUi; font.pixelSize: Theme.launchMessageSize
+            width: Theme.failColumnWidth
+            height: Theme.canvasHeight - y
+
+            readonly property bool exiting: root.ready && !root.failed
+            opacity: root.loaderShown && !exiting ? 1 : 0
+            visible: opacity > 0
+            scale: exiting ? Theme.launchLoaderExitScale : root.loaderShown ? 1 : Theme.launchLoaderFrom
+            transformOrigin: Item.Top
+            Behavior on opacity { NumberAnimation { duration: Theme.launchLoaderFade } }
+            Behavior on scale {
+                enabled: !Theme.reducedMotion
+                NumberAnimation {
+                    duration: Theme.launchLoaderMove
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
+                }
+            }
+            property real blurPx: exiting && !Theme.reducedMotion ? Theme.launchLoaderExitBlur : 0
+            Behavior on blurPx { NumberAnimation { duration: Theme.launchLoaderFade } }
+            layer.enabled: blurPx > 0.1 && GraphicsInfo.api !== GraphicsInfo.Software
+            layer.effect: MultiEffect { blurEnabled: true; blurMax: 16; blur: column.blurPx / 16 }
+
+            Item {
+                id: ringBox
+                anchors.horizontalCenter: parent.horizontalCenter
+                width: Theme.ringSize; height: width
+                // Échec : l'anneau secoue (cocoShake).
+                property real shakeProgress: 1
+                transform: Translate {
+                    x: {
+                        var keys = Theme.failShakeKeys, at = ringBox.shakeProgress * (keys.length - 1)
+                        var i = Math.min(Math.floor(at), keys.length - 2)
+                        return keys[i] + (keys[i + 1] - keys[i]) * (at - i)
+                    }
+                }
+                NumberAnimation {
+                    id: shake
+                    target: ringBox; property: "shakeProgress"; from: 0; to: 1
+                    duration: Theme.reducedMotion ? 0 : Theme.failShake
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.failShakeCurve
+                }
+
+                LoaderRing {
+                    anchors.fill: parent
+                    spinning: !root.failed && !root.ready && root.progress < 0
+                    track: root.failed ? Theme.failRingTrack : Theme.ringTrack
+                    Behavior on track { ColorAnimation { duration: Theme.failRingFade } }
+                    fill: root.failed ? 0 : root.ready ? 1 : Math.max(0, root.progress)
+                    Behavior on fill {
+                        NumberAnimation { duration: Theme.ringFill; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain }
+                    }
+                }
+                Text {
+                    anchors.centerIn: parent
+                    text: "!"
+                    color: Theme.ink
+                    font.family: Theme.fontUi; font.pixelSize: Theme.failBangSize; font.weight: Font.Bold
+                    opacity: root.failed ? 1 : 0
+                    scale: root.failed ? 1 : Theme.failBangFrom
+                    Behavior on opacity { SequentialAnimation { PauseAnimation { duration: root.failed ? Theme.failBangDelay : 0 } NumberAnimation { duration: Theme.launchStatusFade } } }
+                    Behavior on scale { SequentialAnimation { PauseAnimation { duration: root.failed ? Theme.failBangDelay : 0 }
+                        NumberAnimation { duration: Theme.failBangMove; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveFailBang } } }
+                }
+            }
+
+            // Nom du jeu, ou titre de l'échec.
+            Item {
+                id: titleBox
+                y: ringBox.height + Theme.launchTitleGap
+                width: parent.width; height: Theme.failTitleHeight
+                Rise {
+                    shown: !root.failed
+                    shift: -Theme.failShift; fadeDelay: 0
+                    text: root.title
+                    size: Theme.launchTitleSize; weight: Font.DemiBold
+                    color: Theme.ink
+                }
+                Rise {
+                    shown: root.failed
+                    shift: Theme.failShift; fadeDelay: Theme.failTitleDelay
+                    text: root.errorTitle
+                    size: Theme.failTitleSize; weight: Font.DemiBold
+                    color: Theme.ink
+                }
+            }
+            // État, ou explication de l'échec.
+            Item {
+                id: statusBox
+                y: titleBox.y + Theme.launchTitleLine + Theme.launchStatusGap
+                width: parent.width; height: Theme.failBodyHeight
+                Repeater {
+                    model: root.steps
+                    Text {
+                        id: line
+                        required property int index
+                        required property string modelData
+                        readonly property bool current: index === root.step && !root.failed
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        text: modelData
+                        color: Theme.launchStatusInk
+                        elide: Text.ElideRight
+                        font.family: Theme.fontUi; font.pixelSize: Theme.launchStatusSize; font.weight: Font.Medium
+                        opacity: current ? 1 : 0
+                        visible: opacity > 0
+                        Behavior on opacity { NumberAnimation { duration: Theme.launchStatusFade } }
+                        transform: Translate {
+                            y: line.current || Theme.reducedMotion ? 0 : line.index < root.step ? -Theme.launchStatusShift : Theme.launchStatusShift
+                            Behavior on y { NumberAnimation { duration: Theme.launchStatusMove; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain } }
+                        }
+                    }
+                }
+                Text {
+                    width: parent.width
+                    horizontalAlignment: Text.AlignHCenter
+                    wrapMode: Text.WordWrap
+                    maximumLineCount: 4
+                    elide: Text.ElideRight
+                    text: root.error
+                    color: Theme.failBodyInk
+                    lineHeight: 1.5
+                    font.family: Theme.fontUi; font.pixelSize: Theme.failBodySize
+                    opacity: root.failed ? 1 : 0
+                    Behavior on opacity { SequentialAnimation { PauseAnimation { duration: root.failed ? Theme.failBodyDelay : 0 } NumberAnimation { duration: Theme.launchStatusFade } } }
+                    transform: Translate {
+                        y: root.failed || Theme.reducedMotion ? 0 : Theme.failShift
+                        Behavior on y { SequentialAnimation { PauseAnimation { duration: root.failed ? Theme.failBodyDelay : 0 }
+                            NumberAnimation { duration: Theme.failMove; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain } } }
+                    }
+                }
+            }
+            // A Réessayer · Y Réveiller le PC · B Annuler
+            Row {
+                anchors.horizontalCenter: parent.horizontalCenter
+                y: statusBox.y + statusBox.height + Theme.failButtonsGap
+                spacing: Theme.homeButtonsGap
+                opacity: root.failed ? 1 : 0
+                visible: opacity > 0
+                Behavior on opacity { SequentialAnimation { PauseAnimation { duration: root.failed ? Theme.failButtonsDelay : 0 } NumberAnimation { duration: Theme.launchStatusFade } } }
+                transform: Translate {
+                    y: root.failed || Theme.reducedMotion ? 0 : Theme.failButtonsShift
+                    Behavior on y { SequentialAnimation { PauseAnimation { duration: root.failed ? Theme.failButtonsDelay : 0 }
+                        NumberAnimation { duration: Theme.failButtonsMove; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain } } }
+                }
+                PillButton {
+                    primary: true; glyph: "A"; label: qsTr("Réessayer")
+                    labelSize: Theme.failPrimarySize
+                    down: root.aDown
+                    onClicked: { Sounds.play("select"); root.retryRequested() }
+                }
+                PillButton {
+                    visible: root.canWake
+                    glyph: "Y"; label: qsTr("Réveiller le PC")
+                    onClicked: root.wakeRequested()
+                }
+                PillButton {
+                    glyph: "B"; label: qsTr("Annuler")
+                    onClicked: root.cancelRequested()
+                }
             }
         }
+    }
 
-        // « B Annuler » tant que c'est possible, « B Fermer » après une erreur, sinon
-        // l'indication fournie (comment quitter le jeu, par exemple).
-        Rectangle {
-            anchors.horizontalCenter: parent.horizontalCenter
-            anchors.bottom: parent.bottom
-            anchors.bottomMargin: Theme.hintBottom
-            width: hint.width + 2 * Theme.hintPadH
-            height: hint.height + 2 * Theme.hintPadV
-            radius: height / 2
-            color: Theme.hintFill
-            opacity: root.progressShown && hintLabel.text !== "" ? Theme.hintOpacity : 0
-            Behavior on opacity { NumberAnimation { duration: Theme.launchProgressFade } }
-            // À la souris, comme B : survolée elle grandit, cliquée elle s'écrase.
-            readonly property bool clickable: root.cancellable || root.error !== ""
-            scale: hintMouse.pressed ? Theme.pressScale : hintMouse.containsMouse ? Theme.hoverScale : 1
-            Behavior on scale {
-                NumberAnimation {
-                    duration: Theme.springSnappy.duration
-                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.springSnappy.curve
-                }
-            }
-            HoverArea {
-                id: hintMouse
-                anchors.fill: parent
-                enabled: parent.clickable && parent.opacity > 0
-                onClicked: root.cancelRequested()
-            }
-
-            Row {
-                id: hint
-                anchors.centerIn: parent
-                spacing: Theme.hintGap
-                ButtonGlyph { label: "B"; visible: root.cancellable || root.error !== "" }
-                Text {
-                    id: hintLabel
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: root.error !== "" ? qsTr("Fermer") : root.cancellable ? qsTr("Annuler") : root.hint
-                    color: Theme.ink
-                    font.family: Theme.fontUi; font.pixelSize: Theme.hintSize
-                }
-            }
+    // Texte qui monte (ou descend) en fondu, centré dans sa boîte.
+    component Rise: Text {
+        id: rise
+        property bool shown: false
+        property real shift: 0
+        property int fadeDelay: 0
+        property real size: 14
+        property int weight: Font.Normal
+        width: parent.width
+        horizontalAlignment: Text.AlignHCenter
+        elide: Text.ElideRight
+        font.family: Theme.fontUi; font.pixelSize: size; font.weight: weight
+        font.letterSpacing: -0.02 * size
+        opacity: shown ? 1 : 0
+        Behavior on opacity { SequentialAnimation { PauseAnimation { duration: shown ? fadeDelay : 0 } NumberAnimation { duration: Theme.launchStatusFade } } }
+        transform: Translate {
+            y: rise.shown || Theme.reducedMotion ? 0 : rise.shift
+            Behavior on y { NumberAnimation { duration: Theme.failMove; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain } }
         }
     }
 }

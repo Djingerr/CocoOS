@@ -205,15 +205,11 @@ QtObject {
     readonly property int bootStepSize: 13           // Sora 400
     readonly property color bootStepInk: "#6E6E6E"
     readonly property int bootDiscoveryGrace: 3000
-    // Rideau entre un jeu et l'accueil (StreamCurtain) : le logo au repos de
-    // l'animation de démarrage, la même ligne d'état (bootStep*), le O qui respire
-    // pendant une attente (fermeture du jeu sur le PC).
-    readonly property int curtainReveal: 320         // logo et ligne d'état, en fondu
-    readonly property int curtainMinShow: 700        // le logo reste au moins ce temps
-    readonly property int curtainFade: 420           // levée du rideau, easeOut
+    // Rideau entre un jeu et l'accueil (StreamCurtain) : l'image du jeu, floutée, puis
+    // l'anneau pendant une attente (fermeture du jeu sur le PC).
+    readonly property int curtainReveal: 320         // image et ligne d'état, en fondu
+    readonly property int curtainMinShow: 700        // l'image reste au moins ce temps
     readonly property int curtainMaxWait: 8000       // le PC ne répond pas : on lève quand même
-    readonly property int curtainBreath: 1400        // période de la respiration du O
-    readonly property real curtainBreathScale: 1.08
 
     // --- Fond (BackdropLayer) : l'art du jeu flouté (AccueilCarrousel, MotionNavigation) ---
     readonly property int backdropDebounce: 140      // attente après le dernier déplacement
@@ -691,8 +687,6 @@ QtObject {
     readonly property int entryCardSpan: 6           // …(au plus 6 rangs d'écart)
     readonly property real entryCardScale: 0.97      // …depuis cette échelle
     readonly property int enterSettle: 1100          // après quoi plus rien n'est décalé
-    readonly property int backdropZoomDuration: 1100 // easeOut (lancement)
-    readonly property point backdropZoomOrigin: Qt.point(0.62, 0.46)   // fraction de l'écran
     // La dérive du fond s'arrête après ce délai sans action (économie de batterie).
     readonly property int driftIdleTimeout: 10000
 
@@ -721,7 +715,7 @@ QtObject {
     readonly property int autoWakeDelay: 4000        // PC hors ligne au démarrage : réveil d'office après…
     readonly property int wakeTimeout: 90000         // …puis abandon s'il ne répond pas (démarrage à froid)
     readonly property int companionWait: 8000        // PC réveillé : délai laissé au Companion pour se reconnecter
-    readonly property real wakeStepProgress: 0.35    // avancement affiché de l'étape « Réveil » tant qu'il dort
+    readonly property int reachRetry: 1300           // PC injoignable : « Nouvelle tentative… », puis l'échec
 
     readonly property int wifiRescan: 10000          // liste des réseaux rafraîchie pendant qu'elle est ouverte
 
@@ -1153,58 +1147,129 @@ QtObject {
     readonly property real waitBarSpan: 0.28         // part de la piste
     readonly property int waitBarSweep: 1400         // un passage, InOutCubic
 
-    // --- Lancement d'un jeu : l'accueil s'efface, LaunchScreen prend l'écran ---
-    // C'est la seule animation « signature » de l'interface.
-    readonly property int launchPress: 120           // le bouton Jouer reste enfoncé, puis l'écran de lancement s'ouvre
-    readonly property int launchHide: 260            // barre haute, héros et étagère s'effacent
-    readonly property int launchHeroShift: -28       // le héros part vers la gauche
-    readonly property int launchShelfShift: 26       // l'étagère descend
-    readonly property real launchBackdropZoom: 1.12  // le fond zoome (backdropZoomDuration)…
-    readonly property int launchScrimFade: 700       // …et son voile disparaît
-    // L'illustration du jeu apparaît en plein écran, avec un léger zoom arrière.
-    // La vignette grandit jusqu'au plein écran (prototype : ressort « souple » étiré de 80 ms).
-    readonly property int launchGrow: springGentle.duration + 80
-    readonly property int launchImageDelay: 180
-    readonly property int launchImageFade: 560
-    readonly property real launchImageZoom: 1.12
-    readonly property int launchImageSettle: 1200    // easeQuint
-    // Puis un voile noir la calme, et la progression apparaît.
-    readonly property real launchShade: 0.64
-    readonly property int launchShadeDelay: 420
-    readonly property int launchShadeFade: 420
-    readonly property int launchProgressDelay: 640
-    readonly property int launchProgressFade: 240
-    readonly property int launchProgressMove: 360    // easeQuint
-    readonly property int launchProgressShift: 8
+    // Écran de message (HomeScreen.staged) : le bloc titre part à gauche, le carrousel descend.
+    readonly property int stageHide: 260
+    readonly property int stageHeroShift: -28
+    readonly property int stageShelfShift: 26
+
+    // --- Lancement d'un jeu (MotionLancement) : la jaquette grandit jusqu'au plein écran ---
+    // Écrans d'attente (MessageScreen) : ligne d'état et piste.
     readonly property int launchProgressWidth: 420   // bloc centré
-    readonly property int launchProgressY: 568
-    readonly property int launchStageSize: 13        // ligne d'étape
-    readonly property int launchStageHeight: 22
-    readonly property int launchStageSwap: 340
+    readonly property int launchStageSize: 13        // ligne d'état
     readonly property int launchTrackTop: 12
     readonly property int launchTrackHeight: 2
     readonly property color launchTrackColor: Qt.rgba(1, 1, 1, 0.16)
-    readonly property int launchStep: 680            // la barre avance d'une étape, InOutCubic
-    readonly property int launchMessageTop: 10       // message d'erreur, sous la ligne d'étape
-    readonly property int launchMessageSize: 14
-    // Ouverture terminée (l'écran couvre tout, la progression est en place) : c'est
-    // seulement alors que Moonlight démarre le flux, qui fige l'interface un instant.
-    readonly property int launchOpened: 1000
-    readonly property int launchStreamStages: 10     // étapes de connexion de Moonlight, environ
-    readonly property int launchClose: 560           // retour à l'accueil (annulation, erreur), en fondu
-    // …ou, parti de la vignette, il y retourne : la progression s'efface, puis le cadre rétrécit
-    // jusqu'à elle (launchShrink après launchShrinkDelay, curveShrink) en rendant la jaquette.
-    readonly property int launchShrink: 420
-    readonly property int launchShrinkDelay: 90
-    readonly property var curveShrink: [0.32, 0.72, 0, 1, 1, 1]
-    // Indication en bas d'écran (« B Annuler »)
-    readonly property int hintBottom: 26
-    readonly property int hintPadV: 8
-    readonly property int hintPadH: 14
-    readonly property int hintGap: 10
-    readonly property int hintSize: 13
-    readonly property color hintFill: Qt.rgba(0, 0, 0, 0.5)
-    readonly property real hintOpacity: 0.8
+    // A relâché : le bouton Jouer reste enfoncé, puis tout part.
+    readonly property int launchPress: 120
+    // L'accueil s'efface (opacité, 14 px vers le bas : curveMain), les jaquettes voisines
+    // s'écartent de 360 px en s'effaçant, de rang en rang.
+    readonly property int launchHomeFade: 320
+    readonly property int launchHomeShift: 14
+    readonly property int launchHomeMove: 420
+    readonly property int launchCoverSpread: 360
+    readonly property int launchCoverMove: 650       // curveMain
+    readonly property int launchCoverFade: 450
+    readonly property int launchCoverStagger: 40
+    // La jaquette grandit jusqu'au plein écran (curveMain), coins de radiusCover à 0 ; l'image
+    // du jeu (assombrie, qui dérive lentement) remplace la jaquette en fondu.
+    readonly property int launchFrameDelay: 120
+    readonly property int launchFrameGrow: 950
+    readonly property int launchArtDelay: 250
+    readonly property int launchArtFade: 800
+    readonly property real launchDim: 0.58
+    readonly property int launchDrift: 14000         // aller ou retour, InOutSine
+    readonly property real launchDriftFrom: 1.02
+    readonly property real launchDriftTo: 1.1
+    readonly property point launchDriftShift: Qt.point(-20, 8)
+    // Puis l'anneau, le nom du jeu et l'état (en fondu, d'une échelle de 0,88).
+    readonly property int launchLoaderAt: 800
+    readonly property int launchLoaderFade: 450
+    readonly property int launchLoaderMove: 650      // curveMain
+    readonly property real launchLoaderFrom: 0.88
+    readonly property real launchLoaderExitScale: 1.18   // le flux arrive : il grandit en se floutant
+    readonly property int launchLoaderExitBlur: 8
+    // Le flux de Moonlight ne démarre qu'une fois l'anneau à l'écran (il fige l'interface).
+    readonly property int launchOpened: 1100
+    readonly property int launchColumnTop: 296       // haut de l'anneau
+    readonly property int launchColumnWidth: 400
+    readonly property int launchTitleGap: 26
+    readonly property int launchTitleSize: 22        // 600
+    readonly property int launchStatusGap: 8
+    readonly property int launchStatusSize: 14       // 500, ink 62 %
+    readonly property int launchStatusHeight: 20
+    readonly property color launchStatusInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.62)
+    readonly property int launchStatusFade: 300      // un état remplace l'autre : fondu…
+    readonly property int launchStatusMove: 400      // …et 8 px de glissement (curveMain)
+    readonly property int launchStatusShift: 8
+    // Anneau de chargement : piste accent à 30 %, arc de 34 sur 127 qui tourne en 1,1 s ;
+    // prêt, il se remplit depuis le haut (480 ms curveMain).
+    readonly property real ringSize: 49.3
+    readonly property real ringStroke: 8.8
+    readonly property color ringTrack: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.3)
+    readonly property real ringArc: 34 / 127.23
+    readonly property int ringSpin: 1100
+    readonly property int ringSpinFade: 200
+    readonly property int ringFill: 480
+
+    // --- Échec du lancement (MotionEchec) : « PC-Salon ne répond pas » ---
+    readonly property real failDim: 0.78             // l'image s'assombrit (600 ms)
+    readonly property int failDimFade: 600
+    readonly property int failColumnTop: 250         // la colonne remonte pour les boutons
+    readonly property int failColumnWidth: 600
+    readonly property int failRise: 450              // curveMain
+    readonly property int failShake: 520             // l'anneau secoue (cocoShake)
+    readonly property var failShakeKeys: [0, -10, 9, -7, 5, -3, 1, 0]
+    readonly property var failShakeCurve: [0.36, 0.07, 0.19, 0.97, 1, 1]
+    readonly property color failRingTrack: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.22)
+    readonly property int failRingFade: 400
+    readonly property int failBangSize: 20           // « ! » au centre de l'anneau (700)
+    readonly property real failBangFrom: 0.4
+    readonly property int failBangDelay: 150
+    readonly property int failBangMove: 500
+    readonly property var curveFailBang: [0.3, 1.5, 0.4, 1, 1, 1]
+    readonly property int failShift: 10              // le nom du jeu monte, le titre de l'échec arrive d'en bas
+    readonly property int failMove: 450              // curveMain
+    readonly property int failTitleDelay: 80
+    readonly property int failTitleSize: 26          // 600
+    readonly property int failTitleHeight: 34
+    readonly property int launchTitleLine: 28        // hauteur de ligne du nom du jeu
+    readonly property int failBodySize: 15           // explication, interligne 1,5
+    readonly property color failBodyInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.7)
+    readonly property int failBodyHeight: 44
+    readonly property int failBodyDelay: 140
+    readonly property int failButtonsGap: 34
+    readonly property int failButtonsDelay: 200
+    readonly property int failButtonsShift: 16
+    readonly property int failButtonsMove: 500       // curveMain
+    readonly property int failPrimarySize: 16        // « Réessayer »
+    readonly property int pillPadRight: 24           // bouton clair d'une pilule (PillButton)
+
+    // --- Retour d'un jeu (MotionQuitter) : l'image se réduit en jaquette, l'accueil revient ---
+    readonly property int returnFrameDelay: 80
+    readonly property int returnFrameShrink: 900     // curveMain
+    readonly property int returnArtBlur: 36          // image du jeu floutée et à 60 % au départ…
+    readonly property real returnArtDim: 0.4
+    readonly property int returnArtClear: 400        // …nette en 400 ms
+    readonly property int returnArtDelay: 380        // puis la jaquette la remplace
+    readonly property int returnArtFade: 450
+    readonly property int returnThumbFade: 500
+    // Les jaquettes voisines arrivent du centre (70 % du chemin, échelle 0,88, à plat).
+    readonly property int returnCoverDelay: 700
+    readonly property int returnCoverStagger: 60
+    readonly property int returnCoverMove: 700       // curveMain
+    readonly property int returnCoverFade: 420
+    readonly property real returnCoverGather: 0.7
+    readonly property real returnCoverScale: 0.88
+    // Bloc titre (18 px plus bas), puis barre haute (10 px plus haut).
+    readonly property int returnTitleDelay: 1050
+    readonly property int returnRiseFade: 450
+    readonly property int returnRiseMove: 620        // curveMain
+    readonly property int returnRiseShift: 18
+    readonly property int returnBarDelay: 1200
+    readonly property int returnBarFade: 500
+    readonly property int returnBarMove: 600
+    readonly property int returnBarShift: -10
+    readonly property int returnSettle: 1800         // tout est en place
 
     // --- Sons (Sounds, pack CocoOS) ---
     // Niveau commun des sons de l'interface (celui du SoundBank de référence) : les

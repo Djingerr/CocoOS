@@ -178,6 +178,48 @@ FocusScope {
 
     Rectangle { anchors.fill: parent; color: Theme.background }
 
+    // S'efface au lancement d'un jeu (fondu, `leaveShift` vers le bas), revient au retour après
+    // `returnDelay`, depuis `shift` (MotionLancement, MotionQuitter). Sans déplacement en
+    // animations réduites.
+    component LaunchFade: Item {
+        id: fade
+        property real shift: 0
+        property real leaveShift: 0
+        property int returnDelay: 0
+        property int returnFade: 0
+        property int returnMove: 0
+        readonly property bool away: root.launching
+        // Au départ, il glisse de `leaveShift` ; une fois effacé, il se place à `shift` pour revenir.
+        property real dy: 0
+        onAwayChanged: {
+            leave.stop(); back.stop()
+            if (away) leave.restart(); else back.restart()
+        }
+        ParallelAnimation {
+            id: leave
+            NumberAnimation { target: fade; property: "opacity"; to: 0; duration: Theme.launchHomeFade }
+            SequentialAnimation {
+                NumberAnimation {
+                    target: fade; property: "dy"; to: Theme.reducedMotion ? 0 : fade.leaveShift; duration: Theme.launchHomeMove
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
+                }
+                PropertyAction { target: fade; property: "dy"; value: Theme.reducedMotion ? 0 : fade.shift }
+            }
+        }
+        SequentialAnimation {
+            id: back
+            PauseAnimation { duration: Theme.reducedMotion ? 0 : fade.returnDelay }
+            ParallelAnimation {
+                NumberAnimation { target: fade; property: "opacity"; to: 1; duration: Theme.reducedMotion ? Theme.reducedSpring.duration : fade.returnFade }
+                NumberAnimation {
+                    target: fade; property: "dy"; to: 0; duration: fade.returnMove
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
+                }
+            }
+        }
+        transform: Translate { y: fade.dy }
+    }
+
     Item {
         id: canvas
         width: root.width / Theme.scale
@@ -209,8 +251,6 @@ FocusScope {
                 anchors.fill: parent
                 driftEnabled: root.driftAllowed && idle.running && !root.launching && !sheet.opened && !Theme.reducedMotion
                 opacity: root.entered ? 1 : 0
-                zoom: root.launching ? Theme.launchBackdropZoom : 1
-                unveiled: root.launching
                 vignetteAt: Qt.point(Theme.vignetteAt.x + (Theme.vignetteAtFiche.x - Theme.vignetteAt.x) * root.detail,
                                      Theme.vignetteAt.y + (Theme.vignetteAtFiche.y - Theme.vignetteAt.y) * root.detail)
                 vignetteIn: Theme.vignetteIn + (Theme.vignetteInFiche - Theme.vignetteIn) * root.detail
@@ -221,7 +261,6 @@ FocusScope {
                         easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveEmph
                     }
                 }
-                Behavior on zoom { NumberAnimation { duration: Theme.backdropZoomDuration; easing.type: Theme.easeOut } }
             }
 
             // Favoris vide : son état (et son fond) à la place du carrousel, sous la barre haute.
@@ -233,16 +272,16 @@ FocusScope {
                 onRecentRequested: root.recentRequested()
             }
 
-            // Chaque bloc est enveloppé deux fois : pour son entrée, puis pour son
-            // effacement à chaque lancement d'un jeu. La barre haute fait entrer ses textes
+            // Au lancement d'un jeu, la barre haute s'efface ; au retour, elle revient la
+            // dernière, de 10 px plus haut (MotionQuitter). Elle fait entrer ses textes
             // elle-même (son logo arrive de l'animation de démarrage).
-            Appear {
+            LaunchFade {
                 anchors { top: parent.top; left: parent.left; right: parent.right }
                 height: status.implicitHeight
-                shown: !root.launching
-                hiddenY: 0
-                hideDuration: Theme.launchHide
-                animateInitially: false
+                shift: Theme.returnBarShift
+                returnDelay: Theme.returnBarDelay
+                returnFade: Theme.returnBarFade
+                returnMove: Theme.returnBarMove
 
                 StatusBar {
                     id: status
@@ -278,12 +317,13 @@ FocusScope {
                 }
             }
 
-            // Le carrousel (fondus des bords compris) : il descend au lancement d'un jeu.
+            // Le carrousel (fondus des bords compris) : il descend sous un écran de message ;
+            // au lancement d'un jeu, ses jaquettes s'écartent (CoverFlow.launching).
             Appear {
                 width: parent.width; height: parent.height
-                shown: !root.launching && !root.staged
-                hiddenY: Theme.launchShelfShift
-                hideDuration: Theme.launchHide
+                shown: !root.staged
+                hiddenY: Theme.stageShelfShift
+                hideDuration: Theme.stageHide
                 animateInitially: false
 
                 CoverFlow {
@@ -293,6 +333,7 @@ FocusScope {
                     // le focus suit ces liaisons, il revient seul à la fermeture.
                     focus: !root.staged && !root.detailOpen && !sheet.opened && !root.heroFocused && !root.statusFocused
                     shown: root.entered
+                    launching: root.launching
                     detailOpen: root.detailOpen
                     onLaunchRequested: function(index) { root.launchRequested(index) }
                     onDetailsRequested: root.detailsRequested()
@@ -318,11 +359,19 @@ FocusScope {
 
                 Appear {
                     anchors.fill: parent
-                    shown: !root.launching && !root.staged
-                    hiddenX: Theme.launchHeroShift
+                    shown: !root.staged
+                    hiddenX: Theme.stageHeroShift
                     hiddenY: 0
-                    hideDuration: Theme.launchHide
+                    hideDuration: Theme.stageHide
                     animateInitially: false
+
+                    LaunchFade {
+                    anchors.fill: parent
+                    shift: Theme.returnRiseShift
+                    leaveShift: Theme.launchHomeShift
+                    returnDelay: Theme.returnTitleDelay
+                    returnFade: Theme.returnRiseFade
+                    returnMove: Theme.returnRiseMove
 
                     HeroBlock {
                         id: hero
@@ -370,17 +419,25 @@ FocusScope {
                         onOptionsRequested: sheet.open()
                         onFavoriteRequested: root.favoriteRequested()
                     }
+                    }
                 }
             }
 
             // Aide en bas : « ◀ ▶ Parcourir   ↓ Plus d'infos ».
-            HomeHelp {
-                anchors.horizontalCenter: parent.horizontalCenter
-                y: Theme.canvasHeight - Theme.helpBottom - height
-                lit: shelf.heldDirection
-                opacity: root.entered && !root.launching && !root.staged && !root.favoritesEmpty && !root.detailOpen
-                         && !favBanner.shown ? 1 : 0
-                Behavior on opacity { NumberAnimation { duration: Theme.entryTextFade } }
+            // (au retour d'un jeu, elle revient avec la barre haute)
+            LaunchFade {
+                anchors.fill: parent
+                returnDelay: Theme.returnBarDelay
+                returnFade: Theme.returnBarFade
+                returnMove: Theme.returnBarMove
+                HomeHelp {
+                    anchors.horizontalCenter: parent.horizontalCenter
+                    y: Theme.canvasHeight - Theme.helpBottom - height
+                    lit: shelf.heldDirection
+                    opacity: root.entered && !root.staged && !root.favoritesEmpty && !root.detailOpen
+                             && !favBanner.shown ? 1 : 0
+                    Behavior on opacity { NumberAnimation { duration: Theme.entryTextFade } }
+                }
             }
 
             Toast { id: toastItem }

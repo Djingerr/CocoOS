@@ -29,6 +29,11 @@ import "Mock.js" as Mock
 //   fiche     1 : la fiche du jeu au centre ouverte d'entrée (FicheEditoriale)
 // Actions (script) en plus : down (la fiche), up (la referme), x (favori), y / b (la feuille
 // d'options), key-down, key-up, key-left, key-right, key-a, key-lb, key-rb (dans la feuille).
+// Lancement (MotionLancement) : press (A enfoncé), launch (A relâché : l'écran s'ouvre ;
+// wake=0 sans « Réveil de … »), step (état suivant), full (anneau plein), stream (le flux prend
+// l'écran : le rideau). Retour (MotionQuitter) : ingame (le rideau, image du jeu, comme au
+// retour d'un flux), back (il se lève). Échec (MotionEchec) : reach (l'écran ouvert sur
+// « Connexion à PC-Salon… »), fail, retry.
 //   time      heure affichée (21:42 par défaut)
 HomeScreen {
     id: demo
@@ -114,6 +119,33 @@ HomeScreen {
     pegi: game ? Format.pegi(game.ageRatings) : ""
     playLabel: game && Library.isUtility(game.name) ? "Ouvrir" : ""
     backdrop: game && game.background && backdropArrived ? game.background : ""
+
+    // --- Lancement, échec et retour d'un jeu ---
+    launching: launchScreen.covering || curtain.covering
+    LaunchScreen {
+        id: launchScreen
+        anchors.fill: parent
+        z: 10
+        title: demo.title
+        canWake: true
+        onCancelRequested: { close(true); demo.pressed = false; demo.shelf.forceActiveFocus() }
+        onRetryRequested: demo.act("retry")
+    }
+    StreamCurtain {
+        id: curtain
+        anchors.fill: parent
+        z: 11
+        title: demo.title
+    }
+    function placeLaunch(fromCover) {
+        launchScreen.image = game.background || ""
+        launchScreen.thumbnail = game.cover || ""
+        launchScreen.origin = fromCover ? activeThumbRect : Qt.rect(0, 0, 0, 0)
+        curtain.image = launchScreen.image
+        curtain.thumbnail = launchScreen.thumbnail
+        curtain.origin = activeThumbRect
+    }
+    Timer { id: launchOpen; interval: Theme.launchPress; onTriggered: launchScreen.open() }
 
     hostName: "PC-Salon"
     connected: true
@@ -240,6 +272,30 @@ HomeScreen {
             else if (k === "down" || k === "up") options.list.step(k === "down" ? 1 : -1)
             else options.list.change(k === "right" ? 1 : -1, false)
         }
+        else if (action === "press") { pressed = true; Sounds.play("launch") }
+        else if (action === "launch") {
+            placeLaunch(true)
+            launchScreen.steps = (args.wake === "0" ? [] : ["Réveil de PC-Salon…"])
+                .concat(["Lancement de " + game.name + "…", "Connexion au flux vidéo…"])
+            launchScreen.step = 0
+            launchOpen.start()
+        }
+        else if (action === "step") launchScreen.step++
+        else if (action === "full") { launchScreen.complete(); Sounds.play("ready") }
+        else if (action === "stream") { curtain.cover(); launchScreen.close(false); pressed = false }
+        else if (action === "ingame") { placeLaunch(true); curtain.cover(); curtain.reveal("") }
+        else if (action === "back") curtain.dismiss()
+        else if (action === "reach") {
+            placeLaunch(false)
+            launchScreen.steps = ["Connexion à PC-Salon…", "Nouvelle tentative…"]
+            launchScreen.step = 0
+            launchScreen.open()
+        }
+        else if (action === "fail") {
+            launchScreen.errorTitle = "PC-Salon ne répond pas"
+            launchScreen.error = "Vérifiez que le PC est allumé et relié au même réseau,\nou réveillez-le à distance."
+        }
+        else if (action === "retry") { launchScreen.error = ""; launchScreen.step = 0 }
         else if (action === "backdrop") backdropArrived = true
         else if (action === "ready") Sounds.play("library_ready")
         else if (action.indexOf("arrive:") === 0) {

@@ -926,8 +926,7 @@ FocusScope {
             home.waking = false
             home.wakeFailed = true
             if (home.launchWaking)
-                launchScreen.error = qsTr("%1 ne répond pas. Vérifiez qu'il est branché et que le réveil à distance (Wake-on-LAN) est activé.")
-                                     .arg(home.activeHostName)
+                home.launchFailed("")
         }
     }
     onActiveHostOnlineChanged: {
@@ -967,6 +966,7 @@ FocusScope {
     property bool launchOpened: false    // LaunchScreen couvre l'écran
     property bool streamStarted: false   // le flux a démarré : au retour, son de retour
     property bool launchWaking: false    // le PC dormait : le lancement attend son réveil
+    property int lastLaunchIndex: -1     // dernier jeu lancé (Réessayer après un échec)
 
     function findAppIndexByName(name) {
         for (var i = 0; i < appViewer.count; i++) {
@@ -993,30 +993,33 @@ FocusScope {
         // PC éteint : on le réveille d'abord, l'écran de lancement en première étape.
         if (!activeHostOnline && activeHostWakeable) {
             launchIndex = index
+            lastLaunchIndex = index
             launchWaking = true
             launchResume = false
             launchReady = false
             launchOpened = false
             launchScreen.image = homeScreen.backdrop
             setLaunchOrigin(index)
-            launchScreen.steps = [qsTr("Réveil de %1").arg(activeHostName), qsTr("Lancement de %1").arg(item.name)]
+            launchScreen.steps = wakeSteps(item.name)
             launchScreen.step = 0
-            launchScreen.stepProgress = Theme.wakeStepProgress   // durée inconnue : la barre attend à mi-chemin
+            launchScreen.progress = -1
             launchScreen.cancellable = true
-            launchScreen.hint = ""
             wakeHost()
-            Sounds.play("select")
+            Sounds.play("launch")
             homeScreen.pressed = true
             launchPress.start()
             return
         }
 
-        // PC injoignable et impossible à réveiller : pas de session vers une
-        // adresse vide (« Host not found (Error 3) »).
+        // PC injoignable et impossible à réveiller : pas de session vers une adresse vide
+        // (« Host not found (Error 3) ») ; on l'attend un instant, puis l'échec (MotionEchec).
         if (!activeHostOnline) {
-            homeScreen.refusePlay()
-            Sounds.play("deny")
-            homeScreen.toast(qsTr("%1 est hors ligne").arg(activeHostName))
+            launchScreen.image = homeScreen.backdrop
+            setLaunchOrigin(index)
+            reachHost(index)
+            Sounds.play("launch")
+            homeScreen.pressed = true
+            launchPress.start()
             return
         }
 
@@ -1031,15 +1034,20 @@ FocusScope {
             return
         }
 
-        beginLaunch(index, false)
-        Sounds.play("select")
+        beginLaunch(index, false, false)
+        Sounds.play("launch")
         homeScreen.pressed = true
         launchPress.start()
     }
 
-    // Étapes et départ du lancement. `afterWake` : l'écran est déjà ouvert sur
-    // l'étape du réveil, qui est faite.
-    function beginLaunch(index, afterWake) {
+    // « Réveil de PC-Salon… », « Lancement de Minecraft… » (MotionLancement).
+    function wakeSteps(game) {
+        return [qsTr("Réveil de %1…").arg(activeHostName), qsTr("Lancement de %1…").arg(game)]
+    }
+
+    // États et départ du lancement. `afterWake` : l'écran est déjà ouvert sur l'état du
+    // réveil, qui est fait ; `kept` : il est déjà ouvert (Réessayer, après un échec).
+    function beginLaunch(index, afterWake, kept) {
         var item = appViewer.objectAt(index)
         if (!item) return
         // Chemin Companion = LE différenciateur : POST /v1/launch → (maj si besoin)
@@ -1050,23 +1058,23 @@ FocusScope {
         var runningId = appModel.getRunningAppId()
 
         launchIndex = index
+        lastLaunchIndex = index
         launchResume = runningId === item.appid
         launchReady = gameId === ""
-        if (!afterWake) {
+        if (!afterWake && !kept) {
             launchOpened = false
             launchScreen.image = homeScreen.backdrop
             setLaunchOrigin(index)
         }
         launchScreen.steps = (afterWake ? [launchScreen.steps[0]] : [])
-            .concat(gameId !== "" ? [qsTr("Préparation de %1").arg(activeHostName)] : [])
+            .concat(gameId !== "" ? [qsTr("Préparation de %1…").arg(activeHostName)] : [])
             .concat([
-                launchResume ? qsTr("Reprise de %1").arg(item.name) : qsTr("Lancement de %1").arg(item.name),
-                qsTr("Ouverture du flux %1").arg(streamSummary(item.name))
+                launchResume ? qsTr("Reprise de %1…").arg(item.name) : qsTr("Lancement de %1…").arg(item.name),
+                qsTr("Connexion au flux vidéo…")
             ])
         launchScreen.step = afterWake ? 1 : 0
-        launchScreen.stepProgress = 1
+        launchScreen.progress = -1
         launchScreen.cancellable = gameId !== ""
-        launchScreen.hint = ""
         if (gameId !== "")
             CompanionClient.launch(gameId)
         maybeStartStream()
@@ -1078,7 +1086,9 @@ FocusScope {
         var selected = shelfModel.count > 0 ? shelfModel.get(Math.min(homeScreen.currentIndex, shelfModel.count - 1)) : null
         var fromShelf = selected !== null && selected.appIndex === appIndex
         launchScreen.origin = fromShelf ? homeScreen.activeThumbRect : Qt.rect(0, 0, 0, 0)
-        launchScreen.thumbnail = fromShelf ? selected.boxart : ""
+        launchScreen.thumbnail = fromShelf ? (selected.cover || selected.boxart) : ""
+        var item = appViewer.objectAt(appIndex)
+        launchScreen.title = item ? item.name : ""
     }
 
     function resumeLaunchAfterWake() {
@@ -1086,26 +1096,13 @@ FocusScope {
         launchWaking = false
         var index = launchIndex
         launchIndex = -1
-        beginLaunch(index, true)
+        beginLaunch(index, true, false)
     }
 
     Timer {
         id: launchPress
         interval: Theme.launchPress
-        onTriggered: {
-            homeScreen.launching = true
-            launchScreen.open()
-        }
-    }
-
-    // « 1080p60 », « 1080p60 HEVC HDR » : le flux tel qu'il est réglé.
-    function streamSummary(game) {
-        var p = StreamingPreferences
-        var s = effectiveSettings(game && gameProfiles()[game] ? game : "")
-        var codec = s.videoCodecConfig === p.VCC_FORCE_H264 ? " H.264"
-                  : s.videoCodecConfig === p.VCC_FORCE_AV1 ? " AV1"
-                  : s.videoCodecConfig === p.VCC_AUTO ? "" : " HEVC"
-        return s.height + "p" + s.fps + codec + (s.enableHdr ? " HDR" : "")
+        onTriggered: launchScreen.open()
     }
 
     // Démarre la session Moonlight (page StreamSegue d'origine, cachée sous
@@ -1122,27 +1119,36 @@ FocusScope {
         if (item)
             markPlayed(item.name)
 
-        // Dernière étape : la barre avance au rythme de la connexion. C'est le
-        // moment de rappeler comment on reviendra (la page d'origine de Moonlight,
-        // cachée dessous, affiche ce conseil ici).
+        // Dernier état : « Connexion au flux vidéo… ».
         launchScreen.cancellable = false
-        launchScreen.hint = qsTr("Start + Select + L1 + R1 : revenir à l'accueil")
-        launchScreen.stepProgress = 0
+        launchScreen.progress = -1
         launchScreen.step = launchScreen.steps.length - 1
         // Moonlight fige l'interface pendant qu'il prépare son décodeur : l'écran
         // de lancement reste immobile jusqu'à la première étape de connexion.
         launchScreen.frozen = true
-        session.stageStarting.connect(function() {
-            launchScreen.frozen = false
-            launchScreen.stepProgress = Math.min(1, launchScreen.stepProgress + 1 / Theme.launchStreamStages)
+        // Un échec avant le flux : l'écran de lancement le dit (MotionEchec), à la place du
+        // dialog d'erreur de la page d'origine (élément « bureau »), dont on vide le texte.
+        var failure = ""
+        session.stageStarting.connect(function() { launchScreen.frozen = false })
+        session.stageFailed.connect(function(stage, errorCode) {
+            failure = qsTr("La connexion au flux a échoué (%1, erreur %2).").arg(stage).arg(errorCode)
         })
+        session.displayLaunchError.connect(function(text) { failure = text })
         session.connectionStarted.connect(function() {
             home.streamStarted = true
-            keepHomeUnderStream(session)
+            launchScreen.complete()
             Sounds.play("ready")
+            keepHomeUnderStream(session)
             launchScreen.close(false)
         })
-        session.sessionFinished.connect(function() { home.endLaunch() })
+        session.sessionFinished.connect(function() {
+            if (failure !== "" && !home.streamStarted && launchScreen.active) {
+                streamSegueErrorDialog.text = ""
+                home.launchFailed(failure)
+            } else {
+                home.endLaunch()
+            }
+        })
 
         var component = Qt.createComponent("qrc:/gui/StreamSegue.qml")
         stackView.push(component.createObject(stackView, {
@@ -1155,7 +1161,7 @@ FocusScope {
     // Le flux démarre. La page d'origine (StreamSegue) cachait la fenêtre dès la connexion,
     // avant que celle du flux n'existe : on voyait le bureau entre les deux. Notre
     // gestionnaire passe avant le sien (branché plus tôt) et le débranche : la fenêtre reste,
-    // rideau et logo à l'écran, sous celle du flux, tout le temps du flux (au retour, rien
+    // le rideau noir, sous celle du flux, tout le temps du flux (au retour, rien
     // à réafficher : le flux se ferme sur elle).
     function keepHomeUnderStream(session) {
         var segue = stackView.currentItem
@@ -1163,6 +1169,10 @@ FocusScope {
         if (kept)
             session.connectionStarted.disconnect(segue.connectionStarted)
         console.info("[console-ui] Lancement : fenêtre de l'accueil " + (kept ? "gardée sous le flux" : "cachée par StreamSegue"))
+        streamCurtain.image = launchScreen.image
+        streamCurtain.thumbnail = launchScreen.thumbnail
+        streamCurtain.origin = launchScreen.origin
+        streamCurtain.title = launchScreen.title
         streamCurtain.cover()
         streamCurtain.reveal("")
     }
@@ -1177,11 +1187,85 @@ FocusScope {
         restoreCommonSettings()
         launchPress.stop()
         companionWait.stop()
+        reachTimer.stop()
         launchWaking = false
         launchIndex = -1
         launchScreen.close(true)
-        homeScreen.launching = false
         homeScreen.pressed = false
+    }
+
+    // Échec du lancement (MotionEchec). PC injoignable : « PC-Salon ne répond pas », sinon
+    // « Le lancement a échoué » et la raison.
+    property int failedIndex: -1         // le jeu à relancer (Réessayer)
+    function launchFailed(reason) {
+        failedIndex = lastLaunchIndex
+        launchPress.stop()
+        companionWait.stop()
+        launchWaking = false
+        launchIndex = -1
+        restoreCommonSettings()
+        if (!launchScreen.active) launchScreen.open()
+        launchScreen.cancellable = false
+        launchScreen.canWake = !activeHostOnline && activeHostWakeable
+        if (!activeHostOnline) {
+            launchScreen.errorTitle = qsTr("%1 ne répond pas").arg(activeHostName)
+            launchScreen.error = qsTr("Vérifiez que le PC est allumé et relié au même réseau,\nou réveillez-le à distance.")
+        } else {
+            launchScreen.errorTitle = qsTr("Le lancement a échoué")
+            launchScreen.error = reason
+        }
+    }
+    // PC hors ligne, sans réveil possible : « Connexion à PC-Salon… », « Nouvelle tentative… »,
+    // puis l'échec s'il ne répond toujours pas ; s'il répond, le lancement reprend.
+    function reachHost(index) {
+        launchIndex = index
+        lastLaunchIndex = index
+        launchWaking = true
+        launchReady = false
+        launchResume = false
+        launchScreen.steps = [qsTr("Connexion à %1…").arg(activeHostName), qsTr("Nouvelle tentative…")]
+        launchScreen.step = 0
+        launchScreen.progress = -1
+        launchScreen.cancellable = true
+        reachTimer.tries = 0
+        reachTimer.restart()
+    }
+    Timer {
+        id: reachTimer
+        interval: Theme.reachRetry
+        repeat: true
+        property int tries: 0
+        onTriggered: {
+            if (!home.launchWaking || home.activeHostOnline) return stop()
+            if (++tries === 1) {
+                launchScreen.step = 1
+            } else {
+                stop()
+                home.launchFailed("")
+            }
+        }
+    }
+
+    // A Réessayer : le même jeu, sans refermer l'écran (le PC est réveillé d'abord s'il dort).
+    function retryLaunch() {
+        var index = failedIndex
+        launchScreen.error = ""
+        if (index < 0 || !appModel) return endLaunch()
+        launchOpened = true
+        if (!activeHostOnline && activeHostWakeable) {
+            launchIndex = index
+            lastLaunchIndex = index
+            launchWaking = true
+            launchReady = false
+            launchScreen.steps = wakeSteps(launchScreen.title)
+            launchScreen.step = 0
+            launchScreen.cancellable = true
+            wakeHost()
+        } else if (!activeHostOnline) {
+            reachHost(index)
+        } else {
+            beginLaunch(index, false, true)
+        }
     }
 
     // Ferme le jeu en cours puis enchaîne sur le nouveau, via le QuitSegue
@@ -1643,7 +1727,9 @@ FocusScope {
 
         // L'accueil entre quand l'animation de démarrage en est à sa sortie ; le logo de
         // la barre haute n'apparaît qu'une fois celui du démarrage arrivé à sa place.
-        entryAllowed: bootSplash.entryOpen && !streamCurtain.covering
+        entryAllowed: bootSplash.entryOpen
+        // Un jeu prend l'écran, ou en revient : l'accueil s'efface puis revient (MotionQuitter).
+        launching: launchScreen.covering || streamCurtain.covering
         statusLogoShown: !bootSplash.visible || bootSplash.mode === "wake"
 
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
@@ -2078,6 +2164,13 @@ FocusScope {
                 home.endLaunch()
                 homeScreen.forceActiveFocus()
             }
+            onRetryRequested: home.retryLaunch()
+            // Y Réveiller le PC : retour à l'accueil, où la pastille du PC suit le réveil.
+            onWakeRequested: {
+                home.endLaunch()
+                homeScreen.forceActiveFocus()
+                home.wakeHost()
+            }
         }
 
         // Animation de démarrage, le temps que l'accueil se mette en place.
@@ -2152,10 +2245,10 @@ FocusScope {
                 CompanionClient.respondUpdate(true)
                 // Une étape de plus, juste après la préparation.
                 var steps = launchScreen.steps.slice()
-                steps.splice(1, 0, size !== "" ? qsTr("Mise à jour de %1 sur le PC").arg(size)
-                                               : qsTr("Mise à jour sur le PC"))
+                steps.splice(1, 0, size !== "" ? qsTr("Mise à jour de %1 sur le PC…").arg(size)
+                                               : qsTr("Mise à jour sur le PC…"))
                 launchScreen.steps = steps
-                launchScreen.stepProgress = 0
+                launchScreen.progress = 0
                 launchScreen.step = 1
             }
             onClosed: {
@@ -2272,7 +2365,7 @@ FocusScope {
             if (state === "CHECKING") {
                 launchScreen.step = 0
             } else if (state === "UP_TO_DATE" || state === "ARMING") {
-                launchScreen.stepProgress = 1
+                launchScreen.progress = -1
                 launchScreen.step = launchScreen.steps.length - 2   // « Lancement de … »
             }
         }
@@ -2288,7 +2381,7 @@ FocusScope {
         }
         function onUpdateProgress(sessionId, pct, bytesDone, bytesTotal) {
             if (home.launchIndex >= 0)
-                launchScreen.stepProgress = bytesTotal > 0 ? bytesDone / bytesTotal : 0
+                launchScreen.progress = bytesTotal > 0 ? bytesDone / bytesTotal : 0
         }
         // L'app Apollo du jeu est prête (virtual display armé) : on peut démarrer
         // la session Moonlight dessus (mapping par nom, §4).
@@ -2302,13 +2395,7 @@ FocusScope {
         }
         function onLaunchFailed(sessionId, code, message) {
             if (home.launchIndex < 0) return
-            launchPress.stop()
-            if (!launchScreen.active) {
-                homeScreen.launching = true
-                launchScreen.open()
-            }
-            launchScreen.progressShown = true
-            launchScreen.error = (message && message !== "") ? message : code
+            home.launchFailed((message && message !== "") ? message : code)
         }
     }
 }

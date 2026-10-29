@@ -39,6 +39,10 @@ FocusScope {
                                                Theme.coverFloor - Theme.coverSlots[0][1],
                                                Theme.coverSlots[0][0], Theme.coverSlots[0][1])
 
+    // Lancement d'un jeu (MotionLancement) : les voisines s'écartent en s'effaçant ; au retour
+    // (MotionQuitter), elles reviennent du centre, à plat et plus petites.
+    property bool launching: false
+
     // --- Fiche du jeu (FicheEditoriale, MotionFiche) : la jaquette centrale devient la sienne ---
     // 0 → 1 : elle glisse en Theme.ficheCover et s'incline, les autres s'écartent et s'effacent.
     property bool detailOpen: false
@@ -308,17 +312,52 @@ FocusScope {
                 readonly property real fiche: central ? root.detail : 0
                 readonly property real brightness: root.mix(place.brightness, Theme.ficheCoverBrightness, fiche)
 
-                visible: Math.abs(o) < 4 && (central || root.detail < 1)
-                x: root.mix(root.width / 2 + Math.sign(o) * (place.dx + Theme.ficheSpread * root.detail) + root.bump - place.w / 2,
+                // Lancement : `away` 0 → 1 écarte (ou, au retour, `gather`, rapproche), `faded` efface.
+                readonly property bool leaving: root.launching
+                property bool gather: false
+                property real away: 0
+                property real faded: 0
+                onLeavingChanged: {
+                    gather = !leaving && faded > 0.99
+                    var target = leaving && !central ? 1 : 0
+                    awayAnim.stop()
+                    awayWait.duration = leaving ? Math.max(0, k - 1) * Theme.launchCoverStagger
+                                      : gather && !Theme.reducedMotion ? Theme.returnCoverDelay + k * Theme.returnCoverStagger : 0
+                    awayMove.to = awayFade.to = target
+                    awayMove.duration = leaving ? Theme.launchCoverMove : Theme.returnCoverMove
+                    awayFade.duration = Theme.reducedMotion ? Theme.reducedSpring.duration
+                                      : leaving ? Theme.launchCoverFade : Theme.returnCoverFade
+                    awayAnim.start()
+                }
+                SequentialAnimation {
+                    id: awayAnim
+                    PauseAnimation { id: awayWait }
+                    ParallelAnimation {
+                        NumberAnimation {
+                            id: awayMove; target: slot; property: "away"
+                            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
+                        }
+                        NumberAnimation { id: awayFade; target: slot; property: "faded" }
+                    }
+                }
+                readonly property real moved: Theme.reducedMotion ? 0 : away
+                readonly property real launchShift: gather ? -Math.sign(o) * place.dx * Theme.returnCoverGather * moved
+                                                           : Math.sign(o) * Theme.launchCoverSpread * moved
+                scale: gather ? 1 - (1 - Theme.returnCoverScale) * moved : 1
+
+                visible: Math.abs(o) < 4 && (central || root.detail < 1) && faded < 1
+                x: root.mix(root.width / 2 + Math.sign(o) * (place.dx + Theme.ficheSpread * root.detail) + launchShift
+                            + root.bump - place.w / 2,
                             Theme.ficheCover.x, fiche)
                 y: root.mix(Theme.coverFloor - place.h, Theme.ficheCover.y, fiche)
                 width: root.mix(place.w, Theme.ficheCover.width, fiche)
                 height: root.mix(place.h, Theme.ficheCover.height, fiche)
                 z: 10 - k
-                opacity: (k <= 3 ? 1 : 4 - k) * (central ? 1 : 1 - root.detail)
+                opacity: (k <= 3 ? 1 : 4 - k) * (central ? 1 : 1 - root.detail) * (1 - faded)
                 transform: Matrix4x4 {
                     matrix: root.tilt(slot.width, slot.height,
-                                      root.mix(-Math.sign(slot.o) * slot.place.angle, root.sway, slot.fiche))
+                                      root.mix(-Math.sign(slot.o) * slot.place.angle * (slot.gather ? 1 - slot.moved : 1),
+                                               root.sway, slot.fiche))
                 }
 
                 // Ombres portées (pré-rendues), centrale et latérale en fondu.
