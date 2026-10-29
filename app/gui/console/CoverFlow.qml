@@ -42,6 +42,10 @@ FocusScope {
     // Lancement d'un jeu (MotionLancement) : les voisines s'écartent en s'effaçant ; au retour
     // (MotionQuitter), elles reviennent du centre, à plat et plus petites.
     property bool launching: false
+    // PC hors ligne (EtatHorsLigne) : jaquettes grisées, assombries, à 55 %.
+    property bool greyed: false
+    property real grey: greyed ? 1 : 0
+    Behavior on grey { NumberAnimation { duration: Theme.offlineFade } }
 
     // --- Fiche du jeu (FicheEditoriale, MotionFiche) : la jaquette centrale devient la sienne ---
     // 0 → 1 : elle glisse en Theme.ficheCover et s'incline, les autres s'écartent et s'effacent.
@@ -284,15 +288,19 @@ FocusScope {
         width: root.width
         height: Theme.coverAreaHeight
         x: root.slideX
-        opacity: (root.shown ? 1 : 0) * root.slideOpacity
+        opacity: (root.shown ? 1 : 0) * root.slideOpacity * (1 - (1 - Theme.offlineCovers) * root.grey)
         Behavior on opacity { enabled: !categoryAnim.running; NumberAnimation { duration: Theme.entryCardFade } }
         // Flou d'ensemble seulement le temps d'un saut de lettre, d'un changement de catégorie ou
         // d'un défilement rapide (flèche maintenue : « jaquettes floutées en mouvement »).
         property real fastBlur: root.fast && !Theme.reducedMotion ? Theme.coverFastBlur : 0
         Behavior on fastBlur { NumberAnimation { duration: Theme.coverFastBlurFade } }
         readonly property real blurPx: Math.max(root.slideBlur, letterBox.shown ? Theme.letterBlur : 0, fastBlur)
-        layer.enabled: blurPx > 0 && GraphicsInfo.api !== GraphicsInfo.Software
-        layer.effect: MultiEffect { blurEnabled: true; blurMax: 16; blur: strip.blurPx / 16 }
+        layer.enabled: (blurPx > 0 || root.grey > 0) && GraphicsInfo.api !== GraphicsInfo.Software
+        layer.effect: MultiEffect {
+            blurEnabled: strip.blurPx > 0; blurMax: 16; blur: strip.blurPx / 16
+            saturation: -root.grey
+            brightness: Theme.offlineCoverDim * root.grey
+        }
 
         Repeater {
             id: repeater

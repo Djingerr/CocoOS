@@ -42,6 +42,11 @@ FocusScope {
     // --- PC hôte et état de la console ---
     property alias hostName: status.hostName
     property alias connected: status.connected
+    property alias hostState: status.hostState       // "asleep", "offline", "waking", "online" (StatusBar)
+    property alias waking: hero.waking               // le bouton Jouer suit le réveil du PC
+    // PC hors ligne (EtatHorsLigne) : carrousel grisé, et son message à la place du bloc titre.
+    property bool hostOffline: false
+    readonly property alias offline: offlineState
     property alias latencyMs: status.latencyMs
     property alias jitterMs: status.jitterMs
     property alias signalStrength: status.signalStrength
@@ -254,7 +259,8 @@ FocusScope {
                 vignetteAt: Qt.point(Theme.vignetteAt.x + (Theme.vignetteAtFiche.x - Theme.vignetteAt.x) * root.detail,
                                      Theme.vignetteAt.y + (Theme.vignetteAtFiche.y - Theme.vignetteAt.y) * root.detail)
                 vignetteIn: Theme.vignetteIn + (Theme.vignetteInFiche - Theme.vignetteIn) * root.detail
-                vignetteOut: Theme.vignetteOut + (Theme.vignetteOutFiche - Theme.vignetteOut) * root.detail
+                vignetteOut: (root.hostOffline ? Theme.vignetteOutOffline : Theme.vignetteOut)
+                             + (Theme.vignetteOutFiche - Theme.vignetteOut) * root.detail
                 Behavior on opacity {
                     NumberAnimation {
                         duration: root.entered ? Theme.entryCardFade : 0
@@ -334,6 +340,7 @@ FocusScope {
                     focus: !root.staged && !root.detailOpen && !sheet.opened && !root.heroFocused && !root.statusFocused
                     shown: root.entered
                     launching: root.launching
+                    greyed: root.hostOffline
                     detailOpen: root.detailOpen
                     onLaunchRequested: function(index) { root.launchRequested(index) }
                     onDetailsRequested: root.detailsRequested()
@@ -378,7 +385,7 @@ FocusScope {
                         width: parent.width
                         // Fiche ouverte : le bloc titre part vers le haut en fondu (220 ms), et revient
                         // après 300 ms quand elle se referme (MotionFiche).
-                        opacity: root.detailOpen ? 0 : 1
+                        opacity: root.detailOpen || root.hostOffline ? 0 : 1
                         property real lift: root.detailOpen ? -Theme.homeLeaveTravel : 0
                         transform: Translate { y: hero.lift }
                         Behavior on opacity {
@@ -435,8 +442,27 @@ FocusScope {
                     y: Theme.canvasHeight - Theme.helpBottom - height
                     lit: shelf.heldDirection
                     opacity: root.entered && !root.staged && !root.favoritesEmpty && !root.detailOpen
-                             && !favBanner.shown ? 1 : 0
+                             && !favBanner.shown && !root.hostOffline ? 1 : 0
                     Behavior on opacity { NumberAnimation { duration: Theme.entryTextFade } }
+                }
+            }
+
+            // PC hors ligne : son message, ses boutons et sa légende.
+            LaunchFade {
+                anchors.fill: parent
+                shift: Theme.returnRiseShift
+                leaveShift: Theme.launchHomeShift
+                returnDelay: Theme.returnTitleDelay
+                returnFade: Theme.returnRiseFade
+                returnMove: Theme.returnRiseMove
+                OfflineState {
+                    id: offlineState
+                    anchors.fill: parent
+                    hostName: status.hostName
+                    pressing: shelf.pressing
+                    visible: opacity > 0
+                    opacity: root.hostOffline && root.entered && !root.staged && !root.favoritesEmpty && !root.detailOpen ? 1 : 0
+                    Behavior on opacity { NumberAnimation { duration: Theme.offlineFade } }
                 }
             }
 

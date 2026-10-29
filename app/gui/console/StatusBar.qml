@@ -12,6 +12,10 @@ Item {
 
     property string hostName: ""
     property bool connected: false
+    // État du PC dans la pastille (MotionReveilPC, EtatHorsLigne) : "" (connecté, ou connexion…),
+    // "asleep" (en veille), "offline" (hors ligne), "waking" (réveil en cours), "online" (il
+    // vient de se réveiller : coche, « PC-Salon est en ligne », un instant).
+    property string hostState: ""
     // -1 = pas de donnée → élément masqué (jamais de fausse jauge).
     property int latencyMs: -1
     property int jitterMs: -1
@@ -549,7 +553,17 @@ Item {
         // --- Pastille de l'hôte, qui s'ouvre en île de notification ---
         Rectangle {
             id: pill
-            readonly property real idleWidth: Theme.hostPillPadLeft + pillRow.width + Theme.hostPillPadRight
+            // Largeur au repos : celle du calque affiché ; elle suit au ressort (MotionReveilPC).
+            readonly property real layerWidth: (root.hostState === "waking" ? wakingRow.width
+                                               : root.hostState === "online" ? onlineRow.width : pillRow.width)
+            property real idleWidth: Theme.hostPillPadLeft + layerWidth + Theme.hostPillPadRight
+            Behavior on idleWidth {
+                enabled: root.contentShown
+                NumberAnimation {
+                    duration: Theme.motion(Theme.hostPillResize, Theme.curveHostPill).duration
+                    easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.motion(0, Theme.curveHostPill).curve
+                }
+            }
             readonly property real idleHeight: hostLabel.height + 2 * Theme.hostPillPadV
             // 0 = pastille, 1 = île : la taille suit le ressort « souple », le rayon à part.
             property real open: root.islandOpen ? 1 : 0
@@ -582,9 +596,21 @@ Item {
             width: idleWidth + (Theme.islandSize.width - idleWidth) * open
             height: idleHeight + (Theme.islandSize.height - idleHeight) * open
             radius: idleHeight / 2 + (Theme.islandRadius - idleHeight / 2) * round
-            color: root.islandOpen ? Theme.islandFill : Theme.hostPillFill
+            color: root.islandOpen ? Theme.islandFill : root.hostState === "online" ? Theme.hostPillOnlineFill : Theme.hostPillFill
             Behavior on color { ColorAnimation { duration: Theme.islandRadiusMove } }
-            scale: 1 + (Theme.islandBounce - 1) * (1 - Math.abs(2 * bump - 1))
+            // (en ligne : la pastille s'éclaire et rebondit un instant)
+            property real onlineBump: 0
+            SequentialAnimation {
+                id: onlineBumpAnim
+                NumberAnimation { target: pill; property: "onlineBump"; to: 1; duration: Theme.hostOnlineBump / 2; easing.type: Easing.OutQuad }
+                NumberAnimation { target: pill; property: "onlineBump"; to: 0; duration: Theme.hostOnlineBump / 2; easing.type: Easing.InQuad }
+            }
+            Connections {
+                target: root
+                function onHostStateChanged() { if (root.hostState === "online" && !Theme.reducedMotion) onlineBumpAnim.restart() }
+            }
+            scale: (1 + (Theme.islandBounce - 1) * (1 - Math.abs(2 * bump - 1))) * (1 + (Theme.hostOnlineScale - 1) * onlineBump)
+            transformOrigin: Item.Right
             clip: true
 
             // Filet posé PAR-DESSUS le fond (une bordure de Rectangle le remplacerait).
@@ -611,7 +637,7 @@ Item {
                 spacing: Theme.hostPillGap
                 // Effacé à l'ouverture de l'île, de retour après sa fermeture.
                 states: State {
-                    name: "hidden"; when: root.islandOpen
+                    name: "hidden"; when: root.islandOpen || root.hostState === "waking" || root.hostState === "online"
                     PropertyChanges { target: pillRow; opacity: 0 }
                 }
                 transitions: [
@@ -640,11 +666,14 @@ Item {
                 Rectangle {
                     anchors.verticalCenter: parent.verticalCenter
                     width: Theme.hostDotSize; height: width; radius: width / 2
-                    color: Theme.accent
-                    opacity: blink
+                    // En veille : gris, immobile ; hors ligne : rouge, immobile.
+                    readonly property bool still: root.hostState === "asleep" || root.hostState === "offline"
+                    color: root.hostState === "asleep" ? Theme.hostDotAsleep
+                         : root.hostState === "offline" ? Theme.danger : Theme.accent
+                    opacity: still ? 1 : blink
                     property real blink: 1
                     SequentialAnimation on blink {
-                        running: !Theme.reducedMotion
+                        running: !Theme.reducedMotion && !parent.still
                         loops: Animation.Infinite
                         NumberAnimation {
                             to: root.connected ? Theme.hostDotBreathMin : Theme.hostDotBlinkMin
@@ -667,11 +696,56 @@ Item {
                 Text {
                     anchors.verticalCenter: parent.verticalCenter
                     visible: text !== ""
-                    text: !root.connected ? qsTr("connexion…")
+                    text: root.hostState === "asleep" ? qsTr("En veille")
+                        : root.hostState === "offline" ? qsTr("hors ligne")
+                        : !root.connected ? qsTr("connexion…")
                         : root.latencyMs >= 0 ? qsTr("%1 ms").arg(root.latencyMs) : ""
                     color: Theme.hostDetailInk
                     font.family: Theme.fontUi; font.pixelSize: Theme.hostDetailSize; font.weight: Font.Medium
                     font.features: { "tnum": 1 }
+                }
+            }
+
+            // Réveil du PC : roue, « Réveil de PC-Salon… » ; puis coche, « PC-Salon est en ligne ».
+            PillLayer {
+                id: wakingRow
+                shown: root.hostState === "waking"
+                LoaderRing {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Theme.hostSpinnerSize
+                    stroke: Theme.hostSpinnerStroke
+                    track: Theme.accentTrack
+                    arc: Theme.hostSpinnerArc
+                    period: Theme.hostSpinnerSpin
+                    spinning: parent.visible
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("Réveil de %1…").arg(root.hostName)
+                    color: Theme.ink
+                    font.family: Theme.fontUi; font.pixelSize: Theme.hostNameSize; font.weight: Font.DemiBold
+                }
+            }
+            PillLayer {
+                id: onlineRow
+                shown: root.hostState === "online"
+                Rectangle {
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Theme.hostSpinnerSize; height: width; radius: width / 2
+                    color: Theme.accent
+                    CheckMark {
+                        anchors.centerIn: parent
+                        width: parent.width; height: width
+                        color: Theme.ink
+                        checked: onlineRow.shown
+                        drawDelay: Theme.hostLayerDelay
+                    }
+                }
+                Text {
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: qsTr("%1 est en ligne").arg(root.hostName)
+                    color: Theme.ink
+                    font.family: Theme.fontUi; font.pixelSize: Theme.hostNameSize; font.weight: Font.DemiBold
                 }
             }
 
@@ -934,5 +1008,25 @@ Item {
             source: "icons/settings.svg"
             sourceSize: Qt.size(width * Theme.scale, height * Theme.scale)
         }
+    }
+
+    component PillLayer: Row {
+        id: layer
+        property bool shown: false
+        x: Theme.hostPillPadLeft
+        anchors.verticalCenter: parent.verticalCenter
+        spacing: Theme.hostPillGap
+        opacity: 0
+        visible: opacity > 0 && !root.islandOpen
+        onShownChanged: {
+            fadeIn.stop(); fadeOut.stop()
+            if (shown) fadeIn.restart(); else fadeOut.restart()
+        }
+        SequentialAnimation {
+            id: fadeIn
+            PauseAnimation { duration: Theme.hostLayerDelay }
+            NumberAnimation { target: layer; property: "opacity"; to: 1; duration: Theme.hostLayerFade }
+        }
+        NumberAnimation { id: fadeOut; target: layer; property: "opacity"; to: 0; duration: Theme.hostLayerFade }
     }
 }

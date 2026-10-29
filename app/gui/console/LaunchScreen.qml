@@ -246,16 +246,20 @@ FocusScope {
                         NumberAnimation { duration: Theme.ringFill; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain }
                     }
                 }
-                Text {
+                FailAppear {
                     anchors.centerIn: parent
-                    text: "!"
-                    color: Theme.ink
-                    font.family: Theme.fontUi; font.pixelSize: Theme.failBangSize; font.weight: Font.Bold
-                    opacity: root.failed ? 1 : 0
-                    scale: root.failed ? 1 : Theme.failBangFrom
-                    Behavior on opacity { SequentialAnimation { PauseAnimation { duration: root.failed ? Theme.failBangDelay : 0 } NumberAnimation { duration: Theme.launchStatusFade } } }
-                    Behavior on scale { SequentialAnimation { PauseAnimation { duration: root.failed ? Theme.failBangDelay : 0 }
-                        NumberAnimation { duration: Theme.failBangMove; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveFailBang } } }
+                    width: bang.width; height: bang.height
+                    delay: Theme.failBangDelay
+                    hiddenY: 0
+                    hiddenScale: Theme.failBangFrom
+                    moveDuration: Theme.failBangMove
+                    bezier: Theme.curveFailBang
+                    Text {
+                        id: bang
+                        text: "!"
+                        color: Theme.ink
+                        font.family: Theme.fontUi; font.pixelSize: Theme.failBangSize; font.weight: Font.Bold
+                    }
                 }
             }
 
@@ -264,19 +268,17 @@ FocusScope {
                 id: titleBox
                 y: ringBox.height + Theme.launchTitleGap
                 width: parent.width; height: Theme.failTitleHeight
-                Rise {
+                FailAppear {
+                    width: parent.width; height: parent.height
                     shown: !root.failed
-                    shift: -Theme.failShift; fadeDelay: 0
-                    text: root.title
-                    size: Theme.launchTitleSize; weight: Font.DemiBold
-                    color: Theme.ink
+                    hiddenY: Theme.reducedMotion ? 0 : -Theme.failShift
+                    delay: 0
+                    CenteredText { text: root.title; size: Theme.launchTitleSize }
                 }
-                Rise {
-                    shown: root.failed
-                    shift: Theme.failShift; fadeDelay: Theme.failTitleDelay
-                    text: root.errorTitle
-                    size: Theme.failTitleSize; weight: Font.DemiBold
-                    color: Theme.ink
+                FailAppear {
+                    width: parent.width; height: parent.height
+                    delay: Theme.failTitleDelay
+                    CenteredText { text: root.errorTitle; size: Theme.failTitleSize }
                 }
             }
             // État, ou explication de l'échec.
@@ -306,42 +308,37 @@ FocusScope {
                         }
                     }
                 }
-                Text {
-                    width: parent.width
-                    horizontalAlignment: Text.AlignHCenter
-                    wrapMode: Text.WordWrap
-                    maximumLineCount: 4
-                    elide: Text.ElideRight
-                    text: root.error
-                    color: Theme.failBodyInk
-                    lineHeight: 1.5
-                    font.family: Theme.fontUi; font.pixelSize: Theme.failBodySize
-                    opacity: root.failed ? 1 : 0
-                    Behavior on opacity { SequentialAnimation { PauseAnimation { duration: root.failed ? Theme.failBodyDelay : 0 } NumberAnimation { duration: Theme.launchStatusFade } } }
-                    transform: Translate {
-                        y: root.failed || Theme.reducedMotion ? 0 : Theme.failShift
-                        Behavior on y { SequentialAnimation { PauseAnimation { duration: root.failed ? Theme.failBodyDelay : 0 }
-                            NumberAnimation { duration: Theme.failMove; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain } } }
+                FailAppear {
+                    width: parent.width; height: parent.height
+                    delay: Theme.failBodyDelay
+                    Text {
+                        width: parent.width
+                        horizontalAlignment: Text.AlignHCenter
+                        wrapMode: Text.WordWrap
+                        maximumLineCount: 4
+                        elide: Text.ElideRight
+                        text: root.error
+                        color: Theme.failBodyInk
+                        lineHeight: 1.5
+                        font.family: Theme.fontUi; font.pixelSize: Theme.failBodySize
                     }
                 }
             }
             // A Réessayer · Y Réveiller le PC · B Annuler
-            Row {
+            FailAppear {
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: statusBox.y + statusBox.height + Theme.failButtonsGap
+                width: buttons.width; height: buttons.height
+                delay: Theme.failButtonsDelay
+                hiddenY: Theme.reducedMotion ? 0 : Theme.failButtonsShift
+                moveDuration: Theme.failButtonsMove
+            Row {
+                id: buttons
                 spacing: Theme.homeButtonsGap
-                opacity: root.failed ? 1 : 0
-                visible: opacity > 0
-                Behavior on opacity { SequentialAnimation { PauseAnimation { duration: root.failed ? Theme.failButtonsDelay : 0 } NumberAnimation { duration: Theme.launchStatusFade } } }
-                transform: Translate {
-                    y: root.failed || Theme.reducedMotion ? 0 : Theme.failButtonsShift
-                    Behavior on y { SequentialAnimation { PauseAnimation { duration: root.failed ? Theme.failButtonsDelay : 0 }
-                        NumberAnimation { duration: Theme.failButtonsMove; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain } } }
-                }
                 PillButton {
                     primary: true; glyph: "A"; label: qsTr("Réessayer")
                     labelSize: Theme.failPrimarySize
-                    down: root.aDown
+                    held: root.aDown
                     onClicked: { Sounds.play("select"); root.retryRequested() }
                 }
                 PillButton {
@@ -354,27 +351,28 @@ FocusScope {
                     onClicked: root.cancelRequested()
                 }
             }
+            }
         }
     }
 
-    // Texte qui monte (ou descend) en fondu, centré dans sa boîte.
-    component Rise: Text {
-        id: rise
-        property bool shown: false
-        property real shift: 0
-        property int fadeDelay: 0
+    // Ce qui paraît à l'échec (MotionEchec), après son délai, en montant de 10 px ; s'efface
+    // aussitôt quand on réessaie.
+    component FailAppear: Appear {
+        shown: root.failed
+        hiddenY: Theme.reducedMotion ? 0 : Theme.failShift
+        hideDuration: Theme.launchStatusFade
+        fadeDuration: Theme.launchStatusFade
+        moveDuration: Theme.failMove
+        moveEasing: Easing.BezierSpline
+        bezier: Theme.curveMain
+    }
+    component CenteredText: Text {
         property real size: 14
-        property int weight: Font.Normal
         width: parent.width
         horizontalAlignment: Text.AlignHCenter
         elide: Text.ElideRight
-        font.family: Theme.fontUi; font.pixelSize: size; font.weight: weight
+        color: Theme.ink
+        font.family: Theme.fontUi; font.pixelSize: size; font.weight: Font.DemiBold
         font.letterSpacing: -0.02 * size
-        opacity: shown ? 1 : 0
-        Behavior on opacity { SequentialAnimation { PauseAnimation { duration: shown ? fadeDelay : 0 } NumberAnimation { duration: Theme.launchStatusFade } } }
-        transform: Translate {
-            y: rise.shown || Theme.reducedMotion ? 0 : rise.shift
-            Behavior on y { NumberAnimation { duration: Theme.failMove; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain } }
-        }
     }
 }

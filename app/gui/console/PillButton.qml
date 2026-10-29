@@ -2,7 +2,7 @@ import QtQuick
 
 // Bouton en pilule des maquettes (« A Réessayer », « Y Réveiller le PC ») : clair et glyphe
 // plein (`primary`), ou de verre et glyphe cerclé. S'écrase tant que `down` ; au clic, le
-// signal `clicked`. Aucune dépendance Moonlight.
+// signal `clicked` ; `held` : A enfoncé dessus. Aucune dépendance Moonlight.
 Pressable {
     id: root
 
@@ -10,11 +10,12 @@ Pressable {
     property string glyph
     property string label
     property real labelSize: primary ? Theme.playLabelSize : Theme.optionsLabelSize
+    property bool held: false
     signal clicked()
 
     width: Theme.playPadLeft + row.width + (primary ? Theme.pillPadRight : Theme.optionsPadRight)
     height: Theme.playHeight
-    down: mouse.pressed
+    down: held || mouse.pressed
     hovered: mouse.containsMouse
     hoverScale: Theme.hoverScale
 

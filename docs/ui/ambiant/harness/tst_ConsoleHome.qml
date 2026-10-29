@@ -289,11 +289,12 @@ Item {
             tryCompare(launchScreen, "active", false, 3000)
         }
 
-        // PC hors ligne et sans réveil possible : « Connexion à … », « Nouvelle tentative… »,
-        // puis « … ne répond pas » ; s'il revient pendant l'attente, le lancement reprend.
+        // PC pas encore trouvé (état inconnu), sans réveil possible : « Connexion à … », « Nouvelle
+        // tentative… », puis « … ne répond pas » ; s'il revient pendant l'attente, le lancement reprend.
         function test_5d_unreachablePc() {
             var pc = home.computerModel, before = stackView.pushes
             pc.setProperty(0, "wakeable", false)
+            pc.setProperty(0, "statusUnknown", true)
             pc.setProperty(0, "online", false)
             ignoreWarning(/.*/)
             keyClick(Qt.Key_Return)
@@ -305,6 +306,7 @@ Item {
             keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)   // Réessayer…
             compare(launchScreen.error, "")
             compare(launchScreen.step, 0)
+            pc.setProperty(0, "statusUnknown", false)
             pc.setProperty(0, "online", true)                    // …et le PC répond
             tryCompare(stackView, "pushes", before + 1, 3000)
             home.appModel.lastSession.sessionFinished(0)
@@ -327,6 +329,39 @@ Item {
             tryCompare(curtain, "covering", false, 3000)   // après son temps minimal
             tryCompare(curtain, "active", false, 3000)
             win.requestActivate()
+        }
+
+        // PC hors ligne (EtatHorsLigne) : sans réveil possible, l'accueil le dit et A refuse ; en
+        // veille, A lance le jeu ; après un réveil manqué, A le réveille depuis l'accueil
+        // (MotionReveilPC : « Réveil de … », puis « … est en ligne »).
+        function test_5e_offlineAndWake() {
+            var pc = home.computerModel, wakes = pc.wakes
+            pc.setProperty(0, "wakeable", false)
+            pc.setProperty(0, "online", false)
+            tryCompare(screen, "hostOffline", true, 1000)
+            compare(screen.hostState, "offline")
+            keyClick(Qt.Key_Return)                     // A : rien à réveiller
+            wait(300)
+            verify(!launchScreen.active)
+            compare(pc.wakes, wakes)
+
+            pc.setProperty(0, "wakeable", true)
+            pc.setProperty(0, "online", true)
+            pc.setProperty(0, "online", false)
+            compare(screen.hostState, "asleep")         // réveillable : en veille, le carrousel reste
+            verify(!screen.hostOffline)
+            home.wakeFailed = true                      // (un réveil d'office est resté sans réponse)
+            verify(screen.hostOffline)
+            keyClick(Qt.Key_Return)                     // A : Réveiller le PC
+            compare(pc.wakes, wakes + 1)
+            compare(screen.hostState, "waking")
+            verify(screen.waking)                       // « Réveil du PC… » sur le bouton Jouer
+            verify(!screen.hostOffline)
+            verify(!launchScreen.active)
+            pc.setProperty(0, "online", true)
+            compare(screen.hostState, "online")         // « Djinger est en ligne »…
+            tryCompare(screen, "hostState", "", Theme.hostOnlineShow + 500)   // …puis la pastille habituelle
+            verify(!screen.waking)
         }
 
         function test_6_companionLaunchWithUpdate() {

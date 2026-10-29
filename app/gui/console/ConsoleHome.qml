@@ -193,7 +193,12 @@ FocusScope {
     // B (Échap) est consommé : rien derrière l'accueil.
     Keys.onMenuPressed: { /* X hors de l'étagère : rien */ }
     // Start (≡) arrive avec la même touche que Y : la recherche, plutôt que les options.
-    Keys.onHangupPressed: InputStatus.startHeld() ? openSearch() : homeScreen.options.open()
+    // PC hors ligne : ≡ ouvre les réglages du réseau, Y le choix d'un autre PC.
+    Keys.onHangupPressed: {
+        var start = InputStatus.startHeld()
+        if (homeScreen.hostOffline) start ? openWifi() : openHostPicker()
+        else start ? openSearch() : homeScreen.options.open()
+    }
     // Au clavier, la touche Origine (Home) tient lieu du bouton Home de la manette.
     Keys.onPressed: function(event) {
         if (event.key === Qt.Key_Home || event.key === Qt.Key_HomePage) {
@@ -899,10 +904,39 @@ FocusScope {
     property bool waking: false          // réveil envoyé, on attend que le PC réponde
     property bool wakeFailed: false      // il n'a pas répondu à temps
     property bool autoWakeDone: false
+    property bool hostJustWoke: false    // « … est en ligne » dans la pastille
+    Timer { id: justWoke; interval: Theme.hostOnlineShow; onTriggered: home.hostJustWoke = false }
 
-    function wakeHost() {
+    // La pastille du PC (StatusBar.hostState) et l'état « PC hors ligne » de l'accueil : connu,
+    // appairé, hors ligne, et ni réveillable ni en train de se réveiller (EtatHorsLigne). En
+    // veille : réveillable, le carrousel reste tel quel et A le réveille en lançant le jeu.
+    readonly property bool hostKnownOffline: activeHostName !== "" && activeHostPaired && !activeHostOnline
+                                             && !activeHostStatusUnknown
+    readonly property string hostState: activeHostOnline ? (hostJustWoke ? "online" : "")
+        : waking ? "waking"
+        : !hostKnownOffline ? ""
+        : activeHostWakeable && !wakeFailed ? "asleep" : "offline"
+    readonly property bool hostOffline: hostState === "offline" && !libraryEmpty
+
+    // EtatHorsLigne : A réveille le PC (ou, sans réveil possible, refuse).
+    function wakeFromOffline() {
+        if (!activeHostWakeable) {
+            homeScreen.offline.refuse()
+            Sounds.play("deny")
+            return
+        }
+        Sounds.play("select")
+        wakeHost(true)
+    }
+
+    // `byUser` : demandé (et non d'office au démarrage) : sons du réveil (MotionReveilPC).
+    function wakeHost(byUser) {
         if (activeComputerIndex < 0 || !activeHostWakeable || activeHostOnline) return
         console.info("[console-ui] Réveil de \"" + activeHostName + "\"")
+        if (byUser) {
+            Sounds.play("host_wake_send")
+            if (!launchScreen.active) Sounds.play("connecting_loop")
+        }
         computerModel.wakeComputer(activeComputerIndex)
         waking = true
         wakeFailed = false
@@ -925,6 +959,7 @@ FocusScope {
         onTriggered: {
             home.waking = false
             home.wakeFailed = true
+            if (!launchScreen.active) Sounds.stop("connecting_loop")
             if (home.launchWaking)
                 home.launchFailed("")
         }
@@ -933,6 +968,15 @@ FocusScope {
         maybeStartPairing()
         Qt.callLater(rebuildShelf)          // les jeux à télécharger suivent l'état du PC
         if (!activeHostOnline) return
+        // Il vient de se réveiller : « PC-Salon est en ligne », un instant (MotionReveilPC).
+        if (waking) {
+            hostJustWoke = true
+            justWoke.restart()
+            if (!launchScreen.active) {
+                Sounds.stop("connecting_loop")
+                Sounds.play("host_online")
+            }
+        }
         waking = false
         wakeFailed = false
         wakeTimeout.stop()
@@ -1702,6 +1746,9 @@ FocusScope {
         ambientTint: backdropColor.valid
         hostName: home.activeHostName !== "" ? home.activeHostName : qsTr("Recherche…")
         connected: home.activeHostOnline && home.activeHostPaired
+        hostState: home.hostState
+        hostOffline: home.hostOffline
+        waking: home.waking && !launchScreen.active
         // Batterie et Wi-Fi de la console (-1 : pas de donnée, indicateur masqué), et
         // réseau vers le PC, sondé tant que l'accueil est à l'écran.
         latencyMs: connected ? SystemStatus.latencyMs : -1
@@ -1739,6 +1786,7 @@ FocusScope {
                    || downloadMenu.opened
 
         onLaunchRequested: function(index) {
+            if (home.hostOffline) return home.wakeFromOffline()
             var tile = shelfModel.get(index)
             var info = home.companionGames[tile.name.toLowerCase()]
             if (tile.appIndex < 0)
@@ -1995,6 +2043,19 @@ FocusScope {
     // --- Wi-Fi : la page Wi-Fi des réglages, puis le mot de passe ---
     property string wifiTarget: ""      // réseau en cours de connexion
 
+    // L'état « PC hors ligne » à la souris.
+    Connections {
+        target: homeScreen.offline
+        function onWakeRequested() { home.wakeFromOffline() }
+        function onPickRequested() { home.openHostPicker() }
+        function onNetworkRequested() { home.openWifi() }
+    }
+
+    // Choix d'un autre PC (Y, à l'état « PC hors ligne »).
+    function openHostPicker() {
+        openSettings("pc")
+    }
+
     function openWifi() {
         WifiSetup.scan()
         openSettings("wifi")
@@ -2169,7 +2230,7 @@ FocusScope {
             onWakeRequested: {
                 home.endLaunch()
                 homeScreen.forceActiveFocus()
-                home.wakeHost()
+                home.wakeHost(true)
             }
         }
 

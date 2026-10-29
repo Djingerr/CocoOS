@@ -486,6 +486,25 @@ QtObject {
     readonly property int hostNameSize: 13           // Sora 600
     readonly property int hostDetailSize: 13         // Sora 500, chiffres tabulaires
     readonly property color hostDetailInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.55)
+    // États du PC (MotionReveilPC, EtatHorsLigne) : point gris en veille, rouge hors ligne ; au
+    // réveil, roue et « Réveil de … », puis coche et « … est en ligne » (pastille éclairée, qui
+    // rebondit). Chaque calque arrive en fondu après 140 ms ; la largeur suit au ressort.
+    readonly property color hostDotAsleep: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.4)
+    readonly property color hostPillOnlineFill: Qt.rgba(1, 1, 1, 0.16)
+    readonly property int hostPillResize: 560
+    readonly property var curveHostPill: [0.3, 1.15, 0.4, 1, 1, 1]
+    readonly property int hostLayerFade: 260
+    readonly property int hostLayerDelay: 140
+    readonly property real hostSpinnerSize: 13
+    readonly property real hostSpinnerStroke: 1.9
+    readonly property real hostSpinnerArc: 12 / 44
+    readonly property int hostSpinnerSpin: 1000
+    readonly property real hostOnlineScale: 1.06
+    readonly property int hostOnlineBump: 240
+    readonly property int hostOnlineShow: 1100       // « … est en ligne », puis la pastille habituelle
+    readonly property real heroWakeSpinner: 16       // roue du bouton Jouer pendant le réveil
+    readonly property real heroWakeStroke: 2.1
+    readonly property color heroWakeTrack: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.25)
     readonly property int statusRight: marginStatus  // bord droit de la barre (pastille, heure, icônes)
     // Île de notification : la pastille de l'hôte s'ouvre pour un événement système (manette,
     // batterie, PC perdu ou retrouvé, réseau mauvais), puis se referme seule après islandHold.
@@ -1243,6 +1262,26 @@ QtObject {
     readonly property int failButtonsMove: 500       // curveMain
     readonly property int failPrimarySize: 16        // « Réessayer »
     readonly property int pillPadRight: 24           // bouton clair d'une pilule (PillButton)
+
+    // --- PC hors ligne (EtatHorsLigne) : carrousel grisé, disque de verre, message, boutons ---
+    readonly property real offlineCovers: 0.55        // jaquettes à 55 %, en gris, assombries
+    readonly property real offlineCoverDim: -0.1      // (luminosité de MultiEffect)
+    readonly property int offlineFade: 400
+    readonly property real vignetteOutOffline: 0.92
+    readonly property int offlineIconTop: 150
+    readonly property int offlineIconDisc: 96
+    readonly property size offlineIconSize: Qt.size(44, 36)
+    readonly property color offlineShadow: Qt.rgba(0, 0, 0, 0.5)
+    readonly property int offlineShadowY: 30
+    readonly property int offlineTitleTop: 452
+    readonly property int offlineGap: 10
+    readonly property int offlineTitleSize: 30        // 600
+    readonly property int offlineTextSize: 15         // 500, ink2
+    readonly property int offlineButtonsTop: 22
+    readonly property int offlineButtonsGap: 14
+    readonly property int offlineSecondarySize: 16    // « Choisir un autre PC »
+    readonly property int offlineLegendGap: 26
+    readonly property int legendBottomCoco: 34        // légende centrée en bas (EtatHorsLigne, ChoixPC)
 
     // --- Retour d'un jeu (MotionQuitter) : l'image se réduit en jaquette, l'accueil revient ---
     readonly property int returnFrameDelay: 80

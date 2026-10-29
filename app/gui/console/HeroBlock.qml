@@ -23,6 +23,7 @@ Item {
     property string updateNote       // mise à jour ou téléchargement en cours : remplace la méta
     property bool running: false     // le jeu tourne déjà : « Reprendre »
     property string playLabel: ""    // autre libellé du bouton A (jeu à télécharger) ; vide = Jouer
+    property bool waking: false      // le PC se réveille : roue et « Réveil du PC… » (MotionReveilPC)
     property bool favorite: false    // épinglé en tête de l'étagère : X le détache
     // Sens du dernier déplacement dans la liste (+1 vers la droite) : le nouveau titre
     // arrive par le bas. `axis` "x" : changement de catégorie, il arrive de côté.
@@ -255,19 +256,45 @@ Item {
                 x: Theme.playPadLeft
                 anchors.verticalCenter: parent.verticalCenter
                 spacing: Theme.playGap
-                ButtonGlyph {
+                Item {
                     anchors.verticalCenter: parent.verticalCenter
-                    label: "A"
-                    size: Theme.playGlyphSize
-                    color: Theme.inkOnLight
-                    ink: Theme.ink
-                    fontSize: Theme.playGlyphFontSize
+                    width: Theme.playGlyphSize; height: width
+                    ButtonGlyph {
+                        anchors.centerIn: parent
+                        label: "A"
+                        size: Theme.playGlyphSize
+                        color: Theme.inkOnLight
+                        ink: Theme.ink
+                        fontSize: Theme.playGlyphFontSize
+                        opacity: root.waking ? 0 : 1
+                        Behavior on opacity { NumberAnimation { duration: Theme.hostLayerFade } }
+                    }
+                    // Réveil du PC : une roue dans le rond noir, à la place du A.
+                    Rectangle {
+                        anchors.fill: parent
+                        radius: width / 2
+                        color: Theme.inkOnLight
+                        opacity: root.waking ? 1 : 0
+                        visible: opacity > 0
+                        Behavior on opacity { NumberAnimation { duration: Theme.hostLayerFade } }
+                        LoaderRing {
+                            anchors.centerIn: parent
+                            width: Theme.heroWakeSpinner
+                            stroke: Theme.heroWakeStroke
+                            track: Theme.heroWakeTrack
+                            color: Theme.ink
+                            arc: Theme.hostSpinnerArc
+                            period: Theme.hostSpinnerSpin
+                            spinning: parent.visible
+                        }
+                    }
                 }
                 // Le libellé : au lancement, il cède la place à « Lancement… » en glissant,
                 // et le bouton s'élargit pour le contenir.
                 SwapBox {
                     id: playText
-                    readonly property string text: root.playLabel !== "" ? root.playLabel
+                    readonly property string text: root.waking && !root.pressed ? qsTr("Réveil du PC…")
+                        : root.playLabel !== "" ? root.playLabel
                         : root.pressed ? (root.running ? qsTr("Reprise…") : qsTr("Lancement…"))
                         : root.running ? qsTr("Reprendre la partie") : qsTr("Jouer")
                     anchors.verticalCenter: parent.verticalCenter

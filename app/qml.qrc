@@ -138,6 +138,9 @@
         <file>gui/console/LaunchFrame.qml</file>
         <file>gui/console/LoaderRing.qml</file>
         <file>gui/console/PillButton.qml</file>
+        <file>gui/console/OfflineState.qml</file>
+        <file>gui/console/icons/pc-offline.svg</file>
+        <file>gui/console/icons/plus.svg</file>
         <file>gui/console/Sounds.qml</file>
         <file>gui/console/SoundBank.qml</file>
         <file>gui/console/fonts/Sora-Regular.ttf</file>

@@ -35,6 +35,8 @@ import "Mock.js" as Mock
 // retour d'un flux), back (il se lève). Échec (MotionEchec) : reach (l'écran ouvert sur
 // « Connexion à PC-Salon… »), fail, retry.
 //   time      heure affichée (21:42 par défaut)
+//   pc        asleep | offline | waking : état du PC (MotionReveilPC, EtatHorsLigne) ; actions
+//             asleep, offline, waking, woke (« … est en ligne », puis connecté)
 HomeScreen {
     id: demo
 
@@ -147,8 +149,13 @@ HomeScreen {
     }
     Timer { id: launchOpen; interval: Theme.launchPress; onTriggered: launchScreen.open() }
 
+    property string pc: args.pc || ""
     hostName: "PC-Salon"
-    connected: true
+    connected: pc === "" || pc === "online"
+    hostState: pc
+    hostOffline: pc === "offline"
+    waking: pc === "waking"
+    Timer { id: woke; interval: Theme.hostOnlineShow; onTriggered: demo.pc = "" }
     latencyMs: 4
     signalStrength: 4
     batteryPercent: 82
@@ -272,6 +279,8 @@ HomeScreen {
             else if (k === "down" || k === "up") options.list.step(k === "down" ? 1 : -1)
             else options.list.change(k === "right" ? 1 : -1, false)
         }
+        else if (action === "asleep" || action === "offline" || action === "waking") pc = action
+        else if (action === "woke") { pc = "online"; woke.start(); Sounds.play("host_online") }
         else if (action === "press") { pressed = true; Sounds.play("launch") }
         else if (action === "launch") {
             placeLaunch(true)
