@@ -1338,6 +1338,55 @@ QtObject {
     readonly property int hudIconFade: 180
     readonly property int hudIconMove: 300
 
+    // --- Menu d'alimentation (MenuAlimentation, MotionAlimentation) ---
+    readonly property int powerIn: 360
+    readonly property int powerOut: 260
+    readonly property int powerTop: 220
+    readonly property int powerWidth: 600
+    readonly property int powerHeight: 330
+    readonly property int powerRadius: 36
+    readonly property int powerFade: 240
+    readonly property int powerSpring: 560           // curveSpring, depuis 0,9
+    readonly property int powerShrink: 320           // curveExit
+    readonly property real powerFrom: 0.9
+    readonly property real powerLeaveScale: 0.96     // une action part : la carte recule moins
+    readonly property int powerPadTop: 36
+    readonly property int powerPadBottom: 28
+    readonly property int powerHeaderSize: 13        // 600, ink3, capitales
+    readonly property int powerItemsTop: 83          // 36 + ligne de 17 + 30
+    readonly property int powerItem: 150
+    readonly property int powerGap: 22
+    readonly property int powerDisc: 92
+    readonly property real powerDiscFocus: 1.08
+    readonly property real powerPress: 0.92
+    readonly property int powerIcon: 30
+    readonly property int powerLabelGap: 14
+    readonly property int powerLabelSize: 15
+    readonly property color powerLabelInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.7)
+    readonly property int powerFocusFade: 200
+    readonly property int powerFocusMove: 420
+    readonly property var curvePowerFocus: [0.3, 1.5, 0.4, 1, 1, 1]
+    readonly property int powerNoteSize: 13
+    readonly property color powerNoteInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.55)
+    // Appui long sur power : la pastille « Maintenir le bouton » se remplit, puis le menu.
+    readonly property int powerHold: 1200
+    readonly property int powerChipLinger: 300
+    readonly property int powerChipRight: 32
+    readonly property int powerChipTop: 76
+    readonly property int powerChipShift: 8
+    readonly property int powerChipHeight: 40
+    readonly property int powerChipPadLeft: 7
+    readonly property int powerChipPadRight: 16
+    readonly property int powerChipGap: 10
+    readonly property int powerChipRing: 28
+    readonly property real powerChipStroke: 2.4
+    readonly property color powerChipTrack: Qt.rgba(1, 1, 1, 0.18)
+    readonly property int powerChipIcon: 14
+    readonly property int powerChipSize: 13
+    readonly property color powerChipFill: Qt.rgba(30 / 255, 30 / 255, 32 / 255, 0.7)
+    readonly property int powerChipFade: 200
+    readonly property int powerChipMove: 300
+
     // --- Retour d'un jeu (MotionQuitter) : l'image se réduit en jaquette, l'accueil revient ---
     readonly property int returnFrameDelay: 80
     readonly property int returnFrameShrink: 900     // curveMain

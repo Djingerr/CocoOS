@@ -871,6 +871,10 @@ FocusScope {
             homeMenu.close()
             return
         }
+        if (powerMenu.opened) {
+            powerMenu.close(false)
+            return
+        }
         homeScreen.options.close()
         confirmDialog.close()
         openHomeMenu()
@@ -883,14 +887,46 @@ FocusScope {
             actions.push({ label: qsTr("Reprendre %1").arg(running), key: "resume" })
             actions.push({ label: qsTr("Quitter %1").arg(running), key: "quit" })
         }
-        var power = SystemStatus.powerActions
-        if (power.indexOf("suspend") >= 0) actions.push({ label: qsTr("Mettre en veille"), key: "suspend" })
-        if (power.indexOf("reboot") >= 0) actions.push({ label: qsTr("Redémarrer"), key: "reboot" })
-        if (power.indexOf("poweroff") >= 0) actions.push({ label: qsTr("Éteindre"), key: "poweroff" })
-        if (actions.length === 0) return
+        // L'alimentation : le menu de MenuAlimentation (directement, sans partie en cours).
+        var power = SystemStatus.powerActions.length > 0
+        if (running === "") {
+            if (power) powerMenu.open()
+            return
+        }
+        if (power) actions.push({ label: qsTr("Alimentation"), key: "power" })
         homeMenu.message = running !== "" ? qsTr("%1 est en cours sur %2.").arg(running).arg(activeHostName) : ""
         homeMenu.actions = actions
         homeMenu.open()
+    }
+
+    // --- Touche power (MotionAlimentation, MotionVeille) : appui court, la veille ; long, le menu ---
+    Connections {
+        target: InputStatus
+        function onPowerKey(pressed) {
+            if (pressed) {
+                if (sleepScreen.asleep) sleepScreen.wake()
+                else if (!powerMenu.opened && home.onTop && !streamCurtain.covering) powerMenu.startHold()
+                return
+            }
+            if (powerMenu.holding && !powerMenu.releaseHold())
+                home.powerAction("suspend")
+        }
+    }
+    // Une action d'alimentation (menu, touche power) ; la veille et l'extinction s'animent.
+    function powerAction(key) {
+        if (SystemStatus.powerActions.indexOf(key) < 0) return
+        console.info("[console-ui] Alimentation : " + key)
+        SystemStatus.power(key)
+    }
+    readonly property string powerHeader: {
+        var d = SystemStatus.batteryDetails || {}
+        if (SystemStatus.batteryPercent < 0) return ""
+        var minutes = d.minutes
+        if (SystemStatus.charging || !(minutes > 0))
+            return qsTr("Batterie %1 %").arg(SystemStatus.batteryPercent)
+        var life = minutes < 60 ? qsTr("%1 min").arg(minutes)
+                 : qsTr("%1 h %2").arg(Math.floor(minutes / 60)).arg(("0" + minutes % 60).slice(-2))
+        return qsTr("Batterie %1 % · environ %2").arg(SystemStatus.batteryPercent).arg(life)
     }
 
     // Batterie très faible (5 %, hors charge) : l'île le dit, puis la veille au bout de 2 min si la
@@ -922,6 +958,8 @@ FocusScope {
             confirmDialog.ask(qsTr("Quitter %1 ?").arg(running),
                               qsTr("Toute progression non sauvegardée sera perdue."),
                               qsTr("Quitter"), function() { home.quitRunningGame() }, qsTr("Fermeture du jeu"))
+        } else if (key === "power") {
+            Qt.callLater(powerMenu.open)    // (après la fermeture du menu Home, qui rend la manette à l'accueil)
         } else if (key === "suspend") {
             SystemStatus.power("suspend")
         } else if (key === "reboot") {
@@ -1813,7 +1851,7 @@ FocusScope {
         connected: home.activeHostOnline && home.activeHostPaired
         hostState: home.hostState
         hostOffline: home.hostOffline
-        hostPickerOpen: hostPicker.opened
+        menuShown: hostPicker.opened || powerMenu.opened
         waking: home.waking && !launchScreen.active
         // Batterie et Wi-Fi de la console (-1 : pas de donnée, indicateur masqué), et
         // réseau vers le PC, sondé tant que l'accueil est à l'écran.
@@ -1852,7 +1890,7 @@ FocusScope {
                 || welcomeScreen.shown || networkScreen.shown
         detailOpen: gamePage.shown
         panelOpen: confirmDialog.opened || homeMenu.opened || settingsScreen.opened || findScreen.opened
-                   || hostPicker.opened
+                   || hostPicker.opened || powerMenu.opened
                    || downloadMenu.opened
 
         onLaunchRequested: function(index) {
@@ -2263,6 +2301,15 @@ FocusScope {
             qwerty: home.english
             startDown: function() { return InputStatus.startHeld() }
             onChosen: function(index, query) { home.searchChosen(index, query) }
+            onClosed: homeScreen.forceActiveFocus()
+        }
+        PowerMenu {
+            id: powerMenu
+            anchors.fill: parent
+            z: 9
+            actions: ["suspend", "reboot", "poweroff"].filter(function(k) { return SystemStatus.powerActions.indexOf(k) >= 0 })
+            header: home.powerHeader
+            onChosen: function(key) { home.powerAction(key) }
             onClosed: homeScreen.forceActiveFocus()
         }
         VolumeHud {

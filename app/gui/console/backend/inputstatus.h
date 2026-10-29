@@ -70,6 +70,9 @@ signals:
     void triggerPressed(int direction);  // L2 (-1) ou R2 (+1), enfoncée au-delà de la moitié
     void stickPressed(int side);         // clic du stick gauche (-1, L3) ou droit (+1, R3)
     void controllersChanged();
+    // Touche power de la console (Qt::Key_PowerOff, Key_PowerDown, Key_Sleep, Key_Suspend),
+    // enfoncée puis relâchée ; prise avant tout le reste (elle n'atteint aucun écran).
+    void powerKey(bool pressed);
 
 protected:
     bool eventFilter(QObject* watched, QEvent* event) override;

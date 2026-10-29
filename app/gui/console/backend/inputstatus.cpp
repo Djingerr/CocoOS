@@ -1,4 +1,7 @@
 #include "inputstatus.h"
+
+#include <QKeyEvent>
+#include <QWindow>
 #include "streammenu.h"
 
 #include "SDL_compat.h"
@@ -76,6 +79,17 @@ int InputStatus::batteryForPowerLevel(int sdlPowerLevel)
 
 bool InputStatus::eventFilter(QObject* watched, QEvent* event)
 {
+    // La touche power, une fois (à la fenêtre, avant les éléments), et gardée pour nous.
+    if ((event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease) && qobject_cast<QWindow*>(watched)) {
+        const QKeyEvent* key = static_cast<const QKeyEvent*>(event);
+        if (key->key() == Qt::Key_PowerOff || key->key() == Qt::Key_PowerDown
+                || key->key() == Qt::Key_Sleep || key->key() == Qt::Key_Suspend) {
+            if (!key->isAutoRepeat()) {
+                emit powerKey(event->type() == QEvent::KeyPress);
+            }
+            return true;
+        }
+    }
     switch (event->type()) {
     case QEvent::KeyPress:
     case QEvent::MouseButtonPress:

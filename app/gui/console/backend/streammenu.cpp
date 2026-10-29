@@ -129,7 +129,8 @@ const int SOUND_CHANNELS = 2;
 const double SOUND_VOLUME = 0.8;  // Theme.soundVolume
 const char* const SOUND_NAMES[] = { "ingame_menu_open", "ingame_menu_close", "focus_tick", "nav_edge", "select",
                                     "hold_fill", "hold_done", "volume_tick", "volume_limit", "brightness_tick",
-                                    "slider_limit" };
+                                    "slider_limit", "battery_critical", "controller_disconnected", "controller_connected",
+                                    "capture", "network_unstable", "deny" };
 
 // Une valeur qui va de `from` à `to` en `duration` ms à partir de `start`.
 struct Anim {
@@ -1025,6 +1026,7 @@ void padsChanged(int count)
 {
     const Uint32 now = SDL_GetTicks();
     if (count == 0 && s_pads > 0 && !s_open) {
+        play("controller_disconnected");
         s_paused = true;
         s_pauseBack.set(0);
         s_pauseShow.go(1, PAUSE_IN, now, QEasingCurve::Linear, 150);
@@ -1037,6 +1039,7 @@ void padsChanged(int count)
         requestRender();
     }
     else if (count > 0 && s_paused && s_pauseTimer == 0) {
+        play("controller_connected");
         s_pauseBack.go(1, PAUSE_IN, now);
         s_pauseTimer = SDL_AddTimer(PAUSE_RESUME, endPause, nullptr);
         requestRender();
@@ -1099,6 +1102,7 @@ Uint32 endShot(Uint32, void*)
 void showShot(const QImage& image)
 {
     const Uint32 now = SDL_GetTicks();
+    play("capture");
     s_shotImage = image;
     s_shotTitle = Text::tr("Capture enregistrée");
     s_flash.set(1);
@@ -1311,7 +1315,9 @@ void shotDone(bool saved)
         s_shotTitle.clear();
         showBanner(StreamPainter::Banner::Check, false, false, Text::tr("Capture impossible"), QString());
     }
-    play(saved ? "confirm" : "deny");
+    if (!saved) {
+        play("deny");   // (enregistrée : le son « capture » a déjà été joué)
+    }
 }
 
 // Fil du décodeur : une capture est demandée, voici l'image. Elle est convertie ici, puis
@@ -1362,6 +1368,7 @@ void checkHealth(const VIDEO_STATS& stats)
         s_goodSeconds = poor ? 0 : s_goodSeconds + 1;
         if (s_poorSeconds == POOR_SECONDS && !s_poorNoticed) {
             s_poorNoticed = true;
+            play("network_unstable");
             showBanner(StreamPainter::Banner::Network, false, false, Text::tr("Réseau instable"),
                        Text::tr("Latence %1 ms · gigue %2 ms").arg(stats.lastRtt).arg(stats.lastRttVariance));
         }
@@ -1390,6 +1397,7 @@ void checkHealth(const VIDEO_STATS& stats)
     const bool canSleep = s_power.contains(QLatin1String("suspend"));
     const Uint32 now = SDL_GetTicks();
     if (critical && !s_batteryLow) {
+        play("battery_critical");
         showBanner(StreamPainter::Banner::Battery, true, false, Text::tr("Batterie très faible · %1 %").arg(percent),
                    canSleep ? Text::tr("Branchez la console. Mise en veille dans 2 min.") : Text::tr("Branchez la console."));
         s_criticalAt = now;

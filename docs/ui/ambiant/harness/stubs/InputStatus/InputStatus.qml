@@ -18,6 +18,7 @@ QtObject {
     signal bumperPressed(int direction)
     signal triggerPressed(int direction)
     signal stickPressed(int side)
+    signal powerKey(bool pressed)
     property bool start: false           // Start (≡) tenu : Key_Hangup vaut alors « valider »
     function startHeld() { return start }
 

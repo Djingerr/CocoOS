@@ -36,6 +36,8 @@ import "Mock.js" as Mock
 // « Connexion à PC-Salon… »), fail, retry.
 //   time      heure affichée (21:42 par défaut)
 //   picker    1 : le choix du PC ouvert, PC-Bureau sous la manette (ChoixPC)
+//   power     1 : le menu d'alimentation (MenuAlimentation) ; powerFocus=0..2 ; action hold
+//             (la touche power tenue : la pastille se remplit puis le menu)
 //   pc        asleep | offline | waking : état du PC (MotionReveilPC, EtatHorsLigne) ; actions
 //             asleep, offline, waking, woke (« … est en ligne », puis connecté)
 HomeScreen {
@@ -161,8 +163,16 @@ HomeScreen {
         onClosed: { demo.statusBar.hostRing = false; demo.shelf.forceActiveFocus() }
         onChosen: close()
     }
+    PowerMenu {
+        id: powerMenu
+        anchors.fill: parent
+        z: 9
+        actions: ["suspend", "reboot", "poweroff"]
+        header: "Batterie 82 % · environ 3 h 10"
+        onClosed: demo.shelf.forceActiveFocus()
+    }
     function openPicker() { statusBar.hostRing = true; picker.open(1) }
-    hostPickerOpen: picker.opened
+    menuShown: picker.opened || powerMenu.opened
 
     property string pc: args.pc || ""
     hostName: "PC-Salon"
@@ -235,6 +245,7 @@ HomeScreen {
         if (args.do) actions.start()
         if (args.fiche === "1") fiche.open()
         if (args.picker === "1") openPicker()
+        if (args.power === "1") { powerMenu.open(); powerMenu.current = Number(args.powerFocus || 1) }
         var start = Number(args.start || 0)
         var steps = args.script ? args.script.split(",").map(function(x) {
             var p = x.split(":"); return { t: start + Number(p[0]), action: p[1] } }) : []
@@ -297,6 +308,7 @@ HomeScreen {
         }
         else if (action === "asleep" || action === "offline" || action === "waking") pc = action
         else if (action === "woke") { pc = "online"; woke.start(); Sounds.play("host_online") }
+        else if (action === "hold") powerMenu.startHold()
         else if (action === "press") { pressed = true; Sounds.play("launch") }
         else if (action === "launch") {
             placeLaunch(true)

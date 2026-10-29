@@ -17,6 +17,7 @@
 
 #include <QElapsedTimer>
 #include <QList>
+#include <QDBusUnixFileDescriptor>
 #include <QObject>
 #include <QPointer>
 #include <QString>
@@ -113,6 +114,8 @@ private:
     static QStringList readPowerActions();
     static QString backlightDir();
     void readVolume();
+    void holdPowerKey();
+    QDBusUnixFileDescriptor m_powerKeyLock;
 
     QTimer m_timer;
     int m_batteryPercent = -1;

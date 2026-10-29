@@ -73,7 +73,7 @@ FocusScope {
         activate(current)
     }
 
-    // (l'accueil s'assombrit lui-même, sous sa barre haute : HomeScreen.hostPickerOpen) ; un clic
+    // (l'accueil s'assombrit lui-même, sous sa barre haute : HomeScreen.menuShown) ; un clic
     // à côté ferme.
     MouseArea { anchors.fill: parent; onClicked: root.close() }
 

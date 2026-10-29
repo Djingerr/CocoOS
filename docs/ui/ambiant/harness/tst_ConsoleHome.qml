@@ -376,7 +376,7 @@ Item {
             keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)
             picker = find(home.Window.window.contentItem, "hosts")
             verify(picker.opened)
-            verify(bar.hostRing && screen.hostPickerOpen)
+            verify(bar.hostRing && screen.menuShown)
             compare(picker.hosts.length, 2)
             compare([picker.hosts[0].name, picker.hosts[0].state, picker.hosts[0].current], ["Djinger", "connected", true])
             compare([picker.hosts[1].name, picker.hosts[1].state, picker.hosts[1].detail], ["Bureau", "asleep", "En veille"])
@@ -785,55 +785,73 @@ Item {
             home.rebuildAppModel()
         }
 
-        // Bouton Home : le menu, puis « Éteindre », qui demande confirmation.
-        function test_9i_homeButtonMenuPowersOff() {
+        // Bouton Home sans partie en cours : le menu d'alimentation (MenuAlimentation) ; ◀ ▶
+        // choisissent, A suffit (au relâché), Home le referme.
+        function test_9i_homeButtonOpensThePowerMenu() {
+            var power = find(home, "holdDone")
             SystemStatus.lastPower = ""
             InputStatus.homePressed()
-            var menu = dialog("Menu")
-            verify(menu)
-            compare(menu.labels, ["Mettre en veille", "Redémarrer", "Éteindre"])
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)
-            verify(!menu.opened)
-            var confirm = dialog("Éteindre la console ?")
-            verify(confirm)
-            compare(SystemStatus.lastPower, "")           // rien sans confirmation
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)
-            compare(SystemStatus.lastPower, "")           // un appui bref ne confirme pas : A se maintient
-            holdA()
+            verify(power.opened)
+            compare(power.actions, ["suspend", "reboot", "poweroff"])
+            compare(power.current, 0)
+            keyClick(Qt.Key_Right); keyClick(Qt.Key_Right)
+            compare(power.current, 2)
+            keyClick(Qt.Key_Right)                        // au bout
+            compare(power.current, 2)
+            keyRelease(Qt.Key_Return)                     // un relâché sans appui : rien
+            compare(SystemStatus.lastPower, "")
+            keyPress(Qt.Key_Return)
+            compare(SystemStatus.lastPower, "")           // rien à l'appui
+            keyRelease(Qt.Key_Return)
             compare(SystemStatus.lastPower, "poweroff")
-            InputStatus.homePressed(); verify(dialog("Menu"))
-            InputStatus.homePressed(); verify(!dialog("Menu"))   // Home referme le menu
+            verify(!power.opened)
+            InputStatus.homePressed(); verify(power.opened)
+            InputStatus.homePressed(); verify(!power.opened)    // Home le referme
             keyClick(Qt.Key_Right)
-            compare(screen.currentIndex, 1)               // la manette est revenue à l'étagère
+            compare(screen.currentIndex, 1)               // la manette est revenue au carrousel
         }
 
         // Ctrl + Maj + Alt + Tab : le bouton Home au clavier (Qt dit Backtab avec Maj).
         function test_9i_keyboardHomeShortcut() {
+            var power = find(home, "holdDone")
             var all = Qt.ControlModifier | Qt.AltModifier | Qt.ShiftModifier
-            keyClick(Qt.Key_Tab, all); verify(dialog("Menu"))
-            keyClick(Qt.Key_Backtab, all); verify(!dialog("Menu"))
-            keyClick(Qt.Key_Backtab, all); verify(dialog("Menu"))
-            keyClick(Qt.Key_Tab, all); verify(!dialog("Menu"))
+            keyClick(Qt.Key_Tab, all); verify(power.opened)
+            keyClick(Qt.Key_Backtab, all); verify(!power.opened)
+            keyClick(Qt.Key_Backtab, all); verify(power.opened)
+            keyClick(Qt.Key_Escape); verify(!power.opened)   // B l'annule
         }
 
-        // Les panneaux valident au relâché de A, et seulement après un appui fait chez
-        // eux : le relâché qui a ouvert la confirmation ne la valide pas.
-        function test_9i_panelsActOnRelease() {
-            SystemStatus.lastPower = ""
+        // Une partie en cours : le menu Home garde Reprendre / Quitter, et « Alimentation » mène
+        // au menu d'alimentation.
+        function test_9i_homeMenuDuringAGame() {
+            var apps = home.appModel, power = find(home, "holdDone")
+            apps.runningName = "Hades II"
             InputStatus.homePressed()
             var menu = dialog("Menu")
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down)
-            keyPress(Qt.Key_Return)
-            verify(menu.opened && menu.pressing)          // rien à l'appui
-            keyRelease(Qt.Key_Return)
-            var confirm = dialog("Éteindre la console ?")
-            verify(confirm && !confirm.pressing)
-            keyClick(Qt.Key_Down)
-            keyRelease(Qt.Key_Return)                     // relâché sans appui : rien
-            verify(confirm.opened)
+            verify(menu)
+            compare(menu.labels, ["Reprendre Hades II", "Quitter Hades II", "Alimentation"])
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)
+            tryVerify(function() { return power.opened && power.activeFocus }, 1000)
+            keyClick(Qt.Key_Escape)                       // (elle a bien la manette)
+            verify(!power.opened)
+            apps.runningName = ""
+        }
+
+        // Touche power : appui court, la veille ; long (1,2 s), la pastille se remplit, puis le menu.
+        function test_9i_powerKey() {
+            var power = find(home, "holdDone")
+            SystemStatus.lastPower = ""
+            InputStatus.powerKey(true)
+            verify(power.holding)
+            InputStatus.powerKey(false)
+            compare(SystemStatus.lastPower, "suspend")
+            SystemStatus.lastPower = ""
+            InputStatus.powerKey(true)
+            tryVerify(function() { return power.opened }, Theme.powerHold + 500)
+            InputStatus.powerKey(false)                   // relâchée après : le menu reste
+            verify(power.opened)
             compare(SystemStatus.lastPower, "")
             keyClick(Qt.Key_Escape)
-            verify(!dialog("Éteindre la console ?"))
         }
 
         // Quitté par le menu en jeu : « Quitter » ferme le jeu sur le PC, « Retour à

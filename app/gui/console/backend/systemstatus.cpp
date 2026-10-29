@@ -1,4 +1,5 @@
 #include "systemstatus.h"
+#include <QDBusUnixFileDescriptor>
 
 #include "backend/computermanager.h"
 
@@ -67,6 +68,7 @@ void SystemStatus::start()
     QDBusConnection::systemBus().connect(LOGIN_SERVICE, LOGIN_PATH, LOGIN_MANAGER, QStringLiteral("PrepareForSleep"),
                                          this, SLOT(onPrepareForSleep(bool)));
     m_powerActions = readPowerActions();
+    holdPowerKey();
     refresh();
     emit changed();
 
@@ -94,6 +96,23 @@ QStringList SystemStatus::readPowerActions()
         }
     }
     return actions;
+}
+
+// La touche power (et veille) revient à la console : appui court, la veille ; long, le menu
+// d'alimentation (PowerMenu). logind ne s'en occupe plus tant que l'application tourne
+// (verrou « block » tenu par m_powerKeyLock, rendu à sa fermeture).
+void SystemStatus::holdPowerKey()
+{
+    QDBusInterface manager(LOGIN_SERVICE, LOGIN_PATH, LOGIN_MANAGER, QDBusConnection::systemBus());
+    const QDBusReply<QDBusUnixFileDescriptor> reply =
+        manager.call(QStringLiteral("Inhibit"), QStringLiteral("handle-power-key:handle-suspend-key"),
+                     QStringLiteral("CocoOS"), QStringLiteral("La console gère la touche power"), QStringLiteral("block"));
+    if (reply.isValid()) {
+        m_powerKeyLock = reply.value();
+    }
+    else {
+        qInfo("SystemStatus: touche power laissée à logind (%s)", qPrintable(reply.error().message()));
+    }
 }
 
 void SystemStatus::power(const QString& action)
