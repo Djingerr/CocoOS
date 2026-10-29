@@ -566,7 +566,15 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   clavier CocoOS (`OnScreenKeyboard` + `KeyboardPanel` : accents à l'appui maintenu, Y espace,
   Start valide, R3 affiche), recherche à ≡ (`SearchScreen`, `Search.js`). Start et Y donnent la
   même touche Qt : `InputStatus.startHeld()` lit Start dans SDL. ⚠️ Porte : à valider à la
-  manette (next_steps.md, questions 25 à 28).
+  manette (next_steps.md, questions 25 à 28 ; réponses du 2026-10-29 : version « CocoOS alpha »,
+  réglages manquants après la phase 10).
+  Phase 5 (lancer, quitter, erreurs, PC) : la jaquette grandit jusqu'au plein écran, anneau et
+  états (`LaunchScreen`, `LaunchFrame`, `LoaderRing`) ; au retour, l'image du jeu se réduit en
+  jaquette (`StreamCurtain`) ; échec « PC-Salon ne répond pas » (Réessayer, Réveiller le PC,
+  Annuler), y compris les échecs du flux de Moonlight (le dialog Material de `StreamSegue` est
+  vidé) ; PC hors ligne (`OfflineState`, carrousel grisé) ; réveil dans la pastille du PC (En
+  veille, Réveil de …, est en ligne) ; choix du PC (`HostPicker`, `ConsoleUi/preferredHost`).
+  ⚠️ Porte : un vrai lancement contre le PC (next_steps.md, questions 29 à 32).
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
   télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
   Côté console uniquement (Apollo reste non modifié).
@@ -686,7 +694,15 @@ Fichiers (dans `app/gui/console/`) :
 - `SearchScreen.qml` + `Search.js` — recherche dans la bibliothèque (≡ à l'accueil) : titres,
   studios, genres ; suggestions, recherches récentes (`ConsoleUi/recentSearches`)
 - `Glow.qml` — lueur (ellipse en dégradé radial) des écrans plein écran
-- `LaunchScreen.qml` — écran de lancement d'un jeu (remplace l'ancien `LaunchOverlay`)
+- `LaunchScreen.qml` — lancement d'un jeu (MotionLancement : la jaquette grandit, anneau et états)
+  et son échec (MotionEchec : « … ne répond pas », A Réessayer / Y Réveiller le PC / B Annuler)
+- `LaunchFrame.qml` — cadre partagé du lancement et du retour : jaquette ↔ plein écran, image du
+  jeu assombrie, floutée, qui dérive
+- `LoaderRing.qml` — anneau de chargement (piste, arc qui tourne, remplissage) ; aussi en petit
+  dans la pastille du PC et le bouton Jouer
+- `PillButton.qml` — bouton en pilule (A clair, Y / B de verre) des écrans d'échec et hors ligne
+- `OfflineState.qml` — état « PC hors ligne » de l'accueil (EtatHorsLigne)
+- `HostPicker.qml` — choix du PC (ChoixPC), sous la pastille du PC
 - `Sounds.qml`, `SoundBank.qml`, `sounds/` — sons de l'interface (singleton `Sounds.play("nav_move")`,
   pack CocoOS de 68 sons dans `console.qrc`, embarqué par le build `embedded` seulement ; table
   d'alias des anciens noms ; `Sounds.ambiance("amb_veille")` pour une boucle)
@@ -725,8 +741,9 @@ Fichiers (dans `app/gui/console/`) :
 - `Library.js` — l'étagère : utilitaires écartés, ordre (favoris, récents, nom), synchronisation
   du `ListModel` sans recréer les vignettes
 - `Toast.qml` — message bref au-dessus de l'étagère (`homeScreen.toast(texte)`)
-- `StreamCurtain.qml` — rideau CocoOS (logo de démarrage, ligne d'état) entre un jeu et
-  l'accueil : posé au début du flux, levé au retour (cf §2)
+- `StreamCurtain.qml` — rideau CocoOS entre un jeu et l'accueil : noir pendant le flux, puis
+  l'image du jeu floutée (anneau et « Fermeture de … » si l'on attend) qui se réduit en jaquette
+  au retour (MotionQuitter) ; posé au début du flux, levé au retour (cf §2)
 - `idle/` — écran de veille (`docs/design/idle/`) : `IdleOverlay` (la veille au-dessus de l'accueil ; la
   touche qui réveille n'atteint pas l'accueil), `IdleScreen` (état → écran, fondu enchaîné, échelle de la
   grille 1280 × 720, sortie), `IdleStatus` (données ; `IdleStatusMock` + `mock/`), `IdleTheme` (jetons),
@@ -1080,6 +1097,10 @@ XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import
   (`ConsoleHomeDemo do=launch`), en rendu logiciel ou GPU, reste stable (≈ 250 / 300 Mo), comme
   l'appli. Sur une machine chargée, systemd-oomd peut tuer la suite (code 137, pas de
   « Totals ») : la relancer seule.
+- Un `Behavior` dont la pause (`PauseAnimation { duration: x ? d : 0 }`) dépend de la même
+  condition que la valeur animée lit une pause périmée : les délais partent à l'envers. Pour
+  une cascade, relancer des animations à la main (`onXChanged`) ou passer par `Appear` (délai
+  constant, transition d'état).
 - `tst_GameShelf::test_springMatchesPrototype` mesure le temps réel. Ses échecs « à froid » (écart
   0,0828) venaient d'une mesure lancée juste après la reconstruction des vignettes par `init()`
   (étagère déjà sur 0, quand le test précédent y finit) : il attend désormais 500 ms (20 sur 20).

@@ -215,6 +215,85 @@ Un commit par sous-étape :
 - ⚠️ **À écouter / sentir par Coco** : le niveau du nouveau pack (0,8) à l'accueil et dans le menu en
   jeu, et les vibrations Légères / Fortes à la manette (aucune n'a été ressentie).
 
+## Refonte CocoOS — phase 5, lancer, quitter, erreurs, PC (2026-10-29)
+
+Trois commits : lancement, retour et échec (`6c35adfb`) ; PC hors ligne et réveil (`7c93dbe9`) ;
+choix du PC (`e74e988e`).
+
+- **Lancement** (MotionLancement, `LaunchScreen` réécrit) : A relâché, la jaquette du carrousel
+  grandit jusqu'au plein écran (950 ms curveMain, coins de 12 à 0, `LaunchFrame`) pendant que
+  l'image du jeu la remplace (assombrie à 58 %, qui dérive lentement), les jaquettes voisines
+  s'écartent de 360 px en s'effaçant de rang en rang, le bloc titre et la barre haute s'effacent ;
+  puis l'anneau (`LoaderRing` : piste accent 30 %, arc qui tourne en 1,1 s), le nom du jeu et
+  l'état en fondu glissé : « Réveil de PC-Salon… » (si le PC dormait), « Préparation de … »
+  (Companion), « Lancement de Minecraft… », « Connexion au flux vidéo… ». Pendant une mise à jour
+  (Companion), l'anneau se remplit à la place de la barre. Sons : `launch_start` à A,
+  `connecting_loop` tant que l'anneau tourne, `launch_ready` au flux.
+- **Retour** (MotionQuitter, `StreamCurtain` réécrit) : le rideau montre l'image du jeu floutée
+  (36 px) et assombrie, qui redevient nette en se réduisant jusqu'à sa jaquette (900 ms) ; les
+  voisines reviennent du centre (à plat, 0,88), puis le bloc titre (18 px plus bas) et la barre
+  haute (10 px plus haut), aux délais de la maquette. « Fermeture de … » (le jeu quitté depuis le
+  menu en jeu) : l'anneau, le nom du jeu et cet état sur l'image. L'alerte « Quitter Minecraft ? »
+  de la planche n'est pas reprise (Q6 : appui maintenu, sans dialogue).
+- **Échec** (MotionEchec) : l'anneau secoue et devient « ! », « PC-Salon ne répond pas » et
+  « Vérifiez que le PC est allumé et relié au même réseau, ou réveillez-le à distance. », A
+  Réessayer, Y Réveiller le PC (s'il est réveillable), B Annuler ; la colonne remonte. PC pas
+  encore trouvé : « Connexion à PC-Salon… », « Nouvelle tentative… », puis l'échec ; s'il répond
+  entre-temps, le lancement reprend. Un échec du flux de Moonlight (RTSP…) passe par le même
+  écran (« Le lancement a échoué » et la raison), à la place du dialog d'erreur Material de
+  `StreamSegue` (son texte est vidé avant qu'il ne s'ouvre : rien d'upstream modifié). Réessayer
+  relance le même jeu sans refermer l'écran.
+- **PC hors ligne** (EtatHorsLigne, `OfflineState`) : PC appairé, connu hors ligne, sans réveil
+  possible ou après un réveil resté sans réponse : carrousel grisé (55 %, désaturé), disque de
+  verre et écran barré, « PC-Salon est hors ligne », « Votre bibliothèque reste consultable.
+  Réveillez le PC pour jouer. », A Réveiller le PC, Y Choisir un autre PC, ≡ Réglages réseau
+  (Réglages › Wi-Fi). La bibliothèque se parcourt toujours ; A refuse s'il n'y a pas de réveil possible.
+- **Réveil** (MotionReveilPC) : la pastille du PC passe par « En veille » (point gris : connu hors
+  ligne mais réveillable), « Réveil de PC-Salon… » (roue), « PC-Salon est en ligne » (coche,
+  pastille éclairée qui rebondit, 1,1 s), puis « PC-Salon 4 ms » ; sa largeur suit au ressort. Le
+  bouton Jouer affiche « Réveil du PC… » avec une roue. Sons `host_wake_send`, `connecting_loop`,
+  `host_online` (réveil demandé ; le réveil d'office au démarrage reste muet).
+- **Choix du PC** (ChoixPC, `HostPicker`) : la pastille du PC se choisit dans la barre haute
+  (haut, ←, A ; ou clic), ou Y à l'état hors ligne. Menu de verre « Jouer depuis » : PC appairés
+  (connecté et coché « Connecté · 4 ms · 214 jeux », « En ligne », « En veille » avec
+  « Réveiller », « Introuvable sur ce réseau »), « + Ajouter un PC » ; l'accueil s'assombrit sous
+  la barre haute, le bloc titre s'efface ; A Basculer, B Fermer. Le PC choisi est retenu
+  (`ConsoleUi/preferredHost`) et réveillé s'il dort.
+- Corrigé au passage : un `Behavior` dont la pause dépend de la même condition que sa valeur lit
+  une pause périmée (les délais partaient à l'envers) ; les entrées en cascade passent par des
+  animations relancées (`LaunchFade`, `CoverFlow`) ou `Appear` (délai constant).
+- Harnais (`docs/ui/cocoos/harness/HomeDemo.qml`) : `script=` avec press, launch, step, full,
+  stream, ingame, back, reach, fail, retry, asleep, offline, waking, woke ; `pc=offline|asleep|waking`,
+  `picker=1`. Tests : `tst_ConsoleHome` (54) — lancement jusqu'au rideau et retour, échec du flux
+  et Réessayer, PC injoignable, hors ligne et réveil, choix du PC.
+
+### Porte de la phase 5
+- **MotionLancement** : même séquence image par image (jaquette qui grandit, anneau, trois états,
+  fin) ; la bannière « Connecté à PC-Salon · 4 ms · 1080p · 60 i/s » est dessinée par-dessus le
+  flux : phase 6 (QPainter).
+- **MotionQuitter** : le retour (image floutée → jaquette, voisines, titre, barre haute) suit la
+  planche ; le menu en jeu et son alerte sont la phase 6 (et Q6).
+- **MotionEchec** : conforme (anneau, secousse, « ! », titre, explication, boutons, Réessayer).
+- **MotionReveilPC** : conforme (En veille → Réveil de … → est en ligne → 4 ms, bouton Jouer).
+- **ChoixPC** : 4,8 / 255. **EtatHorsLigne** : 6,0 / 255 (art du mock, flou absent du verre).
+- Tests : 21 suites vertes ; build `embedded` sans avertissement de la console ; anglais complet
+  (487 textes).
+- ⚠️ **À valider par Coco** : **un vrai lancement contre le PC** (Jouer → anneau → flux →
+  menu en jeu → Retour à l'accueil / Quitter : l'image qui se réduit en jaquette) ; PC éteint
+  (« Réveil de … » au lancement, puis depuis l'état hors ligne) ; un échec (PC débranché du
+  réseau) et Réessayer ; la pastille du PC → choix du PC, B / A.
+
+### Questions pour Coco (phase 5)
+29. « Ajouter un PC » mène, je pense, à l'écran « Choisissez votre PC » de la première
+    configuration (SetupPC, phase 8) ; d'ici là, la ligne est refusée. D'accord ?
+30. L'écran de lancement ne rappelle plus « Start + Select + L1 + R1 : revenir à l'accueil »
+    (absent de la maquette) : le menu en jeu (Home) suffit ?
+31. Moonlight ne distingue pas un PC en veille d'un PC éteint. Règle choisie : réveillable (adresse
+    MAC connue) et pas de réveil manqué → « En veille » (carrousel normal, A réveille en lançant) ;
+    sinon « hors ligne » (EtatHorsLigne). Ça te va ?
+32. Les échecs du flux de Moonlight restent techniques (« La connexion au flux a échoué (RTSP
+    handshake, erreur 10060). ») : à reformuler cas par cas plus tard ?
+
 ## Refonte CocoOS — phase 4, options, réglages, clavier, recherche (2026-10-29)
 
 - **Liste groupée** (`SettingsList.qml`, nouveau) : la liste commune des options et des réglages,
