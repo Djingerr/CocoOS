@@ -20,7 +20,7 @@ Item {
         leaving = false
         ring.opacity = 0; ring.scale = 1 - (1 - Theme.finRingFrom) * Theme.move; ring.fill = 0
         glow.opacity = 0
-        message.opacity = 0; message.shift = 14; message.blurPx = 6
+        message.opacity = 0; message.shift = Theme.finTextIn; message.blurPx = Theme.finTextBlur
         sequence.restart()
     }
 
@@ -47,8 +47,8 @@ Item {
     }
     Column {
         id: message
-        property real shift: 14
-        property real blurPx: 6
+        property real shift: Theme.finTextIn
+        property real blurPx: Theme.finTextBlur
         width: parent.width
         y: Theme.finTextTop
         spacing: Theme.finTextGap
@@ -83,9 +83,9 @@ Item {
         // L'anneau : il apparaît au ressort, se trace ; le texte monte ; la lueur s'avive.
         ScriptAction { script: Sounds.play("library_ready") }
         ParallelAnimation {
-            NumberAnimation { target: ring; property: "opacity"; to: 1; duration: 360 }
+            NumberAnimation { target: ring; property: "opacity"; to: 1; duration: Theme.finRingFade }
             NumberAnimation { target: ring; property: "scale"; to: 1; duration: Theme.finRingPop; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curvePairCheck }
-            NumberAnimation { target: glow; property: "opacity"; to: Theme.finGlowRest; duration: 800 }
+            NumberAnimation { target: glow; property: "opacity"; to: Theme.finGlowRest; duration: Theme.finGlowFade }
             SequentialAnimation {
                 PauseAnimation { duration: Theme.finRingDrawDelay }
                 NumberAnimation { target: ring; property: "fill"; to: 1; duration: Theme.finRingDraw; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveFinDraw }
@@ -93,22 +93,22 @@ Item {
             SequentialAnimation {
                 PauseAnimation { duration: Theme.finTextDelay }
                 ParallelAnimation {
-                    NumberAnimation { target: message; property: "opacity"; to: 1; duration: 500 }
-                    NumberAnimation { target: message; property: "blurPx"; to: 0; duration: 500 }
-                    Curve { target: message; property: "shift"; to: 0; duration: 700 }
+                    NumberAnimation { target: message; property: "opacity"; to: 1; duration: Theme.finTextFade }
+                    NumberAnimation { target: message; property: "blurPx"; to: 0; duration: Theme.finTextFade }
+                    Curve { target: message; property: "shift"; to: 0; duration: Theme.finTextMove }
                 }
             }
             SequentialAnimation {
                 PauseAnimation { duration: Theme.finGlowPeakAt }
-                NumberAnimation { target: glow; property: "opacity"; to: Theme.finGlowPeak; duration: 800 }
+                NumberAnimation { target: glow; property: "opacity"; to: Theme.finGlowPeak; duration: Theme.finGlowFade }
             }
             PauseAnimation { duration: Theme.finTextOutAt }
         }
         // Le texte part vers le haut, l'anneau se resserre ; l'accueil revient.
         ParallelAnimation {
-            NumberAnimation { target: message; property: "opacity"; to: 0; duration: 500 }
-            NumberAnimation { target: message; property: "blurPx"; to: 6; duration: 500 }
-            Curve { target: message; property: "shift"; to: -12; duration: 700 }
+            NumberAnimation { target: message; property: "opacity"; to: 0; duration: Theme.finTextFade }
+            NumberAnimation { target: message; property: "blurPx"; to: Theme.finTextBlur; duration: Theme.finTextFade }
+            Curve { target: message; property: "shift"; to: Theme.finTextOut; duration: Theme.finTextMove }
             SequentialAnimation {
                 PauseAnimation { duration: Theme.finRingOutAt - Theme.finTextOutAt }
                 ParallelAnimation {

@@ -593,6 +593,10 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   y ramène. Code QR de l'installation (`backend/qrcodegen/`, Nayuki, MIT) ; こんにちは dans une
   police embarquée (`fonts/NotoSansJP-Hello.otf`, 5 caractères). ⚠️ Porte : le parcours à la
   manette sur une conf vierge, contre le vrai PC (next_steps.md, questions 44 à 52).
+  Phase 9 (finitions) : l'accent suit la jaquette sélectionnée (`Accent.js`, `Theme.accent` lié
+  par `ConsoleHome`, 900 ms ; Réglages › Général › Apparence), « Réduire les animations » en
+  fondus sur place (`Theme.move`, fondu enchaîné du carrousel), passe de cohérence des jetons.
+  ⚠️ Porte : 60 i/s sur l'Orange Pi, et la liste « écarts restants » (next_steps.md, Q53, Q54).
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
   télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
   Côté console uniquement (Apollo reste non modifié).
@@ -771,6 +775,7 @@ Fichiers (dans `app/gui/console/`) :
 - `SwapBox.qml`, `Appear.qml`, `ButtonGlyph.qml` — remplacement de texte en glissant (et en se
   floutant, `blur`, rendu GPU seulement), apparition en fondu-glissé, glyphe de bouton
 - `Format.js` — mise en forme des données Companion (source, dernière session, temps de jeu)
+- `Accent.js` — l'accent d'un jeu : la couleur de sa jaquette ramenée dans une plage lisible
 - `Library.js` — l'étagère : utilitaires écartés, ordre (favoris, récents, nom), synchronisation
   du `ListModel` sans recréer les vignettes
 - `Toast.qml` — message bref au-dessus de l'étagère (`homeScreen.toast(texte)`)
@@ -1126,6 +1131,8 @@ XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import
 - `ref-capture.py` pilote **Brave** par le protocole DevTools (module Python `websockets`) :
   son option `--screenshot` ne rend jamais la main. Le mode plein écran du prototype (touche
   `F`) donne un écran noir, la capture ne l'utilise pas.
+- `tst_ConsoleHome` d'une traite demande 4 à 5 Go de libre (sinon tué par le noyau, sans
+  « Totals ») ; à défaut, le passer en morceaux (`ConsoleHome::test_…` en arguments).
 - `tst_ConsoleHome` : pendant les tests qui lancent un jeu ou recréent `ConsoleHome` (9d, 9n,
   9o), la mémoire du **processus de test** grimpe d'environ 400 Mo/s (3,3 Go au pic de 9d) puis
   retombe à la fin du test. Propre à `qmltestrunner` : le même lancement dans `qml-qt6`

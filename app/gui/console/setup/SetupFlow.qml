@@ -153,8 +153,8 @@ FocusScope {
             width: Theme.setupGlowLow.width
             height: aurora.hello ? Theme.helloGlowLow.height : Theme.setupGlowLow.height
             color: aurora.hello ? Theme.helloGlowAccent : Theme.setupGlowAccent
-            Behavior on y { NumberAnimation { duration: 1600; easing.type: Easing.InOutQuad } }
-            Behavior on height { NumberAnimation { duration: 1600; easing.type: Easing.InOutQuad } }
+            Behavior on y { NumberAnimation { duration: Theme.setupGlowShift; easing.type: Easing.InOutQuad } }
+            Behavior on height { NumberAnimation { duration: Theme.setupGlowShift; easing.type: Easing.InOutQuad } }
         }
         Glow {
             x: parent.width / 2 + Theme.setupGlowHigh.x; y: Theme.setupGlowHigh.y
@@ -166,7 +166,7 @@ FocusScope {
             width: Theme.helloGlowCorner.width; height: Theme.helloGlowCorner.height
             color: Theme.helloGlowCornerInk
             opacity: aurora.hello ? 1 : 0
-            Behavior on opacity { NumberAnimation { duration: 1600 } }
+            Behavior on opacity { NumberAnimation { duration: Theme.setupGlowShift } }
         }
     }
 

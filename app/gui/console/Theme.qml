@@ -1605,7 +1605,8 @@ QtObject {
     readonly property rect helloGlowCorner: Qt.rect(-80, -80, 520, 380)
     readonly property color helloGlowAccent: Qt.rgba(accent.r, accent.g, accent.b, 0.22)
     readonly property color helloGlowCornerInk: Qt.rgba(accent.r, accent.g, accent.b, 0.12)
-    readonly property int setupDrift: 24000          // les lueurs dérivent (cocoAurora, aller-retour)
+    readonly property int setupDrift: 24000
+    readonly property int setupGlowShift: 1600       // la lueur de Bonjour passe à celle des étapes          // les lueurs dérivent (cocoAurora, aller-retour)
     readonly property point setupDriftBy: Qt.point(-80, 40)
     readonly property real setupDriftScale: 1.15
     // En-tête « PREMIÈRE CONFIGURATION · n SUR 3 » : trois points, l'étape en cours étirée.
@@ -1681,7 +1682,7 @@ QtObject {
     readonly property int pairBox: 88
     readonly property int pairBoxHeight: 108
     readonly property int pairBoxGap: 16
-    readonly property int pairBoxRadius: 20
+    readonly property int pairBoxRadius: radiusGroup
     readonly property color pairBoxFill: Qt.rgba(1, 1, 1, 0.07)
     readonly property color pairBoxStroke: Qt.rgba(1, 1, 1, 0.12)
     readonly property int pairDigitSize: 56
@@ -1703,6 +1704,7 @@ QtObject {
     readonly property real pairGatherScale: 0.6
     readonly property int pairCheckDelay: 220
     readonly property int pairCheck: 96
+    readonly property int pairCheckMark: 48           // la coche (44 px de tracé sur 24 × 24 de CheckMark)
     readonly property int pairCheckTop: 306
     readonly property int pairCheckPop: 620
     readonly property var curvePairCheck: [0.3, 1.4, 0.4, 1, 1, 1]
@@ -1712,6 +1714,8 @@ QtObject {
     readonly property int pairCheckDrawDelay: 500
     readonly property int pairCheckGlow: 45          // ombre orange (0 20 60, accent 45 %)
     readonly property int pairWaitTop: 450
+    readonly property int pairWaitFade: 300
+    readonly property int pairGatherFadeDelay: 120
     readonly property int pairWaitSize: 14
     readonly property int pairWaitSpinner: 18
     readonly property int pairWaitDelay: 1000
@@ -1731,7 +1735,7 @@ QtObject {
     readonly property size libTile: Qt.size(82, 116)
     readonly property int libTileGapX: 10
     readonly property int libTileGapY: 16
-    readonly property int libTileRadius: 8
+    readonly property int libTileRadius: radiusCoverS
     readonly property int libColumns: 6
     readonly property int libTiles: 18
     readonly property color libSkeleton: Qt.rgba(1, 1, 1, 0.07)
@@ -1753,7 +1757,7 @@ QtObject {
     // Code QR de l'installation (hors maquette) : carte blanche, 4 modules de marge.
     readonly property int qrTopGap: 10
     readonly property int qrCard: 260
-    readonly property int qrRadius: 20
+    readonly property int qrRadius: radiusGroup
     readonly property int qrQuiet: 18
     readonly property int qrUrlGap: 18
     readonly property var accentChoices: ["#F2802A", "#F5F5F7", "#6E9BFF", "#7BD88F", "#FF6B8B"]
@@ -1790,4 +1794,11 @@ QtObject {
     readonly property int finOut: 360                // (anneau : ×0,2)
     readonly property real finRingTo: 0.2
     readonly property int finHomeDelay: 100          // l'accueil revient (en éventail)
+    readonly property int finRingFade: 360
+    readonly property int finGlowFade: 800
+    readonly property int finTextFade: 500           // texte : fondu et flou (6 px)…
+    readonly property int finTextMove: 700           // …et glissement (14 px à l'entrée, −12 à la sortie)
+    readonly property int finTextBlur: 6
+    readonly property int finTextIn: 14
+    readonly property int finTextOut: -12
 }

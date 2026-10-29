@@ -52,7 +52,7 @@ FocusScope {
         active = i
         Sounds.play("move")
     }
-    function refuse() { shake.restart(); Sounds.play("deny") }
+    function refuse() { boxes.refuse(); Sounds.play("deny") }
     onErrorTextChanged: if (errorText !== "") refuse()
 
     Keys.onPressed: function(event) {
@@ -159,7 +159,7 @@ FocusScope {
     }
 
     // Les cases.
-    Item {
+    Pressable {
         id: boxes
         readonly property real span: root.count * (Theme.pairBox + Theme.pairBoxGap) - Theme.pairBoxGap
         x: (root.width - span) / 2
@@ -167,17 +167,7 @@ FocusScope {
         width: span; height: Theme.pairBoxHeight
         property real entry: 0
         NumberAnimation on entry { id: boxesIn; from: 0; to: 1; duration: Theme.pairBoxIn + 6 * Theme.pairBoxStagger + Theme.pairDigitDelay + 6 * Theme.pairDigitStagger + Theme.pairDigitMove; running: false }
-        // Refus : les cases se secouent.
-        property real shakeX: 0
-        transform: Translate { x: boxes.shakeX }
-        SequentialAnimation {
-            id: shake
-            NumberAnimation { target: boxes; property: "shakeX"; to: -9; duration: 60 }
-            NumberAnimation { target: boxes; property: "shakeX"; to: 8; duration: 80 }
-            NumberAnimation { target: boxes; property: "shakeX"; to: -5; duration: 80 }
-            NumberAnimation { target: boxes; property: "shakeX"; to: 3; duration: 80 }
-            NumberAnimation { target: boxes; property: "shakeX"; to: 0; duration: 140 }
-        }
+        // (refus : les cases se secouent, Pressable.refuse)
 
         Repeater {
             model: root.count
@@ -207,7 +197,7 @@ FocusScope {
                         ParallelAnimation {
                             NumberAnimation { property: "gather"; duration: Theme.pairGather; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain }
                             SequentialAnimation {
-                                PauseAnimation { duration: 120 }
+                                PauseAnimation { duration: Theme.pairGatherFadeDelay }
                                 NumberAnimation { property: "gatherFade"; duration: Theme.pairGatherFade }
                             }
                         }
@@ -266,8 +256,8 @@ FocusScope {
         }
         CheckMark {
             anchors.centerIn: parent
-            width: 44 * 24 / 22; height: width
-            color: "#FFFFFF"
+            width: Theme.pairCheckMark; height: width
+            color: Theme.knob                       // (blanc pur, comme le pouce des interrupteurs)
             checked: root.done
             drawDelay: Theme.pairCheckDrawDelay
             drawDuration: Theme.pairCheckDraw
@@ -292,7 +282,7 @@ FocusScope {
         spacing: 10
         opacity: root.done ? 0 : (root.mode === "moonlight" ? (boxes.entry * boxesIn.duration > Theme.pairWaitDelay ? 1 : 0)
                                                             : (root.busy || root.errorText !== "" ? 1 : 0))
-        Behavior on opacity { NumberAnimation { duration: 300 } }
+        Behavior on opacity { NumberAnimation { duration: Theme.pairWaitFade } }
         LoaderRing {
             anchors.verticalCenter: parent.verticalCenter
             visible: root.errorText === ""

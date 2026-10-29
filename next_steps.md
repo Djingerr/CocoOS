@@ -299,6 +299,70 @@ Oui pour les quatre : « Ajouter un PC » mènera à SetupPC (phase 8) ; plus de
 Select + L1 + R1 » sur l'écran de lancement ; « En veille » (réveillable) / « hors ligne » comme
 proposé ; messages d'échec de Moonlight à reformuler plus tard.
 
+## Refonte CocoOS — phase 9, finitions (2026-10-29)
+
+Trois commits : l'accent du jeu (`d8c6299f`), « Réduire les animations » (`0aef15ff`), la passe de
+cohérence (ce commit).
+
+- **Accent du jeu** (MotionAccent) : `Theme.accent` devient une propriété ; `ConsoleHome` y lie la
+  couleur dominante de la jaquette sélectionnée (`AmbientColor`), ramenée dans la plage des
+  maquettes par `Accent.js` (saturation ≥ 0,45, luminosité HSL 0,58 à 0,72, puis ≥ 4,5:1 sur le
+  noir), transition de 900 ms (`curveMain`). Ses dérivés (pistes, pastilles, lueurs) le suivent ; le
+  logo, le point « en ligne », les interrupteurs, les anneaux aussi. Réglages › Général ›
+  Apparence : « Accent du jeu » (activé par défaut) et « Couleur d'accent » (celle de la
+  configuration, utilisée sinon ou pour une jaquette grise). Le menu en jeu prend l'accent du jeu
+  lancé (`StreamPainter::setAccent`). Pendant la configuration : l'accent choisi.
+- **Interruptions** (MotionInterruption) : aucun panneau ne bloque les touches pendant son
+  animation, et tous animent une seule valeur par `Behavior` (elle repart de là où elle est, avec
+  la courbe de sortie). Filmé : Y puis B 150 ms après, la feuille d'options fait demi-tour sans
+  finir de s'ouvrir.
+- **Réduire les animations** (MotionReduite) : jeton `Theme.move` (0 en mode réduit) qui annule
+  déplacements et échelles d'entrée — dialogues, feuille d'options, bannière des favoris, toast,
+  `Appear` (tout ce qui entre en cascade), clavier et sa bulle d'accents, textes du héros, première
+  configuration — ; leurs fondus passent à 200 ms (`reducedSpring`). Le carrousel saute d'une
+  jaquette à l'autre en **fondu enchaîné** (image figée de l'état d'avant, `ShaderEffectSource`
+  créé seulement en mode réduit et en rendu GPU). Ce qui le faisait déjà (lancement, retour, fiche,
+  menu d'alimentation, choix du PC, reflets, dérive du fond) est inchangé.
+- **Cohérence** : rayons des jetons (`radiusCoverS`, `radiusGroup`…) repris par les écrans de la
+  phase 8 ; leurs durées écrites en dur passées en jetons ; la secousse du code Companion reprend
+  celle de `Pressable` (`shakeKeys`) ; plus de couleur en dur hors de `Theme.qml`.
+- **Anglais** : complet (634 textes).
+
+### Porte de la phase 9
+- **MotionAccent** : `./filmstrip.sh … view=HomeDemo accent=1` (les couleurs des maquettes,
+  passées par `Accent.js`) : la couleur change avec le jeu au centre, en 900 ms. Sur la console, la
+  couleur vient de la jaquette elle-même (`AmbientColor`).
+- **MotionInterruption** : `view=HomeDemo script=50:y,200:b` ; **MotionReduite** : `view=HomeDemo
+  reduce=1 script=600:power,2600:powerclose,3200:x,4000:right` (dialogue, bannière, carrousel en
+  fondu sur place).
+- Tests : `tst_Accent` (6), `tst_ConsoleHome::test_9lc` (l'accent suit le jeu, désactivé : l'accent
+  choisi) ; les 21 autres suites vertes. `tst_ConsoleHome` (63) n'a pas pu passer d'une traite : le
+  swap de la machine était plein (8 Go pris ailleurs) et `qmltestrunner` monte à 4–5 Go sur 9d / 9o
+  (cf. CLAUDE.md §11) ; tous ses tests passent en morceaux et un par un. Le pic de 9o est le même
+  avant et après la phase 9 (3,8 Go).
+- ⚠️ **À valider par Coco** : l'accent qui suit la jaquette (lisibilité, jaquettes sombres ou
+  grises), « Réduire les animations » à la manette, et la **mesure des 60 i/s sur l'Orange Pi**
+  (`QSG_RENDER_TIMING=1`, cf. CLAUDE.md §11).
+
+### Écarts restants (à accepter ou à corriger)
+1. **Sorties plus longues que les entrées** (règle de `tokens.json`), mais telles quelles dans les
+   maquettes : fondu de la feuille d'options 200 / 300 ms (MotionOptions), du clavier 240 / 300
+   (MotionClavier), capsule du volume 160 / 260 (MotionHud), point de la veille 140 / 420
+   (MotionVeille), recharge 500 / 700 (MotionRecharge), mode salon 600 / 700 (MotionSalon).
+   Gardées (la maquette fait foi).
+2. **Réduire les animations** ne touche pas les séquences « système » : démarrage (le O),
+   extinction, veille / réveil de la console, menu en jeu (QPainter) ; elles gardent leurs
+   mouvements (Q53).
+3. **MotionAccent** : la barre « 62 % des succès » sous le titre n'existe pas (pas de donnée côté
+   Companion, cf. phase 3).
+4. **Menu en jeu** : il prend l'accent au lancement du jeu, sans transition s'il change ensuite.
+5. **60 i/s** : à mesurer sur la carte.
+
+### Questions pour Coco (phase 9)
+53. « Réduire les animations » : faut-il aussi passer le démarrage, l'extinction, la veille et le
+    menu en jeu en simples fondus ?
+54. Les écarts restants 1 à 4 : acceptés ?
+
 ## Refonte CocoOS — phase 8, première configuration (2026-10-29)
 
 Trois commits : les écrans (`setup/`, ajouts à `SettingsList`, `13200044`), leur branchement dans `ConsoleHome`
