@@ -1473,6 +1473,9 @@ QtObject {
     readonly property int shutdownDotEnd: 6
     readonly property int shutdownDotFade: 800       // …qui s'éteint
     readonly property int shutdownBlackHold: 300
+    readonly property int shutdownStatusTop: 476     // « Redémarrage… » sous le mot (14 px, 500)
+    readonly property int shutdownStatusSize: 14
+    readonly property color shutdownStatusInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.55)
     readonly property int shutdownFallback: 10000    // toujours là (logind a refusé) : retour à l'accueil
 
     // --- Menu d'alimentation (MenuAlimentation, MotionAlimentation) ---

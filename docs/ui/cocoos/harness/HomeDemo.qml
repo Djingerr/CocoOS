@@ -37,7 +37,7 @@ import "Mock.js" as Mock
 //   time      heure affichée (21:42 par défaut)
 //   picker    1 : le choix du PC ouvert, PC-Bureau sous la manette (ChoixPC)
 //   idlein, idleout (actions) : l'écran de veille (son fond), puis la sortie (MotionReveil)
-//   shutdown, sleep, wake (actions) : extinction (MotionExtinction), mise en veille et réveil
+//   shutdown, reboot, sleep, wake (actions) : extinction, redémarrage (MotionExtinction), mise en veille et réveil
 //             (MotionVeille)
 //   power     1 : le menu d'alimentation (MenuAlimentation) ; powerFocus=0..2 ; action hold
 //             (la touche power tenue : la pastille se remplit puis le menu)
@@ -326,7 +326,8 @@ HomeScreen {
         else if (action === "asleep" || action === "offline" || action === "waking") pc = action
         else if (action === "woke") { pc = "online"; woke.start(); Sounds.play("host_online") }
         else if (action === "hold") powerMenu.startHold()
-        else if (action === "shutdown") {
+        else if (action === "shutdown" || action === "reboot") {
+            shutdown.status = action === "reboot" ? "Redémarrage…" : ""
             leaveStyle = "collapse"
             shutdown.origin = activeThumbRect
             shutdown.cover = game.cover || ""

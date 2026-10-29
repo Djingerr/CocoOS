@@ -10,6 +10,7 @@ FocusScope {
 
     property rect origin: Qt.rect(0, 0, 0, 0)   // la jaquette centrale, sur le canevas
     property url cover
+    property string status: ""                  // sous le logo : « Redémarrage… » (MotionAlimentation)
 
     property bool active: false
     signal finished()
@@ -72,6 +73,17 @@ FocusScope {
                 font.family: Theme.fontUi; font.pixelSize: Theme.shutdownWordSize; font.weight: Font.DemiBold
                 font.letterSpacing: -0.02 * Theme.shutdownWordSize
             }
+        }
+
+        // « Redémarrage… », sous le mot, le temps qu'il est là.
+        Text {
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: Theme.shutdownStatusTop
+            visible: root.status !== ""
+            text: root.status
+            opacity: word.opacity
+            color: Theme.shutdownStatusInk
+            font.family: Theme.fontUi; font.pixelSize: Theme.shutdownStatusSize; font.weight: Font.Medium
         }
 
         // La jaquette, puis l'anneau (trait orange), puis le point.

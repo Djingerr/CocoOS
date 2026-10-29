@@ -368,6 +368,15 @@ deux tests du harnais rendus indépendants de la charge de la machine (`67849ec7
 43. Redémarrage (MotionAlimentation) : la planche montre « Redémarrage… » sous le logo un instant ;
     l'animation d'extinction ne l'affiche pas. À ajouter ?
 
+### Réponses de Coco (2026-10-29, phase 7)
+- **Q39** : la touche power pendant un flux se réglera plus tard.
+- **Q40** : l'écran de veille s'efface simplement (pas de vol de l'horloge).
+- **Q41** : la version affichée est « CocoOS Alpha » (Général › Version) ; le mécanisme de mise à
+  jour reste à choisir (Q16).
+- **Q43** : oui : pendant un redémarrage, « Redémarrage… » paraît sous le logo, le temps qu'il est
+  là (`ShutdownScreen.status`).
+- Q42 (recharge, salon, LED sur le matériel) attend la carte.
+
 ## Refonte CocoOS — phase 6, par-dessus le jeu (2026-10-29)
 
 Quatre commits : centre de contrôle (`fcc825dd`), statistiques (`deb9b6a2`), alertes, manette et
