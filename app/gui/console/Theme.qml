@@ -1338,6 +1338,36 @@ QtObject {
     readonly property int hudIconFade: 180
     readonly property int hudIconMove: 300
 
+    // --- Mise en veille et réveil (MotionVeille) ---
+    readonly property int sleepFade: 340             // l'accueil s'efface (InCubic)…
+    readonly property int sleepShrink: 380           // …en reculant vers le centre
+    readonly property real sleepScale: 0.94
+    readonly property int sleepDot: 10               // le point : il s'allume après 120 ms…
+    readonly property int sleepGlow: 54
+    readonly property real sleepGlowAlpha: 0.55
+    readonly property int sleepDotDelay: 120
+    readonly property int sleepDotIn: 140
+    readonly property int sleepDotMove: 260          // (curveMain, depuis 2,4)
+    readonly property real sleepDotFrom: 2.4
+    readonly property int sleepDotHold: 70           // …puis s'éteint en rétrécissant
+    readonly property int sleepDotOut: 420
+    readonly property real sleepDotTo: 0.4
+    readonly property int sleepAfter: 1000           // la veille du système, une fois tout noir
+    readonly property int wakeFade: 600              // le fond revient (OutCubic)…
+    readonly property int wakeCoverStagger: 45       // …les jaquettes, rang par rang, du centre
+    readonly property int wakeCoverMove: 640
+    readonly property int wakeCoverFade: 360
+    readonly property real wakeCoverGather: 0.6
+    readonly property real wakeCoverScale: 0.9
+    readonly property int wakeTitleDelay: 140        // le texte monte de 16 px
+    readonly property int wakeRiseFade: 420
+    readonly property int wakeRiseMove: 600
+    readonly property int wakeRiseShift: 16
+    readonly property int wakeBarDelay: 260          // la barre haute descend de 8 px
+    readonly property int wakeBarFade: 400
+    readonly property int wakeBarMove: 500
+    readonly property int wakeBarShift: -8
+
     // --- Menu d'alimentation (MenuAlimentation, MotionAlimentation) ---
     readonly property int powerIn: 360
     readonly property int powerOut: 260

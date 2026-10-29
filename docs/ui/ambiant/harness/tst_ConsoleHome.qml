@@ -440,6 +440,26 @@ Item {
             screen.dismissNotification()
         }
 
+        // Veille (MotionVeille) : l'accueil s'efface, la veille du système suit ; au réveil, il
+        // revient (style « réveil »). Sans veille du système, une touche le réveille.
+        function test_5i_sleepAndWake() {
+            SystemStatus.lastPower = ""
+            home.powerAction("suspend")
+            verify(screen.napping)
+            tryVerify(function() { return home.sleeping && screen.launching }, 1000)
+            tryCompare(SystemStatus, "lastPower", "suspend", Theme.sleepAfter + 500)
+            SystemStatus.resumed()
+            verify(!screen.napping && !screen.launching)
+            compare(screen.returnStyle, "wake")
+            keyClick(Qt.Key_Right)                        // la manette est à l'accueil
+            compare(screen.currentIndex, 1)
+            // (la veille n'a pas eu lieu : une touche réveille, une fois l'animation passée)
+            home.powerAction("suspend")
+            wait(Theme.sleepAfter + 100)
+            InputStatus.activity()
+            verify(!screen.napping)
+        }
+
         function test_6_companionLaunchWithUpdate() {
             CompanionClient.paired = true
             CompanionClient.eventsConnected = true
@@ -844,7 +864,8 @@ Item {
             InputStatus.powerKey(true)
             verify(power.holding)
             InputStatus.powerKey(false)
-            compare(SystemStatus.lastPower, "suspend")
+            tryCompare(SystemStatus, "lastPower", "suspend", Theme.sleepAfter + 500)   // après l'animation
+            SystemStatus.resumed()
             SystemStatus.lastPower = ""
             InputStatus.powerKey(true)
             tryVerify(function() { return power.opened }, Theme.powerHold + 500)

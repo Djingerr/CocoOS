@@ -49,6 +49,14 @@ FocusScope {
     // Un menu centré par-dessus (choix du PC, menu d'alimentation) : le carrousel s'assombrit sous
     // la barre haute, le bloc titre et l'aide s'effacent.
     property bool menuShown: false
+    // Le retour de l'accueil (`launching` repasse à faux) : "game" (MotionQuitter) ou "wake"
+    // (MotionVeille : plus vif, de moins loin).
+    property string returnStyle: "game"
+    readonly property bool wakeStyle: returnStyle === "wake"
+    // Mise en veille (MotionVeille) : l'accueil recule et s'efface, un point s'allume au centre
+    // puis s'éteint. Au réveil, `napping` repasse à faux et l'accueil revient (`launching`).
+    property bool napping: false
+    onNappingChanged: if (napping && !Theme.reducedMotion) sleepDot.restart()
     readonly property alias offline: offlineState
     property alias latencyMs: status.latencyMs
     property alias jitterMs: status.jitterMs
@@ -247,11 +255,27 @@ FocusScope {
                     easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
                 }
             }
-            transform: Scale {
-                origin.x: homeLayer.width * Theme.recedeOrigin.x
-                origin.y: homeLayer.height * Theme.recedeOrigin.y
-                xScale: 1 - (1 - Theme.recedeScale) * homeLayer.recede * (Theme.reducedMotion ? 0 : 1)
-                yScale: xScale
+            transform: [
+                Scale {
+                    origin.x: homeLayer.width * Theme.recedeOrigin.x
+                    origin.y: homeLayer.height * Theme.recedeOrigin.y
+                    xScale: 1 - (1 - Theme.recedeScale) * homeLayer.recede * (Theme.reducedMotion ? 0 : 1)
+                    yScale: xScale
+                },
+                // Mise en veille : il recule vers le centre en s'effaçant ; au réveil, il est déjà en place.
+                Scale {
+                    origin.x: homeLayer.width / 2; origin.y: homeLayer.height / 2
+                    xScale: homeLayer.sleepScale; yScale: xScale
+                }
+            ]
+            property real sleepScale: root.napping && !Theme.reducedMotion ? Theme.sleepScale : 1
+            Behavior on sleepScale { enabled: root.napping; NumberAnimation { duration: Theme.sleepShrink; easing.type: Easing.InCubic } }
+            opacity: root.napping ? 0 : 1
+            Behavior on opacity {
+                NumberAnimation {
+                    duration: root.napping ? Theme.sleepFade : Theme.wakeFade
+                    easing.type: root.napping ? Easing.InCubic : Easing.OutCubic
+                }
             }
 
             BackdropLayer {
@@ -288,10 +312,10 @@ FocusScope {
                 z: 2
                 anchors { top: parent.top; left: parent.left; right: parent.right }
                 height: status.implicitHeight
-                shift: Theme.returnBarShift
-                returnDelay: Theme.returnBarDelay
-                returnFade: Theme.returnBarFade
-                returnMove: Theme.returnBarMove
+                shift: root.wakeStyle ? Theme.wakeBarShift : Theme.returnBarShift
+                returnDelay: root.wakeStyle ? Theme.wakeBarDelay : Theme.returnBarDelay
+                returnFade: root.wakeStyle ? Theme.wakeBarFade : Theme.returnBarFade
+                returnMove: root.wakeStyle ? Theme.wakeBarMove : Theme.returnBarMove
 
                 StatusBar {
                     id: status
@@ -344,6 +368,12 @@ FocusScope {
                     focus: !root.staged && !root.detailOpen && !sheet.opened && !root.heroFocused && !root.statusFocused
                     shown: root.entered
                     launching: root.launching
+                    gatherDelay: root.wakeStyle ? 0 : Theme.returnCoverDelay
+                    gatherStagger: root.wakeStyle ? Theme.wakeCoverStagger : Theme.returnCoverStagger
+                    gatherMove: root.wakeStyle ? Theme.wakeCoverMove : Theme.returnCoverMove
+                    gatherFade: root.wakeStyle ? Theme.wakeCoverFade : Theme.returnCoverFade
+                    gatherAmount: root.wakeStyle ? Theme.wakeCoverGather : Theme.returnCoverGather
+                    gatherScale: root.wakeStyle ? Theme.wakeCoverScale : Theme.returnCoverScale
                     greyed: root.hostOffline
                     detailOpen: root.detailOpen
                     onLaunchRequested: function(index) { root.launchRequested(index) }
@@ -378,11 +408,11 @@ FocusScope {
 
                     LaunchFade {
                     anchors.fill: parent
-                    shift: Theme.returnRiseShift
+                    shift: root.wakeStyle ? Theme.wakeRiseShift : Theme.returnRiseShift
                     leaveShift: Theme.launchHomeShift
-                    returnDelay: Theme.returnTitleDelay
-                    returnFade: Theme.returnRiseFade
-                    returnMove: Theme.returnRiseMove
+                    returnDelay: root.wakeStyle ? Theme.wakeTitleDelay : Theme.returnTitleDelay
+                    returnFade: root.wakeStyle ? Theme.wakeRiseFade : Theme.returnRiseFade
+                    returnMove: root.wakeStyle ? Theme.wakeRiseMove : Theme.returnRiseMove
 
                     HeroBlock {
                         id: hero
@@ -438,9 +468,9 @@ FocusScope {
             // (au retour d'un jeu, elle revient avec la barre haute)
             LaunchFade {
                 anchors.fill: parent
-                returnDelay: Theme.returnBarDelay
-                returnFade: Theme.returnBarFade
-                returnMove: Theme.returnBarMove
+                returnDelay: root.wakeStyle ? Theme.wakeBarDelay : Theme.returnBarDelay
+                returnFade: root.wakeStyle ? Theme.wakeBarFade : Theme.returnBarFade
+                returnMove: root.wakeStyle ? Theme.wakeBarMove : Theme.returnBarMove
                 HomeHelp {
                     anchors.horizontalCenter: parent.horizontalCenter
                     y: Theme.canvasHeight - Theme.helpBottom - height
@@ -454,11 +484,11 @@ FocusScope {
             // PC hors ligne : son message, ses boutons et sa légende.
             LaunchFade {
                 anchors.fill: parent
-                shift: Theme.returnRiseShift
+                shift: root.wakeStyle ? Theme.wakeRiseShift : Theme.returnRiseShift
                 leaveShift: Theme.launchHomeShift
-                returnDelay: Theme.returnTitleDelay
-                returnFade: Theme.returnRiseFade
-                returnMove: Theme.returnRiseMove
+                returnDelay: root.wakeStyle ? Theme.wakeTitleDelay : Theme.returnTitleDelay
+                returnFade: root.wakeStyle ? Theme.wakeRiseFade : Theme.returnRiseFade
+                returnMove: root.wakeStyle ? Theme.wakeRiseMove : Theme.returnRiseMove
                 OfflineState {
                     id: offlineState
                     anchors.fill: parent
@@ -516,6 +546,38 @@ FocusScope {
                 radius: Theme.recedeFrame + Theme.recedeRadius * homeLayer.recede
                 color: "transparent"
                 border.width: Theme.recedeFrame; border.color: Theme.background
+            }
+        }
+
+        // Le point de la mise en veille : il s'allume au centre, puis s'éteint.
+        Rectangle {
+            id: dot
+            x: (parent.width - width) / 2; y: Theme.canvasHeight / 2 - height / 2
+            width: Theme.sleepDot; height: width; radius: width / 2
+            color: Theme.accent
+            opacity: 0
+            Glow {
+                anchors.centerIn: parent
+                width: Theme.sleepGlow; height: width
+                color: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, Theme.sleepGlowAlpha)
+                z: -1
+            }
+            SequentialAnimation {
+                id: sleepDot
+                PropertyAction { target: dot; property: "scale"; value: Theme.sleepDotFrom }
+                PauseAnimation { duration: Theme.sleepDotDelay }
+                ParallelAnimation {
+                    NumberAnimation { target: dot; property: "opacity"; to: 1; duration: Theme.sleepDotIn; easing.type: Easing.OutCubic }
+                    NumberAnimation {
+                        target: dot; property: "scale"; to: 1; duration: Theme.sleepDotMove
+                        easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
+                    }
+                }
+                PauseAnimation { duration: Theme.sleepDotHold }
+                ParallelAnimation {
+                    NumberAnimation { target: dot; property: "opacity"; to: 0; duration: Theme.sleepDotOut; easing.type: Easing.InCubic }
+                    NumberAnimation { target: dot; property: "scale"; to: Theme.sleepDotTo; duration: Theme.sleepDotOut; easing.type: Easing.InCubic }
+                }
             }
         }
 

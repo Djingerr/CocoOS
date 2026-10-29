@@ -42,6 +42,14 @@ FocusScope {
     // Lancement d'un jeu (MotionLancement) : les voisines s'écartent en s'effaçant ; au retour
     // (MotionQuitter), elles reviennent du centre, à plat et plus petites.
     property bool launching: false
+    // Le retour (après un jeu : MotionQuitter ; au réveil : MotionVeille) : délai, écart entre
+    // rangs, durées, et d'où elles reviennent (part du chemin vers le centre, échelle).
+    property int gatherDelay: Theme.returnCoverDelay
+    property int gatherStagger: Theme.returnCoverStagger
+    property int gatherMove: Theme.returnCoverMove
+    property int gatherFade: Theme.returnCoverFade
+    property real gatherAmount: Theme.returnCoverGather
+    property real gatherScale: Theme.returnCoverScale
     // PC hors ligne (EtatHorsLigne) : jaquettes grisées, assombries, à 55 %.
     property bool greyed: false
     property real grey: greyed ? 1 : 0
@@ -330,11 +338,11 @@ FocusScope {
                     var target = leaving && !central ? 1 : 0
                     awayAnim.stop()
                     awayWait.duration = leaving ? Math.max(0, k - 1) * Theme.launchCoverStagger
-                                      : gather && !Theme.reducedMotion ? Theme.returnCoverDelay + k * Theme.returnCoverStagger : 0
+                                      : gather && !Theme.reducedMotion ? root.gatherDelay + k * root.gatherStagger : 0
                     awayMove.to = awayFade.to = target
-                    awayMove.duration = leaving ? Theme.launchCoverMove : Theme.returnCoverMove
+                    awayMove.duration = leaving ? Theme.launchCoverMove : root.gatherMove
                     awayFade.duration = Theme.reducedMotion ? Theme.reducedSpring.duration
-                                      : leaving ? Theme.launchCoverFade : Theme.returnCoverFade
+                                      : leaving ? Theme.launchCoverFade : root.gatherFade
                     awayAnim.start()
                 }
                 SequentialAnimation {
@@ -349,9 +357,9 @@ FocusScope {
                     }
                 }
                 readonly property real moved: Theme.reducedMotion ? 0 : away
-                readonly property real launchShift: gather ? -Math.sign(o) * place.dx * Theme.returnCoverGather * moved
+                readonly property real launchShift: gather ? -Math.sign(o) * place.dx * root.gatherAmount * moved
                                                            : Math.sign(o) * Theme.launchCoverSpread * moved
-                scale: gather ? 1 - (1 - Theme.returnCoverScale) * moved : 1
+                scale: gather ? 1 - (1 - root.gatherScale) * moved : 1
 
                 visible: Math.abs(o) < 4 && (central || root.detail < 1) && faded < 1
                 x: root.mix(root.width / 2 + Math.sign(o) * (place.dx + Theme.ficheSpread * root.detail) + launchShift

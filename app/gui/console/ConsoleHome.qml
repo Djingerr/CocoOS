@@ -726,7 +726,7 @@ FocusScope {
     }
     Connections {
         target: SystemStatus
-        function onResumed() { home.playWake() }
+        function onResumed() { homeScreen.napping ? home.wakeConsole() : home.playWake() }
     }
 
     // --- Animation de démarrage : l'accueil sait-il quoi montrer ? ---
@@ -904,7 +904,8 @@ FocusScope {
         target: InputStatus
         function onPowerKey(pressed) {
             if (pressed) {
-                if (sleepScreen.asleep) sleepScreen.wake()
+                if (homeScreen.napping) home.wakeConsole()
+                else if (sleepScreen.asleep) sleepScreen.wake()
                 else if (!powerMenu.opened && home.onTop && !streamCurtain.covering) powerMenu.startHold()
                 return
             }
@@ -916,7 +917,41 @@ FocusScope {
     function powerAction(key) {
         if (SystemStatus.powerActions.indexOf(key) < 0) return
         console.info("[console-ui] Alimentation : " + key)
-        SystemStatus.power(key)
+        if (key === "suspend") sleepConsole()
+        else SystemStatus.power(key)
+    }
+
+    // --- Mise en veille et réveil (MotionVeille) ---
+    // L'accueil s'efface, le point s'éteint, puis la veille du système ; au réveil (logind, ou
+    // une touche si la veille n'a pas eu lieu), l'accueil revient en cascade.
+    property bool sleeping: false        // l'accueil est caché (comme sous un jeu)
+    property double sleepAt: 0
+    function sleepConsole() {
+        if (homeScreen.napping) return
+        Sounds.play("sleep")
+        sleepAt = Date.now()
+        homeScreen.napping = true
+        sleepHide.restart()
+        sleepGo.restart()
+    }
+    function wakeConsole() {
+        if (!homeScreen.napping) return
+        sleepHide.stop()
+        sleepGo.stop()
+        Sounds.play("wake")
+        homeScreen.returnStyle = "wake"
+        homeScreen.napping = false
+        sleeping = false
+        homeScreen.forceActiveFocus()
+        rearmSleep()
+    }
+    Timer { id: sleepHide; interval: Theme.sleepFade; onTriggered: home.sleeping = true }
+    Timer { id: sleepGo; interval: Theme.sleepAfter; onTriggered: SystemStatus.power("suspend") }
+    Connections {
+        target: InputStatus
+        enabled: homeScreen.napping
+        // (la veille n'a pas eu lieu : une touche, après le temps de l'animation, réveille)
+        function onActivity() { if (Date.now() - home.sleepAt > Theme.sleepAfter) home.wakeConsole() }
     }
     readonly property string powerHeader: {
         var d = SystemStatus.batteryDetails || {}
@@ -1234,7 +1269,10 @@ FocusScope {
     Timer {
         id: launchPress
         interval: Theme.launchPress
-        onTriggered: launchScreen.open()
+        onTriggered: {
+            homeScreen.returnStyle = "game"
+            launchScreen.open()
+        }
     }
 
     // Démarre la session Moonlight (page StreamSegue d'origine, cachée sous
@@ -1883,7 +1921,7 @@ FocusScope {
         // la barre haute n'apparaît qu'une fois celui du démarrage arrivé à sa place.
         entryAllowed: bootSplash.entryOpen
         // Un jeu prend l'écran, ou en revient : l'accueil s'efface puis revient (MotionQuitter).
-        launching: launchScreen.covering || streamCurtain.covering
+        launching: launchScreen.covering || streamCurtain.covering || home.sleeping
         statusLogoShown: !bootSplash.visible || bootSplash.mode === "wake"
 
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
