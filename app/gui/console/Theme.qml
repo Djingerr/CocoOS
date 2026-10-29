@@ -181,8 +181,12 @@ QtObject {
         FontLoader { source: "fonts/Sora-Regular.ttf" },
         FontLoader { source: "fonts/Sora-Medium.ttf" },
         FontLoader { source: "fonts/Sora-SemiBold.ttf" },
-        FontLoader { source: "fonts/Sora-Bold.ttf" }
+        FontLoader { source: "fonts/Sora-Bold.ttf" },
+        // こんにちは de Bonjour (SetupHello) : Noto Sans CJK JP en 600, réduite à ces cinq
+        // caractères (OFL, 5 Ko), pour ne rien attendre des polices du système.
+        FontLoader { source: "fonts/NotoSansJP-Hello.otf" }
     ]
+    readonly property string fontHelloJp: "CocoOS Hello JP"
     // Toutes les polices sont chargées : avant, les métriques (logotype) seraient
     // celles d'une police de repli.
     readonly property bool fontsReady: {
@@ -1733,6 +1737,12 @@ QtObject {
     readonly property int libPrefsWidth: 484
     readonly property int libStartGap: 26
     // Accents proposés (SetupBibliotheque) ; l'accent choisi suit en phase 9.
+    // Code QR de l'installation (hors maquette) : carte blanche, 4 modules de marge.
+    readonly property int qrTopGap: 10
+    readonly property int qrCard: 260
+    readonly property int qrRadius: 20
+    readonly property int qrQuiet: 18
+    readonly property int qrUrlGap: 18
     readonly property var accentChoices: ["#F2802A", "#F5F5F7", "#6E9BFF", "#7BD88F", "#FF6B8B"]
     // Fin (MotionSetupFin) : la configuration s'efface, l'anneau se trace, « Tout est prêt. ».
     readonly property int finPress: 110

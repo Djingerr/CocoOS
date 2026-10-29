@@ -71,7 +71,8 @@ Item {
                 opacity: 0
                 scale: Theme.helloScaleIn
                 transform: Translate { y: word.shift }
-                font.family: Theme.fontUi; font.pixelSize: Theme.helloSize; font.weight: Font.DemiBold
+                font.family: modelData.lang === "ja" ? Theme.fontHelloJp : Theme.fontUi
+                font.pixelSize: Theme.helloSize; font.weight: Font.DemiBold
                 font.letterSpacing: track * Theme.helloSize
                 layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software && opacity > 0 && blurPx > 0.05
                 layer.effect: MultiEffect { blurEnabled: true; blurMax: 16; blur: word.blurPx / 16 }

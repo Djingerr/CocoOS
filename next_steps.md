@@ -374,6 +374,25 @@ Trois commits : les écrans (`setup/`, ajouts à `SettingsList`, `13200044`), le
     ajouter à l'image, ou retirer ce mot ?
 51. Réinitialiser : les réseaux Wi-Fi et les réglages du flux restent. Tout effacer ?
 
+### Réponses de Coco (2026-10-29, phase 8)
+- **Q44** : français et anglais pour l'instant.
+- **Q45** : un générateur : `backend/qrcodegen/` (Nayuki, MIT, v1.8.0, deux fichiers ajoutés au
+  scope `embedded` d'`app.pro`), `SystemStatus.qrRows(texte)`. La ligne « Installer Apollo et
+  HostCompanion · Code QR » ouvre une page (hors maquette, dans le langage de la configuration) :
+  le code sur une carte blanche, l'adresse dessous, B Retour. Adresse provisoire : la page des
+  versions de HostCompanion (`https://github.com/Djingerr/HostCompanion/releases`), à remplacer
+  par celle de l'installeur 1-clic (étape 8) — Q52.
+- **Q47** : la ligne « Couleur d'accent » reste.
+- **Q50** : la police est embarquée : `fonts/NotoSansJP-Hello.otf`, Noto Sans CJK JP figée en 600 et
+  réduite aux cinq caractères de こんにちは (5 Ko, OFL : `fonts/OFL-NotoSansCJK.txt`) ; rien à
+  installer sur la carte.
+- **Q51** : la réinitialisation n'efface pas les réseaux Wi-Fi (comme aujourd'hui).
+- Q46 (5G), Q48 (jeux non installés par défaut), Q49 (« Manette intégrée prête ») : en attente.
+
+### Questions pour Coco (suite)
+52. Code QR : l'adresse de la page d'installation (aujourd'hui les versions de HostCompanion sur
+    GitHub ; le dépôt est-il public ?).
+
 ## Refonte CocoOS — phase 7, système (2026-10-29)
 
 Sept commits : menu d'alimentation et touche power (`c6896a6a`), veille et réveil (`98c849a1`),

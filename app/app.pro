@@ -434,8 +434,8 @@ embedded {
     QT += websockets dbus
     SOURCES += gui/console/backend/companionclient.cpp
     HEADERS += gui/console/backend/companionclient.h
-    SOURCES += gui/console/backend/systemstatus.cpp
-    HEADERS += gui/console/backend/systemstatus.h
+    SOURCES += gui/console/backend/systemstatus.cpp gui/console/backend/qrcodegen/qrcodegen.cpp
+    HEADERS += gui/console/backend/systemstatus.h gui/console/backend/qrcodegen/qrcodegen.hpp
     SOURCES += gui/console/backend/inputstatus.cpp
     HEADERS += gui/console/backend/inputstatus.h
     SOURCES += gui/console/backend/wifisetup.cpp

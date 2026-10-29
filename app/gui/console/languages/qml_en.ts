@@ -340,12 +340,12 @@
         <translation>Not found on this network</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2836"/>
+        <location filename="../ConsoleHome.qml" line="2841"/>
         <source>Mise à jour de %1 sur le PC…</source>
         <translation>Updating %1 on the PC…</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2837"/>
+        <location filename="../ConsoleHome.qml" line="2842"/>
         <source>Mise à jour sur le PC…</source>
         <translation>Updating on the PC…</translation>
     </message>
@@ -624,7 +624,7 @@
     </message>
     <message>
         <location filename="../ConsoleHome.qml" line="2318"/>
-        <location filename="../ConsoleHome.qml" line="2551"/>
+        <location filename="../ConsoleHome.qml" line="2556"/>
         <source>Mise en veille</source>
         <translation>Sleep</translation>
     </message>
@@ -687,107 +687,107 @@
         <translation>QWERTY keyboard · 24-hour clock</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2534"/>
+        <location filename="../ConsoleHome.qml" line="2539"/>
         <source>Recherche de vos jeux sur %1…</source>
         <translation>Looking for your games on %1…</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2535"/>
+        <location filename="../ConsoleHome.qml" line="2540"/>
         <source>1 jeu trouvé</source>
         <translation>1 game found</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2535"/>
+        <location filename="../ConsoleHome.qml" line="2540"/>
         <source>%1 jeux trouvés</source>
         <translation>%1 games found</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2536"/>
+        <location filename="../ConsoleHome.qml" line="2541"/>
         <source>%1 dans Playnite sur %2.</source>
         <translation>%1 in Playnite on %2.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2536"/>
+        <location filename="../ConsoleHome.qml" line="2541"/>
         <source>%1 sur %2.</source>
         <translation>%1 on %2.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2537"/>
+        <location filename="../ConsoleHome.qml" line="2542"/>
         <source>Réglez quelques préférences pendant le chargement.</source>
         <translation>Set a few preferences while it loads.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2544"/>
+        <location filename="../ConsoleHome.qml" line="2549"/>
         <source>Couleur d’accent</source>
         <translation>Accent color</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2545"/>
+        <location filename="../ConsoleHome.qml" line="2550"/>
         <source>Orange</source>
         <translation>Orange</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2545"/>
+        <location filename="../ConsoleHome.qml" line="2550"/>
         <source>Blanc</source>
         <translation>White</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2545"/>
+        <location filename="../ConsoleHome.qml" line="2550"/>
         <source>Bleu</source>
         <translation>Blue</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2545"/>
+        <location filename="../ConsoleHome.qml" line="2550"/>
         <source>Vert</source>
         <translation>Green</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2545"/>
+        <location filename="../ConsoleHome.qml" line="2550"/>
         <source>Rose</source>
         <translation>Pink</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2546"/>
+        <location filename="../ConsoleHome.qml" line="2551"/>
         <source>Préférences</source>
         <translation>Preferences</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2547"/>
+        <location filename="../ConsoleHome.qml" line="2552"/>
         <source>Sons de l’interface</source>
         <translation>Interface sounds</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2549"/>
+        <location filename="../ConsoleHome.qml" line="2554"/>
         <source>Jeux non installés</source>
         <translation>Games not installed</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2549"/>
+        <location filename="../ConsoleHome.qml" line="2554"/>
         <source>Les afficher dans la bibliothèque</source>
         <translation>Show them in the library</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2550"/>
+        <location filename="../ConsoleHome.qml" line="2555"/>
         <source>Masqués</source>
         <translation>Hidden</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2550"/>
+        <location filename="../ConsoleHome.qml" line="2555"/>
         <source>Affichés</source>
         <translation>Shown</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2564"/>
+        <location filename="../ConsoleHome.qml" line="2569"/>
         <source>Nom du réseau</source>
         <translation>Network name</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2567"/>
+        <location filename="../ConsoleHome.qml" line="2572"/>
         <source>Adresse IP du PC</source>
         <translation>PC IP address</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2590"/>
+        <location filename="../ConsoleHome.qml" line="2595"/>
         <source>%1 libres</source>
         <translation>%1 free</translation>
     </message>
@@ -890,7 +890,7 @@
         <location filename="../ConsoleHome.qml" line="2289"/>
         <location filename="../ConsoleHome.qml" line="2293"/>
         <location filename="../ConsoleHome.qml" line="2306"/>
-        <location filename="../ConsoleHome.qml" line="2589"/>
+        <location filename="../ConsoleHome.qml" line="2594"/>
         <source>%1 %</source>
         <translation>%1%</translation>
     </message>
@@ -922,13 +922,13 @@
     </message>
     <message>
         <location filename="../ConsoleHome.qml" line="1585"/>
-        <location filename="../ConsoleHome.qml" line="2547"/>
+        <location filename="../ConsoleHome.qml" line="2552"/>
         <source>Activés</source>
         <translation>On</translation>
     </message>
     <message>
         <location filename="../ConsoleHome.qml" line="1585"/>
-        <location filename="../ConsoleHome.qml" line="2547"/>
+        <location filename="../ConsoleHome.qml" line="2552"/>
         <source>Coupés</source>
         <translation>Off</translation>
     </message>
@@ -1105,7 +1105,7 @@
         <location filename="../ConsoleHome.qml" line="1623"/>
         <location filename="../ConsoleHome.qml" line="1689"/>
         <location filename="../ConsoleHome.qml" line="2110"/>
-        <location filename="../ConsoleHome.qml" line="2895"/>
+        <location filename="../ConsoleHome.qml" line="2900"/>
         <source>Console</source>
         <translation>Console</translation>
     </message>
@@ -1379,70 +1379,70 @@ or wake it remotely.</translation>
         <translation>Connected to %1</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2672"/>
+        <location filename="../ConsoleHome.qml" line="2677"/>
         <source>Menu</source>
         <translation>Menu</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2824"/>
+        <location filename="../ConsoleHome.qml" line="2829"/>
         <source>Mettre à jour</source>
         <translation>Update</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2825"/>
+        <location filename="../ConsoleHome.qml" line="2830"/>
         <source>Annuler</source>
         <translation>Cancel</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2907"/>
+        <location filename="../ConsoleHome.qml" line="2912"/>
         <source>Code expiré — relancez la liaison depuis le PC.</source>
         <translation>Code expired — restart pairing from the PC.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2908"/>
+        <location filename="../ConsoleHome.qml" line="2913"/>
         <source>Code incorrect — réessayez.</source>
         <translation>Wrong code — try again.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2917"/>
+        <location filename="../ConsoleHome.qml" line="2922"/>
         <source>%1 a été désinstallé</source>
         <translation>%1 was uninstalled</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2920"/>
-        <location filename="../ConsoleHome.qml" line="2927"/>
+        <location filename="../ConsoleHome.qml" line="2925"/>
+        <location filename="../ConsoleHome.qml" line="2932"/>
         <source>La désinstallation de %1 a échoué</source>
         <translation>Uninstalling %1 failed</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2925"/>
-        <location filename="../ConsoleHome.qml" line="2939"/>
+        <location filename="../ConsoleHome.qml" line="2930"/>
+        <location filename="../ConsoleHome.qml" line="2944"/>
         <source>Impossible pendant le lancement d&apos;un jeu</source>
         <translation>Not possible while a game is launching</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2926"/>
-        <location filename="../ConsoleHome.qml" line="2940"/>
+        <location filename="../ConsoleHome.qml" line="2931"/>
+        <location filename="../ConsoleHome.qml" line="2945"/>
         <source>Steam est introuvable sur %1</source>
         <translation>Steam can&apos;t be found on %1</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2941"/>
+        <location filename="../ConsoleHome.qml" line="2946"/>
         <source>Le téléchargement de %1 a échoué</source>
         <translation>Downloading %1 failed</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2965"/>
+        <location filename="../ConsoleHome.qml" line="2970"/>
         <source>Mise à jour requise</source>
         <translation>Update required</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2967"/>
+        <location filename="../ConsoleHome.qml" line="2972"/>
         <source>Ce jeu doit être mis à jour (%1) avant d&apos;y jouer.</source>
         <translation>This game needs an update (%1) before you can play it.</translation>
     </message>
     <message>
-        <location filename="../ConsoleHome.qml" line="2968"/>
+        <location filename="../ConsoleHome.qml" line="2973"/>
         <source>Ce jeu doit être mis à jour avant d&apos;y jouer.</source>
         <translation>This game needs an update before you can play it.</translation>
     </message>
@@ -2442,139 +2442,156 @@ or wake it remotely.</translation>
 <context>
     <name>SetupFlow</name>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="204"/>
+        <location filename="../setup/SetupFlow.qml" line="208"/>
         <source>PREMIÈRE CONFIGURATION · %1 SUR %2</source>
         <translation>FIRST SETUP · %1 OF %2</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="316"/>
+        <location filename="../setup/SetupFlow.qml" line="320"/>
         <source>Choisissez votre langue</source>
         <translation>Choose your language</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="317"/>
+        <location filename="../setup/SetupFlow.qml" line="321"/>
         <source>Vous pourrez la changer plus tard dans Réglages › Général.</source>
         <translation>You can change it later in Settings › General.</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="344"/>
-        <location filename="../setup/SetupFlow.qml" line="391"/>
+        <location filename="../setup/SetupFlow.qml" line="348"/>
+        <location filename="../setup/SetupFlow.qml" line="395"/>
         <source>Choisir</source>
         <translation>Choose</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="344"/>
-        <location filename="../setup/SetupFlow.qml" line="392"/>
-        <location filename="../setup/SetupFlow.qml" line="438"/>
-        <location filename="../setup/SetupFlow.qml" line="472"/>
+        <location filename="../setup/SetupFlow.qml" line="348"/>
+        <location filename="../setup/SetupFlow.qml" line="396"/>
+        <location filename="../setup/SetupFlow.qml" line="447"/>
+        <location filename="../setup/SetupFlow.qml" line="499"/>
+        <location filename="../setup/SetupFlow.qml" line="528"/>
         <source>Retour</source>
         <translation>Back</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="352"/>
+        <location filename="../setup/SetupFlow.qml" line="356"/>
         <source>Connectez la console à Internet</source>
         <translation>Connect the console to the Internet</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="353"/>
+        <location filename="../setup/SetupFlow.qml" line="357"/>
         <source>Pour une latence minimale, branchez le PC en Ethernet et placez la console sur le même réseau en 5 GHz.</source>
         <translation>For the lowest latency, plug the PC in with Ethernet and put the console on the same network at 5 GHz.</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="371"/>
+        <location filename="../setup/SetupFlow.qml" line="375"/>
         <source>6 GHz</source>
         <translation>6 GHz</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="371"/>
+        <location filename="../setup/SetupFlow.qml" line="375"/>
         <source>5 GHz</source>
         <translation>5 GHz</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="371"/>
+        <location filename="../setup/SetupFlow.qml" line="375"/>
         <source>2,4 GHz</source>
         <translation>2.4 GHz</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="375"/>
         <location filename="../setup/SetupFlow.qml" line="379"/>
+        <location filename="../setup/SetupFlow.qml" line="383"/>
         <source>Réseaux Wi-Fi</source>
         <translation>Wi-Fi networks</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="378"/>
+        <location filename="../setup/SetupFlow.qml" line="382"/>
         <source>Recherche des réseaux…</source>
         <translation>Looking for networks…</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="380"/>
+        <location filename="../setup/SetupFlow.qml" line="384"/>
         <source>Autre réseau…</source>
         <translation>Other network…</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="382"/>
-        <location filename="../setup/SetupFlow.qml" line="428"/>
+        <location filename="../setup/SetupFlow.qml" line="386"/>
+        <location filename="../setup/SetupFlow.qml" line="432"/>
         <source>Autres options</source>
         <translation>Other options</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="391"/>
-        <location filename="../setup/SetupFlow.qml" line="437"/>
+        <location filename="../setup/SetupFlow.qml" line="395"/>
+        <location filename="../setup/SetupFlow.qml" line="446"/>
         <source>Actualiser</source>
         <translation>Refresh</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="404"/>
+        <location filename="../setup/SetupFlow.qml" line="408"/>
         <source>Choisissez votre PC</source>
         <translation>Choose your PC</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="405"/>
+        <location filename="../setup/SetupFlow.qml" line="409"/>
         <source>Lancez Apollo sur le PC. HostCompanion ajoute vos jeux Playnite, leurs jaquettes et leurs informations.</source>
         <translation>Start Apollo on the PC. HostCompanion adds your Playnite games, their covers and their details.</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="417"/>
+        <location filename="../setup/SetupFlow.qml" line="421"/>
         <source>PC trouvés sur %1</source>
         <translation>PCs found on %1</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="417"/>
+        <location filename="../setup/SetupFlow.qml" line="421"/>
         <source>PC trouvés sur le réseau</source>
         <translation>PCs found on the network</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="424"/>
+        <location filename="../setup/SetupFlow.qml" line="428"/>
         <source>Recherche de votre PC…</source>
         <translation>Looking for your PC…</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="426"/>
+        <location filename="../setup/SetupFlow.qml" line="430"/>
         <source>Ajouter avec une adresse IP</source>
         <translation>Add with an IP address</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="437"/>
+        <location filename="../setup/SetupFlow.qml" line="434"/>
+        <location filename="../setup/SetupFlow.qml" line="460"/>
+        <source>Installer Apollo et HostCompanion</source>
+        <translation>Install Apollo and HostCompanion</translation>
+    </message>
+    <message>
+        <location filename="../setup/SetupFlow.qml" line="435"/>
+        <source>Code QR</source>
+        <translation>QR code</translation>
+    </message>
+    <message>
+        <location filename="../setup/SetupFlow.qml" line="446"/>
         <source>Associer</source>
         <translation>Pair</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="462"/>
+        <location filename="../setup/SetupFlow.qml" line="461"/>
+        <source>Scannez ce code avec votre téléphone pour ouvrir la page d’installation, ou saisissez l’adresse dans le navigateur du PC.</source>
+        <translation>Scan this code with your phone to open the install page, or type the address in the PC’s browser.</translation>
+    </message>
+    <message>
+        <location filename="../setup/SetupFlow.qml" line="518"/>
         <source>Votre bibliothèque est prête</source>
         <translation>Your library is ready</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="462"/>
+        <location filename="../setup/SetupFlow.qml" line="518"/>
         <source>Votre bibliothèque arrive</source>
         <translation>Your library is on its way</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="471"/>
+        <location filename="../setup/SetupFlow.qml" line="527"/>
         <source>Modifier</source>
         <translation>Change</translation>
     </message>
     <message>
-        <location filename="../setup/SetupFlow.qml" line="471"/>
+        <location filename="../setup/SetupFlow.qml" line="527"/>
         <source>Commencer</source>
         <translation>Start</translation>
     </message>
@@ -2582,12 +2599,12 @@ or wake it remotely.</translation>
 <context>
     <name>SetupHello</name>
     <message>
-        <location filename="../setup/SetupHello.qml" line="154"/>
+        <location filename="../setup/SetupHello.qml" line="155"/>
         <source>Appuyez pour commencer</source>
         <translation>Press to start</translation>
     </message>
     <message>
-        <location filename="../setup/SetupHello.qml" line="184"/>
+        <location filename="../setup/SetupHello.qml" line="185"/>
         <source>Manette intégrée prête</source>
         <translation>Built-in controller ready</translation>
     </message>

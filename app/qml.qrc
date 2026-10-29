@@ -48,6 +48,7 @@
         <file>gui/console/icons/battery.svg</file>
         <file>gui/console/icons/chevron.svg</file>
         <file>gui/console/icons/check.svg</file>
+        <file>gui/console/icons/qr.svg</file>
         <file>gui/console/icons/console.svg</file>
         <file>gui/console/icons/dot.svg</file>
         <file>gui/console/icons/gamepad.svg</file>
@@ -177,6 +178,7 @@
         <file>gui/console/fonts/Sora-Medium.ttf</file>
         <file>gui/console/fonts/Sora-SemiBold.ttf</file>
         <file>gui/console/fonts/Sora-Bold.ttf</file>
+        <file>gui/console/fonts/NotoSansJP-Hello.otf</file>
         <file>gui/console/Logotype.qml</file>
         <file>gui/console/BootTimeline.js</file>
         <file>gui/console/shaders/ConicMask.frag.qsb</file>

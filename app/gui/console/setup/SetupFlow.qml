@@ -29,6 +29,10 @@ FocusScope {
     property bool hostScanning: false
     property string lanName: ""
     property string notice: ""           // sous la liste : échec d'un ajout, d'une connexion
+    // « Installer Apollo et HostCompanion » : l'adresse et son code QR (lignes de « 0 » / « 1 »,
+    // SystemStatus.qrRows) ; sans adresse, la ligne n'apparaît pas.
+    property string installUrl: ""
+    property var installQr: []
     // Code : cf. SetupPair.
     property alias pair: pairPage
     // Bibliothèque : cf. SetupLibrary ; `libraryText` sous le titre.
@@ -60,7 +64,7 @@ FocusScope {
         Qt.callLater(focusStep)
     }
     function focusStep() {
-        var page = { hello: helloPage, language: languageList, wifi: wifiList, pc: pcList,
+        var page = { hello: helloPage, language: languageList, wifi: wifiList, pc: pcList, install: installPage,
                      pair: pairPage, library: libraryPage.list }[step]
         if (page) page.forceActiveFocus()
     }
@@ -71,7 +75,7 @@ FocusScope {
             return
         }
         var prev = { language: "hello", wifi: "language", pc: wifiAvailable ? "wifi" : "language",
-                     pair: "pc", library: "pc" }[step]
+                     install: "pc", pair: "pc", library: "pc" }[step]
         if (!prev) return
         Sounds.play("back")
         if (step === "pair") pairCancelled()
@@ -85,7 +89,7 @@ FocusScope {
     }
     property bool finishing: false
     property bool forward: true
-    readonly property var order: ["hello", "language", "wifi", "pc", "pair", "library"]
+    readonly property var order: ["hello", "language", "wifi", "pc", "install", "pair", "library"]
     readonly property var lists: ({ wifi: wifiList, pc: pcList })
 
     visible: shown || fade.running
@@ -176,7 +180,7 @@ FocusScope {
         Behavior on scale { NumberAnimation { duration: Theme.finShrink; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveExit } }
 
         // En-tête : trois points (l'étape en cours étirée, les faites plus claires) et le libellé.
-        readonly property int stepNumber: ({ wifi: 1, pc: 2, library: 3 })[root.step] || 0
+        readonly property int stepNumber: ({ wifi: 1, pc: 2, install: 2, library: 3 })[root.step] || 0
         Column {
             anchors.horizontalCenter: parent.horizontalCenter
             y: Theme.setupDotsTop
@@ -425,10 +429,15 @@ FocusScope {
                                         section: section, sectionBusy: true })
                         return rows.concat([ { key: "address", label: qsTr("Ajouter avec une adresse IP"), action: true,
                                                tile: { color: "transparent", icon: "globe", size: 18 },
-                                               group: "others", section: qsTr("Autres options") } ])
+                                               group: "others", section: qsTr("Autres options") } ],
+                                           root.installUrl === "" ? [] : [
+                                             { key: "install", label: qsTr("Installer Apollo et HostCompanion"), action: true,
+                                               value: qsTr("Code QR"), tile: { color: "transparent", icon: "qr", size: 18 },
+                                               group: "others" } ])
                     }
                     onActionRequested: function(key) {
                         if (key === "address") root.addHost()
+                        else if (key === "install") root.go("install")
                         else if (key.indexOf("pc:") === 0) root.hostChosen(Number(key.slice(3)))
                     }
                 }
@@ -442,6 +451,53 @@ FocusScope {
                          else if (glyph === "Y") root.rescanHosts()
                          else if (glyph === "B") root.back()
                      } }
+        }
+
+        // --- Installer Apollo et HostCompanion (hors maquette) : le code QR de la page ---
+        Page {
+            id: installPage
+            key: "install"
+            title: qsTr("Installer Apollo et HostCompanion")
+            text: qsTr("Scannez ce code avec votre téléphone pour ouvrir la page d’installation, ou saisissez l’adresse dans le navigateur du PC.")
+            Keys.onReturnPressed: root.back()
+            Rectangle {
+                id: qrCard
+                x: (parent.width - width) / 2
+                y: Theme.setupListTop + Theme.qrTopGap
+                width: Theme.qrCard; height: width
+                radius: Theme.qrRadius
+                color: Theme.ink
+                Canvas {
+                    id: qrCanvas
+                    anchors.fill: parent
+                    anchors.margins: Theme.qrQuiet
+                    readonly property var rows: root.installQr
+                    onRowsChanged: requestPaint()
+                    onPaint: {
+                        var ctx = getContext("2d")
+                        ctx.reset()
+                        var n = rows.length
+                        if (n === 0) return
+                        var cell = width / n
+                        ctx.fillStyle = Theme.inkOnLight
+                        for (var y = 0; y < n; y++)
+                            for (var x = 0; x < n; x++)
+                                if (rows[y].charAt(x) === "1")
+                                    ctx.fillRect(Math.floor(x * cell), Math.floor(y * cell),
+                                                 Math.ceil(cell), Math.ceil(cell))
+                    }
+                }
+            }
+            Text {
+                width: parent.width
+                y: qrCard.y + qrCard.height + Theme.qrUrlGap
+                horizontalAlignment: Text.AlignHCenter
+                text: root.installUrl
+                color: Theme.ink2
+                font.family: Theme.fontUi; font.pixelSize: Theme.setupTextSize; font.weight: Font.Medium
+            }
+            Legend { hints: [ { glyph: "B", label: qsTr("Retour") } ]
+                     onTriggered: function(glyph) { if (glyph === "B") root.back() } }
         }
 
         // --- Code ---

@@ -1163,6 +1163,13 @@ Item {
             ComputerManager.computerAddCompleted(false, false)
             compare(setup.notice, "Aucun PC ne répond à cette adresse.")
             tryVerify(function() { return setup.activeFocus })
+            keyClick(Qt.Key_Down)                           // « Installer Apollo et HostCompanion »
+            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)
+            compare(setup.step, "install")
+            verify(setup.installQr.length > 20)             // le code QR de l'adresse
+            keyClick(Qt.Key_Escape)                         // B : le choix du PC
+            compare(setup.step, "pc")
+            tryVerify(function() { return setup.activeFocus })
             keyClick(Qt.Key_Escape)                         // B : retour à l'accueil
             verify(!setup.shown && !home.addingHost)
             tryVerify(function() { return !screen.launching })

@@ -2526,6 +2526,10 @@ FocusScope {
             networks: WifiSetup.networks
             wifiScanning: WifiSetup.scanning
             hosts: home.setupHosts
+            // ponytail: la page des versions de HostCompanion, en attendant l'installeur 1-clic
+            // (étape 8 de la feuille de route) ; à remplacer par son adresse.
+            installUrl: "https://github.com/Djingerr/HostCompanion/releases"
+            installQr: SystemStatus.qrRows(installUrl)
             hostScanning: true
             lanName: WifiSetup.currentNetwork.toUpperCase()
             pair.code: home.pairingPin

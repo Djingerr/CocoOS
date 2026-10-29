@@ -1,4 +1,5 @@
 #include "systemstatus.h"
+#include "qrcodegen/qrcodegen.hpp"
 #include <QDBusUnixFileDescriptor>
 
 #include "backend/computermanager.h"
@@ -374,6 +375,21 @@ QString SystemStatus::hostAddress(QObject* computerManager, const QString& hostN
         }
     }
     return QString();
+}
+
+QStringList SystemStatus::qrRows(const QString& text) const
+{
+    const qrcodegen::QrCode qr = qrcodegen::QrCode::encodeText(text.toUtf8().constData(),
+                                                               qrcodegen::QrCode::Ecc::MEDIUM);
+    QStringList rows;
+    for (int y = 0; y < qr.getSize(); y++) {
+        QString row;
+        for (int x = 0; x < qr.getSize(); x++) {
+            row += qr.getModule(x, y) ? QLatin1Char('1') : QLatin1Char('0');
+        }
+        rows.append(row);
+    }
+    return rows;
 }
 
 void SystemStatus::probe()

@@ -35,6 +35,27 @@ QtObject {
     function probeHost(manager, hostName) { probed = hostName }
     function stopProbing() { probed = "" }
     function hostAddress(manager, hostName) { return "192.168.1.20" }
+    // (un faux code : les trois repères et un damier, 29 × 29)
+    function qrRows(text) {
+        var n = 29, rows = []
+        var finder = function(x, y) {
+            var inBox = function(ox, oy) {
+                var dx = x - ox, dy = y - oy
+                if (dx < 0 || dy < 0 || dx > 6 || dy > 6) return -1
+                return dx === 0 || dy === 0 || dx === 6 || dy === 6 || (dx >= 2 && dx <= 4 && dy >= 2 && dy <= 4) ? 1 : 0
+            }
+            return Math.max(inBox(0, 0), inBox(n - 7, 0), inBox(0, n - 7))
+        }
+        for (var y = 0; y < n; y++) {
+            var row = ""
+            for (var x = 0; x < n; x++) {
+                var f = finder(x, y)
+                row += f >= 0 ? f : ((x * 7 + y * 13 + x * y) % 3 === 0 ? 1 : 0)
+            }
+            rows.push(row)
+        }
+        return rows
+    }
     function setBrightness(percent) { brightness = percent }
     function setVolume(percent) { volume = percent }
 }

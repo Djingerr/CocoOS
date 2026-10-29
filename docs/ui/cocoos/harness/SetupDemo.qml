@@ -1,13 +1,14 @@
 import QtQuick
 import "../../../../app/gui/console"
 import "../../../../app/gui/console/setup"
+import SystemStatus 1.0
 
 // Première configuration (phase 8) sans backend, sur les données des maquettes.
 //
 //   ./shot.sh /tmp/s.png view=SetupDemo step=wifi delay=1500
 //   ./filmstrip.sh /tmp/p.png 10000 view=SetupDemo step=pair paired=5200
 //
-// step : hello | language | wifi | pc | pair | library ; paired=ms (le PC accepte le code à tant),
+// step : hello | language | wifi | pc | install | pair | library ; paired=ms (le PC accepte le code à tant),
 // companion=1 (le code à 6 chiffres à saisir), finish=ms (« Commencer » à tant : MotionSetupFin),
 // covers=n (jaquettes déjà là, 11 par défaut). Au clavier comme à la manette.
 Item {
@@ -37,6 +38,8 @@ Item {
         hostScanning: true
         hosts: [ { name: "PC-Salon", detail: "Apollo · HostCompanion · Playnite · 192.168.1.20", pill: { text: "Prêt", accent: true } },
                  { name: "PC-Bureau", detail: "Apollo seulement · installez HostCompanion pour la bibliothèque", pill: { text: "Sans jaquettes" } } ]
+        installUrl: "https://github.com/Djingerr/HostCompanion/releases"
+        installQr: SystemStatus.qrRows(installUrl)
         libraryText: "214 jeux trouvés dans Playnite sur PC-Salon. Réglez quelques préférences pendant le chargement."
         library.covers: {
             var n = Number(demo.args.covers || 11), list = []

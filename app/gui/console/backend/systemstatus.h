@@ -86,6 +86,8 @@ public:
     Q_INVOKABLE void stopProbing();
     // Adresse (sans port) du PC `hostName` connu de `computerManager` ; vide s'il n'en a pas.
     Q_INVOKABLE QString hostAddress(QObject* computerManager, const QString& hostName) const;
+    // Code QR de `text` : une chaîne de « 0 » / « 1 » par ligne de modules (correction M).
+    Q_INVOKABLE QStringList qrRows(const QString& text) const;
 
     // Latence (médiane) et gigue (écart moyen entre mesures successives) d'une série
     // de temps d'aller-retour, en ms.

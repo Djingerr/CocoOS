@@ -590,8 +590,9 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   ajout par adresse IP), code (Apollo, ou d'abord celui du HostCompanion), Bibliothèque
   (jaquettes qui arrivent, préférences), « Tout est prêt », l'accueil en éventail. « Ajouter un
   PC » (ChoixPC) l'ouvre sur le choix du PC ; Réglages › Général › « Réinitialiser la console »
-  y ramène. ⚠️ Porte : le parcours à la manette sur une conf vierge, contre le vrai PC
-  (next_steps.md, questions 44 à 51).
+  y ramène. Code QR de l'installation (`backend/qrcodegen/`, Nayuki, MIT) ; こんにちは dans une
+  police embarquée (`fonts/NotoSansJP-Hello.otf`, 5 caractères). ⚠️ Porte : le parcours à la
+  manette sur une conf vierge, contre le vrai PC (next_steps.md, questions 44 à 52).
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
   télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
   Côté console uniquement (Apollo reste non modifié).
@@ -755,7 +756,8 @@ Fichiers (dans `app/gui/console/`) :
   (`centered`) et rebond laissé à l'appelant (`bounces: false`) pour un bouton
 - `Theme.qml` (+ `qmldir`) — singleton des jetons de design : couleurs, tailles, durées, ressort
 - `fonts/` — Sora embarquée (OFL, instances statiques de Google Fonts, 400 à 700), chargée par
-  `Theme.qml` (`Theme.fontsReady`) ; seule famille de l'interface (pas de mono)
+  `Theme.qml` (`Theme.fontsReady`) ; seule famille de l'interface (pas de mono). Plus
+  `NotoSansJP-Hello.otf` : les cinq caractères de こんにちは (Bonjour), rien d'autre
 - `BackdropLayer.qml` — fond CocoOS : l'art du jeu flouté une fois en petit, puis un passage de
   `shaders/Backdrop.frag` (dérive lente, vignettage, grain) ; deux calques en fondu croisé
 - `HeroBlock.qml` — bloc titre centré sous le carrousel : titre (deux lignes équilibrées, puis
@@ -828,6 +830,8 @@ Fichiers (dans `app/gui/console/`) :
   `embedded` uniquement. Découverte mDNS, appairage 6 chiffres, bibliothèque (copie disque),
   images de fond 16:9 en cache disque (`games()[i].background`, URL `file://` : l'`Image` QML
   ne sait pas poser le Bearer), WebSocket events (cf §2). Nécessite `QT += websockets`.
+- `backend/qrcodegen/` — générateur de codes QR (Nayuki, MIT, tel quel), utilisé par
+  `SystemStatus.qrRows` (page d'installation de la première configuration).
 - `backend/systemstatus.{h,cpp}` — batterie, charge et autonomie (`/sys/class/power_supply`), signal
   et détails du réseau Wi-Fi (NetworkManager par D-Bus) pour la barre haute et ses fiches ; veille / redémarrage /
   extinction par systemd-logind (D-Bus, `powerActions` + `power()`). Build `embedded`
