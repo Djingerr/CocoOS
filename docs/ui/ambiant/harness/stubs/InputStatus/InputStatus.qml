@@ -17,6 +17,9 @@ QtObject {
     signal homePressed()
     signal bumperPressed(int direction)
     signal triggerPressed(int direction)
+    signal stickPressed(int side)
+    property bool start: false           // Start (≡) tenu : Key_Hangup vaut alors « valider »
+    function startHeld() { return start }
 
     function prepareStreamMenu(game, powerActions, buttonLayout) {
         streamMenu = [game, powerActions, buttonLayout]

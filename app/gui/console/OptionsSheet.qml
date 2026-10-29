@@ -79,7 +79,7 @@ FocusScope {
         flash.restart()
         panes.itemAt(next).reset()
         tab = next
-        Sounds.play("move")
+        Sounds.play("segment")
     }
 
     Keys.onPressed: function(event) {

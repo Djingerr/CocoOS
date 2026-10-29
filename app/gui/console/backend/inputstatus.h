@@ -53,6 +53,9 @@ public:
     // Un son de l'interface vient d'être joué (Sounds.played) : la manette vibre selon son
     // motif (StreamMenu::rumble), à l'intensité `level` (0 : coupées, 0,6 : légères, 1 : fortes).
     Q_INVOKABLE void feedback(const QString& sound, double level);
+    // Start (≡) enfoncé sur une manette, à l'instant : la navigation upstream envoie la même
+    // touche Qt (Key_Hangup) pour Y et Start, le clavier à l'écran les distingue ainsi.
+    Q_INVOKABLE bool startHeld() const;
 
     // Correspondances SDL → UI (statiques pour être vérifiables seules).
     static QString layoutForType(int sdlControllerType);
@@ -63,6 +66,7 @@ signals:
     void homePressed();         // bouton Home de la manette
     void bumperPressed(int direction);   // L1 (-1) ou R1 (+1)
     void triggerPressed(int direction);  // L2 (-1) ou R2 (+1), enfoncée au-delà de la moitié
+    void stickPressed(int side);         // clic du stick gauche (-1, L3) ou droit (+1, R3)
     void controllersChanged();
 
 protected:
@@ -82,6 +86,8 @@ private:
     bool m_leftDown = false;
     bool m_rightDown = false;
     bool m_leftTriggerDown = false;
+    bool m_leftStickDown = false;
+    bool m_rightStickDown = false;
     bool m_rightTriggerDown = false;
     QString m_layout;
     int m_controllerBattery = -1;

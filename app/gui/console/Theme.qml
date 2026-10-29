@@ -571,7 +571,8 @@ QtObject {
     readonly property real glyphBorder: 1.5
     readonly property real glyphFontSize: 10.5       // 500
     readonly property real glyphSymbolScale: 0.42    // symboles PlayStation, part du diamètre
-    readonly property real glyphPillScale: 1.5       // gâchettes (LB, L1…) : largeur / hauteur
+    readonly property real glyphPillScale: 1.5       // gâchettes (LB, L1…) : largeur / hauteur…
+    readonly property int glyphPillPad: 7            // …au moins ; « LB RB » : le texte et cette marge
     // Glyphes à dessiner : "xbox", "playstation" ou "nintendo" (posé par ConsoleHome
     // d'après la manette branchée ou le réglage « Boutons »).
     property string buttonLayout: "xbox"
@@ -724,21 +725,6 @@ QtObject {
 
     readonly property int wifiRescan: 10000          // liste des réseaux rafraîchie pendant qu'elle est ouverte
 
-    // --- Clavier à l'écran (OnScreenKeyboard), en bas de l'écran ---
-    readonly property int keyboardHeight: 430
-    readonly property int keyboardPadTop: 28
-    readonly property int keyboardPromptSize: 15     // Sora 400, ink2
-    readonly property int keyboardFieldGap: 10
-    readonly property int keyboardFieldHeight: 48
-    readonly property int keyboardFieldPad: 18
-    readonly property int keyboardFieldSize: 20
-    readonly property int keyboardKeysTop: 22
-    readonly property size keyboardKeySize: Qt.size(64, 48)
-    readonly property int keyboardKeyGap: 8
-    readonly property int keyboardKeyRadius: 10
-    readonly property color keyboardKeyFill: Qt.rgba(1, 1, 1, 0.07)
-    readonly property int keyboardKeyTextSize: 18    // Sora 500
-
     // --- Listes groupées CocoOS (SettingsList) : cartes de lignes sous un intitulé ---
     // Trois gabarits : la feuille d'options (OptionsFeuille), le contenu des réglages
     // (Reglages*) et leur menu à gauche. Hauteurs : ligne simple, curseur à libellé
@@ -871,6 +857,91 @@ QtObject {
     readonly property int recedeFrame: 48            // cadre noir qui arrondit ses coins (au-delà de l'écran)
     readonly property int recedeIn: 600              // curveMain (assombri en 500)
     readonly property int recedeOut: 420             // curveMain (380)
+
+    // --- Clavier à l'écran CocoOS (ClavierWifi, MotionClavier) ---
+    readonly property int kbContextTop: 52           // « PREMIÈRE CONFIGURATION · 1 SUR 3 »
+    readonly property int kbTitleTop: 78
+    readonly property int kbTitleSize: 34            // Sora 600, −0,03 em
+    readonly property int kbFieldTop: 160
+    readonly property size kbField: Qt.size(640, 64)
+    readonly property color kbFieldFill: Qt.rgba(1, 1, 1, 0.1)
+    readonly property real kbFieldStroke: 1.5        // contour orange…
+    readonly property int kbFieldRing: 5             // …et son halo (accent à 22 %)
+    readonly property color kbFieldRingFill: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.22)
+    readonly property int kbFieldPadLeft: 26
+    readonly property int kbFieldPadRight: 20
+    readonly property int kbFieldGap: 14
+    readonly property int kbFieldSize: 24            // Sora 600
+    readonly property int kbCharWidth: 14            // un caractère masqué (« • » à 0,18 em)
+    readonly property real kbCharSpacing: 4.3        // 0,18 em, en clair
+    readonly property int kbDot: 5
+    readonly property int kbCaretHeight: 28
+    readonly property int kbCaretGap: 3
+    readonly property int kbCaretBlink: 500
+    readonly property int kbClearHold: 800           // le dernier caractère reste lisible…
+    readonly property int kbClearFade: 220           // …puis devient un point
+    readonly property int kbRevealTouch: 120         // « R3 Afficher » cliquable
+    readonly property int kbHintTop: 240             // « 8 caractères minimum · 8 saisis »
+    readonly property int kbTop: 344
+    readonly property size kbSize: Qt.size(1180, 428)
+    readonly property int kbRadius: 36
+    readonly property color kbFill: Qt.rgba(28 / 255, 28 / 255, 30 / 255, 0.78)
+    readonly property color kbStroke: Qt.rgba(1, 1, 1, 0.1)
+    readonly property int kbTravel: 460              // il monte de 460 px…
+    readonly property var kbIn: motion(640, [0.3, 1.15, 0.4, 1, 1, 1])
+    readonly property var kbOut: motion(380, [0.4, 0, 1, 1, 1, 1])
+    readonly property int kbFadeIn: 240
+    readonly property int kbFadeOut: 300
+    readonly property int kbFadeOutDelay: 80
+    readonly property int kbPad: 36
+    readonly property int kbChipsTop: 22             // raccourcis (.com…) et disposition (globe)
+    readonly property int kbChipHeight: 34
+    readonly property int kbChipPad: 16
+    readonly property int kbChipSize: 14
+    readonly property var kbChips: [".com", ".fr", "@gmail.com", "@free.fr"]
+    readonly property int kbRowsTop: 72
+    readonly property int kbRowStep: 74
+    readonly property size kbKey: Qt.size(100, 62)
+    readonly property int kbGap: 12
+    readonly property int kbFnKey: 156               // ⇧, ⌫, 123
+    readonly property int kbSpaceKey: 380
+    readonly property int kbOkKey: 212
+    readonly property int kbCharSize: 26             // Sora 500
+    readonly property int kbFnSize: 16               // Sora 600
+    readonly property color kbShiftOn: Qt.rgba(1, 1, 1, 0.32)
+    readonly property int kbGlyph: 20                // LT, X, Y, ≡ dans les touches
+    readonly property color kbGlyphLight: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.4)
+    readonly property color kbGlyphDark: Qt.rgba(0, 0, 0, 0.45)
+    readonly property real kbFocusScale: 1.08        // la tache blanche de la touche en focus
+    readonly property real kbPressScale: 0.9         // A enfoncé (110 ms)…
+    readonly property real kbHoldScale: 0.94         // …maintenu
+    readonly property int kbPressMove: 110
+    readonly property var kbSpotGrow: motion(420, [0.3, 1.6, 0.4, 1, 1, 1])
+    readonly property var kbSpotMove: motion(210, [0.3, 1.25, 0.4, 1, 1, 1])
+    readonly property int kbSpotFade: 200
+    readonly property real kbSpotDim: 0.35           // bulle des accents ouverte
+    readonly property int kbInkFade: 120
+    readonly property int kbAccentHold: 450          // A maintenu : la bulle des accents
+    readonly property size kbAccentKey: Qt.size(84, 62)
+    readonly property int kbAccentGap: 8
+    readonly property int kbAccentPad: 10
+    readonly property int kbAccentRadius: 22
+    readonly property color kbAccentFill: Qt.rgba(58 / 255, 58 / 255, 62 / 255, 0.96)
+    readonly property int kbAccentAbove: 10          // au-dessus de la touche
+    readonly property int kbAccentInset: 12          // dans le clavier, à tant du bord
+    readonly property real kbAccentFrom: 0.4         // elle naît petite, 30 px plus bas
+    readonly property int kbAccentTravel: 30
+    readonly property int kbAccentFade: 160
+    readonly property var kbAccentIn: motion(420, [0.3, 1.3, 0.4, 1, 1, 1])
+    readonly property var kbAccentOut: motion(220, [0.4, 0, 1, 1, 1, 1])
+    readonly property real kbAccentChosen: 1.06
+    readonly property int kbLegendBottom: 22
+    readonly property int kbLegendGap: 26
+    // Lueurs : orange en bas (décalage du centre de l'écran), bleue en haut à droite.
+    readonly property rect kbGlowLow: Qt.rect(-130, 400, 900, 520)
+    readonly property rect kbGlowHigh: Qt.rect(60, -60, 600, 420)
+    readonly property color kbGlowAccent: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.34)
+    readonly property color kbGlowBlue: Qt.rgba(110 / 255, 155 / 255, 1, 0.16)
 
     // --- Réglages plein écran (Reglages*) ---
     readonly property int setMenuX: 40

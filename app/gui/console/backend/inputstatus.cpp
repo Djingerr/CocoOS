@@ -99,9 +99,24 @@ void InputStatus::noteActivity()
     }
 }
 
+bool InputStatus::startHeld() const
+{
+    if (!SDL_WasInit(SDL_INIT_GAMECONTROLLER)) {
+        return false;
+    }
+    for (int i = 0; i < SDL_NumJoysticks(); i++) {
+        SDL_GameController* gc = SDL_GameControllerFromInstanceID(SDL_JoystickGetDeviceInstanceID(i));
+        if (gc != nullptr && SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_START)) {
+            return true;
+        }
+    }
+    return false;
+}
+
 void InputStatus::pollButtons()
 {
     bool home = false, left = false, right = false, leftTrigger = false, rightTrigger = false;
+    bool leftStick = false, rightStick = false;
     if (SDL_WasInit(SDL_INIT_GAMECONTROLLER)) {
         for (int i = 0; i < SDL_NumJoysticks(); i++) {
             SDL_GameController* gc = SDL_GameControllerFromInstanceID(SDL_JoystickGetDeviceInstanceID(i));
@@ -111,6 +126,8 @@ void InputStatus::pollButtons()
                 right |= SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_RIGHTSHOULDER) != 0;
                 leftTrigger |= SDL_GameControllerGetAxis(gc, SDL_CONTROLLER_AXIS_TRIGGERLEFT) > TRIGGER_PRESS;
                 rightTrigger |= SDL_GameControllerGetAxis(gc, SDL_CONTROLLER_AXIS_TRIGGERRIGHT) > TRIGGER_PRESS;
+                leftStick |= SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_LEFTSTICK) != 0;
+                rightStick |= SDL_GameControllerGetButton(gc, SDL_CONTROLLER_BUTTON_RIGHTSTICK) != 0;
             }
         }
     }
@@ -135,6 +152,16 @@ void InputStatus::pollButtons()
         noteActivity();
         emit triggerPressed(1);
     }
+    if (leftStick && !m_leftStickDown) {
+        noteActivity();
+        emit stickPressed(-1);
+    }
+    if (rightStick && !m_rightStickDown) {
+        noteActivity();
+        emit stickPressed(1);
+    }
+    m_leftStickDown = leftStick;
+    m_rightStickDown = rightStick;
     m_leftTriggerDown = leftTrigger;
     m_rightTriggerDown = rightTrigger;
     m_homeDown = home;

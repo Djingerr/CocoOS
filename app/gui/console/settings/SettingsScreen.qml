@@ -1,5 +1,4 @@
 import QtQuick
-import QtQuick.Shapes
 import ".."
 
 // Réglages plein écran (ReglagesWifi, ReglagesManettes, ReglagesEcranSon, ReglagesGeneral) :
@@ -99,21 +98,10 @@ FocusScope {
     Rectangle { anchors.fill: parent; color: Theme.background }
     MouseArea { anchors.fill: parent; enabled: root.opened }   // rien ne passe à l'accueil dessous
     // Lueur bleutée, en haut à gauche.
-    Shape {
+    Glow {
         x: Theme.setGlowRect.x; y: Theme.setGlowRect.y
         width: Theme.setGlowRect.width; height: Theme.setGlowRect.height
-        ShapePath {
-            strokeColor: "transparent"
-            fillGradient: RadialGradient {
-                centerX: Theme.setGlowRect.width / 2; centerY: Theme.setGlowRect.height / 2
-                centerRadius: Theme.setGlowRect.width / 2
-                focalX: centerX; focalY: centerY
-                GradientStop { position: 0; color: Theme.setGlow }
-                GradientStop { position: 1; color: "transparent" }
-            }
-            PathRectangle { width: Theme.setGlowRect.width; height: Theme.setGlowRect.height }
-        }
-        transform: Scale { yScale: Theme.setGlowRect.height / Theme.setGlowRect.width; origin.y: Theme.setGlowRect.height / 2 }
+        color: Theme.setGlow
     }
 
     // --- À gauche : titre, carte de la console, menu ---

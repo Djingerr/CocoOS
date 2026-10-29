@@ -720,12 +720,19 @@ FocusScope {
         target: InputStatus
         function onActivity() { home.rearmSleep() }
         function onHomePressed() { home.homeButton() }
+        // LB / RB, LT / RT, R3 : lus dans SDL (la navigation upstream ne les traduit pas).
         function onBumperPressed(direction) {
-            if (homeScreen.options.opened) homeScreen.options.switchTab(direction)
+            if (keyboard.opened) keyboard.moveCursor(direction)
+            else if (settingsScreen.opened) settingsScreen.focusContent(!settingsScreen.contentFocused)
+            else if (homeScreen.options.opened) homeScreen.options.switchTab(direction)
             else if (homeScreen.shelf.activeFocus) home.switchCollection(direction)
         }
         function onTriggerPressed(direction) {
-            if (homeScreen.shelf.activeFocus) homeScreen.shelf.jump(direction)
+            if (keyboard.opened) { if (direction < 0) keyboard.shift() }
+            else if (homeScreen.shelf.activeFocus) homeScreen.shelf.jump(direction)
+        }
+        function onStickPressed(side) {
+            if (keyboard.opened && side > 0) keyboard.toggleReveal()
         }
     }
     // À l'ouverture, le panneau suit le jeu sélectionné (ligne de ses réglages à part).
@@ -1882,7 +1889,7 @@ FocusScope {
         if (!network || network.active) return
         wifiTarget = ssid
         if (network.secured && !network.known) {
-            keyboard.prompt = qsTr("Mot de passe de %1").arg(ssid)
+            keyboard.prompt = qsTr("Mot de passe de « %1 »").arg(ssid)
             keyboard.open("")           // (par-dessus les réglages : B sur le clavier vide y ramène)
         } else {
             connectWifi("")
@@ -1905,7 +1912,7 @@ FocusScope {
             homeScreen.toast(error)
             // Mauvais mot de passe : on le redemande aussitôt.
             if (badPassword) {
-                keyboard.prompt = qsTr("Mot de passe de %1").arg(home.wifiTarget)
+                keyboard.prompt = qsTr("Mot de passe de « %1 »").arg(home.wifiTarget)
                 keyboard.open("")
             }
         }
@@ -1971,6 +1978,7 @@ FocusScope {
         anchors.fill: parent
         qwerty: home.english
         minLength: 8                    // WPA : 8 caractères au moins
+        startDown: function() { return InputStatus.startHeld() }
         onAccepted: function(text) {
             home.connectWifi(text)
             homeScreen.forceActiveFocus()   // le clavier fermé ne doit plus rien avaler

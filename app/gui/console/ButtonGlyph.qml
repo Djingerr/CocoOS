@@ -19,14 +19,17 @@ Rectangle {
     readonly property var nintendo: ({ A: "B", B: "A", X: "Y", Y: "X", LB: "L", RB: "R" })
     readonly property var playstation: ({ A: "cross", B: "circle", X: "square", Y: "triangle", LB: "L1", RB: "R1" })
     // Ce qui est dessiné : une lettre, ou "cross" / "circle" / "square" / "triangle".
-    readonly property string face: Theme.buttonLayout === "nintendo" ? (nintendo[label] || label)
-                                 : Theme.buttonLayout === "playstation" ? (playstation[label] || label)
-                                 : label
+    // (deux gâchettes dans une pastille, « LB RB » : chacune suit la manette)
+    readonly property string face: label.split(" ").map(function(part) {
+        return Theme.buttonLayout === "nintendo" ? (nintendo[part] || part)
+             : Theme.buttonLayout === "playstation" ? (playstation[part] || part)
+             : part
+    }).join(" ")
     readonly property bool isSymbol: ["cross", "circle", "square", "triangle"].indexOf(face) >= 0
     readonly property real symbol: height * Theme.glyphSymbolScale   // taille des symboles PlayStation
 
     // Deux lettres (LB, L1…) : une pastille plus large que haute.
-    width: face.length > 1 && !isSymbol ? size * Theme.glyphPillScale : size
+    width: face.length > 1 && !isSymbol ? Math.max(size * Theme.glyphPillScale, faceText.implicitWidth + 2 * Theme.glyphPillPad) : size
     height: size
     radius: height / 2
     color: "transparent"
@@ -35,6 +38,7 @@ Rectangle {
     border.color: ink
 
     Text {
+        id: faceText
         anchors.centerIn: parent
         visible: !root.isSymbol
         text: root.face

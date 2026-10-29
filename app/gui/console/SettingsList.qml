@@ -216,7 +216,7 @@ FocusScope {
         stopAll()
         hintShown = false
         current = next
-        Sounds.play("move")
+        Sounds.play("tick")
     }
     // La souris bouge sur la ligne `i` : la sélection y vient (pas pendant un appui, ni en
     // tirant un curseur).
