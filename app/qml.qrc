@@ -146,6 +146,9 @@
         <file>gui/console/BootUnfold.qml</file>
         <file>gui/console/RingLogo.qml</file>
         <file>gui/console/UpdateScreen.qml</file>
+        <file>gui/console/ChargingScreen.qml</file>
+        <file>gui/console/TvScreen.qml</file>
+        <file>gui/console/icons/bolt.svg</file>
         <file>gui/console/icons/pc-offline.svg</file>
         <file>gui/console/icons/plus.svg</file>
         <file>gui/console/icons/game-play.svg</file>

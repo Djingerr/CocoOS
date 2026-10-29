@@ -2,6 +2,14 @@
 <!DOCTYPE TS>
 <TS version="2.1" language="en" sourcelanguage="fr">
 <context>
+    <name>ChargingScreen</name>
+    <message>
+        <location filename="../ChargingScreen.qml" line="79"/>
+        <source>%1 %</source>
+        <translation>%1%</translation>
+    </message>
+</context>
+<context>
     <name>CompanionPairing</name>
     <message>
         <location filename="../CompanionPairing.qml" line="22"/>
@@ -2823,6 +2831,24 @@ or wake it remotely.</translation>
         <location filename="../backend/streampainter.cpp" line="1013"/>
         <source>Annuler</source>
         <translation>Cancel</translation>
+    </message>
+</context>
+<context>
+    <name>TvScreen</name>
+    <message>
+        <location filename="../TvScreen.qml" line="64"/>
+        <source>Sur la TV</source>
+        <translation>On the TV</translation>
+    </message>
+    <message>
+        <location filename="../TvScreen.qml" line="71"/>
+        <source>CocoOS s&apos;affiche sur %1</source>
+        <translation>CocoOS is showing on %1</translation>
+    </message>
+    <message>
+        <location filename="../TvScreen.qml" line="78"/>
+        <source>Débranchez la console pour reprendre sur son écran</source>
+        <translation>Unplug the console to continue on its screen</translation>
     </message>
 </context>
 <context>

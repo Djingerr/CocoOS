@@ -1368,6 +1368,42 @@ QtObject {
     readonly property int wakeBarMove: 500
     readonly property int wakeBarShift: -8
 
+    // --- Recharge console éteinte (MotionRecharge) ---
+    readonly property int chargeIn: 500
+    readonly property int chargeOut: 700
+    readonly property int chargeMove: 700            // curveMain, depuis 0,9
+    readonly property real chargeFrom: 0.9
+    readonly property int chargeFill: 1100           // l'anneau se remplit jusqu'au niveau
+    readonly property int chargeShow: 4000           // puis l'écran s'éteint
+    readonly property int chargeBreath: 3200
+    readonly property int chargeRing: 120
+    readonly property int chargeStroke: 20
+    readonly property color chargeTrack: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.22)
+    readonly property size chargeBolt: Qt.size(26, 40)
+    readonly property int chargeRingTop: 284
+    readonly property int chargeTextTop: 34
+    readonly property int chargeLevelSize: 34        // 600, chiffres tabulaires
+    readonly property int chargeDetailSize: 14
+    readonly property color chargeDetailInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.55)
+    // --- Mode salon (MotionSalon) ---
+    readonly property int tvIn: 600
+    readonly property int tvOut: 700
+    readonly property int tvMove: 750                // curveMain
+    readonly property real tvFrom: 0.7
+    readonly property int tvTop: 270
+    readonly property size tvSize: Qt.size(160, 100)
+    readonly property int tvRadius: 14
+    readonly property int tvBorder: 3
+    readonly property int tvTextTop: 420
+    readonly property int tvTitleSize: 30
+    readonly property int tvSubSize: 15
+    readonly property int tvNoteTop: 22
+    readonly property int tvNoteSize: 13
+    readonly property color tvNoteInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.45)
+    readonly property int tvDimAfter: 1600           // puis l'écran de la console s'assombrit
+    readonly property real tvDim: 0.3
+    readonly property int tvDimFade: 900
+
     // --- Mise à jour (MotionMiseAJour) : le O sert de barre de progression ---
     readonly property int updateIn: 600
     readonly property int updateOut: 550

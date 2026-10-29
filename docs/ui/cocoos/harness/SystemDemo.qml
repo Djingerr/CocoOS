@@ -5,7 +5,9 @@ import "../../../../app/gui/console"
 //
 //   ./filmstrip.sh /tmp/u.png 10000 view=SystemDemo scene=update      (MotionMiseAJour)
 //
-// scene : update (la mise à jour : avancement, redémarrage, « … est installé »).
+// scene : update (la mise à jour : avancement, redémarrage, « … est installé ») ; charge (le câble
+// branché, console éteinte : MotionRecharge, level=42) ; tv (la TV branchée puis débranchée :
+// MotionSalon, sur une image de l'accueil).
 Item {
     id: demo
     property var args: ({})
@@ -29,5 +31,27 @@ Item {
         update.phase = t >= 7400 && t < 10200 ? "installed" : t >= 6000 && t < 6600 ? "restarting"
                      : t >= 150 && t < 6600 ? "installing" : ""
     }
+    // --- Recharge et mode salon : le câble (1 s) ; la TV (1,4 s, débranchée à 6,6 s) ---
+    Image {
+        anchors.fill: parent
+        visible: demo.args.scene === "tv"
+        source: visible ? Qt.resolvedUrl("../reference/png/AccueilCarrousel.png") : ""
+        fillMode: Image.PreserveAspectCrop
+    }
+    ChargingScreen {
+        id: charge
+        anchors.fill: parent
+        level: Number(demo.args.level || 42)
+        detail: "En charge · plein dans environ 1 h 10"
+    }
+    TvScreen {
+        id: tv
+        anchors.fill: parent
+        screenName: "Salon · 4K · 60 i/s"
+    }
+    Timer { running: demo.args.scene === "charge"; interval: 1000; onTriggered: charge.plug() }
+    Timer { running: demo.args.scene === "tv"; interval: 1400; onTriggered: tv.connected = true }
+    Timer { running: demo.args.scene === "tv"; interval: 6600; onTriggered: tv.connected = false }
+
     Component.onCompleted: Sounds.enabled = false
 }
