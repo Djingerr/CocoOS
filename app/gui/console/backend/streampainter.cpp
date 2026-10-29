@@ -20,7 +20,8 @@ const qreal CANVAS_HEIGHT = 800;
 const QColor INK("#F5F5F7");
 const QColor INK2(245, 245, 247, qRound(0.6 * 255));
 const QColor INK3(245, 245, 247, qRound(0.5 * 255));
-const QColor ACCENT("#F2802A");
+// (l'accent du jeu : setAccent)
+QColor ACCENT("#F2802A");
 const QColor INK_ON_ACCENT("#1B0E04");
 const QColor INK_DARK("#1C1C1E");          // texte et icônes sur une tuile claire
 const qreal HOLD_SWAP_SHIFT = 16;        // Theme.holdSwapShift × la hauteur du libellé
@@ -111,7 +112,7 @@ const qreal COMPACT_HEIGHT = 34;
 const qreal COMPACT_PAD = 14;
 const qreal COMPACT_GAP = 14;
 const QColor COMPACT_FILL(20, 20, 22, qRound(0.55 * 255));
-const QColor ACCENT_SOFT(242, 128, 42, qRound(0.22 * 255));   // accent à 22 % (pastille, courbe)
+QColor ACCENT_SOFT(242, 128, 42, qRound(0.22 * 255));   // accent à 22 % (pastille, courbe)
 // Bannière en haut (MotionAlertes : 64 px ; MotionReseau : 56), carte de la manette, capture.
 const qreal BANNER_TOP = 22;
 const QColor BANNER_FILL(28, 28, 30, qRound(0.8 * 255));
@@ -892,6 +893,12 @@ void drawPower(QPainter& p, const StreamPainter::Frame& frame, qreal width)
 
 }
 
+void StreamPainter::setAccent(const QColor& accent)
+{
+    ACCENT = accent.isValid() ? accent : QColor("#F2802A");
+    ACCENT_SOFT = QColor(ACCENT.red(), ACCENT.green(), ACCENT.blue(), qRound(0.22 * 255));
+}
+
 void StreamPainter::setIconRoot(const QString& root)
 {
     s_iconRoot = root.endsWith(QLatin1Char('/')) ? root : root + QLatin1Char('/');
@@ -1101,7 +1108,7 @@ void drawSpinner(QPainter& p, QPointF c, qreal size, qreal turn)
 {
     const qreal r = size * 7 / 18, stroke = size * 2.4 / 18;
     p.setBrush(Qt::NoBrush);
-    p.setPen(QPen(QColor(242, 128, 42, qRound(0.25 * 255)), stroke));
+    p.setPen(QPen(QColor(ACCENT.red(), ACCENT.green(), ACCENT.blue(), qRound(0.25 * 255)), stroke));
     p.drawEllipse(c, r, r);
     p.setPen(QPen(ACCENT, stroke, Qt::SolidLine, Qt::RoundCap));
     p.drawArc(QRectF(c.x() - r, c.y() - r, 2 * r, 2 * r), int((90 - turn * 360) * 16), int(-360 * 12 / 44.0 * 16));

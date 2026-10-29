@@ -1196,6 +1196,24 @@ Item {
             tryVerify(function() { return !setup.shown })
         }
 
+        // Accent du jeu (MotionAccent) : l'accent suit la jaquette sélectionnée, rendue lisible ;
+        // désactivé (Réglages › Général), l'accent choisi.
+        function test_9lc_accentFollowsTheGame() {
+            function same(a, b) { return Qt.colorEqual(a, b) }
+            tryVerify(function() { return home.gameAccent.a > 0 && same(Theme.accent, home.gameAccent) }, 3000)
+            var first = String(home.gameAccent)             // (une copie : la propriété reste liée)
+            keyClick(Qt.Key_Right)
+            verify(!same(home.gameAccent, first))           // une autre jaquette, une autre couleur
+            tryVerify(function() { return same(Theme.accent, home.gameAccent) }, 3000)   // en 900 ms
+            home.applySetting("gameAccent", 0)
+            tryVerify(function() { return same(Theme.accent, "#F2802A") }, 3000)
+            home.applySetting("accent", 2)                  // bleu
+            tryVerify(function() { return same(Theme.accent, "#6E9BFF") }, 3000)
+            home.applySetting("accent", 0)
+            home.applySetting("gameAccent", 1)
+            keyClick(Qt.Key_Left)
+        }
+
         // X épingle le jeu en tête de l'étagère (la sélection le suit), puis le détache.
         // X : favori (MotionFavori) ; le jeu reste à sa place dans le carrousel, la bannière le dit.
         function test_9e_xMarksAFavoriteInPlace() {

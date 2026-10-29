@@ -29,7 +29,17 @@ QtObject {
     function motion(duration, curve) { return reducedMotion ? reducedSpring : { curve: curve, duration: duration } }
 
     // --- Couleurs ---
-    readonly property color accent: "#F2802A"
+    // L'accent : celui de la marque, l'accent choisi, ou celui du jeu sélectionné (MotionAccent,
+    // posé par ConsoleHome) ; il passe de l'un à l'autre en 900 ms. Ses dérivés le suivent.
+    readonly property color brand: "#F2802A"
+    property color accent: brand
+    Behavior on accent {
+        ColorAnimation {
+            duration: Theme.reducedMotion ? Theme.reducedSpring.duration : Theme.accentShift
+            easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
+        }
+    }
+    readonly property int accentShift: 900
     // Jeton `onAccent` du brief : QML réserve les noms `on<Majuscule>` aux
     // gestionnaires de signal, d'où ce nom.
     readonly property color inkOnAccent: "#1B0E04"   // accent-ink
@@ -44,8 +54,8 @@ QtObject {
     readonly property color danger: poor             // hors ligne, batterie critique : toujours avec un mot
     readonly property color background: "#000000"    // noir pur (OLED)
     readonly property color blue: "#6E9BFF"          // accent alternatif, halos d'ambiance
-    readonly property color accentTrack: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.25)  // piste sous une progression
-    readonly property color accentSoft: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.22)   // fond des badges « Prêt »
+    readonly property color accentTrack: Qt.rgba(accent.r, accent.g, accent.b, 0.25)  // piste sous une progression
+    readonly property color accentSoft: Qt.rgba(accent.r, accent.g, accent.b, 0.22)   // fond des badges « Prêt »
 
     // --- Verres CocoOS : toujours avec le flou blur* correspondant et un contour hairlineStrong ---
     readonly property color glassPill: Qt.rgba(1, 1, 1, 0.08)      // barre du haut, onglets (blurPill)
@@ -887,7 +897,7 @@ QtObject {
     readonly property color kbFieldFill: Qt.rgba(1, 1, 1, 0.1)
     readonly property real kbFieldStroke: 1.5        // contour orange…
     readonly property int kbFieldRing: 5             // …et son halo (accent à 22 %)
-    readonly property color kbFieldRingFill: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.22)
+    readonly property color kbFieldRingFill: Qt.rgba(accent.r, accent.g, accent.b, 0.22)
     readonly property int kbFieldPadLeft: 26
     readonly property int kbFieldPadRight: 20
     readonly property int kbFieldGap: 14
@@ -960,7 +970,7 @@ QtObject {
     // Lueurs : orange en bas (décalage du centre de l'écran), bleue en haut à droite.
     readonly property rect kbGlowLow: Qt.rect(-130, 400, 900, 520)
     readonly property rect kbGlowHigh: Qt.rect(60, -60, 600, 420)
-    readonly property color kbGlowAccent: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.34)
+    readonly property color kbGlowAccent: Qt.rgba(accent.r, accent.g, accent.b, 0.34)
     readonly property color kbGlowBlue: Qt.rgba(110 / 255, 155 / 255, 1, 0.16)
 
     // --- Recherche (Recherche) ---
@@ -1231,7 +1241,7 @@ QtObject {
     // prêt, il se remplit depuis le haut (480 ms curveMain).
     readonly property real ringSize: 49.3
     readonly property real ringStroke: 8.8
-    readonly property color ringTrack: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.3)
+    readonly property color ringTrack: Qt.rgba(accent.r, accent.g, accent.b, 0.3)
     readonly property real ringArc: 34 / 127.23
     readonly property int ringSpin: 1100
     readonly property int ringSpinFade: 200
@@ -1382,7 +1392,7 @@ QtObject {
     readonly property int chargeBreath: 3200
     readonly property int chargeRing: 120
     readonly property int chargeStroke: 20
-    readonly property color chargeTrack: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.22)
+    readonly property color chargeTrack: Qt.rgba(accent.r, accent.g, accent.b, 0.22)
     readonly property size chargeBolt: Qt.size(26, 40)
     readonly property int chargeRingTop: 284
     readonly property int chargeTextTop: 34
@@ -1585,13 +1595,13 @@ QtObject {
     // Lueurs : l'orange en bas, un bleu en haut à droite (x depuis le centre de l'écran).
     readonly property rect setupGlowLow: Qt.rect(-520, 420, 1000, 560)
     readonly property rect setupGlowHigh: Qt.rect(120, -80, 640, 460)
-    readonly property color setupGlowAccent: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.30)
+    readonly property color setupGlowAccent: Qt.rgba(accent.r, accent.g, accent.b, 0.30)
     readonly property color setupGlowBlue: Qt.rgba(110 / 255, 155 / 255, 1, 0.16)
     // Bonjour : la lueur orange monte plus haut et plus fort, une autre en haut à gauche.
     readonly property rect helloGlowLow: Qt.rect(-520, 280, 1000, 600)
     readonly property rect helloGlowCorner: Qt.rect(-80, -80, 520, 380)
-    readonly property color helloGlowAccent: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.22)
-    readonly property color helloGlowCornerInk: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.12)
+    readonly property color helloGlowAccent: Qt.rgba(accent.r, accent.g, accent.b, 0.22)
+    readonly property color helloGlowCornerInk: Qt.rgba(accent.r, accent.g, accent.b, 0.12)
     readonly property int setupDrift: 24000          // les lueurs dérivent (cocoAurora, aller-retour)
     readonly property point setupDriftBy: Qt.point(-80, 40)
     readonly property real setupDriftScale: 1.15

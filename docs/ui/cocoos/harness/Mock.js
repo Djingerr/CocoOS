@@ -22,7 +22,8 @@ function games(mock, art) {
             description: g.description || null,
             favorite: g.favorite === true,
             cover: g.cover === null ? "" : art + g.id + "-cover.png",
-            background: g.background === null ? "" : art + g.id + "-bg.png"
+            background: g.background === null ? "" : art + g.id + "-bg.png",
+            mockAccent: g.accent || ""        // (l'accent de la maquette : HomeDemo accent=1)
         }
         return game
     })

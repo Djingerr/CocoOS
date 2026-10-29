@@ -2,6 +2,7 @@ import QtQuick
 import "../../../../app/gui/console"
 import "../../../../app/gui/console/Format.js" as Format
 import "../../../../app/gui/console/Library.js" as Library
+import "../../../../app/gui/console/Accent.js" as Accent
 import "Mock.js" as Mock
 
 // L'accueil CocoOS (HomeScreen) sur les données du mock (../mock/library.mock.json), sans
@@ -34,6 +35,8 @@ import "Mock.js" as Mock
 // l'écran : le rideau). Retour (MotionQuitter) : ingame (le rideau, image du jeu, comme au
 // retour d'un flux), back (il se lève). Échec (MotionEchec) : reach (l'écran ouvert sur
 // « Connexion à PC-Salon… »), fail, retry.
+//   accent    1 : l'accent suit le jeu au centre (MotionAccent ; la couleur des maquettes, au lieu
+//             de celle qu'AmbientColor tirerait de la jaquette), rendue lisible par Accent.js
 //   time      heure affichée (21:42 par défaut)
 //   picker    1 : le choix du PC ouvert, PC-Bureau sous la manette (ChoixPC)
 //   idlein, idleout (actions) : l'écran de veille (son fond), puis la sortie (MotionReveil)
@@ -64,6 +67,11 @@ HomeScreen {
         return g && g.lastPlayed ? Date.parse(g.lastPlayed) : 0
     })
     readonly property var game: currentIndex < items.length ? items[currentIndex] : null
+    Binding {
+        when: demo.args.accent === "1"
+        target: Theme; property: "accent"
+        value: Accent.readable(demo.game && demo.game.mockAccent ? Qt.color(demo.game.mockAccent) : undefined, Theme.brand)
+    }
     // MotionJaquettes : instant d'arrivée de chaque jaquette (ms), le fond à 1300.
     readonly property var arrivals: ({ ha: 2600, ce: 2150, hk: 1600, mc: 1200, fh: 1750, sv: 2000, er: 2400 })
     property var arrived: ({})

@@ -160,6 +160,8 @@ int powerAt(const Power& power, QSize screen, QPointF pos);
 // Les icônes (SVG, icons/) : dans les ressources de l'application ; le harnais les prend
 // dans le dépôt.
 void setIconRoot(const QString& root);
+// L'accent du jeu lancé (Theme.accent au lancement) ; invalide : celui de la marque.
+void setAccent(const QColor& accent);
 
 // Hors du menu : statistiques, bannière, carte de la manette, capture. Une image de la
 // taille de l'écran dès qu'il y a autre chose que les statistiques ; sinon le coin haut gauche ;

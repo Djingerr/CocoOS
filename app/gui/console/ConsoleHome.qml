@@ -19,6 +19,7 @@ import "setup"
 import "Format.js" as Format
 import "Library.js" as Library
 import "Search.js" as Search
+import "Accent.js" as Accent
 import "StreamProfiles.js" as StreamProfiles
 import "BootTimeline.js" as Boot
 
@@ -94,7 +95,8 @@ FocusScope {
         property int idleSeconds: Theme.idleSeconds
         property string buttonLayout: "auto"   // glyphes : auto (la manette branchée), xbox, playstation, nintendo
         property bool setupDone: false      // première configuration faite (setup/SetupFlow)
-        property string accent: "#F2802A"   // couleur d'accent choisie (SetupBibliotheque) ; suivie en phase 9
+        property string accent: "#F2802A"   // couleur d'accent choisie (SetupBibliotheque, Réglages › Général)
+        property bool gameAccent: true      // « Accent du jeu » : l'accent suit la jaquette sélectionnée
         property bool showUninstalled: true // jeux non installés (téléchargeables) en fin d'étagère
         property string gameProfiles: "{}"  // réglages de flux propres à un jeu, par nom (JSON)
         // Profil de flux des réglages communs (StreamProfiles.js) ; « manual » : les réglages
@@ -1394,6 +1396,7 @@ FocusScope {
         InputStatus.prepareStreamMenu(game, SystemStatus.powerActions, Theme.buttonLayout, SystemStatus, {
             cover: tile ? String(tile.cover || tile.boxart || "") : "",
             host: activeHostName,
+            accent: String(Theme.accent),
             latency: SystemStatus.latencyMs,
             startedAt: launchResume && recent[game] ? recent[game] : Date.now()   // (une reprise : depuis son lancement)
         })
@@ -2051,6 +2054,24 @@ FocusScope {
         onHintTriggered: function(glyph) { if (glyph === "Y") homeScreen.options.open() }
     }
 
+    // --- Accent (MotionAccent) : celui du jeu sélectionné, sinon l'accent choisi ---
+    // La couleur de sa jaquette, rendue lisible (Accent.js) ; pendant la configuration, l'accent
+    // choisi (il s'y règle).
+    readonly property url accentSource: {
+        homeScreen.currentIndex; shelfModel.count
+        var tile = currentTile()
+        return tile ? (tile.cover || tile.boxart || "") : ""
+    }
+    readonly property color gameAccent: {
+        AmbientColor.revision
+        return Accent.readable(AmbientColor.colorFor(accentSource), Qt.color("transparent"))
+    }
+    Binding {
+        target: Theme; property: "accent"
+        value: consoleConfig.gameAccent && !setupFlow.shown && home.gameAccent.a > 0 ? home.gameAccent
+                                                                                     : consoleConfig.accent
+    }
+
     // --- Première configuration (setup/SetupFlow) ---
     // Les PC vus sur le réseau, pour SetupPC : nom, ce qu'il fait tourner, son état.
     property var setupHosts: []
@@ -2208,6 +2229,7 @@ FocusScope {
         consoleConfig.gameProfiles = "{}"
         consoleConfig.recentSearches = "[]"
         consoleConfig.accent = Theme.accentChoices[0]
+        consoleConfig.gameAccent = true
         consoleConfig.showUninstalled = true
         setupFlow.firstStep = "hello"
         setupFlow.go("hello")
@@ -2321,7 +2343,14 @@ FocusScope {
 
         pages.push({ key: "general", label: qsTr("Général"), tile: { color: Theme.setTileGeneral, icon: "general" },
                      group: "system",
-                     rows: [ { key: "about:name", label: qsTr("Nom"), value: SystemStatus.deviceName, group: "about",
+                     rows: [ { key: "gameAccent", label: qsTr("Accent du jeu"), sub: qsTr("La couleur suit la jaquette sélectionnée"),
+                               toggle: true, options: [qsTr("Désactivé"), qsTr("Activé")], index: consoleConfig.gameAccent ? 1 : 0,
+                               group: "look", section: qsTr("Apparence") },
+                             { key: "accent", label: qsTr("Couleur d’accent"), swatches: Theme.accentChoices,
+                               options: [qsTr("Orange"), qsTr("Blanc"), qsTr("Bleu"), qsTr("Vert"), qsTr("Rose")],
+                               index: Math.max(0, Theme.accentChoices.indexOf(consoleConfig.accent)), group: "look",
+                               footnote: qsTr("Utilisée quand l’accent du jeu est désactivé, ou pour une jaquette sans couleur franche.") },
+                             { key: "about:name", label: qsTr("Nom"), value: SystemStatus.deviceName, group: "about",
                                section: qsTr("À propos") },
                              { key: "about:version", label: qsTr("Version"), group: "about",
                                value: qsTr("CocoOS Alpha · moonlight-qt %1").arg(Qt.application.version) },
@@ -2353,6 +2382,12 @@ FocusScope {
         function onStateChanged() { home.refreshSettings() }
     }
     function applySetting(key, value) {
+        if (key === "gameAccent" || key === "accent") {
+            if (key === "gameAccent") consoleConfig.gameAccent = value === 1
+            else consoleConfig.accent = Theme.accentChoices[value]
+            refreshSettings()
+            return
+        }
         if (key === "reset") {
             settingsScreen.close()
             resetConsole()

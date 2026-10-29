@@ -1576,6 +1576,7 @@ void StreamMenu::prepare(const QString& game, const QStringList& powerActions, c
     const QUrl coverUrl(info.value(QStringLiteral("cover")).toString());
     const QImage cover(coverUrl.isLocalFile() ? coverUrl.toLocalFile() : coverUrl.toString());
     QMutexLocker locker(&s_lock);
+    StreamPainter::setAccent(QColor(info.value(QStringLiteral("accent")).toString()));
     s_cover = cover.isNull() ? QImage() : cover.scaledToHeight(160, Qt::SmoothTransformation);
     s_host = info.value(QStringLiteral("host")).toString();
     s_latency = info.value(QStringLiteral("latency"), -1).toInt();

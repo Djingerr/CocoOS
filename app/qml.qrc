@@ -29,6 +29,7 @@
         <file>gui/console/qmldir</file>
         <file>gui/console/Theme.qml</file>
         <file>gui/console/Format.js</file>
+        <file>gui/console/Accent.js</file>
         <file>gui/console/Library.js</file>
         <file>gui/console/Toast.qml</file>
         <file>gui/console/StreamCurtain.qml</file>
