@@ -47,6 +47,7 @@
         <file>gui/console/icons/accessibility.svg</file>
         <file>gui/console/icons/battery.svg</file>
         <file>gui/console/icons/chevron.svg</file>
+        <file>gui/console/icons/check.svg</file>
         <file>gui/console/icons/console.svg</file>
         <file>gui/console/icons/dot.svg</file>
         <file>gui/console/icons/gamepad.svg</file>
@@ -134,6 +135,11 @@
         <file>gui/console/SearchScreen.qml</file>
         <file>gui/console/Search.js</file>
         <file>gui/console/settings/SettingsScreen.qml</file>
+        <file>gui/console/setup/SetupFlow.qml</file>
+        <file>gui/console/setup/SetupHello.qml</file>
+        <file>gui/console/setup/SetupPair.qml</file>
+        <file>gui/console/setup/SetupLibrary.qml</file>
+        <file>gui/console/setup/SetupFinish.qml</file>
         <file>gui/console/LaunchScreen.qml</file>
         <file>gui/console/LaunchFrame.qml</file>
         <file>gui/console/LoaderRing.qml</file>

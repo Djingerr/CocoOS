@@ -27,7 +27,11 @@ import QtQuick
 // Ornements : `tile: { color, icon }` (tuile de couleur, icône blanche), `sub` (sous-titre :
 // ligne à deux étages), `lock` (cadenas), `bars` (0 à 4 : signal d'un réseau), `badge`
 // (pastille rouge), `valueAccent` (valeur en orange), `battery` (0 à 100, après la valeur),
-// `auto` (valeur grisée : choisie ailleurs), `chevron: false` (pas de › après la valeur).
+// `auto` (valeur grisée : choisie ailleurs), `chevron: false` (pas de › après la valeur),
+// `check` (coche orange à droite : la langue choisie), `pill: { text, accent }` (pastille
+// d'état : « Prêt » en orange, « Sans jaquettes » en gris), `swatches: [couleurs]` (réglage
+// dont les options sont des couleurs : des pastilles, la choisie cerclée), `height` (hauteur
+// de la ligne, à la place de celle du gabarit), `tile.size` (taille de l'icône de la tuile).
 // États : `advanced` (montrée seulement si l'interrupteur `revealsAdvanced` est allumé),
 // `hidden` (repliée) — repliées, elles gardent leur place dans `rows` et la manette les
 // saute —, `locked` (refuse en se secouant ; son `hint` se déplie sous la liste).
@@ -124,7 +128,8 @@ FocusScope {
 
     // --- Mise en page : chaque ligne, ses cartes, leurs intitulés et leurs notes ---
     function heightOf(r) {
-        return r.segments ? Theme.profileHeight
+        return r.height ? r.height
+             : r.segments ? Theme.profileHeight
              : r.info ? metrics.info
              : r.slider ? (r.icons ? metrics.iconSlider : metrics.slider)
              : r.sub ? metrics.twoLine : metrics.row
@@ -790,7 +795,7 @@ FocusScope {
                     Icon {
                         anchors.centerIn: parent
                         name: line.row.tile ? line.row.tile.icon : ""
-                        size: tile.big ? 22 : 16
+                        size: line.row.tile && line.row.tile.size ? line.row.tile.size : tile.big ? 22 : 16
                     }
                 }
                 Column {
@@ -833,19 +838,6 @@ FocusScope {
                         x: line.focused && !line.row.slider ? root.rubberX : 0
                     }
 
-                    Icon {
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: line.row.lock === true
-                        name: "lock"; size: 13
-                        opacity: 0.55
-                    }
-                    // Signal d'un réseau : l'icône Wi-Fi, ses arcs allumés selon `bars`.
-                    Item {
-                        anchors.verticalCenter: parent.verticalCenter
-                        visible: line.row.bars !== undefined
-                        width: 18; height: 13
-                        Icon { anchors.fill: parent; size: 18; name: (line.row.bars || 0) >= 3 ? "wifi" : "wifi-weak" }
-                    }
                     // Chiffres d'une carte d'information.
                     Repeater {
                         model: line.row.info ? (line.row.stats || []) : []
@@ -887,9 +879,69 @@ FocusScope {
                         onPointed: root.pointRow(line.index)
                         onPicked: function(i) { root.choose(line.index, i) }
                     }
+                    // Pastilles de couleur (couleur d'accent) : la choisie est cerclée.
+                    Row {
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: line.row.swatches !== undefined
+                        spacing: Theme.swatchGap
+                        Repeater {
+                            model: line.row.swatches || []
+                            Item {
+                                required property int index
+                                required property color modelData
+                                width: Theme.swatchSize; height: width
+                                Rectangle {
+                                    anchors.fill: parent
+                                    radius: width / 2
+                                    color: parent.modelData
+                                }
+                                Rectangle {
+                                    anchors.centerIn: parent
+                                    width: parent.width + 2 * Theme.swatchRing; height: width
+                                    radius: width / 2
+                                    color: "transparent"
+                                    border.width: Theme.swatchStroke
+                                    border.color: Theme.ink
+                                    opacity: line.row.index === parent.index ? 1 : 0
+                                    Behavior on opacity { NumberAnimation { duration: Theme.listFocusFade } }
+                                }
+                            }
+                        }
+                    }
+                    // Pastille d'état (« Prêt », « Sans jaquettes »).
+                    Rectangle {
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: line.row.pill !== undefined
+                        readonly property bool accent: line.row.pill !== undefined && line.row.pill.accent === true
+                        width: pillRow.width + 2 * Theme.listPillPad; height: Theme.listPillHeight
+                        radius: height / 2
+                        color: accent ? Theme.accentSoft : Theme.listPillFill
+                        Row {
+                            id: pillRow
+                            anchors.centerIn: parent
+                            spacing: Theme.listPillDotGap
+                            Rectangle {
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: parent.parent.accent
+                                width: Theme.listPillDot; height: width; radius: width / 2
+                                color: Theme.accent
+                            }
+                            Text {
+                                text: line.row.pill ? line.row.pill.text : ""
+                                color: parent.parent.accent ? Theme.accent : Theme.listPillInk
+                                font.family: Theme.fontUi; font.pixelSize: Theme.listPillSize; font.weight: Font.DemiBold
+                            }
+                        }
+                    }
+                    Icon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: line.row.check === true
+                        name: "check"
+                        size: Theme.listCheck
+                    }
                     SwapBox {
                         anchors.verticalCenter: parent.verticalCenter
-                        visible: !line.row.toggle && !line.row.choice && !line.row.info && !line.row.hold
+                        visible: !line.row.toggle && !line.row.choice && !line.row.info && !line.row.hold && !line.row.swatches
                                  && !line.numeric && line.valueLabel !== ""
                         width: valueMetrics.advanceWidth; height: Theme.listValueBox.height
                         axis: "x"
@@ -911,6 +963,19 @@ FocusScope {
                         digits: line.digits
                         pixelSize: line.m.value
                         color: line.valueInk
+                    }
+                    Icon {
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: line.row.lock === true
+                        name: "lock"; size: 13
+                        opacity: 0.55
+                    }
+                    // Signal d'un réseau (après sa bande) : l'icône Wi-Fi, ses arcs allumés selon `bars`.
+                    Item {
+                        anchors.verticalCenter: parent.verticalCenter
+                        visible: line.row.bars !== undefined
+                        width: 18; height: 13
+                        Icon { anchors.fill: parent; size: 18; name: (line.row.bars || 0) >= 3 ? "wifi" : "wifi-weak" }
                     }
                     // Batterie d'une manette, après sa valeur.
                     Item {
@@ -945,7 +1010,7 @@ FocusScope {
                     Icon {
                         anchors.verticalCenter: parent.verticalCenter
                         visible: line.m.chevron !== false && line.row.chevron !== false && (line.row.action === true && !line.row.info
-                                 || line.row.options !== undefined && !line.row.toggle && !line.row.choice)
+                                 || line.row.options !== undefined && !line.row.toggle && !line.row.choice && !line.row.swatches)
                         name: "chevron"
                         width: Theme.listChevron.width; height: Theme.listChevron.height
                         size: Theme.listChevron.height

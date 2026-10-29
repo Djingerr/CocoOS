@@ -1561,4 +1561,210 @@ QtObject {
     readonly property int navFastInterval: 90        // nav_move_fast : 11 par seconde au plus
     readonly property int ambianceFadeIn: 1800       // fondu croisé des ambiances
     readonly property int ambianceFadeOut: 900
+
+    // --- Listes : pastilles de couleur, pastille d'état, coche (SettingsList) ---
+    readonly property int swatchSize: 22
+    readonly property int swatchGap: 10
+    readonly property int swatchRing: 4              // la choisie : un anneau de 2 px, 2 px plus loin
+    readonly property int swatchStroke: 2
+    readonly property int listPillHeight: 26
+    readonly property int listPillPad: 10
+    readonly property int listPillSize: 12
+    readonly property int listPillDot: 6
+    readonly property int listPillDotGap: 6
+    readonly property color listPillFill: Qt.rgba(1, 1, 1, 0.08)
+    readonly property color listPillInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.65)
+    readonly property int listCheck: 16
+
+    // --- Première configuration (SetupBonjour, SetupLangue, SetupWifi, SetupPC,
+    //     MotionAppairage, SetupBibliotheque, MotionSetupFin) ---
+    // Lueurs : l'orange en bas, un bleu en haut à droite (x depuis le centre de l'écran).
+    readonly property rect setupGlowLow: Qt.rect(-520, 420, 1000, 560)
+    readonly property rect setupGlowHigh: Qt.rect(120, -80, 640, 460)
+    readonly property color setupGlowAccent: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.30)
+    readonly property color setupGlowBlue: Qt.rgba(110 / 255, 155 / 255, 1, 0.16)
+    // Bonjour : la lueur orange monte plus haut et plus fort, une autre en haut à gauche.
+    readonly property rect helloGlowLow: Qt.rect(-520, 280, 1000, 600)
+    readonly property rect helloGlowCorner: Qt.rect(-80, -80, 520, 380)
+    readonly property color helloGlowAccent: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.22)
+    readonly property color helloGlowCornerInk: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.12)
+    readonly property int setupDrift: 24000          // les lueurs dérivent (cocoAurora, aller-retour)
+    readonly property point setupDriftBy: Qt.point(-80, 40)
+    readonly property real setupDriftScale: 1.15
+    // En-tête « PREMIÈRE CONFIGURATION · n SUR 3 » : trois points, l'étape en cours étirée.
+    readonly property int setupDotsTop: 46
+    readonly property int setupDot: 6
+    readonly property int setupDotActive: 22
+    readonly property int setupDotGap: 6
+    readonly property color setupDotDone: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.7)
+    readonly property color setupDotTodo: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.22)
+    readonly property int setupStepGap: 12
+    readonly property int setupStepSize: 12          // Sora 600, 0,08 em, ink 0,5
+    // Titre (36 px, Sora 600, −0,03 em) et explication (15 px, ink 0,6, interligne 1,5).
+    readonly property int setupTitleTop: 108
+    readonly property int setupTitleTopBare: 96      // sans en-tête (Langue)
+    readonly property int setupTitleSize: 36
+    readonly property int setupTextGap: 52           // du haut du titre au haut du texte
+    readonly property int setupTextWidth: 700
+    readonly property int setupTextSize: 15
+    // Listes : leur haut, leur largeur.
+    readonly property int setupListTop: 222
+    readonly property int setupListTopBare: 214
+    readonly property int setupLanguageWidth: 560
+    readonly property int setupWifiWidth: 600
+    readonly property int setupPcWidth: 620
+    readonly property int setupPcRow: 72             // ligne d'un PC (nom, détail)
+    readonly property int setupPcIcon: 22
+    readonly property int setupNoteGap: 16           // « Région France · clavier AZERTY · format 24 h »
+    readonly property int setupNoteSize: 13
+    readonly property color setupNoteInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.55)
+    // Passage d'une étape à l'autre : l'ancienne s'efface, la nouvelle monte de 12 px.
+    readonly property int setupSwapOut: 220
+    readonly property int setupSwapIn: 520           // curveMain
+    readonly property int setupSwapShift: 12
+    // Bonjour : un mot toutes les 1,7 s ; il entre flou, petit et bas, sort flou et vers le haut.
+    readonly property int helloTop: 300
+    readonly property int helloLine: 140
+    readonly property int helloSize: 112
+    readonly property int helloStart: 500
+    readonly property int helloStep: 1700
+    readonly property int helloLeave: 450            // avant la fin de son tour, il sort
+    readonly property int helloInFade: 700
+    readonly property int helloInBlur: 800
+    readonly property int helloInMove: 1100          // curveMain
+    readonly property int helloOutFade: 380
+    readonly property int helloOutMove: 420          // curveExit
+    readonly property int helloBlur: 14
+    readonly property int helloBelow: 18
+    readonly property int helloAbove: -14
+    readonly property real helloScaleIn: 0.96
+    readonly property real helloScaleOut: 1.02
+    readonly property real helloTrackOn: -0.045      // espacement des lettres (em)
+    readonly property real helloTrackOff: 0.06
+    readonly property int helloCtaBottom: 96
+    readonly property int helloCtaGap: 18
+    readonly property int helloDisc: 52
+    readonly property int helloDiscFont: 20
+    readonly property int helloBreath: 2400          // le A respire (×1,04, halo de 8 px)
+    readonly property real helloBreathScale: 1.04
+    readonly property int helloBreathRing: 8
+    readonly property color helloBreathInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.08)
+    readonly property int helloCtaSize: 15
+    readonly property int helloCornerSide: 56
+    readonly property int helloCornerBottom: 40
+    readonly property int helloLogoSize: 13
+    readonly property int helloPadSize: 12
+    readonly property color helloCornerInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.4)
+    // Code PIN (MotionAppairage) : cases de 88 × 108, chiffres de 56 px.
+    readonly property int pairStepTop: 150
+    readonly property int pairTitleTop: 180
+    readonly property int pairTitleSize: 32
+    readonly property int pairTextGap: 10
+    readonly property int pairBoxesTop: 300
+    readonly property int pairBox: 88
+    readonly property int pairBoxHeight: 108
+    readonly property int pairBoxGap: 16
+    readonly property int pairBoxRadius: 20
+    readonly property color pairBoxFill: Qt.rgba(1, 1, 1, 0.07)
+    readonly property color pairBoxStroke: Qt.rgba(1, 1, 1, 0.12)
+    readonly property int pairDigitSize: 56
+    readonly property int pairBoxIn: 600             // les cases entrent (curveMain), 60 ms d'écart
+    readonly property int pairBoxFade: 400
+    readonly property int pairBoxStagger: 60
+    readonly property real pairBoxFrom: 0.92
+    readonly property int pairDigitDelay: 400        // puis les chiffres, 110 ms d'écart
+    readonly property int pairDigitStagger: 110
+    readonly property int pairDigitMove: 520         // ressort (.3, 1.25, .4, 1)
+    readonly property int pairDigitFade: 360
+    readonly property int pairDigitShift: 14
+    readonly property int pairDigitBlur: 8
+    // Associé : les cases se rejoignent au centre (520 ms, 40 ms d'écart du centre), la coche
+    // apparaît (620 ms, ressort fort) et se trace (420 ms), puis « Continuer ».
+    readonly property int pairGather: 520
+    readonly property int pairGatherFade: 360
+    readonly property int pairGatherStagger: 40
+    readonly property real pairGatherScale: 0.6
+    readonly property int pairCheckDelay: 220
+    readonly property int pairCheck: 96
+    readonly property int pairCheckTop: 306
+    readonly property int pairCheckPop: 620
+    readonly property var curvePairCheck: [0.3, 1.4, 0.4, 1, 1, 1]
+    readonly property int pairCheckFade: 250
+    readonly property real pairCheckFrom: 0.4
+    readonly property int pairCheckDraw: 420
+    readonly property int pairCheckDrawDelay: 500
+    readonly property int pairCheckGlow: 45          // ombre orange (0 20 60, accent 45 %)
+    readonly property int pairWaitTop: 450
+    readonly property int pairWaitSize: 14
+    readonly property int pairWaitSpinner: 18
+    readonly property int pairWaitDelay: 1000
+    readonly property int pairCtaTop: 500
+    readonly property int pairCtaDelay: 800
+    readonly property int pairCtaFade: 420
+    readonly property int pairCtaMove: 600
+    readonly property int pairCtaShift: 16
+    readonly property int pairSwapFade: 380          // titre : l'ancien monte, le nouveau arrive
+    readonly property int pairSwapMove: 520
+    readonly property int pairSwapShift: 12
+    readonly property int pairSwapBlur: 6
+    readonly property int pairSwapDelay: 160
+    // Bibliothèque : 18 jaquettes (82 × 116, 3 × 6), la progression, les préférences.
+    readonly property int libGridLeft: 96
+    readonly property int libGridTop: 236
+    readonly property size libTile: Qt.size(82, 116)
+    readonly property int libTileGapX: 10
+    readonly property int libTileGapY: 16
+    readonly property int libTileRadius: 8
+    readonly property int libColumns: 6
+    readonly property int libTiles: 18
+    readonly property color libSkeleton: Qt.rgba(1, 1, 1, 0.07)
+    readonly property color libShimmer: Qt.rgba(1, 1, 1, 0.08)
+    readonly property int libShimmerSweep: 1600
+    readonly property int libShimmerStagger: 100
+    readonly property int libTileFade: 500
+    readonly property int libProgressTop: 640
+    readonly property int libProgressWidth: 540
+    readonly property int libProgressSize: 13
+    readonly property int libBarGap: 10
+    readonly property int libBar: 4
+    readonly property color libBarTrack: Qt.rgba(1, 1, 1, 0.12)
+    readonly property int libBarMove: 600
+    readonly property int libPrefsLeft: 700
+    readonly property int libPrefsWidth: 484
+    readonly property int libStartGap: 26
+    // Accents proposés (SetupBibliotheque) ; l'accent choisi suit en phase 9.
+    readonly property var accentChoices: ["#F2802A", "#F5F5F7", "#6E9BFF", "#7BD88F", "#FF6B8B"]
+    // Fin (MotionSetupFin) : la configuration s'efface, l'anneau se trace, « Tout est prêt. ».
+    readonly property int finPress: 110
+    readonly property int finPressBack: 520
+    readonly property var curveFinPress: [0.3, 1.6, 0.4, 1, 1, 1]
+    readonly property int finLeave: 80               // après l'appui…
+    readonly property int finFade: 420               // …la configuration s'efface en se floutant (12 px, ×0,96)
+    readonly property int finShrink: 520             // curveExit
+    readonly property int finBlur: 12
+    readonly property real finScale: 0.96
+    readonly property int finRingDelay: 430           // (depuis l'appui)
+    readonly property int finRingSize: 120
+    readonly property int finRingTop: 260
+    readonly property int finRingStroke: 20
+    readonly property int finRingPop: 640            // ressort (.3, 1.25, .4, 1)
+    readonly property real finRingFrom: 0.7
+    readonly property int finRingDraw: 1300          // trait tracé (.65, 0, .35, 1)
+    readonly property int finRingDrawDelay: 100
+    readonly property var curveFinDraw: [0.65, 0, 0.35, 1, 1, 1]
+    readonly property int finGlow: 200
+    readonly property int finGlowTop: 220
+    readonly property real finGlowRest: 0.3
+    readonly property real finGlowPeak: 0.8
+    readonly property int finGlowPeakAt: 1250        // depuis l'anneau
+    readonly property int finTextDelay: 650          // depuis l'anneau
+    readonly property int finTextTop: 420
+    readonly property int finTitleSize: 44
+    readonly property int finSubSize: 16
+    readonly property int finTextGap: 10
+    readonly property int finTextOutAt: 1950         // depuis l'anneau : le texte part…
+    readonly property int finRingOutAt: 2050         // …puis l'anneau
+    readonly property int finOut: 360                // (anneau : ×0,2)
+    readonly property real finRingTo: 0.2
+    readonly property int finHomeDelay: 100          // l'accueil revient (en éventail)
 }
