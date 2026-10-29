@@ -2369,307 +2369,357 @@ or wake it remotely.</translation>
 <context>
     <name>StreamMenu</name>
     <message>
-        <location filename="../backend/streammenu.cpp" line="226"/>
+        <location filename="../backend/streammenu.cpp" line="253"/>
         <source>Masquées</source>
         <translation>Hidden</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="238"/>
-        <location filename="../backend/streammenu.cpp" line="1263"/>
+        <location filename="../backend/streammenu.cpp" line="265"/>
+        <location filename="../backend/streammenu.cpp" line="1406"/>
         <source>%1 %</source>
         <translation>%1%</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="245"/>
-        <location filename="../backend/streammenu.cpp" line="680"/>
+        <location filename="../backend/streammenu.cpp" line="272"/>
+        <location filename="../backend/streammenu.cpp" line="725"/>
         <source>%1 min</source>
         <translation>%1 min</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="246"/>
+        <location filename="../backend/streammenu.cpp" line="273"/>
         <source>%1 h %2 min</source>
         <translation>%1 h %2 min</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="302"/>
+        <location filename="../backend/streammenu.cpp" line="329"/>
         <source>En pause · %1</source>
         <translation>Paused · %1</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="303"/>
+        <location filename="../backend/streammenu.cpp" line="330"/>
         <source>En pause</source>
         <translation>Paused</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="306"/>
-        <location filename="../backend/streammenu.cpp" line="1242"/>
+        <location filename="../backend/streammenu.cpp" line="333"/>
+        <location filename="../backend/streammenu.cpp" line="1385"/>
         <source>%1 ms</source>
         <translation>%1 ms</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="311"/>
-        <location filename="../backend/streampainter.cpp" line="1019"/>
+        <location filename="../backend/streammenu.cpp" line="338"/>
+        <location filename="../backend/streampainter.cpp" line="992"/>
         <source>Reprendre</source>
         <translation>Resume</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="314"/>
+        <location filename="../backend/streammenu.cpp" line="341"/>
         <source>Volume</source>
         <translation>Volume</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="312"/>
+        <location filename="../backend/streammenu.cpp" line="339"/>
         <source>Luminosité</source>
         <translation>Brightness</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="319"/>
+        <location filename="../backend/streammenu.cpp" line="346"/>
         <source>Quitter le jeu</source>
         <translation>Quit game</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="340"/>
+        <location filename="../backend/streammenu.cpp" line="367"/>
         <source>Redémarrer</source>
         <translation>Restart</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="340"/>
+        <location filename="../backend/streammenu.cpp" line="367"/>
         <source>Éteindre</source>
         <translation>Turn off</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="383"/>
+        <location filename="../backend/streammenu.cpp" line="410"/>
         <source>Fermeture du jeu</source>
         <translation>Closing the game</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="301"/>
+        <location filename="../backend/streammenu.cpp" line="328"/>
         <source>Menu</source>
         <translation>Menu</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="225"/>
+        <location filename="../backend/streammenu.cpp" line="252"/>
         <source>Détaillées</source>
         <translation>Detailed</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="226"/>
+        <location filename="../backend/streammenu.cpp" line="253"/>
         <source>Compactes</source>
         <translation>Compact</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="311"/>
+        <location filename="../backend/streammenu.cpp" line="338"/>
         <source>Retour au jeu</source>
         <translation>Back to the game</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="316"/>
+        <location filename="../backend/streammenu.cpp" line="343"/>
         <source>Capture</source>
         <translation>Screenshot</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="316"/>
+        <location filename="../backend/streammenu.cpp" line="343"/>
         <source>Sur la console</source>
         <translation>On the console</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="317"/>
+        <location filename="../backend/streammenu.cpp" line="344"/>
         <source>Statistiques</source>
         <translation>Statistics</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="318"/>
+        <location filename="../backend/streammenu.cpp" line="345"/>
         <source>Accueil</source>
         <translation>Home</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="320"/>
+        <location filename="../backend/streammenu.cpp" line="347"/>
         <source>Veille</source>
         <translation>Sleep</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="321"/>
+        <location filename="../backend/streammenu.cpp" line="348"/>
         <source>Alimentation</source>
         <translation>Power</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="321"/>
+        <location filename="../backend/streammenu.cpp" line="348"/>
         <source>Redémarrer · Éteindre</source>
         <translation>Restart · Shut down</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="326"/>
+        <location filename="../backend/streammenu.cpp" line="353"/>
         <source>Maintenir</source>
         <translation>Hold</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="326"/>
+        <location filename="../backend/streammenu.cpp" line="353"/>
         <source>Activer</source>
         <translation>Select</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="334"/>
+        <location filename="../backend/streammenu.cpp" line="361"/>
         <source>Batterie %1 %</source>
         <translation>Battery %1%</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="335"/>
+        <location filename="../backend/streammenu.cpp" line="362"/>
         <source>Batterie %1 % · %2</source>
         <translation>Battery %1% · %2</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="339"/>
+        <location filename="../backend/streammenu.cpp" line="366"/>
         <source>Mise en veille</source>
         <translation>Sleep</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="343"/>
+        <location filename="../backend/streammenu.cpp" line="370"/>
         <source>Le stream en cours sera fermé proprement avant l&apos;arrêt.</source>
         <translation>The current stream will be closed cleanly first.</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="681"/>
+        <location filename="../backend/streammenu.cpp" line="643"/>
+        <source>Manette déconnectée</source>
+        <translation>Controller disconnected</translation>
+    </message>
+    <message>
+        <location filename="../backend/streammenu.cpp" line="644"/>
+        <source>Reconnectez la manette pour reprendre.</source>
+        <translation>Reconnect the controller to continue.</translation>
+    </message>
+    <message>
+        <location filename="../backend/streammenu.cpp" line="645"/>
+        <source>Manette reconnectée</source>
+        <translation>Controller reconnected</translation>
+    </message>
+    <message>
+        <location filename="../backend/streammenu.cpp" line="646"/>
+        <source>Reprise du jeu…</source>
+        <translation>Resuming the game…</translation>
+    </message>
+    <message>
+        <location filename="../backend/streammenu.cpp" line="647"/>
+        <source>Recherche de la manette…</source>
+        <translation>Looking for the controller…</translation>
+    </message>
+    <message>
+        <location filename="../backend/streammenu.cpp" line="655"/>
+        <source>sur la console</source>
+        <translation>on the console</translation>
+    </message>
+    <message>
+        <location filename="../backend/streammenu.cpp" line="726"/>
         <source>%1 h %2</source>
         <translation>%1 h %2</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="682"/>
+        <location filename="../backend/streammenu.cpp" line="727"/>
         <source>environ %1</source>
         <translation>about %1</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1235"/>
+        <location filename="../backend/streammenu.cpp" line="1302"/>
+        <source>Latence %1 ms · gigue %2 ms</source>
+        <translation>Latency %1 ms · jitter %2 ms</translation>
+    </message>
+    <message>
+        <location filename="../backend/streammenu.cpp" line="1326"/>
+        <source>Batterie très faible · %1 %</source>
+        <translation>Battery very low · %1%</translation>
+    </message>
+    <message>
+        <location filename="../backend/streammenu.cpp" line="1327"/>
+        <source>Branchez la console.</source>
+        <translation>Plug in the console.</translation>
+    </message>
+    <message>
+        <location filename="../backend/streammenu.cpp" line="1331"/>
+        <source>Pensez à la recharger</source>
+        <translation>Remember to charge it</translation>
+    </message>
+    <message>
+        <location filename="../backend/streammenu.cpp" line="1378"/>
         <source>Excellent</source>
         <translation>Excellent</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1235"/>
+        <location filename="../backend/streammenu.cpp" line="1378"/>
         <source>Correct</source>
         <translation>Fair</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1235"/>
+        <location filename="../backend/streammenu.cpp" line="1378"/>
         <source>Faible</source>
         <translation>Poor</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1243"/>
+        <location filename="../backend/streammenu.cpp" line="1386"/>
         <source>Réseau</source>
         <translation>Network</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1246"/>
+        <location filename="../backend/streammenu.cpp" line="1389"/>
         <source>Encodage sur le PC</source>
         <translation>Encoding on the PC</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1250"/>
+        <location filename="../backend/streammenu.cpp" line="1393"/>
         <source>Décodage</source>
         <translation>Decoding</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1256"/>
+        <location filename="../backend/streammenu.cpp" line="1399"/>
         <source>Image</source>
         <translation>Picture</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1257"/>
+        <location filename="../backend/streammenu.cpp" line="1400"/>
         <source>%1p · %2 i/s</source>
         <translation>%1p · %2 fps</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1259"/>
+        <location filename="../backend/streammenu.cpp" line="1402"/>
         <source>Débit</source>
         <translation>Bitrate</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1260"/>
-        <location filename="../backend/streammenu.cpp" line="1272"/>
+        <location filename="../backend/streammenu.cpp" line="1403"/>
+        <location filename="../backend/streammenu.cpp" line="1415"/>
         <source>%1 Mb/s</source>
         <translation>%1 Mb/s</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1262"/>
+        <location filename="../backend/streammenu.cpp" line="1405"/>
         <source>Images perdues</source>
         <translation>Dropped frames</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1267"/>
+        <location filename="../backend/streammenu.cpp" line="1410"/>
         <source>Batterie</source>
         <translation>Battery</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1269"/>
+        <location filename="../backend/streammenu.cpp" line="1412"/>
         <source>%1 % · %2</source>
         <translation>%1% · %2</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1271"/>
+        <location filename="../backend/streammenu.cpp" line="1414"/>
         <source>%1 i/s</source>
         <translation>%1 fps</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="951"/>
+        <location filename="../backend/streammenu.cpp" line="1072"/>
         <source>Capture…</source>
         <translation>Capturing…</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1121"/>
+        <location filename="../backend/streammenu.cpp" line="1242"/>
         <source>Enregistrée</source>
         <translation>Saved</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1121"/>
+        <location filename="../backend/streammenu.cpp" line="1242"/>
         <source>Échec</source>
         <translation>Failed</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1125"/>
+        <location filename="../backend/streammenu.cpp" line="1039"/>
         <source>Capture enregistrée</source>
         <translation>Screenshot saved</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1125"/>
+        <location filename="../backend/streammenu.cpp" line="1248"/>
         <source>Capture impossible</source>
         <translation>Screenshot failed</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1171"/>
+        <location filename="../backend/streammenu.cpp" line="1301"/>
         <source>Réseau instable</source>
         <translation>Unstable network</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1188"/>
+        <location filename="../backend/streammenu.cpp" line="1331"/>
         <source>Manette presque vide</source>
         <translation>Controller battery low</translation>
     </message>
     <message>
-        <location filename="../backend/streammenu.cpp" line="1200"/>
+        <location filename="../backend/streammenu.cpp" line="1343"/>
         <source> 10 bits</source>
         <translation> 10-bit</translation>
     </message>
     <message>
-        <location filename="../backend/streampainter.cpp" line="273"/>
+        <location filename="../backend/streampainter.cpp" line="283"/>
         <source>Latence totale</source>
         <translation>Total latency</translation>
     </message>
     <message>
-        <location filename="../backend/streampainter.cpp" line="1021"/>
+        <location filename="../backend/streampainter.cpp" line="994"/>
         <source>Régler</source>
         <translation>Adjust</translation>
     </message>
     <message>
-        <location filename="../backend/streampainter.cpp" line="1030"/>
+        <location filename="../backend/streampainter.cpp" line="1003"/>
         <source>Choisir</source>
         <translation>Choose</translation>
     </message>
     <message>
-        <location filename="../backend/streampainter.cpp" line="1031"/>
+        <location filename="../backend/streampainter.cpp" line="1004"/>
         <source>Confirmer</source>
         <translation>Confirm</translation>
     </message>
     <message>
-        <location filename="../backend/streampainter.cpp" line="1032"/>
+        <location filename="../backend/streampainter.cpp" line="1005"/>
         <source>Annuler</source>
         <translation>Cancel</translation>
     </message>

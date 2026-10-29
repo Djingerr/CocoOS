@@ -112,12 +112,22 @@ const qreal COMPACT_PAD = 14;
 const qreal COMPACT_GAP = 14;
 const QColor COMPACT_FILL(20, 20, 22, qRound(0.55 * 255));
 const QColor ACCENT_SOFT(242, 128, 42, qRound(0.22 * 255));   // accent à 22 % (pastille, courbe)
-const qreal NOTICE_HEIGHT = 40;          // l'avis : une pastille sombre, un point, un texte
-const qreal NOTICE_PAD_X = 16;
-const qreal NOTICE_SIZE = 14;            // Sora 500
-const qreal NOTICE_SHIFT = 10;           // il descend d'autant en apparaissant
-const qreal HOST_DOT_SIZE = 7;
-const qreal HOST_DOT_GAP = 8;
+// Bannière en haut (MotionAlertes : 64 px ; MotionReseau : 56), carte de la manette, capture.
+const qreal BANNER_TOP = 22;
+const QColor BANNER_FILL(28, 28, 30, qRound(0.8 * 255));
+const QColor BANNER_DISC(255, 255, 255, qRound(0.1 * 255));
+const qreal BANNER_SHIFT = 24;           // elle descend d'autant en arrivant…
+const qreal BANNER_FROM = 0.9;           // …et grandit depuis 0,9
+const qreal PAUSE_WIDTH = 420;
+const qreal PAUSE_TOP = 230;
+const qreal PAUSE_RADIUS = 32;
+const qreal PAUSE_FROM = 0.94;
+const qreal SHOT_SCALE = 0.15;           // la vignette : 15 % de l'écran, en bas à gauche
+const qreal SHOT_LEFT = 32;
+const qreal SHOT_BOTTOM = 32;
+const qreal SHOT_BORDER = 3;             // filet clair (20 px à l'échelle de l'image entière)
+const qreal SHOT_RADIUS = 12;
+const QColor SHOT_LABEL_FILL(28, 28, 30, qRound(0.72 * 255));
 
 // Les tailles sont en points sur une image à 72 ppp (1 point = 1 pixel) : QFont
 // n'accepte que des tailles de pixel entières, le canevas a des demi-pixels.
@@ -449,17 +459,17 @@ void drawCheck(QPainter& p, const QRectF& box, const QColor& color, qreal drawn)
 QString s_iconRoot = QStringLiteral(":/gui/console/icons/");
 qreal s_pixelScale = 1;                     // pixels de l'écran par pixel du canevas
 
-QImage icon(const QString& name, qreal size, const QColor& color)
+QImage icon(const QString& name, QSizeF size, const QColor& color)
 {
     static QHash<QString, QImage> cache;
-    const int px = qMax(1, qRound(size * s_pixelScale));
-    const QString key = QStringLiteral("%1/%2/%3").arg(name).arg(px).arg(color.rgba());
+    const QSize px(qMax(1, qRound(size.width() * s_pixelScale)), qMax(1, qRound(size.height() * s_pixelScale)));
+    const QString key = QStringLiteral("%1/%2x%3/%4").arg(name).arg(px.width()).arg(px.height()).arg(color.rgba());
     auto found = cache.constFind(key);
     if (found != cache.constEnd()) {
         return *found;
     }
     QImageReader reader(s_iconRoot + name + QStringLiteral(".svg"));
-    reader.setScaledSize(QSize(px, px));
+    reader.setScaledSize(px);
     QImage image = reader.read().convertToFormat(QImage::Format_ARGB32_Premultiplied);
     if (!image.isNull()) {
         QPainter tint(&image);
@@ -470,12 +480,17 @@ QImage icon(const QString& name, qreal size, const QColor& color)
     return image;
 }
 
-void drawIcon(QPainter& p, const QString& name, QPointF center, qreal size, const QColor& color)
+void drawIcon(QPainter& p, const QString& name, QPointF center, QSizeF size, const QColor& color)
 {
     const QImage image = icon(name, size, color);
     if (!image.isNull()) {
-        p.drawImage(QRectF(center.x() - size / 2, center.y() - size / 2, size, size), image);
+        p.drawImage(QRectF(center.x() - size.width() / 2, center.y() - size.height() / 2, size.width(), size.height()), image);
     }
+}
+
+void drawIcon(QPainter& p, const QString& name, QPointF center, qreal size, const QColor& color)
+{
+    drawIcon(p, name, center, QSizeF(size, size), color);
 }
 
 void drawText(QPainter& p, const QRectF& box, int align, const QString& text, const QFont& font, const QColor& color)
@@ -913,48 +928,6 @@ int StreamPainter::powerAt(const Power& power, QSize screen, QPointF pos)
     return powerCard(width).contains(c) ? -1 : -2;
 }
 
-QImage StreamPainter::paintStats(const Stats& stats, qreal opacity, QSize screen,
-                                 const Notice& notice, qreal noticeOpacity)
-{
-    const bool showStats = stats.mode != Stats::Hidden && stats.total >= 0 && opacity > 0;
-    const bool showNotice = !notice.text.isEmpty() && noticeOpacity > 0;
-    if ((!showStats && !showNotice) || screen.isEmpty()) {
-        return QImage();
-    }
-    const qreal scale = screen.height() / CANVAS_HEIGHT;
-    QImage image = canvasImage(QSize(1, 1));
-    const QSizeF size = showStats ? statsSize(stats, &image) : QSizeF();
-    // L'avis est à droite : l'image prend alors toute la largeur (une bande, en haut).
-    const qreal width = showNotice ? screen.width() / scale : STATS_MARGIN + size.width();
-    const qreal height = qMax(showStats ? STATS_MARGIN + size.height() : 0.0,
-                              showNotice ? STATS_MARGIN + NOTICE_HEIGHT : 0.0);
-    image = canvasImage(QSize(qCeil(width * scale), qCeil(height * scale)));
-    image.fill(Qt::transparent);
-    QPainter p(&image);
-    beginCanvas(p, screen);
-    if (showStats) {
-        drawStats(p, stats, opacity);
-    }
-    if (showNotice) {
-        const QFont font = sora(NOTICE_SIZE, QFont::Medium);
-        const qreal textWidth = QFontMetricsF(font, p.device()).horizontalAdvance(notice.text);
-        const qreal pill = NOTICE_PAD_X + HOST_DOT_SIZE + HOST_DOT_GAP + textWidth + NOTICE_PAD_X;
-        const QRectF box(width - STATS_MARGIN - pill, STATS_MARGIN - NOTICE_SHIFT * (1 - noticeOpacity),
-                         pill, NOTICE_HEIGHT);
-        p.setOpacity(noticeOpacity);
-        p.setPen(Qt::NoPen);
-        p.setBrush(STATS_FILL);
-        p.drawRoundedRect(box, NOTICE_HEIGHT / 2, NOTICE_HEIGHT / 2);
-        p.setBrush(notice.tone == Notice::Good ? OK : notice.tone == Notice::Warn ? ACCENT : POOR);
-        p.drawEllipse(QRectF(box.x() + NOTICE_PAD_X, box.center().y() - HOST_DOT_SIZE / 2, HOST_DOT_SIZE, HOST_DOT_SIZE));
-        p.setFont(font);
-        p.setPen(INK);
-        p.drawText(QRectF(box.x() + NOTICE_PAD_X + HOST_DOT_SIZE + HOST_DOT_GAP, box.y(), textWidth + 1, box.height()),
-                   Qt::AlignLeft | Qt::AlignVCenter, notice.text);
-    }
-    return image;
-}
-
 bool StreamPainter::paintFrame(const Frame& frame, QImage& image)
 {
     const QSize screen = image.size();
@@ -1039,4 +1012,248 @@ bool StreamPainter::paintFrame(const Frame& frame, QImage& image)
         p.fillRect(image.rect(), QColor(0, 0, 0, qRound(255 * frame.curtain)));
     }
     return solid;
+}
+
+namespace {
+
+qreal easeIn(qreal t) { return curve(t, QPointF(0.4, 0), QPointF(1, 1)); }
+
+// La batterie presque vide de la bannière : contour, un trait orange.
+void drawLowBattery(QPainter& p, QPointF center)
+{
+    p.save();
+    p.translate(center - QPointF(13, 6.5));
+    p.setBrush(Qt::NoBrush);
+    p.setPen(QPen(QColor(245, 245, 247, qRound(0.7 * 255)), 1));
+    p.drawRoundedRect(QRectF(0.5, 0.5, 23, 12), 3.5, 3.5);
+    p.setPen(Qt::NoPen);
+    p.setBrush(ACCENT);
+    p.drawRoundedRect(QRectF(2, 2, 2.6, 9), 1.2, 1.2);
+    p.setBrush(QColor(245, 245, 247, qRound(0.7 * 255)));
+    p.drawRoundedRect(QRectF(24.8, 4.5, 1.6, 4), 0.8, 0.8);
+    p.restore();
+}
+
+void drawBanner(QPainter& p, const StreamPainter::Overlay& o, qreal width)
+{
+    const StreamPainter::Banner& b = o.banner;
+    if (b.title.isEmpty() || o.bannerIn <= 0) {
+        return;
+    }
+    // Arrivée : fondu de 240 ms, glissement et échelle au ressort (640) ; départ plus vif (360).
+    qreal opacity = qMin<qreal>(1, o.bannerIn * 640 / 240), move = curveSpring(o.bannerIn);
+    if (o.bannerOut > 0) {
+        opacity *= 1 - qMin<qreal>(1, o.bannerOut * 360 / 280);
+        move *= 1 - easeIn(o.bannerOut);
+    }
+    if (opacity <= 0) {
+        return;
+    }
+    const qreal height = b.alert ? 64 : 56, disc = b.alert ? 44 : 40, gap = b.alert ? 14 : 12;
+    const qreal padLeft = b.alert ? 12 : 10, padRight = 22;
+    const QFont title = sora(b.alert ? 15 : 14, QFont::DemiBold);
+    const QFont sub = sora(12, QFont::Medium);
+    const qreal textW = qMax(textWidth(p, b.title, title), textWidth(p, b.sub, sub));
+    const QRectF box((width - (padLeft + disc + gap + textW + padRight)) / 2, BANNER_TOP,
+                     padLeft + disc + gap + textW + padRight, height);
+    p.save();
+    p.setOpacity(opacity);
+    p.translate(box.center().x(), box.top() - BANNER_SHIFT * (1 - move));
+    const qreal scale = BANNER_FROM + (1 - BANNER_FROM) * move;
+    p.scale(scale, scale);
+    p.translate(-box.center().x(), -box.top());
+    p.setPen(QPen(QColor(255, 255, 255, qRound(0.12 * 255)), 1));
+    p.setBrush(BANNER_FILL);
+    p.drawRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), height / 2, height / 2);
+    const QPointF c(box.x() + padLeft + disc / 2, box.center().y());
+    p.setPen(Qt::NoPen);
+    p.setBrush(b.accent ? ACCENT : BANNER_DISC);
+    p.drawEllipse(c, disc / 2, disc / 2);
+    if (b.icon == StreamPainter::Banner::Battery) {
+        drawLowBattery(p, c);
+    }
+    else if (b.icon == StreamPainter::Banner::Network) {
+        drawIcon(p, QStringLiteral("game-wifi"), c, QSizeF(19, 14), INK);
+    }
+    else if (b.icon == StreamPainter::Banner::Pad) {
+        drawIcon(p, QStringLiteral("game-pad"), c, QSizeF(24, 17.5), INK);
+    }
+    else {
+        drawCheck(p, QRectF(c.x() - 10, c.y() - 10, 20, 20), INK, 1);
+    }
+    const qreal x = box.x() + padLeft + disc + gap;
+    drawText(p, QRectF(x, c.y() - 18, textW + 1, 19), Qt::AlignLeft | Qt::AlignVCenter, b.title, title, INK);
+    drawText(p, QRectF(x, c.y() + 2, textW + 1, 16), Qt::AlignLeft | Qt::AlignVCenter, b.sub, sub,
+             QColor(245, 245, 247, qRound(0.62 * 255)));
+    p.restore();
+}
+
+// La roue d'attente (LoaderRing en petit) : piste orange à 25 %, arc qui tourne.
+void drawSpinner(QPainter& p, QPointF c, qreal size, qreal turn)
+{
+    const qreal r = size * 7 / 18, stroke = size * 2.4 / 18;
+    p.setBrush(Qt::NoBrush);
+    p.setPen(QPen(QColor(242, 128, 42, qRound(0.25 * 255)), stroke));
+    p.drawEllipse(c, r, r);
+    p.setPen(QPen(ACCENT, stroke, Qt::SolidLine, Qt::RoundCap));
+    p.drawArc(QRectF(c.x() - r, c.y() - r, 2 * r, 2 * r), int((90 - turn * 360) * 16), int(-360 * 12 / 44.0 * 16));
+}
+
+void drawPause(QPainter& p, const StreamPainter::Overlay& o, qreal width)
+{
+    if (o.pauseShow <= 0) {
+        return;
+    }
+    const StreamPainter::Pause& pause = o.pause;
+    const qreal back = o.pauseBack;
+    const QRectF card((width - PAUSE_WIDTH) / 2, PAUSE_TOP, PAUSE_WIDTH, 32 + 64 + 20 + 76 + 14 + 18 + 28);
+    p.save();
+    p.setOpacity(qMin<qreal>(1, o.pauseShow * 560 / 260));
+    const qreal scale = PAUSE_FROM + (1 - PAUSE_FROM) * curveSpring(o.pauseShow);
+    p.translate(card.center());
+    p.scale(scale, scale);
+    p.translate(-card.center());
+    p.setPen(QPen(QColor(255, 255, 255, qRound(0.1 * 255)), 1));
+    p.setBrush(QColor(44, 44, 46, qRound(0.84 * 255)));
+    p.drawRoundedRect(card.adjusted(0.5, 0.5, -0.5, -0.5), PAUSE_RADIUS, PAUSE_RADIUS);
+    // La manette, et la pastille orange cochée quand elle revient.
+    const QPointF pad(card.center().x(), card.y() + 32 + 2 + 30.5);
+    drawIcon(p, QStringLiteral("game-pad"), pad, QSizeF(84, 61), INK);
+    if (back > 0) {
+        const QPointF badge(pad.x() + 42 + 6 - 15, card.y() + 32 + 64 + 6 - 15);
+        const qreal s = 0.3 + 0.7 * curve(back, QPointF(0.3, 1.7), QPointF(0.4, 1));
+        p.setOpacity(p.opacity() * qMin<qreal>(1, back * 560 / 150));
+        p.setPen(QPen(QColor(44, 44, 46), 3));
+        p.setBrush(ACCENT);
+        p.drawEllipse(badge, 15 * s, 15 * s);
+        drawCheck(p, QRectF(badge.x() - 8 * s, badge.y() - 8 * s, 16 * s, 16 * s), Qt::white, 1);
+        p.setOpacity(qMin<qreal>(1, o.pauseShow * 560 / 260));
+    }
+    // Les textes, en fondu enchaîné (le nouveau monte de 10 px).
+    const qreal top = card.y() + 32 + 64 + 20;
+    const QFont title = sora(20, QFont::DemiBold, -0.4);
+    const QFont body = sora(14, QFont::Medium);
+    for (int i = 0; i < 2; i++) {
+        const qreal shown = i == 0 ? 1 - back : back;
+        if (shown <= 0) continue;
+        const qreal base = p.opacity();
+        p.setOpacity(base * shown);
+        const qreal dy = (i == 0 ? -10 : 10) * (1 - shown);
+        drawText(p, QRectF(card.x(), top + dy, card.width(), 26), Qt::AlignHCenter | Qt::AlignVCenter,
+                 i == 0 ? pause.title : pause.backTitle, title, INK);
+        p.setFont(body);
+        p.setPen(QColor(245, 245, 247, qRound(0.65 * 255)));
+        p.drawText(QRectF(card.x() + 20, top + 34 + dy, card.width() - 40, 44), Qt::AlignHCenter | Qt::AlignTop | Qt::TextWordWrap,
+                   i == 0 ? pause.body : pause.backBody);
+        p.setOpacity(base);
+    }
+    // « Recherche de la manette… »
+    if (back < 1) {
+        const qreal base = p.opacity();
+        p.setOpacity(base * (1 - back));
+        const QFont font = sora(13, QFont::Medium);
+        const qreal w = 16 + 10 + textWidth(p, pause.waiting, font);
+        const qreal x = card.center().x() - w / 2, y = top + 76 + 14;
+        drawSpinner(p, QPointF(x + 8, y + 9), 16, o.spin);
+        drawText(p, QRectF(x + 26, y, w, 18), Qt::AlignLeft | Qt::AlignVCenter, pause.waiting, font,
+                 QColor(245, 245, 247, qRound(0.55 * 255)));
+        p.setOpacity(base);
+    }
+    p.restore();
+}
+
+void drawShot(QPainter& p, const StreamPainter::Overlay& o, qreal width)
+{
+    if (o.flash > 0) {
+        p.fillRect(QRectF(0, 0, width, CANVAS_HEIGHT), QColor(255, 255, 255, qRound(0.6 * 255 * o.flash)));
+    }
+    const StreamPainter::Shot& shot = o.shot;
+    if (!shot.image.isNull() && o.shotOut < 1) {
+        // Plein écran → vignette (ressort étiré, 640 ms), puis elle part à gauche en s'effaçant.
+        const qreal t = curve(o.shotFly, QPointF(0.3, 1.12), QPointF(0.4, 1));
+        const qreal scale = 1 + (SHOT_SCALE - 1) * t;
+        const QRectF end(SHOT_LEFT, CANVAS_HEIGHT - SHOT_BOTTOM - CANVAS_HEIGHT * SHOT_SCALE, width * SHOT_SCALE, CANVAS_HEIGHT * SHOT_SCALE);
+        QRectF box(end.x() * t, end.y() * t, width * scale, CANVAS_HEIGHT * scale);
+        box.translate(-(end.x() + end.width() + 40) * easeIn(o.shotOut), 0);
+        p.save();
+        p.setOpacity(1 - qMin<qreal>(1, qMax<qreal>(0, o.shotOut * 420 - 120) / 300));
+        const qreal radius = SHOT_RADIUS * qMin<qreal>(1, o.shotFly * 640 / 420);
+        QPainterPath clip;
+        clip.addRoundedRect(box, radius, radius);
+        p.setClipPath(clip);
+        p.drawImage(box, shot.image);
+        p.setClipping(false);
+        const qreal border = SHOT_BORDER * qMin<qreal>(1, o.shotFly * 640 / 380);
+        if (border > 0) {
+            p.setBrush(Qt::NoBrush);
+            p.setPen(QPen(INK, border));
+            p.drawRoundedRect(box.adjusted(border / 2, border / 2, -border / 2, -border / 2), radius, radius);
+        }
+        p.restore();
+    }
+    if (o.shotLabel > 0 && !shot.title.isEmpty()) {
+        const QFont title = sora(13, QFont::DemiBold), sub = sora(13, QFont::Medium);
+        const qreal w = 12 + 16 + 10 + textWidth(p, shot.title, title) + 10 + textWidth(p, shot.sub, sub) + 16;
+        const QRectF box(SHOT_LEFT + width * SHOT_SCALE + 12 - 12 * (1 - curveMain(o.shotLabel)),
+                         CANVAS_HEIGHT - SHOT_BOTTOM - CANVAS_HEIGHT * SHOT_SCALE / 2 - 22, w, 44);
+        p.save();
+        p.setOpacity(qMin<qreal>(1, o.shotLabel * 500 / 300));
+        p.setPen(QPen(QColor(255, 255, 255, qRound(0.12 * 255)), 1));
+        p.setBrush(SHOT_LABEL_FILL);
+        p.drawRoundedRect(box.adjusted(0.5, 0.5, -0.5, -0.5), 22, 22);
+        const QPointF c(box.x() + 12 + 8, box.center().y());
+        p.setBrush(Qt::NoBrush);
+        p.setPen(QPen(ACCENT, 1.8 * 16 / 20));
+        p.drawEllipse(c, 8 * 16 / 20.0 * 1.0, 8 * 16 / 20.0);
+        drawCheck(p, QRectF(c.x() - 8, c.y() - 8, 16, 16), ACCENT, 1);
+        qreal x = c.x() + 8 + 10;
+        drawText(p, QRectF(x, box.y(), 300, box.height()), Qt::AlignLeft | Qt::AlignVCenter, shot.title, title, INK);
+        x += textWidth(p, shot.title, title) + 10;
+        drawText(p, QRectF(x, box.y(), 300, box.height()), Qt::AlignLeft | Qt::AlignVCenter, shot.sub, sub,
+                 QColor(245, 245, 247, qRound(0.6 * 255)));
+        p.restore();
+    }
+}
+
+}
+
+bool StreamPainter::overlayShown(const Overlay& o)
+{
+    return (o.stats.mode != Stats::Hidden && o.stats.total >= 0 && o.statsOpacity > 0)
+        || (!o.banner.title.isEmpty() && o.bannerIn > 0 && o.bannerOut < 1)
+        || o.pauseShow > 0 || o.backdropShow > 0 || o.flash > 0
+        || (!o.shot.image.isNull() && o.shotOut < 1) || o.shotLabel > 0;
+}
+
+QImage StreamPainter::paintOverlay(const Overlay& o, QSize screen)
+{
+    if (!overlayShown(o) || screen.isEmpty()) {
+        return QImage();
+    }
+    const qreal scale = screen.height() / CANVAS_HEIGHT;
+    const bool statsOnly = !(o.bannerIn > 0 && o.bannerOut < 1) && o.pauseShow <= 0 && o.backdropShow <= 0
+                        && o.flash <= 0 && (o.shot.image.isNull() || o.shotOut >= 1) && o.shotLabel <= 0;
+    QImage image = canvasImage(QSize(1, 1));
+    if (statsOnly) {   // juste le coin des statistiques
+        const QSizeF size = statsSize(o.stats, &image);
+        image = canvasImage(QSize(qCeil((STATS_MARGIN + size.width() + 1) * scale), qCeil((STATS_MARGIN + size.height() + 1) * scale)));
+    }
+    else {
+        image = canvasImage(screen);
+    }
+    image.fill(Qt::transparent);
+    QPainter p(&image);
+    if (o.backdropShow > 0 && o.backdrop.size() == screen) {   // l'image du jeu floutée, sous la carte
+        p.setOpacity(o.backdropShow);
+        p.drawImage(0, 0, o.backdrop);
+        p.setOpacity(1);
+    }
+    beginCanvas(p, screen);
+    s_pixelScale = scale;
+    const qreal width = canvasWidth(screen);
+    drawStats(p, o.stats, o.statsOpacity * (1 - o.pauseShow));
+    drawShot(p, o, width);
+    drawPause(p, o, width);
+    drawBanner(p, o, width);
+    return image;
 }

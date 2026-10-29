@@ -61,8 +61,20 @@ const int BLUR_FADE = 200;          // l'image floutée remplace le voile
 const int STATS_FADE = 220;         // Theme.toastFade
 const int CURTAIN_FADE = 250;       // fondu au noir avant de quitter le flux
 const int STREAM_FADE_IN = 400;     // au début du flux, le noir s'efface sur ses premières images
-const int NOTICE_FADE = 220;        // un avis pendant le jeu paraît, reste NOTICE_HOLD, s'efface
-const Uint32 NOTICE_HOLD = 3000;
+// Par-dessus le jeu (MotionAlertes, MotionReseau, MotionCapture) : la bannière arrive au ressort
+// (640 ms), reste, repart (360) ; la carte de la manette (560, après 150), « reconnectée » puis
+// s'efface ; la capture : flash, vignette au ressort (640, après 150), étiquette, départ.
+const int BANNER_IN = 640;
+const int BANNER_OUT = 360;
+const Uint32 BANNER_HOLD = 3600;
+const int PAUSE_IN = 560;
+const int PAUSE_OUT = 260;
+const Uint32 PAUSE_RESUME = 1300;   // « Manette reconnectée », le temps de le lire
+const int SHOT_FLASH = 380;
+const int SHOT_FLY = 640;
+const int SHOT_OUT = 420;
+const Uint32 SHOT_HOLD = 2700;
+const int BATTERY_CRITICAL = 5;     // %, sur batterie : la bannière « Batterie très faible »
 const int VALUE_STEP = 5;           // volume, luminosité : ← / → de 5 % (la souris aussi, par crans de 5)
 const int SLIDER_MOVE = 160;        // la poignée rejoint la nouvelle valeur, OutCubic
 const int BRIGHTNESS_MIN = 5;       // SystemStatus.setBrightness : jamais tout à fait noir
@@ -118,6 +130,9 @@ struct Anim {
 
     double at(Uint32 now) const
     {
+        if (duration > 0 && (Sint32)(now - start) < 0) {
+            return from;   // (pas encore partie : `delay`)
+        }
         if (!running(now)) {
             return to;
         }
@@ -125,13 +140,13 @@ struct Anim {
     }
     bool running(Uint32 now) const
     {
-        return duration > 0 && now - start < (Uint32)duration;
+        return duration > 0 && (Sint32)(now - start) < duration;
     }
-    void go(double target, int ms, Uint32 now, QEasingCurve::Type curve = QEasingCurve::Linear)
+    void go(double target, int ms, Uint32 now, QEasingCurve::Type curve = QEasingCurve::Linear, int delay = 0)
     {
         from = at(now);
         to = target;
-        start = now;
+        start = now + delay;
         duration = ms;
         easing = curve;
     }
@@ -187,9 +202,21 @@ int s_volume = -1;                      // ses valeurs, gardées ici (lues sur t
 int s_brightness = -1;
 Anim s_volumeAnim, s_brightnessAnim;    // leurs curseurs, qui glissent (en %)
 bool s_dragSlider = false;              // la souris tient un curseur
-StreamPainter::Notice s_notice;         // l'avis en cours, hors du menu (en haut à droite)
-Anim s_noticeFade;
-SDL_TimerID s_noticeTimer = 0;
+// Par-dessus le jeu, hors du menu (StreamPainter::Overlay).
+StreamPainter::Banner s_banner;         // la bannière en cours, en haut
+Anim s_bannerIn, s_bannerOut;
+SDL_TimerID s_bannerTimer = 0;
+int s_pads = 0;                         // manettes branchées à la dernière seconde
+bool s_paused = false;                  // la carte « Manette déconnectée » est là
+Anim s_pauseShow, s_pauseBack, s_pauseBackdrop;
+SDL_TimerID s_pauseTimer = 0;
+QImage s_pauseImage;                    // l'image du jeu floutée, sous la carte
+std::atomic<bool> s_wantPauseFrame { false };
+QImage s_shotImage;                     // la dernière capture, réduite (sa vignette)
+QString s_shotTitle;
+Anim s_flash, s_shotFly, s_shotLabel, s_shotOut;
+SDL_TimerID s_shotTimer = 0;
+bool s_batteryLow = false;              // batterie de la console très faible : déjà dit
 std::atomic<bool> s_shotWanted { false };   // une capture d'écran attend la prochaine image
 QString s_shotSub;                      // sous-titre de la tuile Capture (« Capture… »…) ; vide : l'habituel
 int s_poorSeconds = 0;                  // réseau mauvais depuis… (s), bon depuis…
@@ -387,7 +414,9 @@ StreamPainter::Frame frame(Uint32 now)
 bool animating(Uint32 now)
 {
     for (const Anim* anim : { &s_openMs, &s_closing, &s_veil, &s_blurMix, &s_swap, &s_statsFade, &s_curtain,
-                              &s_hold, &s_holdDone, &s_noticeFade, &s_volumeAnim, &s_brightnessAnim, &s_powerMix }) {
+                              &s_hold, &s_holdDone, &s_volumeAnim, &s_brightnessAnim, &s_powerMix,
+                              &s_bannerIn, &s_bannerOut, &s_pauseShow, &s_pauseBack, &s_pauseBackdrop,
+                              &s_flash, &s_shotFly, &s_shotLabel, &s_shotOut }) {
         if (anim->running(now)) {
             return true;
         }
@@ -399,14 +428,16 @@ bool animating(Uint32 now)
             }
         }
     }
-    return false;
+    return s_paused && s_pauseBack.at(now) < 1;   // la roue d'attente tourne
 }
 
 // Arrête toutes les animations là où elles en sont.
 void freeze(Uint32 now)
 {
     for (Anim* anim : { &s_openMs, &s_closing, &s_veil, &s_blurMix, &s_swap, &s_statsFade, &s_curtain,
-                        &s_hold, &s_holdDone, &s_noticeFade, &s_volumeAnim, &s_brightnessAnim, &s_powerMix }) {
+                        &s_hold, &s_holdDone, &s_volumeAnim, &s_brightnessAnim, &s_powerMix,
+                        &s_bannerIn, &s_bannerOut, &s_pauseShow, &s_pauseBack, &s_pauseBackdrop,
+                        &s_flash, &s_shotFly, &s_shotLabel, &s_shotOut }) {
         anim->set(anim->at(now));
     }
     for (QVector<Anim>* list : { &s_highlight, &s_powerHighlight }) {
@@ -569,10 +600,7 @@ Uint32 tick(Uint32, void*)
     QSize screen;
     bool menuShown;
     StreamPainter::Frame view;
-    StreamPainter::Stats stats;
-    qreal statsOpacity;
-    StreamPainter::Notice notice;
-    qreal noticeOpacity;
+    StreamPainter::Overlay overlay;
     {
         QMutexLocker locker(&s_lock);
         if (Session::get() == nullptr || Session::get() != s_session) {
@@ -607,16 +635,33 @@ Uint32 tick(Uint32, void*)
         if (menuShown) {
             view = frame(now);
         }
-        stats = s_statsView;
-        statsOpacity = s_statsFade.at(now);
-        notice = s_notice;
-        noticeOpacity = s_noticeFade.at(now);
+        overlay.stats = s_statsView;
+        overlay.statsOpacity = s_statsFade.at(now);
+        overlay.banner = s_banner;
+        overlay.bannerIn = s_bannerIn.at(now);
+        overlay.bannerOut = s_bannerOut.at(now);
+        overlay.pause.title = Text::tr("Manette déconnectée");
+        overlay.pause.body = Text::tr("Reconnectez la manette pour reprendre.");
+        overlay.pause.backTitle = Text::tr("Manette reconnectée");
+        overlay.pause.backBody = Text::tr("Reprise du jeu…");
+        overlay.pause.waiting = Text::tr("Recherche de la manette…");
+        overlay.pauseShow = s_pauseShow.at(now);
+        overlay.pauseBack = s_pauseBack.at(now);
+        overlay.backdrop = s_pauseImage;
+        overlay.backdropShow = s_pauseBackdrop.at(now);
+        overlay.spin = (now % 1000) / 1000.0;
+        overlay.shot.image = s_shotImage;
+        overlay.shot.title = s_shotTitle;
+        overlay.shot.sub = Text::tr("sur la console");
+        overlay.flash = s_flash.at(now);
+        overlay.shotFly = s_shotFly.at(now);
+        overlay.shotLabel = s_shotLabel.at(now);
+        overlay.shotOut = s_shotOut.at(now);
     }
 
-    // Le menu (ouvert ou en train de se fermer), sinon les statistiques, sinon rien.
+    // Le menu (ouvert ou en train de se fermer), sinon ce qui est par-dessus le jeu, sinon rien.
     SDL_Surface* surface = menuShown ? menuSurface(view, screen)
-                                     : toSurface(StreamPainter::paintStats(stats, statsOpacity, screen,
-                                                                           notice, noticeOpacity));
+                                     : toSurface(StreamPainter::paintOverlay(overlay, screen));
 
     QMutexLocker locker(&s_lock);
     Session* session = Session::get();
@@ -908,25 +953,101 @@ void repeatStep(Uint32 now)
     s_repeatAt = now + qMax(REPEAT_MIN, REPEAT_INTERVAL - s_repeats * REPEAT_STEP);
 }
 
-// Un avis bref, hors du menu (en haut à droite) : il paraît, reste NOTICE_HOLD, s'efface.
-Uint32 hideNotice(Uint32, void*)
+// Une bannière en haut (MotionAlertes, MotionReseau) : elle arrive, reste BANNER_HOLD, repart.
+// Une nouvelle remplace celle qui est là.
+Uint32 hideBanner(Uint32, void*)
 {
     QMutexLocker locker(&s_lock);
-    s_noticeTimer = 0;
-    s_noticeFade.go(0, NOTICE_FADE, SDL_GetTicks());
+    s_bannerTimer = 0;
+    s_bannerOut.go(1, BANNER_OUT, SDL_GetTicks());
     requestRender();
     return 0;
 }
 
-void showNotice(const QString& text, StreamPainter::Notice::Tone tone)
+void showBanner(StreamPainter::Banner::Icon icon, bool alert, bool accent, const QString& title, const QString& sub)
 {
-    s_notice.text = text;
-    s_notice.tone = tone;
-    s_noticeFade.go(1, NOTICE_FADE, SDL_GetTicks(), QEasingCurve::OutCubic);
-    if (s_noticeTimer != 0) {
-        SDL_RemoveTimer(s_noticeTimer);
+    const Uint32 now = SDL_GetTicks();
+    s_banner.icon = icon;
+    s_banner.alert = alert;
+    s_banner.accent = accent;
+    s_banner.title = title;
+    s_banner.sub = sub;
+    s_bannerIn.set(0);
+    s_bannerIn.go(1, s_reducedMotion ? 200 : BANNER_IN, now);
+    s_bannerOut.set(0);
+    if (s_bannerTimer != 0) {
+        SDL_RemoveTimer(s_bannerTimer);
     }
-    s_noticeTimer = SDL_AddTimer(NOTICE_HOLD, hideNotice, nullptr);
+    s_bannerTimer = SDL_AddTimer(BANNER_HOLD, hideBanner, nullptr);
+    requestRender();
+}
+
+// Manette déconnectée : la carte paraît sur l'image du jeu floutée (offerFrame la prépare) ;
+// revenue, « Manette reconnectée », puis tout s'efface.
+Uint32 endPause(Uint32, void*)
+{
+    QMutexLocker locker(&s_lock);
+    const Uint32 now = SDL_GetTicks();
+    s_pauseTimer = 0;
+    s_paused = false;
+    s_pauseShow.go(0, PAUSE_OUT, now);
+    s_pauseBackdrop.go(0, PAUSE_OUT, now, QEasingCurve::Linear, 200);
+    requestRender();
+    return 0;
+}
+
+void padsChanged(int count)
+{
+    const Uint32 now = SDL_GetTicks();
+    if (count == 0 && s_pads > 0 && !s_open) {
+        s_paused = true;
+        s_pauseBack.set(0);
+        s_pauseShow.go(1, PAUSE_IN, now, QEasingCurve::Linear, 150);
+        s_pauseBackdrop.go(1, PAUSE_IN, now);
+        s_wantPauseFrame = true;
+        if (s_pauseTimer != 0) {
+            SDL_RemoveTimer(s_pauseTimer);
+            s_pauseTimer = 0;
+        }
+        requestRender();
+    }
+    else if (count > 0 && s_paused && s_pauseTimer == 0) {
+        s_pauseBack.go(1, PAUSE_IN, now);
+        s_pauseTimer = SDL_AddTimer(PAUSE_RESUME, endPause, nullptr);
+        requestRender();
+    }
+    s_pads = count;
+}
+
+// Capture d'écran (MotionCapture) : un flash, l'image se réduit en vignette en bas à gauche,
+// l'étiquette paraît ; plus tard, la vignette part à gauche.
+Uint32 endShot(Uint32, void*)
+{
+    QMutexLocker locker(&s_lock);
+    const Uint32 now = SDL_GetTicks();
+    s_shotTimer = 0;
+    s_shotLabel.go(0, 200, now);
+    s_shotOut.go(1, SHOT_OUT, now);
+    requestRender();
+    return 0;
+}
+
+void showShot(const QImage& image)
+{
+    const Uint32 now = SDL_GetTicks();
+    s_shotImage = image;
+    s_shotTitle = Text::tr("Capture enregistrée");
+    s_flash.set(1);
+    s_flash.go(0, SHOT_FLASH, now, QEasingCurve::OutCubic, 80);
+    s_shotFly.set(0);
+    s_shotFly.go(1, SHOT_FLY, now, QEasingCurve::Linear, 150);
+    s_shotLabel.set(0);
+    s_shotLabel.go(1, 500, now, QEasingCurve::Linear, 500);
+    s_shotOut.set(0);
+    if (s_shotTimer != 0) {
+        SDL_RemoveTimer(s_shotTimer);
+    }
+    s_shotTimer = SDL_AddTimer(SHOT_HOLD, endShot, nullptr);
     requestRender();
 }
 
@@ -1121,9 +1242,10 @@ void shotDone(bool saved)
         s_shotSub = saved ? Text::tr("Enregistrée") : Text::tr("Échec");
         swapSub(SHOT, from);
     }
-    else {
-        showNotice(saved ? Text::tr("Capture enregistrée") : Text::tr("Capture impossible"),
-                   saved ? StreamPainter::Notice::Good : StreamPainter::Notice::Bad);
+    else if (!saved) {
+        s_shotLabel.set(0);   // (l'étiquette « Capture enregistrée » ne paraîtra pas)
+        s_shotTitle.clear();
+        showBanner(StreamPainter::Banner::Check, false, false, Text::tr("Capture impossible"), QString());
     }
     play(saved ? "confirm" : "deny");
 }
@@ -1144,6 +1266,14 @@ void captureIfWanted(const AVFrame* frame)
     if (image.isNull()) {
         shotDone(false);
         return;
+    }
+    // Hors du menu : le flash et la vignette tout de suite, l'enregistrement suit.
+    {
+        const QImage thumbnail = image.scaledToWidth(qMin(640, image.width()), Qt::SmoothTransformation);
+        QMutexLocker locker(&s_lock);
+        if (!s_open) {
+            showShot(thumbnail);
+        }
     }
     const QString dir = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation) + QStringLiteral("/CocoOS");
     const QString name = (game.isEmpty() ? QStringLiteral("CocoOS") : game)
@@ -1168,24 +1298,37 @@ void checkHealth(const VIDEO_STATS& stats)
         s_goodSeconds = poor ? 0 : s_goodSeconds + 1;
         if (s_poorSeconds == POOR_SECONDS && !s_poorNoticed) {
             s_poorNoticed = true;
-            showNotice(Text::tr("Réseau instable"), StreamPainter::Notice::Bad);
+            showBanner(StreamPainter::Banner::Network, false, false, Text::tr("Réseau instable"),
+                       Text::tr("Latence %1 ms · gigue %2 ms").arg(stats.lastRtt).arg(stats.lastRttVariance));
         }
         if (s_goodSeconds >= POOR_SECONDS) {
             s_poorNoticed = false;
         }
     }
     bool low = false;
+    int pads = 0;
     if (SDL_WasInit(SDL_INIT_GAMECONTROLLER)) {
         for (int i = 0; i < SDL_NumJoysticks(); i++) {
             SDL_GameController* gc = SDL_GameControllerFromInstanceID(SDL_JoystickGetDeviceInstanceID(i));
             if (gc != nullptr) {
+                pads++;
                 const SDL_JoystickPowerLevel level = SDL_JoystickCurrentPowerLevel(SDL_GameControllerGetJoystick(gc));
                 low |= level == SDL_JOYSTICK_POWER_LOW || level == SDL_JOYSTICK_POWER_EMPTY;
             }
         }
     }
+    padsChanged(pads);
+    // La batterie de la console (SDL), très faible et hors charge : une bannière, une fois.
+    int percent = -1;
+    const SDL_PowerState power = SDL_GetPowerInfo(nullptr, &percent);
+    const bool critical = power == SDL_POWERSTATE_ON_BATTERY && percent >= 0 && percent <= BATTERY_CRITICAL;
+    if (critical && !s_batteryLow) {
+        showBanner(StreamPainter::Banner::Battery, true, false, Text::tr("Batterie très faible · %1 %").arg(percent),
+                   Text::tr("Branchez la console."));
+    }
+    s_batteryLow = critical;
     if (low && !s_batteryNoticed) {
-        showNotice(Text::tr("Manette presque vide"), StreamPainter::Notice::Warn);
+        showBanner(StreamPainter::Banner::Pad, false, true, Text::tr("Manette presque vide"), Text::tr("Pensez à la recharger"));
     }
     s_batteryNoticed = low;
 }
@@ -1359,12 +1502,28 @@ void StreamMenu::prepare(const QString& game, const QStringList& powerActions, c
     s_volumeAnim.set(s_volume);
     s_brightnessAnim.set(s_brightness);
     s_dragSlider = false;
-    s_notice = StreamPainter::Notice();
-    s_noticeFade.set(0);
-    if (s_noticeTimer != 0) {
-        SDL_RemoveTimer(s_noticeTimer);
-        s_noticeTimer = 0;
+    s_banner = StreamPainter::Banner();
+    s_bannerIn.set(0);
+    s_bannerOut.set(0);
+    for (SDL_TimerID* timer : { &s_bannerTimer, &s_pauseTimer, &s_shotTimer }) {
+        if (*timer != 0) {
+            SDL_RemoveTimer(*timer);
+            *timer = 0;
+        }
     }
+    s_pads = 0;
+    s_paused = false;
+    s_pauseShow.set(0);
+    s_pauseBack.set(0);
+    s_pauseBackdrop.set(0);
+    s_pauseImage = QImage();
+    s_wantPauseFrame = false;
+    s_shotImage = QImage();
+    s_flash.set(0);
+    s_shotFly.set(0);
+    s_shotLabel.set(0);
+    s_shotOut.set(0);
+    s_batteryLow = false;
     s_shotWanted = false;
     s_poorSeconds = s_goodSeconds = 0;
     s_poorNoticed = s_batteryNoticed = false;
@@ -1759,6 +1918,25 @@ void StreamMenu::offerFrame(const AVFrame* frame)
             const Uint32 now = SDL_GetTicks();
             s_curtain.set(1);
             s_curtain.go(0, STREAM_FADE_IN, now, QEasingCurve::OutCubic);
+            requestRender();
+        }
+    }
+
+    // Manette déconnectée : l'image floutée sous sa carte.
+    if (s_wantPauseFrame.exchange(false)) {
+        QSize screen;
+        {
+            QMutexLocker locker(&s_lock);
+            if (!s_screen.isValid()) {
+                s_screen = screenSize();
+            }
+            screen = s_screen;
+        }
+        const QImage small = snapshot(frame, 8);
+        if (!small.isNull() && !screen.isEmpty()) {
+            const QImage backdrop = StreamPainter::blurred(small, screen);
+            QMutexLocker locker(&s_lock);
+            s_pauseImage = backdrop;
             requestRender();
         }
     }

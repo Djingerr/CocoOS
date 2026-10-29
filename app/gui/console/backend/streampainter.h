@@ -30,12 +30,50 @@ struct Stats {
     QStringList compact;    // la pastille : latence, i/s, débit, batterie
 };
 
-// Un avis bref pendant le jeu, en haut à droite : manette presque vide, réseau instable,
-// capture enregistrée. Le point dit le ton : Good (vert), Warn (orange), Bad (rouge).
-struct Notice {
-    enum Tone { Good, Warn, Bad };
-    QString text;
-    Tone tone = Good;
+// Par-dessus le jeu, hors du menu (StatsOverlay, MotionAlertes, MotionReseau, MotionCapture).
+// Une bannière en haut, au centre : une icône dans un disque, un titre, une ligne. `alert` :
+// la grande (batterie) ; sinon celle des états (réseau, manette).
+struct Banner {
+    enum Icon { Battery, Network, Pad, Check };
+    Icon icon = Network;
+    bool accent = false;    // disque de l'icône en orange
+    bool alert = false;
+    QString title;
+    QString sub;
+};
+
+// Manette déconnectée (MotionAlertes) : carte centrale sur l'image du jeu floutée, qui devient
+// « Manette reconnectée » (`back` de 0 à 1) ; la ligne d'attente s'efface alors.
+struct Pause {
+    QString title, body;            // déconnectée
+    QString backTitle, backBody;    // reconnectée
+    QString waiting;                // « Recherche de la manette… »
+};
+
+// Capture d'écran (MotionCapture) : un flash, l'image qui se réduit en vignette en bas à
+// gauche, l'étiquette à côté ; puis la vignette part à gauche.
+struct Shot {
+    QImage image;                   // la capture (réduite)
+    QString title, sub;             // « Capture enregistrée », « sur la console »
+};
+
+struct Overlay {
+    Stats stats;
+    qreal statsOpacity = 0;
+    Banner banner;
+    qreal bannerIn = 0;             // 0 → 1 : elle arrive (640 ms) ; puis…
+    qreal bannerOut = 0;            // 0 → 1 : elle repart (360 ms)
+    Pause pause;
+    qreal pauseShow = 0;            // la carte : 0 absente, 1 posée
+    qreal pauseBack = 0;            // 0 déconnectée, 1 reconnectée
+    QImage backdrop;                // l'image floutée sous la carte
+    qreal backdropShow = 0;
+    qreal spin = 0;                 // tour de la roue d'attente (0 à 1)
+    Shot shot;
+    qreal flash = 0;                // voile blanc (0 à 1)
+    qreal shotFly = 0;              // 0 plein écran → 1 vignette en place
+    qreal shotLabel = 0;            // l'étiquette : 0 absente, 1 posée
+    qreal shotOut = 0;              // 0 → 1 : la vignette part à gauche
 };
 
 // Une tuile du centre de contrôle (JeuControle). Clés, dans l'ordre de la grille : resume,
@@ -115,11 +153,12 @@ int powerAt(const Power& power, QSize screen, QPointF pos);
 // dans le dépôt.
 void setIconRoot(const QString& root);
 
-// Hors du menu : les statistiques (en haut à gauche) et l'avis (en haut à droite, qui
-// descend en apparaissant), sur une image qui part du coin haut gauche de l'écran ; nulle
-// s'il n'y a rien à montrer.
-QImage paintStats(const Stats& stats, qreal opacity, QSize screen,
-                  const Notice& notice = Notice(), qreal noticeOpacity = 0);
+// Hors du menu : statistiques, bannière, carte de la manette, capture. Une image de la
+// taille de l'écran dès qu'il y a autre chose que les statistiques ; sinon le coin haut gauche ;
+// nulle s'il n'y a rien à montrer.
+QImage paintOverlay(const Overlay& overlay, QSize screen);
+// Faut-il redessiner pour cet état (quelque chose est visible) ?
+bool overlayShown(const Overlay& overlay);
 
 // Le fond du menu : une image du jeu, déjà réduite (au huitième), floutée, assombrie
 // et mise à la taille de l'écran.

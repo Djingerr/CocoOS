@@ -8,7 +8,8 @@
 //   QT_QPA_PLATFORM=offscreen /tmp/streammenu-shot /tmp/m.png size=1280x800 backdrop=art/minecraft.jpg
 //
 // page : menu (le centre de contrôle) | power (la carte d'alimentation par-dessus) | stats (hors
-// du menu : les statistiques, compact=1 en pastille ; l'avis notice="…" tone=good|warn|bad).
+// du menu : les statistiques, compact=1 en pastille) | overlay (bannière, carte de la manette,
+// capture : voir plus bas).
 // focus=N : la tuile en focus (0 Reprendre, 1 Luminosité, 2 Volume, 3 Capture, 4 Statistiques,
 // 5 Accueil, 6 Quitter, 7 Veille, 8 Alimentation) ; volume=, brightness= (en %) ; cover=… la
 // jaquette de l'en-tête ; layout=xbox|playstation|nintendo. Une étape d'animation : open=ms
@@ -20,6 +21,7 @@
 #include <QDir>
 #include <QFontDatabase>
 #include <QGuiApplication>
+#include <QPainter>
 
 int main(int argc, char* argv[])
 {
@@ -111,16 +113,60 @@ int main(int argc, char* argv[])
                                                             Qt::SmoothTransformation), screen);
     }
     QImage image(screen, QImage::Format_ARGB32_Premultiplied);
-    if (page == QLatin1String("stats")) {
-        StreamPainter::Notice notice;
-        notice.text = opt.value(QStringLiteral("notice"));
-        const QString tone = opt.value(QStringLiteral("tone"));
-        notice.tone = tone == QLatin1String("warn") ? StreamPainter::Notice::Warn
-                    : tone == QLatin1String("bad") ? StreamPainter::Notice::Bad : StreamPainter::Notice::Good;
-        StreamPainter::Stats none;
-        none.mode = StreamPainter::Stats::Hidden;
-        image = StreamPainter::paintStats(opt.value(QStringLiteral("stats")) == QLatin1String("0") ? none : stats,
-                                          number("opacity", 1), screen, notice, number("noticeOpacity", 1));
+    if (page == QLatin1String("stats") || page == QLatin1String("overlay")) {
+        // page=overlay : par-dessus le jeu. banner=battery|network|pad (in=, out=) ; pause=0..1
+        // (back=0..1) ; shot=1 (flash=, fly=, label=, out=) ; game=image du jeu sous tout ça.
+        StreamPainter::Overlay overlay;
+        overlay.stats = stats;
+        if (page == QLatin1String("overlay") && opt.value(QStringLiteral("stats")) != QLatin1String("1")) {
+            overlay.stats.mode = StreamPainter::Stats::Hidden;
+        }
+        overlay.statsOpacity = number("opacity", 1);
+        const QString banner = opt.value(QStringLiteral("banner"));
+        if (banner == QLatin1String("battery")) {
+            overlay.banner = { StreamPainter::Banner::Battery, false, true, QStringLiteral("Batterie très faible · 5 %"),
+                               QStringLiteral("Branchez la console.") };
+        }
+        else if (banner == QLatin1String("network")) {
+            overlay.banner = { StreamPainter::Banner::Network, false, false, QStringLiteral("Réseau instable"),
+                               QStringLiteral("Latence 64 ms · gigue 18 ms") };
+        }
+        else if (banner == QLatin1String("pad")) {
+            overlay.banner = { StreamPainter::Banner::Pad, true, false, QStringLiteral("Manette presque vide"),
+                               QStringLiteral("Pensez à la recharger") };
+        }
+        overlay.bannerIn = number("in", 1);
+        overlay.bannerOut = number("out", 0);
+        overlay.pause = { QStringLiteral("Manette déconnectée"), QStringLiteral("Reconnectez la manette pour reprendre."),
+                          QStringLiteral("Manette reconnectée"), QStringLiteral("Reprise du jeu…"),
+                          QStringLiteral("Recherche de la manette…") };
+        overlay.pauseShow = number("pause", 0);
+        overlay.pauseBack = number("back", 0);
+        overlay.spin = 0.3;
+        const QImage still(opt.value(QStringLiteral("game")));
+        if (overlay.pauseShow > 0 && !still.isNull()) {
+            overlay.backdrop = StreamPainter::blurred(still.scaled(still.size() / 8, Qt::IgnoreAspectRatio, Qt::SmoothTransformation), screen);
+            overlay.backdropShow = 1;
+        }
+        if (opt.value(QStringLiteral("shot")) == QLatin1String("1") && !still.isNull()) {
+            overlay.shot.image = still.scaledToWidth(640, Qt::SmoothTransformation);
+            overlay.shot.title = QStringLiteral("Capture enregistrée");
+            overlay.shot.sub = QStringLiteral("sur la console");
+            overlay.flash = number("flash", 0);
+            overlay.shotFly = number("fly", 1);
+            overlay.shotLabel = number("label", 1);
+            overlay.shotOut = number("shotOut", 0);
+        }
+        const QImage layer = StreamPainter::paintOverlay(overlay, screen);
+        // Posé sur l'image du jeu (game=…), comme Moonlight le compose.
+        image = still.isNull() ? QImage(screen, QImage::Format_ARGB32_Premultiplied)
+                               : still.scaled(screen, Qt::IgnoreAspectRatio, Qt::SmoothTransformation)
+                                      .convertToFormat(QImage::Format_ARGB32_Premultiplied);
+        if (still.isNull()) {
+            image.fill(Qt::transparent);
+        }
+        QPainter p(&image);
+        p.drawImage(0, 0, layer);
     }
     else {
         if (statsShown) {

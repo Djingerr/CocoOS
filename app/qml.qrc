@@ -154,6 +154,8 @@
         <file>gui/console/icons/power-moon.svg</file>
         <file>gui/console/icons/power-reboot.svg</file>
         <file>gui/console/icons/power-off.svg</file>
+        <file>gui/console/icons/game-pad.svg</file>
+        <file>gui/console/icons/game-wifi.svg</file>
         <file>gui/console/Sounds.qml</file>
         <file>gui/console/SoundBank.qml</file>
         <file>gui/console/fonts/Sora-Regular.ttf</file>
