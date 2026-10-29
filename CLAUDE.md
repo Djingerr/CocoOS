@@ -580,6 +580,11 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   bannière en haut (batterie, manette, réseau), carte « Manette déconnectée », capture en
   vignette, indicateur du volume (touches de volume, aussi à l'accueil : `VolumeHud.qml`).
   ⚠️ Porte : à essayer dans un vrai flux (next_steps.md, questions 33 à 38).
+  Phase 7 (système) : touche power prise à logind (court : veille, long : `PowerMenu`), veille et
+  réveil animés, extinction et redémarrage (`ShutdownScreen`), sortie de l'écran de veille en
+  éventail, nouvelle sortie du démarrage (`BootUnfold` : le O se déplie en jaquette), mise à jour
+  (`UpdateScreen`), recharge et mode salon (`ChargingScreen`, `TvScreen`, interface seule).
+  ⚠️ Porte : à essayer à la manette (next_steps.md, questions 39 à 43).
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
   télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
   Côté console uniquement (Apollo reste non modifié).
@@ -711,6 +716,11 @@ Fichiers (dans `app/gui/console/`) :
 - `HostPicker.qml` — choix du PC (ChoixPC), sous la pastille du PC
 - `VolumeHud.qml` — indicateur du volume (MotionHud), aux touches de volume ; le même dans le jeu
   (`streampainter`)
+- `PowerMenu.qml` — menu d'alimentation (MenuAlimentation) et pastille « Maintenir le bouton »
+- `ShutdownScreen.qml` — extinction et redémarrage animés (MotionExtinction), puis logind
+- `BootUnfold.qml` — sortie du démarrage : le O de BootSplash se déplie en jaquette (Demarrage)
+- `RingLogo.qml`, `UpdateScreen.qml` — « CocoOS » dont le O est l'anneau ; écran de mise à jour
+- `ChargingScreen.qml`, `TvScreen.qml` — recharge console éteinte, mode salon (interface seule)
 - `Sounds.qml`, `SoundBank.qml`, `sounds/` — sons de l'interface (singleton `Sounds.play("nav_move")`,
   pack CocoOS de 68 sons dans `console.qrc`, embarqué par le build `embedded` seulement ; table
   d'alias des anciens noms ; `Sounds.ambiance("amb_veille")` pour une boucle)

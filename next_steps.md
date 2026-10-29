@@ -299,6 +299,75 @@ Oui pour les quatre : « Ajouter un PC » mènera à SetupPC (phase 8) ; plus de
 Select + L1 + R1 » sur l'écran de lancement ; « En veille » (réveillable) / « hors ligne » comme
 proposé ; messages d'échec de Moonlight à reformuler plus tard.
 
+## Refonte CocoOS — phase 7, système (2026-10-29)
+
+Sept commits : menu d'alimentation et touche power (`c6896a6a`), veille et réveil (`98c849a1`),
+extinction et redémarrage (`01913df9`), sortie de l'écran de veille (`8f55fe5f`), sortie du
+démarrage (`c60b2ac1`), mise à jour (`3c7045d9`), recharge et mode salon (`d50cd0f8`) ; plus
+deux tests du harnais rendus indépendants de la charge de la machine (`67849ec7`).
+
+- **Touche power** : la console la prend à logind (`SystemStatus` : verrou « block » sur
+  `handle-power-key:handle-suspend-key`, rendu à la fermeture ; `InputStatus.powerKey`, avant
+  tout écran). Appui court : la veille ; long (1,2 s) : la pastille « Maintenir le bouton » se
+  remplit, puis le menu. Dans le jeu, rien (Q14).
+- **Menu d'alimentation** (`PowerMenu`, MenuAlimentation, MotionAlimentation) : carte centrée,
+  batterie et autonomie, trois pastilles (◀ ▶, A suffit, B annule), l'accueil s'assombrit et son
+  bloc titre s'efface. Home sans partie l'ouvre ; avec une partie, le menu Home garde Reprendre /
+  Quitter et propose « Alimentation ».
+- **Veille et réveil** (MotionVeille) : l'accueil recule (0,94) et s'efface, un point orange
+  s'allume au centre puis s'éteint, puis la veille du système ; au réveil (logind), l'accueil
+  revient en cascade (style « wake »). Sans veille du système, une touche réveille.
+- **Extinction et redémarrage** (`ShutdownScreen`, MotionExtinction) : l'accueil se replie (les
+  voisines convergent), la jaquette devient l'anneau, glisse à la place du O de « CocoOS », le mot
+  paraît, l'anneau se vide, un point, le noir, puis logind. Sans effet au bout de 10 s, l'accueil
+  revient.
+- **Écran de veille** : les quatre écrans de `feat/idle-screen` sont déjà ceux de VeilleJeu,
+  VeilleJeuTelechargement, VeilleTelechargement, VeilleRepos (3,1 à 1,6 / 255 en 1280 × 800).
+  Sortie (MotionReveil) : l'accueil, caché dessous, revient en éventail depuis le centre (style
+  « idle ») ; son `idle_exit`.
+- **Démarrage** (`BootUnfold`, Demarrage) : l'animation du O est inchangée jusqu'à sa sortie ; au
+  lieu du vol vers la barre haute, « Coco » et « S » s'effacent, le O devient l'anneau, glisse au
+  centre et se déplie en jaquette du jeu sélectionné pendant que le noir se lève ; l'accueil,
+  présent mais caché depuis le départ, revient en éventail (style « boot »). Les minutages de
+  retour (jeu, réveil, veille, démarrage) sont regroupés dans `HomeScreen.ret`.
+- **Mise à jour** (`UpdateScreen`, `RingLogo`, MotionMiseAJour) : le O sert de barre de
+  progression, « Mise à jour installée · Redémarrage… », « … est installé ». Présentation seule.
+- **Recharge** (`ChargingScreen`, MotionRecharge) et **mode salon** (`TvScreen`, MotionSalon) :
+  interface seule. Harnais : `SystemDemo` (`scene=update|charge|tv`) ; `HomeDemo` (actions
+  `shutdown`, `sleep`, `wake`, `idlein`, `idleout`, `hold` ; `power=1`).
+- **LED de la console** (LedConsole) — spécification pour le firmware, une LED à côté de power :
+  allumée en jeu : éteinte ; en charge : accent, respiration lente 4 s ; chargée : blanc fixe,
+  s'éteint après 30 s ; en veille : blanc, respiration 2,4 s (le rythme du point « en ligne ») ;
+  batterie faible : accent, double clignotement toutes les 3 s ; critique : rouge, double
+  clignotement toutes les 3 s ; appairage Bluetooth : bleu, clignotement rapide 0,5 s ; mise à
+  jour : blanc, éclat à chaque étape.
+
+### Porte de la phase 7
+- **MenuAlimentation** : 4,9 / 255 (accueil) ; **MotionAlimentation** : appui long, carte,
+  Redémarrer, extinction : mêmes étapes.
+- **MotionVeille**, **MotionExtinction**, **MotionReveil**, **Demarrage**, **MotionMiseAJour** :
+  filmés dans le harnais, mêmes étapes que les planches (`filmstrip.sh`).
+- **VeilleJeu**, **VeilleJeuTelechargement**, **VeilleTelechargement** : 3,1 / 255 ;
+  **VeilleRepos** : 1,6 / 255.
+- **MotionRecharge**, **MotionSalon** : interface conforme, déclenchée par le harnais ;
+  **LedConsole** : la spécification ci-dessus.
+- Tests : 21 suites vertes (`tst_ConsoleHome` 59 : touche power, menu d'alimentation, veille,
+  extinction, sortie de l'écran de veille, sortie du démarrage) ; anglais complet (553 textes).
+- ⚠️ **À valider par Coco** : la touche power (court, long) et le menu ; la veille et le réveil de
+  la console ; un redémarrage ; l'écran de veille (5 min) et sa sortie ; le démarrage à froid.
+
+### Questions pour Coco (phase 7)
+39. Touche power : la console la prend à logind (Q12) ; pendant un flux, elle n'a pas d'effet
+    (Q14 : fermer le flux, ou n'éteindre que l'écran ?).
+40. Sortie de l'écran de veille : l'horloge qui vole jusqu'à celle de la barre haute (MotionReveil)
+    n'est pas reprise ; l'écran de veille garde son fondu de sortie. À faire ?
+41. Mise à jour : quel mécanisme (paquet, image A/B : Q16), et quel numéro afficher (« CocoOS
+    alpha » en attendant une numérotation) ?
+42. Recharge console éteinte et mode salon : à brancher sur le matériel (démarrage au câble,
+    sortie HDMI) quand la carte sera là ; la LED se fera dans le firmware.
+43. Redémarrage (MotionAlimentation) : la planche montre « Redémarrage… » sous le logo un instant ;
+    l'animation d'extinction ne l'affiche pas. À ajouter ?
+
 ## Refonte CocoOS — phase 6, par-dessus le jeu (2026-10-29)
 
 Quatre commits : centre de contrôle (`fcc825dd`), statistiques (`deb9b6a2`), alertes, manette et
