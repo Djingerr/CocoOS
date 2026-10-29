@@ -312,6 +312,24 @@ comme chiffre du profil — Latence, Équilibre, Image —, « Écran virtuel »
     l'état « aucun résultat » (« Vérifier l'orthographe », « Chercher dans Playnite ») ne sont pas
     reprises : rien derrière. Signal Wi-Fi en % (NetworkManager ne donne pas les dBm de la maquette).
 
+### Réponses de Coco (2026-10-29)
+« Peu importe l'ordre, fais le choix le plus judicieux, on est à la version alpha de CocoOS. » ;
+oui pour la 27 et la 28. Choix retenus pour l'alpha :
+- **Q27** : Auto en premier, puis Xbox / PlayStation / Nintendo (inchangé).
+- **Q28** : ≡ ouvre la recherche ; pas de suggestions dans « aucun résultat » ; signal en %.
+- **Q26** : la version affichée est « CocoOS alpha · moonlight-qt … » (Général › Version). Le nom
+  reste celui de la machine ; on le choisira au premier démarrage (phase 8).
+- **Q22** : « Priorité » reste un chiffre du profil ; « Écran virtuel » reste masqué.
+- **Q25** : les phases d'abord (lancer, quitter, erreurs, veille, premier démarrage : ce qu'un
+  testeur de l'alpha croise à chaque partie). Les réglages manquants restent masqués et passent
+  après la phase 10, dans cet ordre : (1) ce qui marche déjà sur le laptop et coûte peu — sortie
+  audio (`wpctl`), vider le cache des jaquettes (le cache du Companion ne fait que grandir),
+  « Autre réseau… » (réseau caché, le clavier existe), Wi-Fi on / off, licences (GPLv3, §7) ;
+  (2) ce qui attend le matériel, sur l'Orange Pi — Bluetooth et manettes connues, test des
+  boutons, luminosité automatique, couleurs et chaleur (gamescope), 5G, matériel ; (3) ce qui
+  attend une décision — mise à jour (Q16), Bibliothèque, Notifications, Confidentialité,
+  ambiances des écrans de veille.
+
 ## Refonte CocoOS — phase 3, fiche jeu et favoris (2026-10-28)
 
 Décision de Coco : l'engrenage de la barre haute se réglera plus tard (reste masqué).

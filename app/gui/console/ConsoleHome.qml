@@ -1868,7 +1868,7 @@ FocusScope {
                      rows: [ { key: "about:name", label: qsTr("Nom"), value: SystemStatus.deviceName, group: "about",
                                section: qsTr("À propos") },
                              { key: "about:version", label: qsTr("Version"), group: "about",
-                               value: qsTr("CocoOS · moonlight-qt %1").arg(Qt.application.version) } ] })
+                               value: qsTr("CocoOS alpha · moonlight-qt %1").arg(Qt.application.version) } ] })
         pages.push({ key: "accessibility", label: qsTr("Accessibilité"), tile: { color: Theme.setTileScreen, icon: "accessibility" },
                      group: "system",
                      rows: [ { key: "motion", label: qsTr("Réduire les animations"), toggle: true, options: labels(c.motion),

@@ -535,8 +535,8 @@
     </message>
     <message>
         <location filename="../ConsoleHome.qml" line="1871"/>
-        <source>CocoOS · moonlight-qt %1</source>
-        <translation>CocoOS · moonlight-qt %1</translation>
+        <source>CocoOS alpha · moonlight-qt %1</source>
+        <translation>CocoOS alpha · moonlight-qt %1</translation>
     </message>
     <message>
         <location filename="../ConsoleHome.qml" line="1872"/>
