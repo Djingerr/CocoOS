@@ -883,9 +883,16 @@ QtObject {
     readonly property int kbRevealTouch: 120         // « R3 Afficher » cliquable
     readonly property int kbHintTop: 240             // « 8 caractères minimum · 8 saisis »
     readonly property int kbTop: 344
-    readonly property size kbSize: Qt.size(1180, 428)
-    readonly property int kbRadius: 36
-    readonly property color kbFill: Qt.rgba(28 / 255, 28 / 255, 30 / 255, 0.78)
+    readonly property int kbWidth: 1180
+    // Deux gabarits : le mot de passe (ClavierWifi) et la recherche (Recherche, plus bas).
+    readonly property var kbFull: ({
+        height: 428, radius: 36, fill: Qt.rgba(28 / 255, 28 / 255, 30 / 255, 0.78), chipsTop: 22, chipHeight: 34,
+        rowsTop: 72, rowStep: 74, keyHeight: 62, keyRadius: radiusKey, charSize: 26, fnSize: 16, space: 380,
+        legendBottom: 22 })
+    readonly property var kbCompact: ({
+        height: 344, radius: 32, fill: Qt.rgba(28 / 255, 28 / 255, 30 / 255, 0.8), chipsTop: 18, chipHeight: 32,
+        rowsTop: 62, rowStep: 60, keyHeight: 52, keyRadius: 13, charSize: 24, fnSize: 15, space: 604,
+        legendBottom: 16 })
     readonly property color kbStroke: Qt.rgba(1, 1, 1, 0.1)
     readonly property int kbTravel: 460              // il monte de 460 px…
     readonly property var kbIn: motion(640, [0.3, 1.15, 0.4, 1, 1, 1])
@@ -894,20 +901,14 @@ QtObject {
     readonly property int kbFadeOut: 300
     readonly property int kbFadeOutDelay: 80
     readonly property int kbPad: 36
-    readonly property int kbChipsTop: 22             // raccourcis (.com…) et disposition (globe)
-    readonly property int kbChipHeight: 34
     readonly property int kbChipPad: 16
     readonly property int kbChipSize: 14
     readonly property var kbChips: [".com", ".fr", "@gmail.com", "@free.fr"]
-    readonly property int kbRowsTop: 72
-    readonly property int kbRowStep: 74
-    readonly property size kbKey: Qt.size(100, 62)
+    readonly property int kbKeyWidth: 100
     readonly property int kbGap: 12
     readonly property int kbFnKey: 156               // ⇧, ⌫, 123
-    readonly property int kbSpaceKey: 380
     readonly property int kbOkKey: 212
-    readonly property int kbCharSize: 26             // Sora 500
-    readonly property int kbFnSize: 16               // Sora 600
+    readonly property int kbCharSize: 26             // Sora 500 (bulle des accents)
     readonly property color kbShiftOn: Qt.rgba(1, 1, 1, 0.32)
     readonly property int kbGlyph: 20                // LT, X, Y, ≡ dans les touches
     readonly property color kbGlyphLight: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.4)
@@ -935,13 +936,48 @@ QtObject {
     readonly property var kbAccentIn: motion(420, [0.3, 1.3, 0.4, 1, 1, 1])
     readonly property var kbAccentOut: motion(220, [0.4, 0, 1, 1, 1, 1])
     readonly property real kbAccentChosen: 1.06
-    readonly property int kbLegendBottom: 22
     readonly property int kbLegendGap: 26
     // Lueurs : orange en bas (décalage du centre de l'écran), bleue en haut à droite.
     readonly property rect kbGlowLow: Qt.rect(-130, 400, 900, 520)
     readonly property rect kbGlowHigh: Qt.rect(60, -60, 600, 420)
     readonly property color kbGlowAccent: Qt.rgba(242 / 255, 128 / 255, 42 / 255, 0.34)
     readonly property color kbGlowBlue: Qt.rgba(110 / 255, 155 / 255, 1, 0.16)
+
+    // --- Recherche (Recherche) ---
+    readonly property int srchSuggestions: 3         // suggestions au-dessus du clavier
+    readonly property real srchBackdropOpacity: 0.75 // fond : le premier résultat, flouté
+    readonly property color srchVeilTop: Qt.rgba(0, 0, 0, 0.35)
+    readonly property color srchVeilBottom: Qt.rgba(0, 0, 0, 0.8)
+    readonly property real srchVeilAt: 0.7
+    readonly property int srchFieldTop: 86
+    readonly property size srchField: Qt.size(720, 56)
+    readonly property color srchFieldStroke: Qt.rgba(1, 1, 1, 0.14)
+    readonly property int srchFieldPadLeft: 20
+    readonly property int srchFieldPadRight: 18
+    readonly property int srchQuerySize: 19          // Sora 500
+    readonly property int srchCaret: 24
+    readonly property int srchClear: 22              // effacer la recherche
+    readonly property color srchClearFill: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.3)
+    readonly property int srchHeaderTop: 166         // « 4 résultats  titres, éditeurs et genres »
+    readonly property int srchCountSize: 20
+    readonly property int srchResultsTop: 200
+    readonly property size srchCover: Qt.size(120, 170)
+    readonly property int srchCoverRadius: 10
+    readonly property int srchGap: 24
+    readonly property int srchCaptionGap: 10         // titre sous la jaquette…
+    readonly property int srchWhyTop: 18             // …puis pourquoi elle est là (11 px)
+    readonly property int srchCaption: 46
+    readonly property color srchTitleInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.86)
+    readonly property color srchWhyInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.45)
+    readonly property int srchWhySize: 11
+    readonly property real srchFocusScale: 1.05      // le résultat qui a la manette
+    readonly property int srchRecentTop: 206
+    readonly property int srchRecentWidth: 300
+    readonly property int srchColumnGap: 40
+    readonly property int srchRecentRow: 36
+    readonly property color srchRecentInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.78)
+    readonly property int srchRecentSize: 14
+    readonly property int srchKeyboardBottom: 16
 
     // --- Réglages plein écran (Reglages*) ---
     readonly property int setMenuX: 40

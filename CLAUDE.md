@@ -560,6 +560,13 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
   Phase 3 (fiche et favoris) : fiche éditoriale (`GamePage` refaite) dont la jaquette est celle du
   carrousel qui glisse à gauche et s'incline (`CoverFlow.detail`) ; X : favori sur place (pastille
   cœur, anneau, bannière), « Tout » n'est plus trié favoris en tête.
+  Phase 4 (options, réglages, clavier, recherche) : liste groupée commune (`SettingsList`), feuille
+  d'options de verre (onglets Stream / Console, l'accueil recule derrière), Réglages plein écran
+  (`settings/SettingsScreen`, Tous les réglages ; la liste des réseaux Wi-Fi y est passée),
+  clavier CocoOS (`OnScreenKeyboard` + `KeyboardPanel` : accents à l'appui maintenu, Y espace,
+  Start valide, R3 affiche), recherche à ≡ (`SearchScreen`, `Search.js`). Start et Y donnent la
+  même touche Qt : `InputStatus.startHeld()` lit Start dans SDL. ⚠️ Porte : à valider à la
+  manette (next_steps.md, questions 25 à 28).
 - 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
   télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
   Côté console uniquement (Apollo reste non modifié).
@@ -667,7 +674,18 @@ Fichiers (dans `app/gui/console/`) :
   étagère et panneau d'options ; règle l'entrée (quand `entryAllowed` : sortie de l'animation
   de démarrage), la dérive du fond, l'effacement au lancement. `stage` reçoit les écrans de message (`staged` efface héros et étagère et leur
   donne la manette)
-- `OptionsSheet.qml` — panneau « Options » (bouton Y) en onglets (Flux, Console), sans état propre
+- `OptionsSheet.qml` — feuille « Options » (bouton Y) : verre collé à droite (flou de l'accueil),
+  onglets Stream / Console en contrôle segmenté, une `SettingsList` par onglet ; sans état propre
+- `SettingsList.qml` — liste groupée CocoOS (options, réglages) : cartes sous leur intitulé,
+  interrupteurs, choix segmentés, curseurs, carte du profil, appui maintenu ; trois gabarits
+  (`Theme.listSheet`, `listSettings`, `listMenu`)
+- `settings/SettingsScreen.qml` — Réglages plein écran : menu des rubriques, page à droite
+  (lignes construites par `ConsoleHome.refreshSettings`)
+- `KeyboardPanel.qml` — le clavier de verre (touches, tache de focus, bulle des accents, saisie),
+  utilisé par `OnScreenKeyboard` (mot de passe) et `SearchScreen` (gabarit compact)
+- `SearchScreen.qml` + `Search.js` — recherche dans la bibliothèque (≡ à l'accueil) : titres,
+  studios, genres ; suggestions, recherches récentes (`ConsoleUi/recentSearches`)
+- `Glow.qml` — lueur (ellipse en dégradé radial) des écrans plein écran
 - `LaunchScreen.qml` — écran de lancement d'un jeu (remplace l'ancien `LaunchOverlay`)
 - `Sounds.qml`, `SoundBank.qml`, `sounds/` — sons de l'interface (singleton `Sounds.play("nav_move")`,
   pack CocoOS de 68 sons dans `console.qrc`, embarqué par le build `embedded` seulement ; table
@@ -715,7 +733,8 @@ Fichiers (dans `app/gui/console/`) :
   `IdleFormat.js` (textes), `screens/` (09 à 12), `components/` (fond flou, jaquette inclinée, textes posés
   comme Chromium : `IdleText`…), `shaders/` (`build-shaders.sh`), `preview/` (aperçu, captures, parité),
   `tests/`
-- `OnScreenKeyboard.qml` — clavier à l'écran, à la manette (mot de passe Wi-Fi)
+- `OnScreenKeyboard.qml` — saisie d'un mot de passe Wi-Fi, plein écran (ClavierWifi) : champ
+  masqué, `KeyboardPanel`
 - `BootSplash.qml` — animation de démarrage « le O » (`docs/boot-animation/BOOT_ANIMATION.md`,
   le prototype fait foi), pilotée par un temps `t` avancé par `FrameAnimation` ; A accélère ×4.
   Sortie : le logo vole jusqu'au `Logotype` de la barre haute (`statusBarLogo`, `mapToItem`) ;
@@ -1055,6 +1074,12 @@ XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import
 - `ref-capture.py` pilote **Brave** par le protocole DevTools (module Python `websockets`) :
   son option `--screenshot` ne rend jamais la main. Le mode plein écran du prototype (touche
   `F`) donne un écran noir, la capture ne l'utilise pas.
+- `tst_ConsoleHome` : pendant les tests qui lancent un jeu ou recréent `ConsoleHome` (9d, 9n,
+  9o), la mémoire du **processus de test** grimpe d'environ 400 Mo/s (3,3 Go au pic de 9d) puis
+  retombe à la fin du test. Propre à `qmltestrunner` : le même lancement dans `qml-qt6`
+  (`ConsoleHomeDemo do=launch`), en rendu logiciel ou GPU, reste stable (≈ 250 / 300 Mo), comme
+  l'appli. Sur une machine chargée, systemd-oomd peut tuer la suite (code 137, pas de
+  « Totals ») : la relancer seule.
 - `tst_GameShelf::test_springMatchesPrototype` mesure le temps réel. Ses échecs « à froid » (écart
   0,0828) venaient d'une mesure lancée juste après la reconstruction des vignettes par `init()`
   (étagère déjà sur 0, quand le test précédent y finit) : il attend désormais 500 ms (20 sur 20).

@@ -17,6 +17,7 @@ import "idle"
 import "settings"
 import "Format.js" as Format
 import "Library.js" as Library
+import "Search.js" as Search
 import "StreamProfiles.js" as StreamProfiles
 import "BootTimeline.js" as Boot
 
@@ -98,6 +99,7 @@ FocusScope {
         // « Réglages avancés » (onglet Flux) : les réglages du flux un à un, les chiffres des
         // profils, les réglages à part d'un jeu. Éteint, l'essentiel seulement.
         property bool advancedSettings: false
+        property string recentSearches: "[]"   // recherches récentes, la dernière en tête (JSON)
     }
 
     Component.onCompleted: {
@@ -190,7 +192,8 @@ FocusScope {
     // le jeu (géré par l'étagère) ; ici, il est consommé pour la même raison.
     // B (Échap) est consommé : rien derrière l'accueil.
     Keys.onMenuPressed: { /* X hors de l'étagère : rien */ }
-    Keys.onHangupPressed: homeScreen.options.open()
+    // Start (≡) arrive avec la même touche que Y : la recherche, plutôt que les options.
+    Keys.onHangupPressed: InputStatus.startHeld() ? openSearch() : homeScreen.options.open()
     // Au clavier, la touche Origine (Home) tient lieu du bouton Home de la manette.
     Keys.onPressed: function(event) {
         if (event.key === Qt.Key_Home || event.key === Qt.Key_HomePage) {
@@ -326,6 +329,7 @@ FocusScope {
             collection = "all"
             switching = true
         }
+        allTiles = all
         var items = Library.collection(all, collection, played)
         Library.sync(shelfModel, items)
         shelfRevision++
@@ -335,6 +339,30 @@ FocusScope {
         else if (switching)
             homeScreen.currentIndex = 0
         maybeDirectLaunch()
+    }
+
+    property var allTiles: []           // tous les jeux de l'étagère, toutes catégories (recherche)
+
+    // --- Recherche (≡ à l'accueil) : titres, éditeurs et genres de toute la bibliothèque ---
+    function openSearch() {
+        findScreen.games = allTiles.map(function(t) {
+            var i = companionGames[t.name.toLowerCase()] || {}
+            return { name: t.name, developers: i.developers || [], publishers: i.publishers || [],
+                     genres: i.genres || [], releaseDate: i.releaseDate || "",
+                     cover: t.cover || t.boxart || "", background: i.background || "" }
+        })
+        findScreen.open()
+    }
+    // Un résultat choisi : la recherche est retenue, l'accueil montre le jeu (catégorie Tout).
+    function searchChosen(index, query) {
+        consoleConfig.recentSearches = JSON.stringify(Search.remember(Library.parse(consoleConfig.recentSearches, []), query))
+        var name = findScreen.games[index].name
+        if (collection !== "all") {
+            collection = "all"
+            rebuildShelf(true)
+        }
+        for (var i = 0; i < shelfModel.count; i++)
+            if (shelfModel.get(i).name === name) homeScreen.currentIndex = i
     }
 
     function shelfIndexOf(appIndex) {
@@ -723,12 +751,14 @@ FocusScope {
         // LB / RB, LT / RT, R3 : lus dans SDL (la navigation upstream ne les traduit pas).
         function onBumperPressed(direction) {
             if (keyboard.opened) keyboard.moveCursor(direction)
+            else if (findScreen.opened) findScreen.panel.moveCursor(direction)
             else if (settingsScreen.opened) settingsScreen.focusContent(!settingsScreen.contentFocused)
             else if (homeScreen.options.opened) homeScreen.options.switchTab(direction)
             else if (homeScreen.shelf.activeFocus) home.switchCollection(direction)
         }
         function onTriggerPressed(direction) {
             if (keyboard.opened) { if (direction < 0) keyboard.shift() }
+            else if (findScreen.opened) { if (direction < 0) findScreen.panel.shift() }
             else if (homeScreen.shelf.activeFocus) homeScreen.shelf.jump(direction)
         }
         function onStickPressed(side) {
@@ -1619,7 +1649,8 @@ FocusScope {
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
                 || welcomeScreen.shown || networkScreen.shown
         detailOpen: gamePage.shown
-        panelOpen: confirmDialog.opened || homeMenu.opened || settingsScreen.opened || downloadMenu.opened
+        panelOpen: confirmDialog.opened || homeMenu.opened || settingsScreen.opened || findScreen.opened
+                   || downloadMenu.opened
 
         onLaunchRequested: function(index) {
             var tile = shelfModel.get(index)
@@ -1963,6 +1994,23 @@ FocusScope {
             onActionRequested: function(key) { home.settingAction(key) }
             onHoldCompleted: function(key) { home.applySetting(key, 0) }
             onClosed: if (!keyboard.opened) homeScreen.forceActiveFocus()
+        }
+        SearchScreen {
+            id: findScreen
+            anchors.fill: parent
+            recent: Library.parse(consoleConfig.recentSearches, [])
+            hostName: home.activeHostName
+            connected: homeScreen.connected
+            latencyMs: homeScreen.latencyMs
+            jitterMs: homeScreen.jitterMs
+            timeText: homeScreen.timeText
+            signalStrength: SystemStatus.signalStrength
+            batteryPercent: SystemStatus.batteryPercent
+            charging: SystemStatus.charging
+            qwerty: home.english
+            startDown: function() { return InputStatus.startHeld() }
+            onChosen: function(index, query) { home.searchChosen(index, query) }
+            onClosed: homeScreen.forceActiveFocus()
         }
         // Tant que la page Wi-Fi est ouverte, la liste se met à jour.
         Timer {

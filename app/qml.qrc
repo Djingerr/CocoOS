@@ -41,6 +41,9 @@
         <file>gui/console/icons/delete.svg</file>
         <file>gui/console/icons/delete-dark.svg</file>
         <file>gui/console/icons/globe.svg</file>
+        <file>gui/console/icons/search.svg</file>
+        <file>gui/console/icons/clock.svg</file>
+        <file>gui/console/icons/clear.svg</file>
         <file>gui/console/icons/accessibility.svg</file>
         <file>gui/console/icons/battery.svg</file>
         <file>gui/console/icons/chevron.svg</file>
@@ -127,6 +130,9 @@
         <file>gui/console/OptionsSheet.qml</file>
         <file>gui/console/SettingsList.qml</file>
         <file>gui/console/Glow.qml</file>
+        <file>gui/console/KeyboardPanel.qml</file>
+        <file>gui/console/SearchScreen.qml</file>
+        <file>gui/console/Search.js</file>
         <file>gui/console/settings/SettingsScreen.qml</file>
         <file>gui/console/LaunchScreen.qml</file>
         <file>gui/console/Sounds.qml</file>

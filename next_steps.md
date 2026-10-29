@@ -215,6 +215,103 @@ Un commit par sous-étape :
 - ⚠️ **À écouter / sentir par Coco** : le niveau du nouveau pack (0,8) à l'accueil et dans le menu en
   jeu, et les vibrations Légères / Fortes à la manette (aucune n'a été ressentie).
 
+## Refonte CocoOS — phase 4, options, réglages, clavier, recherche (2026-10-29)
+
+- **Liste groupée** (`SettingsList.qml`, nouveau) : la liste commune des options et des réglages,
+  reprise de l'ancien `OptionsSheet` (navigation, butées, interrupteur poussé, curseur qui accélère
+  et marque les crans, cascade des réglages avancés, appui maintenu) et redessinée : cartes de
+  lignes sous leur intitulé en capitales, note dessous, interrupteur 51 × 31 au ressort
+  (.3, 1.35, .4, 1), choix segmentés, curseurs à libellé (piste orange, poignée qui grossit) ou
+  à icônes (piste blanche), carte du profil, carte d'information, tuiles de couleur. Trois
+  gabarits (`Theme.listSheet`, `listSettings`, `listMenu`).
+- **Feuille d'options** (`OptionsSheet`, OptionsFeuille / MotionOptions) : carte de verre de
+  492 px collée à droite, glissée au ressort (620 ms) ; le verre floute l'accueil derrière (copie
+  au quart, flou 40) ; l'accueil recule (×0,94 autour de 30 % / 50 %, assombri de moitié, coins de
+  28). Onglets **Stream / Console** en contrôle segmenté (pastille 480 ms, LB / RB qui
+  s'allument), une liste par onglet en fondu glissé (24 px). Stream : « Profil de stream »
+  (Compétitif, Équilibré, Qualité, Éco, Manuel ; chiffres Résolution / Images/s / Débit /
+  Priorité), la note « Réseau faible : le profil descend automatiquement de deux crans. » sous la
+  carte, « Avancé » (réglages avancés, résolution, images/s, débit automatique, débit, codec,
+  HDR), puis « Oublier ce PC » maintenu. Console : « Écran et son » (luminosité, volume),
+  « Console » (Veille après, Sons, Réduire les animations, Langue) et **Tous les réglages**.
+  Sons des planches : `focus_tick` pour le focus, `tab_switch` pour les onglets.
+- **Réglages plein écran** (`settings/SettingsScreen.qml`, nouveau ; Reglages*) : à gauche
+  « Réglages », la carte de la console (nom de la machine, « CocoOS · 82 % · 41 Go libres ») et
+  le menu des rubriques ; à droite la page. La page suit la rubrique en focus ; → ou A y entrent,
+  LB / RB passent du menu à la page, B revient au menu puis referme. Rubriques (seulement ce qui
+  existe dans la conf ou le système) : **Wi-Fi** (carte du réseau connecté : bande, qualité,
+  signal en %, débit du lien, latence vers le PC ; autres réseaux, roue pendant la recherche ;
+  remplace l'ancienne liste des réseaux), **Bluetooth et manettes** (manettes branchées, glyphes,
+  vibrations), **PC et streaming** (le PC, Oublier ce PC), **Écran et son** (luminosité, volume,
+  sons de l'interface), **Batterie** (état, autonomie, consommation), **Mise en veille**,
+  **Général** (nom, version), **Accessibilité** (réduire les animations). Backends : bande et
+  débit du lien Wi-Fi, nom de la machine et place libre (`SystemStatus`), liste des manettes
+  (`InputStatus.controllers`).
+- **Clavier** (`OnScreenKeyboard` + `KeyboardPanel.qml`, nouveau ; ClavierWifi / MotionClavier) :
+  plein écran, titre « Mot de passe de « … » », champ (masqué ; le dernier caractère lisible
+  800 ms ; R3 Afficher / Masquer), clavier de verre aux touches de la maquette, AZERTY / QWERTY
+  (globe), raccourcis (.com, .fr, @gmail.com, @free.fr), couches 123 et #+=. Une tache blanche
+  glisse de touche en touche (210 ms) ; A tape au relâché ; maintenu 450 ms sur une lettre, la
+  bulle des accents s'ouvre (é è ê ë €…) ; X efface, Y espace, ≡ valide, LT majuscule, LB / RB
+  curseur, B annule. Y et Start arrivent avec la même touche Qt (`Key_Hangup`) : `InputStatus
+  .startHeld()` lit Start dans SDL à l'instant ; R3 est signalé par `InputStatus.stickPressed`.
+- **Recherche** (`SearchScreen.qml` + `Search.js`, nouveaux ; Recherche) : **≡ à l'accueil**
+  (Y garde les options). Fond flouté du premier résultat, barre haute, champ, « N résultats ·
+  titres, éditeurs et genres », jaquettes (début du titre en orange ; « Team Cherry · 2017 »,
+  « titre contient « ho » », « studio : … », « genre : … »), recherches récentes à droite
+  (`ConsoleUi/recentSearches`, trois), clavier compact dont la rangée du haut propose des
+  suggestions (« hollow », « horizon », « hollow knight »). ≡ ou « Rechercher » passe aux
+  résultats ; A choisit : l'accueil montre le jeu (catégorie Tout). Haut depuis les suggestions :
+  les résultats, sinon les recherches récentes. « Aucun jeu ne correspond à « … » ».
+- Corrigé au passage : `PadRepeat` repartait sans touche quand l'appelant l'arrêtait pendant
+  l'appui (une flèche droite restait « tenue » et rebasculait un interrupteur).
+- Harnais : `HomeDemo` (feuille des maquettes ; actions `y`, `b`, `key-*`), `ConsoleHomeDemo`
+  (`settings:<rubrique>`, `content`, `pads=1`), `KeyboardDemo` (`motion=1`), `SearchDemo`
+  (`query=`, `results=1`). Tests : `tst_Settings` (cartes, navigation, Réglages),
+  `tst_Search`, `tst_OnScreenKeyboard` réécrit, `tst_ConsoleHome` (onglet Console, Tous les
+  réglages et **relecture de la conf comme après un redémarrage**, recherche par ≡, Wi-Fi au
+  premier démarrage par les Réglages).
+
+### Porte de la phase 4
+- **OptionsFeuille** : feuille à 11,6 / 255 d'écart (zone de la feuille ; le fond de la planche
+  est l'ancien accueil) ; seul écart de mise en page : « Écran virtuel », absent de la conf (question 22).
+- **MotionOptions** : même séquence image par image (ouverture, focus, RB → Console, A sur Sons,
+  B), l'accueil recule derrière.
+- **Reglages*** (4 planches) : 14,5 à 17,4 / 255, dû aux lignes et rubriques sans réglage réel
+  (question 25) qui décalent les cartes ; gabarit, menu, cartes, focus et légende conformes.
+- **ClavierWifi** : 3,7 / 255 (« WPA2 · » absent du sous-titre : la sécurité exacte n'est pas
+  connue). **MotionClavier** : déplacements, frappe, bulle d'accents, effacement conformes ; la
+  suite (connexion, « Connecté à … », Continuer) est la première configuration (phase 8).
+- **Recherche** : 4,5 / 255 (le mock n'a pas les mêmes jeux ni les mêmes genres).
+- Réglages relus après redémarrage : `tst_ConsoleHome::test_9c_allSettings` relit la conf
+  `ConsoleUi` après écriture (glyphes, vibrations, veille).
+- Tests : 21 suites vertes ; build `embedded` sans avertissement de la console ; anglais complet
+  (462 textes).
+- ⚠️ **À valider à la manette par Coco** : Y (feuille, LB / RB, réglages avancés, curseur du
+  débit, Oublier ce PC maintenu), Console › Tous les réglages (menu, → / LB / RB / B, chaque
+  rubrique), Wi-Fi depuis la barre haute ou le premier démarrage → mot de passe au clavier (A,
+  accents en maintenant A, X, Y, ≡, LT, LB / RB, R3), ≡ à l'accueil → recherche (suggestions,
+  haut, résultats, A).
+
+### Questions pour Coco (phase 4)
+(La 22, « Écran virtuel » et « Priorité » des options, reste ouverte : « Priorité » est affichée
+comme chiffre du profil — Latence, Équilibre, Image —, « Écran virtuel » est masqué.)
+25. Réglages des maquettes sans équivalent, **masqués** pour l'instant : Wi-Fi on / off,
+    « Autre réseau… » (réseau caché), secours 5G et bande préférée, rubrique Réseau mobile 5G ;
+    manettes connues, « Associer une manette » (Bluetooth), test des boutons ; luminosité
+    automatique, couleurs, chaleur le soir, ambiances des écrans de veille, sortie audio ; mise à
+    jour (cf. 16), stockage (barre, vider le cache des jaquettes), licences, matériel ; rubriques
+    Bibliothèque, Notifications, Confidentialité (cf. 21). Lesquels faire, et dans quel ordre ?
+    « Réinitialiser la console » viendra avec la première configuration (phase 8).
+26. Nom de la console (« Console de Coco », cf. 20) : c'est aujourd'hui le nom de la machine
+    Linux ; un nom choisi au premier démarrage ? Version de CocoOS (« CocoOS 1.2 ») : pas de
+    numéro aujourd'hui, seul celui de moonlight-qt est affiché.
+27. Glyphes à l'écran : la maquette propose Xbox / PlayStation / Nintendo ; j'ai gardé **Auto** en
+    premier (la manette branchée), sinon on ne pourrait plus revenir à la détection. D'accord ?
+28. Recherche : ≡ à l'accueil l'ouvre (proposition de la phase 3, cf. 5). Les suggestions de
+    l'état « aucun résultat » (« Vérifier l'orthographe », « Chercher dans Playnite ») ne sont pas
+    reprises : rien derrière. Signal Wi-Fi en % (NetworkManager ne donne pas les dBm de la maquette).
+
 ## Refonte CocoOS — phase 3, fiche jeu et favoris (2026-10-28)
 
 Décision de Coco : l'engrenage de la barre haute se réglera plus tard (reste masqué).

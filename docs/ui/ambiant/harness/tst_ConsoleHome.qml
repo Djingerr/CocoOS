@@ -510,6 +510,32 @@ Item {
             compare(screen.currentIndex, 1)
         }
 
+        // ≡ (Start, même touche que Y) : la recherche ; Y garde les options. Un résultat choisi :
+        // l'accueil le montre (catégorie Tout), la recherche est retenue.
+        function test_9c_searchFromStart() {
+            var search = find(home, "found")
+            keyClick(Qt.Key_Hangup)                         // Y : les options
+            verify(screen.options.opened && !search.opened)
+            keyClick(Qt.Key_Escape)
+            InputStatus.start = true
+            keyClick(Qt.Key_Hangup)                         // ≡ : la recherche
+            InputStatus.start = false
+            verify(search.opened && !screen.options.opened)
+            verify(screen.panelOpen)
+            search.panel.setText("eld")
+            compare(search.found.map(function(r) { return r.name }), ["Elden Ring"])
+            InputStatus.start = true
+            keyClick(Qt.Key_Hangup)                         // ≡ au clavier : les résultats
+            InputStatus.start = false
+            compare(search.zone, "results")
+            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)   // A : ce jeu
+            verify(!search.opened)
+            compare(screen.title, "Elden Ring")
+            compare(search.recent[0], "eld")
+            keyClick(Qt.Key_Left)                           // la manette est revenue au carrousel
+            verify(screen.title !== "Elden Ring")
+        }
+
         // Le Companion est découvert mais pas appairé : son écran de code remplace
         // l'accueil et prend la manette, puis la rend à l'étagère une fois appairé.
         function test_9c_companionPairingTakesThePad() {
