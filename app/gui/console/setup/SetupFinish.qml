@@ -18,7 +18,7 @@ Item {
     function start() {
         running = true
         leaving = false
-        ring.opacity = 0; ring.scale = Theme.finRingFrom; ring.fill = 0
+        ring.opacity = 0; ring.scale = 1 - (1 - Theme.finRingFrom) * Theme.move; ring.fill = 0
         glow.opacity = 0
         message.opacity = 0; message.shift = 14; message.blurPx = 6
         sequence.restart()
@@ -53,7 +53,7 @@ Item {
         y: Theme.finTextTop
         spacing: Theme.finTextGap
         opacity: 0
-        transform: Translate { y: message.shift }
+        transform: Translate { y: message.shift * Theme.move }
         layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software && opacity > 0 && opacity < 1
         layer.effect: MultiEffect { blurEnabled: true; blurMax: 16; blur: message.blurPx / 16 }
         Text {
@@ -114,7 +114,7 @@ Item {
                 ParallelAnimation {
                     NumberAnimation { target: ring; property: "opacity"; to: 0; duration: Theme.finOut }
                     NumberAnimation { target: glow; property: "opacity"; to: 0; duration: Theme.finOut }
-                    NumberAnimation { target: ring; property: "scale"; to: Theme.finRingTo; duration: Theme.finOut * 640 / 360; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveExit }
+                    NumberAnimation { target: ring; property: "scale"; to: 1 - (1 - Theme.finRingTo) * Theme.move; duration: Theme.finOut * 640 / 360; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveExit }
                 }
             }
             SequentialAnimation {

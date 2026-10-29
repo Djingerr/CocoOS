@@ -1044,6 +1044,7 @@ Item {
         // éventail (returnStyle « boot »).
         function test_9o_bootUnfoldsIntoTheCover() {
             var h = createTemporaryObject(freshHome, window)
+            h.setupDone = true                              // (configuration faite, même lancé seul)
             var sp = h.splash
             sp.speed = 0.0001                               // (le temps ne court pas tout seul…)
             var screen2 = find(h, "ready")

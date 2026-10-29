@@ -69,8 +69,13 @@ Item {
                 text: modelData.text
                 color: Theme.ink
                 opacity: 0
-                scale: Theme.helloScaleIn
-                transform: Translate { y: word.shift }
+                property real zoom: Theme.helloScaleIn
+                // (Réduire les animations : ni glissement ni échelle, le fondu seul)
+                transform: [
+                    Scale { origin.x: word.width / 2; origin.y: word.height / 2
+                            xScale: 1 + (word.zoom - 1) * Theme.move; yScale: xScale },
+                    Translate { y: word.shift * Theme.move }
+                ]
                 font.family: modelData.lang === "ja" ? Theme.fontHelloJp : Theme.fontUi
                 font.pixelSize: Theme.helloSize; font.weight: Font.DemiBold
                 font.letterSpacing: track * Theme.helloSize
@@ -79,17 +84,17 @@ Item {
 
                 state: root.shown === index ? "on" : root.last === index ? "after" : "before"
                 states: [
-                    State { name: "on"; PropertyChanges { word.opacity: 1; word.blurPx: 0; word.shift: 0; word.scale: 1; word.track: Theme.helloTrackOn } },
-                    State { name: "after"; PropertyChanges { word.opacity: 0; word.blurPx: Theme.helloBlur; word.shift: Theme.helloAbove; word.scale: Theme.helloScaleOut; word.track: Theme.helloTrackOff } },
-                    State { name: "before"; PropertyChanges { word.opacity: 0; word.blurPx: Theme.helloBlur; word.shift: Theme.helloBelow; word.scale: Theme.helloScaleIn; word.track: Theme.helloTrackOff } }
+                    State { name: "on"; PropertyChanges { word.opacity: 1; word.blurPx: 0; word.shift: 0; word.zoom: 1; word.track: Theme.helloTrackOn } },
+                    State { name: "after"; PropertyChanges { word.opacity: 0; word.blurPx: Theme.helloBlur; word.shift: Theme.helloAbove; word.zoom: Theme.helloScaleOut; word.track: Theme.helloTrackOff } },
+                    State { name: "before"; PropertyChanges { word.opacity: 0; word.blurPx: Theme.helloBlur; word.shift: Theme.helloBelow; word.zoom: Theme.helloScaleIn; word.track: Theme.helloTrackOff } }
                 ]
                 transitions: [
                     Transition {
                         to: "on"
-                        NumberAnimation { property: "opacity"; duration: Theme.helloInFade; easing.type: Easing.InOutQuad }
+                        NumberAnimation { property: "opacity"; duration: Theme.reducedMotion ? Theme.reducedSpring.duration : Theme.helloInFade; easing.type: Easing.InOutQuad }
                         NumberAnimation { property: "blurPx"; duration: Theme.reducedMotion ? 0 : Theme.helloInBlur; easing.type: Easing.InOutQuad }
                         NumberAnimation {
-                            properties: "shift,scale,track"; duration: Theme.helloInMove
+                            properties: "shift,zoom,track"; duration: Theme.helloInMove
                             easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveMain
                         }
                     },
@@ -97,7 +102,7 @@ Item {
                         to: "after"
                         NumberAnimation { properties: "opacity,blurPx"; duration: Theme.helloOutFade; easing.type: Easing.InQuad }
                         NumberAnimation {
-                            properties: "shift,scale,track"; duration: Theme.helloOutMove
+                            properties: "shift,zoom,track"; duration: Theme.helloOutMove
                             easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveExit
                         }
                     }

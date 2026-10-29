@@ -218,7 +218,7 @@ Item {
             direction: root.direction
             axis: root.axis
             animated: root.animated
-            distance: root.axis === "x" ? Theme.categorySlide : Theme.homeTitleTravel
+            distance: (root.axis === "x" ? Theme.categorySlide : Theme.homeTitleTravel) * Theme.move
             duration: root.fast ? Theme.homeTitleFast : Theme.homeTitleMove
             exitDuration: root.fast ? Theme.homeTitleFast : Theme.homeTitleMove
             enterCurve: Theme.curveMain; exitCurve: Theme.curveMain

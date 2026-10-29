@@ -175,7 +175,7 @@ FocusScope {
         id: content
         anchors.fill: parent
         opacity: finishPage.leaving ? 0 : 1
-        scale: finishPage.leaving ? Theme.finScale : 1
+        scale: finishPage.leaving ? 1 - (1 - Theme.finScale) * Theme.move : 1
         Behavior on opacity { NumberAnimation { duration: Theme.finFade } }
         Behavior on scale { NumberAnimation { duration: Theme.finShrink; easing.type: Easing.BezierSpline; easing.bezierCurve: Theme.curveExit } }
 
@@ -230,7 +230,7 @@ FocusScope {
             Component.onCompleted: if (on) opacity = 1
             onOnChanged: {
                 enter.stop(); leave.stop()
-                var shift = root.forward ? Theme.setupSwapShift : -Theme.setupSwapShift
+                var shift = (root.forward ? Theme.setupSwapShift : -Theme.setupSwapShift) * Theme.move
                 if (on) {
                     rise = shift
                     enter.restart()

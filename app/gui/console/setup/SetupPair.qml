@@ -114,7 +114,7 @@ FocusScope {
         y: Theme.pairTitleTop
         spacing: Theme.pairTextGap
         opacity: 0
-        transform: Translate { y: swap.shift }
+        transform: Translate { y: swap.shift * Theme.move }
         layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software && opacity > 0 && opacity < 1
         layer.effect: MultiEffect { blurEnabled: true; blurMax: 16; blur: swap.blurPx / 16 }
         states: State { name: "on"; when: swap.on; PropertyChanges { swap.opacity: 1; swap.shift: 0; swap.blurPx: 0 } }
@@ -193,11 +193,11 @@ FocusScope {
                 readonly property real digitAt: Theme.pairDigitDelay + index * Theme.pairDigitStagger
                 readonly property real digitP: Math.max(0, Math.min(1, (t - digitAt) / Theme.pairDigitMove))
                 property real gather: 0
-                x: home + toCenter * gather
+                x: home + toCenter * gather * Theme.move
                 width: Theme.pairBox; height: Theme.pairBoxHeight
                 opacity: Math.min(1, inP * boxesIn.duration / Theme.pairBoxFade) * (1 - gatherFade)
                 property real gatherFade: 0
-                scale: (Theme.pairBoxFrom + (1 - Theme.pairBoxFrom) * ease(inP)) * (1 - (1 - Theme.pairGatherScale) * gather)
+                scale: 1 - (1 - (Theme.pairBoxFrom + (1 - Theme.pairBoxFrom) * ease(inP)) * (1 - (1 - Theme.pairGatherScale) * gather)) * Theme.move
                 function ease(p) { return 1 - Math.pow(1 - p, 3) }
                 states: State { name: "gathered"; when: root.done; PropertyChanges { box.gather: 1; box.gatherFade: 1 } }
                 transitions: Transition {
@@ -238,7 +238,7 @@ FocusScope {
                     text: root.shownDigits[box.index] !== undefined ? root.shownDigits[box.index] : ""
                     color: Theme.ink
                     opacity: Math.min(1, p * Theme.pairDigitMove / Theme.pairDigitFade)
-                    transform: Translate { y: (1 - digit.eased) * Theme.pairDigitShift }
+                    transform: Translate { y: (1 - digit.eased) * Theme.pairDigitShift * Theme.move }
                     readonly property real eased: 1 - Math.pow(1 - p, 3)
                     font.family: Theme.fontUi; font.pixelSize: Theme.pairDigitSize; font.weight: Font.DemiBold
                     font.letterSpacing: -0.03 * Theme.pairDigitSize
@@ -258,7 +258,7 @@ FocusScope {
         width: Theme.pairCheck; height: width; radius: width / 2
         color: Theme.accent
         opacity: 0
-        scale: Theme.pairCheckFrom
+        scale: 1 - (1 - Theme.pairCheckFrom) * Theme.move
         layer.enabled: GraphicsInfo.api !== GraphicsInfo.Software && opacity > 0
         layer.effect: MultiEffect {
             shadowEnabled: true; shadowColor: Qt.rgba(Theme.accent.r, Theme.accent.g, Theme.accent.b, Theme.pairCheckGlow / 100)
@@ -331,7 +331,7 @@ FocusScope {
     PillButton {
         id: cta
         anchors.horizontalCenter: parent.horizontalCenter
-        y: Theme.pairCtaTop + shift
+        y: Theme.pairCtaTop + shift * Theme.move
         property real shift: Theme.pairCtaShift
         primary: true
         glyph: "A"

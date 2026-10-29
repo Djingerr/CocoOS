@@ -241,7 +241,7 @@ FocusScope {
         KeyboardPanel {
             id: panel
             x: (canvas.width - width) / 2
-            y: Theme.kbTop + Theme.kbTravel * (1 - root.reveal)
+            y: Theme.kbTop + Theme.kbTravel * (1 - root.reveal) * Theme.move
             focus: true
             live: root.opened
             chips: Theme.kbChips

@@ -89,9 +89,23 @@ FocusScope {
         if (currentIndex !== lastIndex)
             direction = currentIndex > lastIndex ? 1 : -1
         lastIndex = currentIndex
-        if (!completed || Theme.reducedMotion) {
+        if (!completed) {
             slide.stop()
             position = currentIndex
+            return
+        }
+        // Réduire les animations (MotionReduite) : pas de rotation, un fondu enchaîné de 200 ms —
+        // l'image d'avant, figée, s'efface sur la nouvelle place.
+        if (Theme.reducedMotion) {
+            slide.stop()
+            var frozen = frozenLoader.item
+            if (!frozen || !root.shown) {
+                position = currentIndex
+                return
+            }
+            frozen.fade.stop()
+            frozen.pending = currentIndex
+            frozen.scheduleUpdate()
             return
         }
         slide.duration = fast ? Theme.coverMoveFast : Theme.coverMove
@@ -600,6 +614,37 @@ FocusScope {
                         }
                     }
                 }
+            }
+        }
+    }
+    // L'image figée du fondu enchaîné (Réduire les animations) ; créée seulement alors, sur le
+    // rendu GPU (le rendu logiciel des tests n'en veut pas).
+    Loader {
+        id: frozenLoader
+        x: strip.x; y: strip.y
+        width: strip.width; height: strip.height
+        active: Theme.reducedMotion && GraphicsInfo.api !== GraphicsInfo.Software && GraphicsInfo.api !== GraphicsInfo.Unknown
+        sourceComponent: ShaderEffectSource {
+            id: frozen
+            property int pending: -1
+            property alias fade: crossfade
+            sourceItem: strip
+            live: false
+            // (une image invisible n'est pas rendue : présente, presque transparente, le temps de la capture)
+            opacity: pending >= 0 ? 0.001 : 0
+            visible: opacity > 0
+            onScheduledUpdateCompleted: {
+                if (pending < 0) return
+                var next = pending
+                pending = -1
+                opacity = 1
+                root.position = next
+                crossfade.restart()
+            }
+            NumberAnimation {
+                id: crossfade
+                target: frozen; property: "opacity"; to: 0
+                duration: Theme.reducedSpring.duration
             }
         }
     }

@@ -28,8 +28,9 @@ Item {
     Component.onCompleted: live = true
 
     opacity: 0
-    scale: hiddenScale
-    transform: Translate { id: shift; x: root.hiddenX; y: root.hiddenY }
+    // (Réduire les animations : en place, seulement le fondu)
+    scale: 1 - (1 - hiddenScale) * Theme.move
+    transform: Translate { id: shift; x: root.hiddenX * Theme.move; y: root.hiddenY * Theme.move }
 
     states: State {
         name: "shown"

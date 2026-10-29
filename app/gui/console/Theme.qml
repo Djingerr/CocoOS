@@ -27,6 +27,9 @@ QtObject {
     readonly property var reducedSpring: ({ curve: curveOut, duration: 200 })
     // Un mouvement CocoOS { curve, duration } ; avec « Réduire les animations » : reducedSpring.
     function motion(duration, curve) { return reducedMotion ? reducedSpring : { curve: curve, duration: duration } }
+    // Facteur des déplacements et des échelles d'entrée : 0 avec « Réduire les animations »
+    // (MotionReduite : même ordre, mêmes délais, mais des fondus de 200 ms sur place).
+    readonly property real move: reducedMotion ? 0 : 1
 
     // --- Couleurs ---
     // L'accent : celui de la marque, l'accent choisi, ou celui du jeu sélectionné (MotionAccent,

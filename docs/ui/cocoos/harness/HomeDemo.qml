@@ -37,6 +37,8 @@ import "Mock.js" as Mock
 // « Connexion à PC-Salon… »), fail, retry.
 //   accent    1 : l'accent suit le jeu au centre (MotionAccent ; la couleur des maquettes, au lieu
 //             de celle qu'AmbientColor tirerait de la jaquette), rendue lisible par Accent.js
+//   reduce    1 : « Réduire les animations » (MotionReduite) ; actions power / powerclose (le menu
+//             d'alimentation, un dialogue) et x (la bannière des favoris)
 //   time      heure affichée (21:42 par défaut)
 //   picker    1 : le choix du PC ouvert, PC-Bureau sous la manette (ChoixPC)
 //   idlein, idleout (actions) : l'écran de veille (son fond), puis la sortie (MotionReveil)
@@ -264,6 +266,7 @@ HomeScreen {
     }
 
     Component.onCompleted: {
+        Theme.reducedMotion = args.reduce === "1"
         fill()
         currentIndex = Number(args.focus !== undefined ? args.focus : 3)
         Sounds.enabled = args.out === undefined && args.sound !== "0"
@@ -334,6 +337,8 @@ HomeScreen {
         else if (action === "asleep" || action === "offline" || action === "waking") pc = action
         else if (action === "woke") { pc = "online"; woke.start(); Sounds.play("host_online") }
         else if (action === "hold") powerMenu.startHold()
+        else if (action === "power") powerMenu.open()
+        else if (action === "powerclose") powerMenu.close(false)
         else if (action === "shutdown" || action === "reboot") {
             shutdown.status = action === "reboot" ? "Redémarrage…" : ""
             leaveStyle = "collapse"

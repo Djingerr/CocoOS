@@ -16,7 +16,7 @@ Item {
     }
 
     x: (parent.width - width) / 2
-    y: Theme.toastTop + (shown ? 0 : Theme.toastShift)
+    y: Theme.toastTop + (shown ? 0 : Theme.toastShift * Theme.move)
     width: pill.width; height: pill.height
     opacity: shown ? 1 : 0
     visible: opacity > 0

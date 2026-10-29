@@ -43,7 +43,7 @@ FocusScope {
     property real reveal: opened ? 1 : 0
     Behavior on reveal {
         NumberAnimation {
-            duration: root.opened ? Theme.optOpen.duration : Theme.optClose.duration
+            duration: Theme.reducedMotion ? Theme.reducedSpring.duration : root.opened ? Theme.optOpen.duration : Theme.optClose.duration
             easing.type: Easing.BezierSpline
             easing.bezierCurve: root.opened ? Theme.optOpen.curve : Theme.optClose.curve
         }
@@ -103,13 +103,14 @@ FocusScope {
 
     Rectangle {
         id: panel
-        x: root.width - Theme.optMargin - width + Theme.optSlide * (1 - root.reveal)
+        x: root.width - Theme.optMargin - width + Theme.optSlide * (1 - root.reveal) * Theme.move
         y: Theme.optMargin
         width: Theme.optWidth; height: root.height - 2 * Theme.optMargin
         radius: Theme.radiusSheet
         color: "transparent"
-        opacity: root.opened ? 1 : Theme.optClosedOpacity
+        opacity: Theme.reducedMotion ? root.reveal : root.opened ? 1 : Theme.optClosedOpacity
         Behavior on opacity {
+            enabled: !Theme.reducedMotion
             SequentialAnimation {
                 PauseAnimation { duration: root.opened ? 0 : Theme.optFadeOutDelay }
                 NumberAnimation { duration: root.opened ? Theme.optFadeIn : Theme.optFadeOut }

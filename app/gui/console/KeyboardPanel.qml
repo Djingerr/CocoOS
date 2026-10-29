@@ -473,8 +473,8 @@ FocusScope {
             property bool shown: root.accent >= 0
             opacity: shown ? 1 : 0
             visible: opacity > 0
-            scale: shown ? 1 : Theme.kbAccentFrom
-            transform: Translate { y: bubbleBox.shown ? 0 : Theme.kbAccentTravel }
+            scale: shown ? 1 : 1 - (1 - Theme.kbAccentFrom) * Theme.move
+            transform: Translate { y: bubbleBox.shown ? 0 : Theme.kbAccentTravel * Theme.move }
             Behavior on opacity { NumberAnimation { duration: Theme.kbAccentFade } }
             Behavior on scale {
                 NumberAnimation {

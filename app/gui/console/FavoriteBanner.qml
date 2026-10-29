@@ -22,8 +22,8 @@ Rectangle {
     border.color: Theme.hairlineStrong
     visible: opacity > 0
     opacity: shown ? 1 : 0
-    scale: shown ? 1 : 0.94
-    property real lift: shown ? 0 : Theme.bannerTravel
+    scale: shown ? 1 : 1 - 0.06 * Theme.move
+    property real lift: shown ? 0 : Theme.bannerTravel * Theme.move
     Behavior on lift {
         NumberAnimation {
             duration: root.shown ? Theme.bannerIn : Theme.bannerOut

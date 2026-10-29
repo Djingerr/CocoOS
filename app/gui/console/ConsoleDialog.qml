@@ -37,7 +37,7 @@ FocusScope {
     readonly property bool holdFocused: holds[focusedButton] === true
     // 0 = fermé, 1 = ouvert ; le panneau et le voile en découlent.
     property real reveal: opened ? 1 : 0
-    Behavior on reveal { NumberAnimation { duration: Theme.sheetSlide; easing.type: Theme.easeQuint } }
+    Behavior on reveal { NumberAnimation { duration: Theme.reducedMotion ? Theme.reducedSpring.duration : Theme.sheetSlide; easing.type: Theme.easeQuint } }
 
     visible: opened || reveal > 0
 
@@ -141,7 +141,9 @@ FocusScope {
         Rectangle {
             id: panel
             // Fermé, il attend juste au-delà du bord droit.
-            x: parent.width - width * root.reveal + width * 0.04 * (1 - root.reveal)
+            // (Réduire les animations : en place, en fondu)
+            x: parent.width - width * (Theme.reducedMotion ? 1 : root.reveal) + width * 0.04 * (1 - root.reveal) * Theme.move
+            opacity: Theme.reducedMotion ? root.reveal : 1
             width: Theme.sheetWidth; height: parent.height
             color: Theme.sheetFill
 
