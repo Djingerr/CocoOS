@@ -46,6 +46,9 @@ FocusScope {
     property alias waking: hero.waking               // le bouton Jouer suit le réveil du PC
     // PC hors ligne (EtatHorsLigne) : carrousel grisé, et son message à la place du bloc titre.
     property bool hostOffline: false
+    // Choix du PC ouvert (ChoixPC) : le carrousel s'assombrit sous la barre haute, le bloc titre
+    // et l'aide s'effacent.
+    property bool hostPickerOpen: false
     readonly property alias offline: offlineState
     property alias latencyMs: status.latencyMs
     property alias jitterMs: status.jitterMs
@@ -282,6 +285,7 @@ FocusScope {
             // dernière, de 10 px plus haut (MotionQuitter). Elle fait entrer ses textes
             // elle-même (son logo arrive de l'animation de démarrage).
             LaunchFade {
+                z: 2
                 anchors { top: parent.top; left: parent.left; right: parent.right }
                 height: status.implicitHeight
                 shift: Theme.returnBarShift
@@ -385,7 +389,7 @@ FocusScope {
                         width: parent.width
                         // Fiche ouverte : le bloc titre part vers le haut en fondu (220 ms), et revient
                         // après 300 ms quand elle se referme (MotionFiche).
-                        opacity: root.detailOpen || root.hostOffline ? 0 : 1
+                        opacity: root.detailOpen || root.hostOffline || root.hostPickerOpen ? 0 : 1
                         property real lift: root.detailOpen ? -Theme.homeLeaveTravel : 0
                         transform: Translate { y: hero.lift }
                         Behavior on opacity {
@@ -442,7 +446,7 @@ FocusScope {
                     y: Theme.canvasHeight - Theme.helpBottom - height
                     lit: shelf.heldDirection
                     opacity: root.entered && !root.staged && !root.favoritesEmpty && !root.detailOpen
-                             && !favBanner.shown && !root.hostOffline ? 1 : 0
+                             && !favBanner.shown && !root.hostOffline && !root.hostPickerOpen ? 1 : 0
                     Behavior on opacity { NumberAnimation { duration: Theme.entryTextFade } }
                 }
             }
@@ -487,13 +491,25 @@ FocusScope {
                 focus: root.staged && !sheet.opened
             }
 
+            // Sous la barre haute, pendant le choix du PC.
+            Rectangle {
+                z: 1
+                anchors.fill: parent
+                color: Theme.pickerDim
+                opacity: root.hostPickerOpen ? 1 : 0
+                visible: opacity > 0
+                Behavior on opacity { NumberAnimation { duration: Theme.pickerOut } }
+            }
+
             // Assombri, et coins arrondis : un cadre noir dont le bord intérieur s'arrondit.
             Rectangle {
+                z: 3
                 anchors.fill: parent
                 color: Theme.background
                 opacity: Theme.recedeDim * homeLayer.recede
             }
             Rectangle {
+                z: 3
                 visible: homeLayer.recede > 0
                 x: -Theme.recedeFrame; y: -Theme.recedeFrame
                 width: parent.width + 2 * Theme.recedeFrame; height: parent.height + 2 * Theme.recedeFrame

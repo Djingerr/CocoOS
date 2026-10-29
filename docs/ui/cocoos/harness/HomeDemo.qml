@@ -35,6 +35,7 @@ import "Mock.js" as Mock
 // retour d'un flux), back (il se lève). Échec (MotionEchec) : reach (l'écran ouvert sur
 // « Connexion à PC-Salon… »), fail, retry.
 //   time      heure affichée (21:42 par défaut)
+//   picker    1 : le choix du PC ouvert, PC-Bureau sous la manette (ChoixPC)
 //   pc        asleep | offline | waking : état du PC (MotionReveilPC, EtatHorsLigne) ; actions
 //             asleep, offline, waking, woke (« … est en ligne », puis connecté)
 HomeScreen {
@@ -149,6 +150,20 @@ HomeScreen {
     }
     Timer { id: launchOpen; interval: Theme.launchPress; onTriggered: launchScreen.open() }
 
+    // Choix du PC (ChoixPC), avec les PC de la maquette.
+    HostPicker {
+        id: picker
+        anchors.fill: parent
+        z: 9
+        hosts: [ { name: "PC-Salon", state: "connected", detail: "Connecté · 4 ms · 214 jeux", current: true },
+                 { name: "PC-Bureau", state: "asleep", detail: "En veille · 38 jeux" },
+                 { name: "Portable-Gaming", state: "missing", detail: "Introuvable sur ce réseau" } ]
+        onClosed: { demo.statusBar.hostRing = false; demo.shelf.forceActiveFocus() }
+        onChosen: close()
+    }
+    function openPicker() { statusBar.hostRing = true; picker.open(1) }
+    hostPickerOpen: picker.opened
+
     property string pc: args.pc || ""
     hostName: "PC-Salon"
     connected: pc === "" || pc === "online"
@@ -219,6 +234,7 @@ HomeScreen {
         Sounds.enabled = args.out === undefined && args.sound !== "0"
         if (args.do) actions.start()
         if (args.fiche === "1") fiche.open()
+        if (args.picker === "1") openPicker()
         var start = Number(args.start || 0)
         var steps = args.script ? args.script.split(",").map(function(x) {
             var p = x.split(":"); return { t: start + Number(p[0]), action: p[1] } }) : []

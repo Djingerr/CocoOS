@@ -51,8 +51,11 @@ Item {
     // L'engrenage (Réglages) n'est pas dans la barre CocoOS (AccueilCarrousel) : masqué tant que
     // Coco ne l'a pas redemandé ; les réglages s'ouvrent par Y (Options).
     property bool settingsShown: false
+    // La pastille du PC se choisit aussi (A : le choix du PC, ChoixPC) ; `hostRing` la cerne
+    // tant que ce choix est ouvert.
+    property bool hostRing: false
     readonly property var keys: {
-        var k = []
+        var k = hostName !== "" ? ["host"] : []
         if (signalStrength >= 0) k.push("wifi")
         if (batteryPercent >= 0) k.push("battery")
         if (settingsShown) k.push("settings")
@@ -80,6 +83,7 @@ Item {
     }
     function activate(key) {
         if (key === "battery" || key === "wifi" && !wifiChangeable) Sounds.play("edge")
+        else if (key === "host") { Sounds.play("select"); activated(key) }
         else activated(key)
     }
     // La souris entre (ou sort) d'une icône ou de sa fiche ; en sortant, elle a un instant
@@ -536,6 +540,20 @@ Item {
                 transformOrigin: Item.TopLeft
                 width: implicitWidth; height: implicitHeight
                 opacity: root.logoShown ? root.logoFade : 0
+            }
+        }
+
+        // Anneau de la pastille du PC (la pastille coupe ce qui déborde : posé à côté).
+        Item {
+            x: pill.x; y: pill.y; width: pill.width; height: pill.height
+            visible: !root.islandOpen
+            scale: pill.scale
+            transformOrigin: Item.Right
+            FocusRing { inset: 0; shown: root.hostRing || root.activeFocus && root.selected === "host" }
+            HoverArea {
+                anchors.fill: parent
+                enabled: !root.islandOpen && root.contentShown
+                onClicked: root.activate("host")
             }
         }
 

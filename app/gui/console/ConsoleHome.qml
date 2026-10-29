@@ -69,6 +69,7 @@ FocusScope {
     // Premier démarrage : bienvenue, puis réseau si la console n'est pas en ligne ;
     // ensuite seulement la recherche du PC et les liaisons.
     property alias setupDone: consoleConfig.setupDone
+    property alias preferredHost: consoleConfig.preferredHost   // PC choisi (ChoixPC)
     property bool welcomed: false
     readonly property bool needsNetwork: WifiSetup.available && !WifiSetup.online
     onNeedsNetworkChanged: if (welcomed && !needsNetwork) setupDone = true
@@ -100,6 +101,7 @@ FocusScope {
         // profils, les réglages à part d'un jeu. Éteint, l'essentiel seulement.
         property bool advancedSettings: false
         property string recentSearches: "[]"   // recherches récentes, la dernière en tête (JSON)
+        property string preferredHost: ""      // PC choisi (ChoixPC) ; vide : le premier trouvé
     }
 
     Component.onCompleted: {
@@ -484,6 +486,15 @@ FocusScope {
         // Premier candidat online+paired, sinon premier online, sinon 0, sinon -1.
         var fallback = hostScanner.count > 0 ? 0 : -1
         var firstOnline = -1
+        // Le PC choisi (ChoixPC), même hors ligne : l'accueil dit alors qu'il l'est.
+        for (var p = 0; p < hostScanner.count && consoleConfig.preferredHost !== ""; p++) {
+            var pref = hostScanner.objectAt(p)
+            if (pref && pref.hostName === consoleConfig.preferredHost && pref.isPaired) {
+                if (activeComputerIndex !== p) activeComputerIndex = p
+                updateActiveHostView(pref)
+                return
+            }
+        }
         for (var i = 0; i < hostScanner.count; i++) {
             var it = hostScanner.objectAt(i)
             if (!it) continue
@@ -1748,6 +1759,7 @@ FocusScope {
         connected: home.activeHostOnline && home.activeHostPaired
         hostState: home.hostState
         hostOffline: home.hostOffline
+        hostPickerOpen: hostPicker.opened
         waking: home.waking && !launchScreen.active
         // Batterie et Wi-Fi de la console (-1 : pas de donnée, indicateur masqué), et
         // réseau vers le PC, sondé tant que l'accueil est à l'écran.
@@ -1759,7 +1771,10 @@ FocusScope {
         batteryDetails: SystemStatus.batteryDetails
         wifi: SystemStatus.wifi
         wifiChangeable: WifiSetup.available
-        onSystemRequested: function(key) { if (key === "wifi") home.openWifi() }
+        onSystemRequested: function(key) {
+            if (key === "wifi") home.openWifi()
+            else if (key === "host") home.openHostPicker()
+        }
         controllerBattery: InputStatus.controllerBattery
         controllerCount: InputStatus.controllerCount
         controllerFamily: InputStatus.layout
@@ -1783,6 +1798,7 @@ FocusScope {
                 || welcomeScreen.shown || networkScreen.shown
         detailOpen: gamePage.shown
         panelOpen: confirmDialog.opened || homeMenu.opened || settingsScreen.opened || findScreen.opened
+                   || hostPicker.opened
                    || downloadMenu.opened
 
         onLaunchRequested: function(index) {
@@ -2051,9 +2067,42 @@ FocusScope {
         function onNetworkRequested() { home.openWifi() }
     }
 
-    // Choix d'un autre PC (Y, à l'état « PC hors ligne »).
+    // --- Choix du PC (ChoixPC) : la pastille du PC, ou Y à l'état « PC hors ligne » ---
+    // Les PC appairés : connecté (coché), en ligne, en veille (réveillable), introuvable.
+    function pickerHosts() {
+        var list = []
+        for (var i = 0; i < hostScanner.count; i++) {
+            var it = hostScanner.objectAt(i)
+            if (!it || !it.isPaired) continue
+            var current = i === activeComputerIndex
+            var games = current && allTiles.length > 0
+                      ? (allTiles.length === 1 ? qsTr("1 jeu") : qsTr("%1 jeux").arg(allTiles.length)) : ""
+            var state = it.isOnline ? (current ? "connected" : "online")
+                      : it.isWakeable ? "asleep" : "missing"
+            var detail = state === "connected" ? [qsTr("Connecté")].concat(SystemStatus.latencyMs >= 0 ? [qsTr("%1 ms").arg(SystemStatus.latencyMs)] : [])
+                       : state === "online" ? [qsTr("En ligne")]
+                       : state === "asleep" ? [qsTr("En veille")] : [qsTr("Introuvable sur ce réseau")]
+            if (games !== "" && state !== "missing") detail.push(games)
+            list.push({ index: i, name: it.hostName, state: state, detail: detail.join(" · "), current: current })
+        }
+        return list
+    }
     function openHostPicker() {
-        openSettings("pc")
+        var hosts = pickerHosts()
+        hostPicker.hosts = hosts
+        hostPicker.open(Math.max(0, hosts.findIndex(function(h) { return h.current })))
+        homeScreen.statusBar.hostRing = true
+    }
+    // A Basculer : ce PC devient celui de l'accueil (retenu dans la conf) ; endormi, on le réveille.
+    function chooseHost(row) {
+        var host = hostPicker.hosts[row]
+        hostPicker.close()
+        if (!host) return
+        if (host.index !== activeComputerIndex) {
+            consoleConfig.preferredHost = host.name
+            pickActiveComputer()
+        }
+        if (!activeHostOnline && activeHostWakeable) wakeHost(true)
     }
 
     function openWifi() {
@@ -2158,6 +2207,18 @@ FocusScope {
             startDown: function() { return InputStatus.startHeld() }
             onChosen: function(index, query) { home.searchChosen(index, query) }
             onClosed: homeScreen.forceActiveFocus()
+        }
+        HostPicker {
+            id: hostPicker
+            anchors.fill: parent
+            onChosen: function(row) { home.chooseHost(row) }
+            // « Ajouter un PC » mène au choix du PC de la première configuration (SetupPC,
+            // phase 8) : refusé d'ici là.
+            onAddRequested: { refuse(); Sounds.play("deny") }
+            onClosed: {
+                homeScreen.statusBar.hostRing = false
+                homeScreen.forceActiveFocus()
+            }
         }
         // Tant que la page Wi-Fi est ouverte, la liste se met à jour.
         Timer {

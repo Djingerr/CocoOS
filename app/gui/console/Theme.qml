@@ -1283,6 +1283,32 @@ QtObject {
     readonly property int offlineLegendGap: 26
     readonly property int legendBottomCoco: 34        // légende centrée en bas (EtatHorsLigne, ChoixPC)
 
+    // --- Choix du PC (ChoixPC) : menu de verre sous la pastille du PC ---
+    readonly property color pickerDim: Qt.rgba(0, 0, 0, 0.35)
+    readonly property int pickerRight: 214           // du bord droit du canevas
+    readonly property int pickerTop: 74
+    readonly property int pickerWidth: 380
+    readonly property int pickerRadius: 26
+    readonly property int pickerIn: 420              // curveSpring, depuis 0,96 (coin haut droit)
+    readonly property int pickerOut: 200
+    readonly property real pickerFrom: 0.96
+    readonly property int pickerHeaderTop: 16        // « JOUER DEPUIS » : 12 px 600, ink3
+    readonly property int pickerHeaderBottom: 10
+    readonly property int pickerHeaderLeft: 18
+    readonly property int pickerHeaderSize: 12
+    readonly property int pickerRowHeight: 64
+    readonly property int pickerAddHeight: 52
+    readonly property int pickerPad: 16
+    readonly property int pickerGap: 12
+    readonly property int pickerDot: 8
+    readonly property int pickerLineGap: 3
+    readonly property int pickerNameSize: 15         // 500 (600 sous la manette)
+    readonly property int pickerDetailSize: 12       // 500, hostDetailInk
+    readonly property int pickerCheck: 16
+    readonly property int pickerPlus: 14
+    readonly property int pickerSeparatorLeft: 36
+    readonly property color pickerFocus: Qt.rgba(1, 1, 1, 0.14)
+
     // --- Retour d'un jeu (MotionQuitter) : l'image se réduit en jaquette, l'accueil revient ---
     readonly property int returnFrameDelay: 80
     readonly property int returnFrameShrink: 900     // curveMain

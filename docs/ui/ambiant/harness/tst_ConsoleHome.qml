@@ -364,6 +364,46 @@ Item {
             verify(!screen.waking)
         }
 
+        // Choix du PC (ChoixPC) : la pastille du PC (haut, puis A), les PC appairés ; A bascule
+        // sur un PC endormi (retenu dans la conf) et le réveille.
+        function test_5f_hostPicker() {
+            var pc = home.computerModel, wakes = pc.wakes
+            pc.append({ name: "Bureau", online: false, paired: true, statusUnknown: false, wakeable: true })
+            var picker = null
+            keyClick(Qt.Key_Up)                         // la barre haute…
+            var bar = screen.statusBar
+            while (bar.selected !== "host") keyClick(Qt.Key_Left)   // …jusqu'à la pastille du PC
+            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)
+            picker = find(home.Window.window.contentItem, "hosts")
+            verify(picker.opened)
+            verify(bar.hostRing && screen.hostPickerOpen)
+            compare(picker.hosts.length, 2)
+            compare([picker.hosts[0].name, picker.hosts[0].state, picker.hosts[0].current], ["Djinger", "connected", true])
+            compare([picker.hosts[1].name, picker.hosts[1].state, picker.hosts[1].detail], ["Bureau", "asleep", "En veille"])
+            compare(picker.current, 0)
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down)   // « Ajouter un PC » (phase 8) : refusé
+            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)
+            verify(picker.opened)
+            keyClick(Qt.Key_Up)
+            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)   // A : Basculer sur Bureau
+            verify(!picker.opened)
+            verify(!bar.hostRing)
+            compare(home.activeHostName, "Bureau")
+            compare(home.preferredHost, "Bureau")
+            compare(pc.wakes, wakes + 1)                // endormi : on le réveille
+            compare(screen.hostState, "waking")
+            verify(bar.activeFocus)                     // la manette revient à la pastille…
+            keyClick(Qt.Key_Down)                       // …bas : au carrousel
+            bar.selected = "battery"                    // (la barre retient sa dernière icône)
+
+            home.waking = false
+            home.preferredHost = ""
+            pc.remove(1)
+            home.pickActiveComputer()
+            compare(home.activeHostName, "Djinger")
+            tryCompare(screen, "count", 10)
+        }
+
         function test_6_companionLaunchWithUpdate() {
             CompanionClient.paired = true
             CompanionClient.eventsConnected = true
