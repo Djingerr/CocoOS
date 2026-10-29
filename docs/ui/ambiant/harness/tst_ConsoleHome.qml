@@ -1025,8 +1025,11 @@ Item {
             var h = createTemporaryObject(freshHome, window)
             var sp = h.splash
             var screen2 = find(h, "ready")
-            tryVerify(function() { return sp.running && sp.readyAt >= 0 }, 3000)
-            sp.running = false                              // le temps avance à la main
+            tryVerify(function() { return sp.running && sp.readyAt >= 0 }, 10000)
+            // Le temps avance à la main, depuis l'instant où le système est prêt (sur une machine
+            // chargée, le temps réel pouvait dépasser la sortie avant qu'on le fige).
+            sp.running = false
+            sp.t = sp.readyAt
             var E = sp.exitAt
             sp.advance(E + 200 - sp.t)
             verify(!screen2.entryAllowed)
