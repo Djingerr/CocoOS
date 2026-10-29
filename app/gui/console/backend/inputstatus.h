@@ -20,6 +20,7 @@
 #include <QStringList>
 #include <QTimer>
 #include <QVariantList>
+#include <QVariantMap>
 
 class InputStatus : public QObject
 {
@@ -48,7 +49,8 @@ public:
     // glyphes à montrer, avant chaque flux ; au retour, l'action choisie ("home",
     // "quit", "suspend", "reboot", "poweroff"), vide si le flux s'est fini autrement.
     Q_INVOKABLE void prepareStreamMenu(const QString& game, const QStringList& powerActions,
-                                       const QString& buttonLayout, QObject* system = nullptr);
+                                       const QString& buttonLayout, QObject* system = nullptr,
+                                       const QVariantMap& info = QVariantMap());
     Q_INVOKABLE QString takeStreamExit();
     // Un son de l'interface vient d'être joué (Sounds.played) : la manette vibre selon son
     // motif (StreamMenu::rumble), à l'intensité `level` (0 : coupées, 0,6 : légères, 1 : fortes).

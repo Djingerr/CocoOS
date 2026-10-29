@@ -1233,8 +1233,18 @@ FocusScope {
     }
 
     // Le menu en jeu (bouton Home pendant le flux) : son titre, ses actions, ses glyphes.
+    // L'en-tête du centre de contrôle : jaquette, PC, latence, début de la partie (lancée d'ici).
     function prepareStreamMenu(game) {
-        InputStatus.prepareStreamMenu(game, SystemStatus.powerActions, Theme.buttonLayout, SystemStatus)
+        var tile = null
+        for (var i = 0; i < allTiles.length && game !== ""; i++)
+            if (allTiles[i].name === game) tile = allTiles[i]
+        var recent = Library.parse(consoleConfig.recentGames, {})
+        InputStatus.prepareStreamMenu(game, SystemStatus.powerActions, Theme.buttonLayout, SystemStatus, {
+            cover: tile ? String(tile.cover || tile.boxart || "") : "",
+            host: activeHostName,
+            latency: SystemStatus.latencyMs,
+            startedAt: launchResume && recent[game] ? recent[game] : Date.now()   // (une reprise : depuis son lancement)
+        })
     }
 
     // Retour à l'accueil : fin du jeu, échec, annulation.

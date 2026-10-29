@@ -1,19 +1,19 @@
-// Dessine le menu en jeu (app/gui/console/backend/streampainter.cpp) hors de
-// l'application, pour le comparer au panneau QML qu'il imite. Depuis ce dossier :
+// Dessine le menu en jeu (app/gui/console/backend/streampainter.cpp) hors de l'application,
+// pour le comparer aux planches CocoOS (JeuControle, MotionMenuJeu, StatsOverlay…). Depuis ce
+// dossier :
 //
 //   g++ -std=c++17 -fPIC -I../../../../app/gui/console/backend streammenu-shot.cpp \
 //       ../../../../app/gui/console/backend/streampainter.cpp \
 //       $(pkg-config --cflags --libs Qt6Gui) -o /tmp/streammenu-shot
-//   QT_QPA_PLATFORM=offscreen /tmp/streammenu-shot /tmp/m.png page=menu size=1280x720 layout=xbox
+//   QT_QPA_PLATFORM=offscreen /tmp/streammenu-shot /tmp/m.png size=1280x800 backdrop=art/minecraft.jpg
 //
-// page : menu | confirm | stats | dialog (le dialog de PagesDemo, à comparer avec
-// ./shot.sh /tmp/q.png view=PagesDemo page=dialog size=1280x720). stats=1 ajoute
-// les statistiques au menu ; latency=N (ms) en change le point ; backdrop=art/x.jpg
-// pose cette image en fond flouté, comme une image du jeu. Une étape d'animation :
-// reveal=, veil=, blur=, focusY=, pageMix= (avec page=confirm : la liste s'efface),
-// swap= (avec stats=1 : « Masquées » sort, « Affichées » entre), de 0 à 1.
-// hold= (page=confirm focus=1 : le remplissage de l'appui maintenu), holdDone= (la coche).
-// page=stats notice="Réseau instable" tone=bad : l'avis pendant le jeu, en haut à droite.
+// page : menu (le centre de contrôle) | power (la carte d'alimentation par-dessus) | stats (hors
+// du menu : les statistiques, et l'avis notice="…" tone=good|warn|bad).
+// focus=N : la tuile en focus (0 Reprendre, 1 Luminosité, 2 Volume, 3 Capture, 4 Statistiques,
+// 5 Accueil, 6 Quitter, 7 Veille, 8 Alimentation) ; volume=, brightness= (en %) ; cover=… la
+// jaquette de l'en-tête ; layout=xbox|playstation|nintendo. Une étape d'animation : open=ms
+// (depuis l'ouverture), closing=, veil=, blur=, powerMix=, swap= (avec stats=1 : « Masquées »
+// sort, « Affichées » entre), hold= et holdDone= (focus=6 : l'appui maintenu sur Quitter).
 
 #include "streampainter.h"
 
@@ -38,45 +38,61 @@ int main(int argc, char* argv[])
     for (const QString& file : fonts.entryList({ QStringLiteral("Sora-*.ttf") })) {
         QFontDatabase::addApplicationFont(fonts.filePath(file));
     }
+    StreamPainter::setIconRoot(QStringLiteral("../../../../app/gui/console/icons/"));
 
-    const QStringList size = opt.value(QStringLiteral("size"), QStringLiteral("1280x720")).split('x');
+    const QStringList size = opt.value(QStringLiteral("size"), QStringLiteral("1280x800")).split('x');
     const QString page = opt.value(QStringLiteral("page"), QStringLiteral("menu"));
+    auto number = [&](const char* key, qreal fallback) {
+        return opt.contains(QLatin1String(key)) ? opt.value(QLatin1String(key)).toDouble() : fallback;
+    };
 
     StreamPainter::Frame frame;
-    StreamPainter::Page& menu = frame.page;
     frame.layout = opt.value(QStringLiteral("layout"), QStringLiteral("xbox"));
-    menu.focus = opt.value(QStringLiteral("focus"), QStringLiteral("0")).toInt();
-    if (page == QLatin1String("dialog")) {
-        menu.title = QStringLiteral("Un jeu est déjà en cours");
-        menu.message = QStringLiteral("Hades II est en cours sur votre PC. Le fermer et lancer Elden Ring ? "
-                                      "Toute progression non sauvegardée sera perdue.");
-        menu.labels = QStringList { QStringLiteral("Annuler"), QStringLiteral("Fermer et jouer") };
-        menu.backLabel = QStringLiteral("Annuler");
+    StreamPainter::Control& control = frame.control;
+    control.game = QStringLiteral("Minecraft");
+    control.status = QStringLiteral("En pause · 1 h 24 min");
+    control.cover = QImage(opt.value(QStringLiteral("cover")));
+    control.host = QStringLiteral("PC-Salon");
+    control.latency = QStringLiteral("4 ms");
+    control.time = opt.value(QStringLiteral("time"), QStringLiteral("21:42"));
+    control.battery = int(number("battery", 82));
+    control.focus = int(number("focus", 0));
+    const int brightness = int(number("brightness", 100)), volume = int(number("volume", 30));
+    const bool statsShown = opt.value(QStringLiteral("stats")) == QLatin1String("1");
+    control.tiles = {
+        { QStringLiteral("resume"), QStringLiteral("Reprendre"), QStringLiteral("Retour au jeu") },
+        { QStringLiteral("brightness"), QStringLiteral("Luminosité"), QStringLiteral("%1 %").arg(brightness), brightness / 100.0 },
+        { QStringLiteral("volume"), QStringLiteral("Volume"), QStringLiteral("%1 %").arg(volume), volume / 100.0 },
+        { QStringLiteral("shot"), QStringLiteral("Capture"), QStringLiteral("Sur la console") },
+        { QStringLiteral("stats"), QStringLiteral("Statistiques"), statsShown ? QStringLiteral("Affichées") : QStringLiteral("Masquées") },
+        { QStringLiteral("home"), QStringLiteral("Accueil"), QString() },
+        { QStringLiteral("quit"), QStringLiteral("Quitter le jeu"), QString() },
+        { QStringLiteral("sleep"), QStringLiteral("Veille"), QString() },
+        { QStringLiteral("power"), QStringLiteral("Alimentation"), QStringLiteral("Redémarrer · Éteindre") },
+    };
+    control.activateLabel = control.focus == 6 ? QStringLiteral("Maintenir") : QStringLiteral("Activer");
+    if (statsShown) {
+        frame.swapTile = 4;
+        frame.swapFrom = QStringLiteral("Masquées");
     }
-    else if (page == QLatin1String("confirm")) {
-        menu.title = QStringLiteral("Quitter Elden Ring ?");
-        menu.message = QStringLiteral("Toute progression non sauvegardée sera perdue.");
-        menu.labels = QStringList { QStringLiteral("Annuler"), QStringLiteral("Quitter") };
-        menu.backLabel = QStringLiteral("Annuler");
-    }
-    else {
-        menu.title = QStringLiteral("Elden Ring");
-        menu.labels = QStringList { QStringLiteral("Reprendre"), QStringLiteral("Statistiques du flux"),
-                                    QStringLiteral("Retour à l'accueil"), QStringLiteral("Quitter Elden Ring"),
-                                    QStringLiteral("Mettre en veille"), QStringLiteral("Redémarrer"),
-                                    QStringLiteral("Éteindre") };
-        menu.values = QStringList { QString(), QStringLiteral("Masquées") };
-        menu.backLabel = QStringLiteral("Fermer");
-    }
-    if (opt.value(QStringLiteral("sliders")) == QLatin1String("1") && page == QLatin1String("menu")) {
-        // sliders=1 : Volume et Luminosité, des curseurs (comme dans le vrai menu, après Reprendre)
-        menu.labels.insert(1, QStringLiteral("Luminosité"));
-        menu.labels.insert(1, QStringLiteral("Volume"));
-        menu.values = QStringList { QString(), QStringLiteral("60 %"), QStringLiteral("85 %"), QStringLiteral("Masquées") };
-        menu.sliders = QVector<qreal> { -1, 0.6, 0.85 };
-    }
+    frame.openMs = number("open", 1e9);
+    frame.closing = number("closing", 0);
+    frame.veil = number("veil", 1);
+    frame.blurMix = number("blur", 1);
+    frame.swapProgress = number("swap", 1);
+    frame.hold = number("hold", 0);
+    frame.holdDone = number("holdDone", 0);
+    frame.doneLabel = QStringLiteral("Fermeture du jeu");
 
-    const int latency = opt.value(QStringLiteral("latency"), QStringLiteral("12")).toInt();
+    StreamPainter::Power& power = frame.power;
+    power.header = QStringLiteral("Batterie 82 % · environ 3 h 10");
+    power.keys = QStringList { QStringLiteral("suspend"), QStringLiteral("reboot"), QStringLiteral("poweroff") };
+    power.labels = QStringList { QStringLiteral("Mise en veille"), QStringLiteral("Redémarrer"), QStringLiteral("Éteindre") };
+    power.focus = int(number("powerFocus", 1));
+    power.note = QStringLiteral("Le stream en cours sera fermé proprement avant l’arrêt.");
+    frame.powerMix = page == QLatin1String("power") ? number("powerMix", 1) : 0;
+
+    const int latency = int(number("latency", 12));
     StreamPainter::Stats stats;
     stats.lines = QStringList { QStringLiteral("1920 × 1080 · 59,9 i/s · HEVC · 28,4 Mb/s"),
                                 QStringLiteral("Latence réseau %1 ms (± 2 ms)").arg(latency),
@@ -84,35 +100,6 @@ int main(int argc, char* argv[])
                                 QStringLiteral("Décodage 1,8 ms · Affichage 4,2 ms · PC 3,1 ms") };
     stats.dotLine = 1;
     stats.dot = StreamPainter::networkColor(latency, 2);
-    if (opt.value(QStringLiteral("stats")) == QLatin1String("1")) {
-        frame.stats = stats;
-        menu.values = QStringList { QString(), QStringLiteral("Affichées") };
-        frame.swapRow = 1;
-        frame.swapFrom = QStringLiteral("Masquées");
-    }
-    auto number = [&](const char* key, qreal fallback) {
-        return opt.contains(QLatin1String(key)) ? opt.value(QLatin1String(key)).toDouble() : fallback;
-    };
-    frame.reveal = number("reveal", 1);
-    frame.veil = number("veil", 1);
-    frame.blurMix = number("blur", 1);
-    frame.focusY = number("focusY", -1);
-    frame.swapProgress = number("swap", 1);
-    frame.pageMix = number("pageMix", 1);
-    frame.hold = number("hold", 0);          // appui maintenu (page=confirm focus=1), déjà courbé
-    frame.holdDone = number("holdDone", 0);  // puis la coche et le libellé de fin
-    frame.doneLabel = QStringLiteral("Fermeture du jeu");
-    if (frame.hold > 0) {
-        menu.confirmLabel = QStringLiteral("Maintenir");
-    }
-    if (frame.pageMix < 1) {
-        frame.previous.title = QStringLiteral("Elden Ring");
-        frame.previous.labels = QStringList { QStringLiteral("Reprendre"), QStringLiteral("Statistiques du flux"),
-                                              QStringLiteral("Retour à l'accueil"), QStringLiteral("Quitter Elden Ring") };
-        frame.previous.values = QStringList { QString(), QStringLiteral("Masquées") };
-        frame.previous.focus = 3;
-        frame.previous.backLabel = QStringLiteral("Fermer");
-    }
 
     const QSize screen(size.value(0).toInt(), size.value(1).toInt());
     const QImage game(opt.value(QStringLiteral("backdrop")));
@@ -122,7 +109,6 @@ int main(int argc, char* argv[])
     }
     QImage image(screen, QImage::Format_ARGB32_Premultiplied);
     if (page == QLatin1String("stats")) {
-        // notice=texte (tone=good|warn|bad) : l'avis en haut à droite ; stats=0 : lui seul.
         StreamPainter::Notice notice;
         notice.text = opt.value(QStringLiteral("notice"));
         const QString tone = opt.value(QStringLiteral("tone"));
@@ -132,6 +118,9 @@ int main(int argc, char* argv[])
                                           number("opacity", 1), screen, notice, number("noticeOpacity", 1));
     }
     else {
+        if (statsShown) {
+            frame.stats = stats;
+        }
         StreamPainter::paintFrame(frame, image);
     }
     return image.save(args[1]) ? 0 : 1;

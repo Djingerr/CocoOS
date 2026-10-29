@@ -3,8 +3,8 @@
 // StreamPainter — le dessin du menu en jeu et des statistiques du flux (StreamMenu),
 // en QPainter pur : pendant un flux, l'image est affichée par Moonlight (SDL) et
 // notre QML n'y a pas accès. Mêmes jetons que Theme.qml (canevas de 800 de haut mis
-// à l'échelle de l'écran) et même panneau que ConsoleDialog ; les animations sont
-// des valeurs de Frame, que StreamMenu fait avancer. Sans SDL ni Moonlight : le
+// à l'échelle de l'écran) ; le menu est le centre de contrôle CocoOS (JeuControle,
+// MotionMenuJeu) ; les animations sont des valeurs de Frame, que StreamMenu fait avancer. Sans SDL ni Moonlight : le
 // harnais le dessine seul (docs/ui/ambiant/harness/streammenu-shot.cpp).
 
 #include <QColor>
@@ -32,30 +32,51 @@ struct Notice {
     Tone tone = Good;
 };
 
-// Le contenu du panneau : une liste d'actions, ou une confirmation.
-struct Page {
-    QString title;
-    QString message;
-    QStringList labels;
-    QStringList values;     // valeur à droite de la ligne ("" : une action, glyphe A en focus)
-    QVector<qreal> sliders; // par ligne : un curseur à cette position (0 à 1) à droite, la valeur
-                            // à sa gauche ; < 0 ou absent : pas de curseur
+// Une tuile du centre de contrôle (JeuControle). Clés, dans l'ordre de la grille : resume,
+// brightness, volume, shot, stats, home, quit, sleep, power.
+struct Tile {
+    QString key;
+    QString label;
+    QString sub;            // sous le libellé (« Retour au jeu », « Masquées ») ; valeur d'un curseur
+    qreal value = -1;       // luminosité, volume : la hauteur du remplissage (0 à 1) ; < 0 : une action
+    bool enabled = true;    // indisponible : estompée, sautée par la manette
+};
+
+// Le centre de contrôle : en-tête (le jeu, le PC, l'heure, la batterie), tuiles, légende.
+struct Control {
+    QString game;
+    QString status;         // « En pause · 1 h 24 min »
+    QImage cover;           // jaquette du jeu (vignette de l'en-tête) ; nulle : masquée
+    QString host;           // « PC-Salon » ; vide : masqué
+    QString latency;        // « 4 ms »
+    QString time;           // « 21:42 »
+    int battery = -1;       // % de la batterie de la console ; < 0 : masquée
+    QVector<Tile> tiles;
     int focus = 0;
-    QString backLabel;      // légende : B <backLabel>, A Valider
-    QString confirmLabel;   // légende de A ; vide : « Valider »
+    QString activateLabel;  // légende de A (« Activer », « Maintenir »)
+};
+
+// Le menu d'alimentation (MenuAlimentation), carte centrée par-dessus le centre de contrôle.
+struct Power {
+    QString header;         // « BATTERIE 82 % · ENVIRON 3 H 10 » ; vide : masqué
+    QStringList keys;       // suspend, reboot, poweroff
+    QStringList labels;
+    int focus = 0;
+    QString note;           // « Le stream en cours sera fermé proprement avant l'arrêt. »
 };
 
 // Une image du menu, animations comprises (de 0 à 1 sauf mention).
 struct Frame {
-    Page page;
-    qreal focusY = -1;              // surlignage, en lignes (il glisse) ; < 0 : page.focus
-    QVector<qreal> highlight;       // par ligne : couleur du libellé, glyphe A ; vide : page.focus
-    Page previous;                  // la page qui s'efface…
-    qreal pageMix = 1;              // …tant que celle-ci n'est pas entièrement là
-    int swapRow = -1;               // valeur qui vient de changer sur cette ligne : l'ancienne
-    QString swapFrom;               // sort, la nouvelle entre, comme dans SwapBox
+    Control control;
+    QVector<qreal> tileFocus;       // par tuile : anneau, échelle, contour (vide : control.focus)
+    qreal openMs = 1e9;             // depuis l'ouverture : en-tête et tuiles entrent en cascade
+    qreal closing = 0;              // fermeture : tuiles et en-tête s'effacent en rétrécissant
+    int swapTile = -1;              // sous-titre qui vient de changer sur cette tuile : l'ancien
+    QString swapFrom;               // sort, le nouveau entre, comme dans SwapBox
     qreal swapProgress = 1;
-    qreal reveal = 1;               // panneau : 0 hors de l'écran à droite, 1 en place
+    Power power;
+    qreal powerMix = 0;             // 0 : le centre de contrôle ; 1 : la carte d'alimentation
+    QVector<qreal> powerFocus;      // par choix : la pastille claire, agrandie
     qreal veil = 1;                 // fond : 0 transparent, 1 entièrement posé
     qreal blurMix = 1;              // fond : 0 voile seul, 1 image floutée seule
     QImage backdrop;                // l'image floutée (blurred), à la taille de l'écran
@@ -63,26 +84,30 @@ struct Frame {
     qreal statsOpacity = 1;
     QString layout;                 // glyphes : "xbox", "playstation" ou "nintendo"
     qreal curtain = 0;              // fondu au noir par-dessus tout (avant de quitter le flux)
-    // Appui maintenu sur la ligne en focus (comme HoldFill.qml) : le remplissage orange, de
-    // gauche à droite (déjà courbé), puis, plein, le libellé cède la place à une coche et à
-    // `doneLabel` (holdDone de 0 à 1).
+    // Appui maintenu sur la tuile en focus (Quitter le jeu, comme HoldFill.qml) : le remplissage
+    // orange, de gauche à droite (déjà courbé), puis, plein, le libellé cède la place à une
+    // coche et à `doneLabel` (holdDone de 0 à 1).
     qreal hold = 0;
     qreal holdDone = 0;
     QString doneLabel;
 };
 
-// Le menu plein écran (le fond, les statistiques, le panneau à droite), dessiné dans
+// Le menu plein écran (le fond, les statistiques, le centre de contrôle), dessiné dans
 // `image` (ARGB32 prémultiplié, à la taille de l'écran ; elle peut envelopper la
 // mémoire d'une surface SDL). Renvoie vrai si l'image est entièrement opaque : elle
 // n'a alors pas besoin d'être « dé-prémultipliée ».
 bool paintFrame(const Frame& frame, QImage& image);
 
-// La ligne de `page` sous `pos` (en pixels de l'écran, panneau en place) : -1 dans le
-// panneau, hors des lignes ; -2 hors du panneau.
-int rowAt(const Page& page, QSize screen, QPointF pos);
-// Sur le curseur d'une ligne (ou tout près) : la position visée, de 0 à 1 ; -1 sinon.
-// `dragging` : la poignée est tenue, c'est celui de la ligne en focus, où que soit `pos`.
-qreal sliderAt(const Page& page, QSize screen, QPointF pos, bool dragging = false);
+// La tuile de `control` sous `pos` (en pixels de l'écran) ; -1 hors des tuiles.
+int tileAt(const Control& control, QSize screen, QPointF pos);
+// Sur un curseur (`tile`) : la hauteur visée, de 0 (en bas) à 1 ; où que soit `pos`.
+qreal sliderAt(int tile, QSize screen, QPointF pos);
+// Le choix de la carte d'alimentation sous `pos` : -1 dans la carte, -2 hors de la carte.
+int powerAt(const Power& power, QSize screen, QPointF pos);
+
+// Les icônes (SVG, icons/) : dans les ressources de l'application ; le harnais les prend
+// dans le dépôt.
+void setIconRoot(const QString& root);
 
 // Hors du menu : les statistiques (en haut à gauche) et l'avis (en haut à droite, qui
 // descend en apparaissant), sur une image qui part du coin haut gauche de l'écran ; nulle

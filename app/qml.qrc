@@ -142,6 +142,18 @@
         <file>gui/console/HostPicker.qml</file>
         <file>gui/console/icons/pc-offline.svg</file>
         <file>gui/console/icons/plus.svg</file>
+        <file>gui/console/icons/game-play.svg</file>
+        <file>gui/console/icons/game-camera.svg</file>
+        <file>gui/console/icons/game-stats.svg</file>
+        <file>gui/console/icons/game-home.svg</file>
+        <file>gui/console/icons/game-quit.svg</file>
+        <file>gui/console/icons/game-moon.svg</file>
+        <file>gui/console/icons/game-power.svg</file>
+        <file>gui/console/icons/game-sun.svg</file>
+        <file>gui/console/icons/game-speaker.svg</file>
+        <file>gui/console/icons/power-moon.svg</file>
+        <file>gui/console/icons/power-reboot.svg</file>
+        <file>gui/console/icons/power-off.svg</file>
         <file>gui/console/Sounds.qml</file>
         <file>gui/console/SoundBank.qml</file>
         <file>gui/console/fonts/Sora-Regular.ttf</file>

@@ -16,6 +16,9 @@
 #include <QMutex>
 #include <QMutexLocker>
 #include <QDateTime>
+#include <QTime>
+#include <QUrl>
+#include <QVariantMap>
 #include <QDir>
 #include <QRegularExpression>
 #include <QSettings>
@@ -46,12 +49,14 @@ const char* MOTION_SETTING = "ConsoleUi/reduceMotion";
 const char* ENDED = "ended";
 const char* SOUNDS_SETTING = "ConsoleUi/sounds";
 
-// Durées et courbes de Theme.qml (ConsoleDialog, OptionsSheet, Toast), en ms.
-const int SHEET_SLIDE = 440;        // panneau, easeQuint
+// Durées du centre de contrôle (MotionMenuJeu), en ms.
+const int ENTRY_TOTAL = 8 * 35 + 560;   // la dernière tuile a fini d'entrer (streampainter)
+const int CLOSE_MOVE = 260;         // fermeture : tuiles et en-tête s'effacent en rétrécissant
 const int SHEET_DIM_FADE = 320;     // fond, linéaire
-const int SHEET_FOCUS_MOVE = 220;   // surlignage, easeOut
-const int SHEET_FOCUS_FADE = 160;   // couleur des libellés, glyphe A
+const int TILE_FOCUS_FADE = 300;    // anneau et contour de la tuile en focus
 const int SHEET_VALUE_SWAP = 260;   // « Affichées » / « Masquées »
+const int POWER_IN = 420;           // carte d'alimentation : arrive (ressort), part plus vite
+const int POWER_OUT = 200;
 const int BLUR_FADE = 200;          // l'image floutée remplace le voile
 const int STATS_FADE = 220;         // Theme.toastFade
 const int CURTAIN_FADE = 250;       // fondu au noir avant de quitter le flux
@@ -136,34 +141,39 @@ struct Anim {
     }
 };
 
-struct Action {
-    QString key;
-    QString label;
-};
-
 QMutex s_lock;
 Session* s_session = nullptr;   // le flux où le menu a été ouvert
 bool s_open = false;
-int s_focus = 0;
+int s_focus = 0;                // tuile en focus (ordre de StreamPainter : resume, brightness, volume…)
 bool s_armed = false;           // A enfoncé dans le menu : l'action part au relâché
-int s_stick = 0;
+int s_stickX = 0, s_stickY = 0;
 QSize s_screen;
 QString s_game;
 QStringList s_power;
 QString s_layout;
 QString s_exit;
+QImage s_cover;                         // jaquette du jeu (en-tête)
+QString s_host;
+int s_latency = -1;                     // vers le PC (ms), mise à jour par les statistiques
+qint64 s_startedAt = 0;                 // début de la partie (ms depuis l'époque) ; 0 : inconnu
+int s_battery = -1;
+QString s_batteryLife;                  // « environ 3 h 10 » (carte d'alimentation)
 std::atomic<bool> s_stats { false };    // statistiques affichées (réglage mémorisé)
 StreamPainter::Stats s_statsView;       // les dernières reçues
 std::atomic<bool> s_wantFrame { false };    // le menu attend une image du jeu
 QImage s_backdrop;                      // l'image du jeu floutée, à la taille de l'écran
 
 // Animations (StreamPainter::Frame) et le minuteur qui les fait avancer.
-Anim s_reveal, s_veil, s_blurMix, s_focusY, s_swap, s_statsFade;
-QVector<Anim> s_highlight;              // par ligne de la page
-int s_swapRow = -1;
+Anim s_openMs, s_closing, s_veil, s_blurMix, s_swap, s_statsFade;
+QVector<Anim> s_highlight;              // par tuile
+int s_swapTile = -1;
 QString s_swapFrom;
+bool s_powerOpen = false;               // la carte d'alimentation est ouverte
+int s_powerFocus = 0;
+Anim s_powerMix;
+QVector<Anim> s_powerHighlight;
 Anim s_curtain;                         // fondu au noir avant de quitter le flux
-int s_repeatDir = 0;                    // direction tenue, répétée par le minuteur
+int s_repeatKey = 0;                    // direction tenue (bouton de la croix), répétée par le minuteur
 Uint32 s_repeatAt = 0;
 int s_repeats = 0;
 QString s_leaving;                      // action choisie, le temps du fondu au noir
@@ -178,13 +188,13 @@ StreamPainter::Notice s_notice;         // l'avis en cours, hors du menu (en hau
 Anim s_noticeFade;
 SDL_TimerID s_noticeTimer = 0;
 std::atomic<bool> s_shotWanted { false };   // une capture d'écran attend la prochaine image
-QString s_shotValue;                    // valeur de la ligne « Capture d'écran » (« Enregistrée »…)
+QString s_shotSub;                      // sous-titre de la tuile Capture (« Capture… »…) ; vide : l'habituel
 int s_poorSeconds = 0;                  // réseau mauvais depuis… (s), bon depuis…
 int s_goodSeconds = 0;
 bool s_poorNoticed = false;
 bool s_batteryNoticed = false;
-Anim s_hold, s_holdDone;                // appui maintenu sur une confirmation, puis sa coche
-bool s_holding = false;                 // A (ou le clic) tenu sur la ligne à maintenir
+Anim s_hold, s_holdDone;                // appui maintenu sur Quitter le jeu, puis sa coche
+bool s_holding = false;                 // A (ou le clic) tenu sur la tuile à maintenir
 Uint32 s_holdDoneAt = 0;                // plein à cet instant ; 0 : pas encore
 bool s_wasAnimating = false;            // la dernière image dessinée était en mouvement
 SDL_TimerID s_timer = 0;
@@ -199,7 +209,7 @@ std::atomic<Uint32> s_lastFrameTicks { 0 };
 
 bool s_soundsOn = false;
 double s_haptics = HAPTICS_DEFAULT;     // intensité des vibrations (0 : coupées)
-bool s_reducedMotion = false;           // « Réduire les animations » : pas de fondu d'entrée
+bool s_reducedMotion = false;           // « Réduire les animations » : ni cascade ni fondu d'entrée
 std::atomic<bool> s_fadedIn { false };  // le flux a eu son fondu d'entrée
 QHash<QString, QByteArray> s_sounds;    // échantillons, volume appliqué
 SDL_AudioDeviceID s_audio = 0;
@@ -217,77 +227,116 @@ QString percent(int value)
     return Text::tr("%1 %").arg(value);
 }
 
-QList<Action> actions()
+// « 1 h 24 min », « 24 min » : la durée de la partie.
+QString duration(qint64 ms)
 {
-    QList<Action> list = {
-        { "resume", Text::tr("Reprendre") },
-        { "shot", Text::tr("Capture d'écran") },
-    };
-    if (s_volume >= 0) list.append({ "volume", Text::tr("Volume") });
-    if (s_brightness >= 0) list.append({ "brightness", Text::tr("Luminosité") });
-    list += QList<Action> {
-        { "stats", Text::tr("Statistiques du flux") },
-        { "home", Text::tr("Retour à l'accueil") },
-        { "quit", s_game.isEmpty() ? Text::tr("Quitter le jeu") : Text::tr("Quitter %1").arg(s_game) },
-    };
-    if (s_power.contains(QLatin1String("suspend"))) list.append({ "suspend", Text::tr("Mettre en veille") });
-    if (s_power.contains(QLatin1String("reboot"))) list.append({ "reboot", Text::tr("Redémarrer") });
-    if (s_power.contains(QLatin1String("poweroff"))) list.append({ "poweroff", Text::tr("Éteindre") });
-    return list;
+    const qint64 minutes = qMax<qint64>(1, ms / 60000);
+    return minutes < 60 ? Text::tr("%1 min").arg(minutes)
+                        : Text::tr("%1 h %2 min").arg(minutes / 60).arg(minutes % 60);
 }
 
-int actionIndex(const QString& key)
+// Les tuiles, dans l'ordre de la grille (StreamPainter) ; leurs voisines à la croix.
+enum { RESUME, BRIGHTNESS, VOLUME, SHOT, STATS, HOME, QUIT, SLEEP, POWER, TILES };
+// Vers le haut, le bas, la gauche, la droite ; -1 : bord. Sur un curseur, haut et bas le règlent.
+const int NEIGHBOURS[4][TILES] = {
+    { -1, -1, -1, RESUME, RESUME, SHOT, STATS, BRIGHTNESS, VOLUME },
+    { SHOT, -1, -1, HOME, QUIT, -1, -1, -1, -1 },
+    { -1, RESUME, BRIGHTNESS, -1, SHOT, -1, HOME, QUIT, SLEEP },
+    { BRIGHTNESS, VOLUME, -1, STATS, BRIGHTNESS, QUIT, SLEEP, POWER, -1 },
+};
+
+bool hasPower()
 {
-    const QList<Action> list = actions();
-    for (int i = 0; i < list.size(); i++) {
-        if (list[i].key == key) {
-            return i;
+    return s_power.contains(QLatin1String("reboot")) || s_power.contains(QLatin1String("poweroff"));
+}
+
+bool enabled(int tile)
+{
+    switch (tile) {
+    case BRIGHTNESS: return s_brightness >= 0;
+    case VOLUME: return s_volume >= 0;
+    case SLEEP: return s_power.contains(QLatin1String("suspend"));
+    case POWER: return hasPower();
+    default: return true;
+    }
+}
+
+bool isSlider(int tile)
+{
+    return tile == BRIGHTNESS || tile == VOLUME;
+}
+
+// Quitter le jeu : pas de confirmation, la tuile elle-même se maintient (A, Entrée ou le clic
+// tenus), comme « Quitter la partie » à l'accueil.
+bool holdTile()
+{
+    return s_focus == QUIT && !s_powerOpen;
+}
+
+QStringList powerKeys()
+{
+    QStringList keys;
+    for (const char* key : { "suspend", "reboot", "poweroff" }) {
+        if (s_power.contains(QLatin1String(key))) {
+            keys.append(QLatin1String(key));
         }
     }
-    return 0;
+    return keys;
 }
 
-// Quitter le jeu, redémarrer, éteindre : pas de page de confirmation, la ligne elle-même
-// se maintient (A, Entrée ou le clic tenus), comme « Quitter la partie » à l'accueil.
-bool holdRow()
+StreamPainter::Control control()
 {
-    const QString key = actions().value(s_focus).key;
-    return key == QLatin1String("quit") || key == QLatin1String("reboot") || key == QLatin1String("poweroff");
-}
-
-// Les libellés de fin de l'accueil (ConsoleHome.homeMenuChosen).
-QString doneLabel()
-{
-    const QString key = actions().value(s_focus).key;
-    return key == QLatin1String("quit") ? Text::tr("Fermeture du jeu")
-         : key == QLatin1String("reboot") ? Text::tr("Redémarrage") : Text::tr("Extinction");
-}
-
-StreamPainter::Page page()
-{
-    StreamPainter::Page page;
-    page.focus = s_focus;
-    page.title = s_game.isEmpty() ? Text::tr("Menu") : s_game;
-    for (const Action& action : actions()) {
-        page.sliders.append(action.key == QLatin1String("volume") ? s_volume / 100.0
-                          : action.key == QLatin1String("brightness") ? s_brightness / 100.0 : -1);
-        page.labels.append(action.label);
-        page.values.append(action.key == QLatin1String("stats") ? statsValue(s_stats)
-                         : action.key == QLatin1String("volume") ? percent(s_volume)
-                         : action.key == QLatin1String("brightness") ? percent(s_brightness)
-                         : action.key == QLatin1String("shot") ? s_shotValue : QString());
+    StreamPainter::Control control;
+    control.game = s_game.isEmpty() ? Text::tr("Menu") : s_game;
+    control.status = s_startedAt > 0 ? Text::tr("En pause · %1").arg(duration(QDateTime::currentMSecsSinceEpoch() - s_startedAt))
+                                     : Text::tr("En pause");
+    control.cover = s_cover;
+    control.host = s_host;
+    control.latency = s_latency > 0 ? Text::tr("%1 ms").arg(s_latency) : QString();
+    control.time = QTime::currentTime().toString(QStringLiteral("HH:mm"));
+    control.battery = s_battery;
+    control.focus = s_focus;
+    control.tiles = {
+        { QStringLiteral("resume"), Text::tr("Reprendre"), Text::tr("Retour au jeu") },
+        { QStringLiteral("brightness"), Text::tr("Luminosité"), s_brightness >= 0 ? percent(s_brightness) : QString(),
+          s_brightness >= 0 ? s_brightness / 100.0 : 0 },
+        { QStringLiteral("volume"), Text::tr("Volume"), s_volume >= 0 ? percent(s_volume) : QString(),
+          s_volume >= 0 ? s_volume / 100.0 : 0 },
+        { QStringLiteral("shot"), Text::tr("Capture"), s_shotSub.isEmpty() ? Text::tr("Sur la console") : s_shotSub },
+        { QStringLiteral("stats"), Text::tr("Statistiques"), statsValue(s_stats) },
+        { QStringLiteral("home"), Text::tr("Accueil"), QString() },
+        { QStringLiteral("quit"), Text::tr("Quitter le jeu"), QString() },
+        { QStringLiteral("sleep"), Text::tr("Veille"), QString() },
+        { QStringLiteral("power"), Text::tr("Alimentation"), Text::tr("Redémarrer · Éteindre") },
+    };
+    for (int i = 0; i < TILES; i++) {
+        control.tiles[i].enabled = enabled(i);
     }
-    page.backLabel = Text::tr("Fermer");
-    if (holdRow()) {
-        page.confirmLabel = Text::tr("Maintenir");
+    control.activateLabel = holdTile() ? Text::tr("Maintenir") : Text::tr("Activer");
+    return control;
+}
+
+StreamPainter::Power powerCard()
+{
+    StreamPainter::Power power;
+    if (s_battery >= 0) {
+        power.header = s_batteryLife.isEmpty() ? Text::tr("Batterie %1 %").arg(s_battery)
+                                               : Text::tr("Batterie %1 % · %2").arg(s_battery).arg(s_batteryLife);
     }
-    return page;
+    power.keys = powerKeys();
+    for (const QString& key : power.keys) {
+        power.labels.append(key == QLatin1String("suspend") ? Text::tr("Mise en veille")
+                          : key == QLatin1String("reboot") ? Text::tr("Redémarrer") : Text::tr("Éteindre"));
+    }
+    power.focus = s_powerFocus;
+    power.note = Text::tr("Le stream en cours sera fermé proprement avant l'arrêt.");
+    return power;
 }
 
 void resetHighlights(int focus)
 {
-    s_highlight = QVector<Anim>(page().labels.size());
-    for (int i = 0; i < s_highlight.size(); i++) {
+    s_highlight = QVector<Anim>(TILES);
+    for (int i = 0; i < TILES; i++) {
         s_highlight[i].set(i == focus ? 1 : 0);
     }
 }
@@ -295,15 +344,22 @@ void resetHighlights(int focus)
 StreamPainter::Frame frame(Uint32 now)
 {
     StreamPainter::Frame frame;
-    frame.page = page();
-    frame.focusY = s_focusY.at(now);
+    frame.control = control();
     for (const Anim& highlight : s_highlight) {
-        frame.highlight.append(highlight.at(now));
+        frame.tileFocus.append(highlight.at(now));
     }
-    frame.swapRow = s_swapRow;
+    frame.control.tiles[BRIGHTNESS].value = qMax(0.0, s_brightnessAnim.at(now) / 100);
+    frame.control.tiles[VOLUME].value = qMax(0.0, s_volumeAnim.at(now) / 100);
+    frame.openMs = s_openMs.at(now);
+    frame.closing = s_closing.at(now);
+    frame.swapTile = s_swapTile;
     frame.swapFrom = s_swapFrom;
     frame.swapProgress = s_swap.at(now);
-    frame.reveal = s_reveal.at(now);
+    frame.power = powerCard();
+    frame.powerMix = s_powerMix.at(now);
+    for (const Anim& highlight : s_powerHighlight) {
+        frame.powerFocus.append(highlight.at(now));
+    }
     frame.veil = s_veil.at(now);
     frame.blurMix = s_blurMix.at(now);
     frame.backdrop = s_backdrop;
@@ -311,28 +367,25 @@ StreamPainter::Frame frame(Uint32 now)
     frame.statsOpacity = s_statsFade.at(now);
     frame.layout = s_layout;
     frame.curtain = s_curtain.at(now);
-    const QList<Action> list = actions();
-    for (int i = 0; i < list.size() && i < frame.page.sliders.size(); i++) {
-        if (list[i].key == QLatin1String("volume")) frame.page.sliders[i] = s_volumeAnim.at(now) / 100;
-        if (list[i].key == QLatin1String("brightness")) frame.page.sliders[i] = s_brightnessAnim.at(now) / 100;
-    }
     frame.hold = qPow(s_hold.at(now), HOLD_CURVE);
     frame.holdDone = s_holdDone.at(now);
-    frame.doneLabel = doneLabel();
+    frame.doneLabel = Text::tr("Fermeture du jeu");
     return frame;
 }
 
 bool animating(Uint32 now)
 {
-    for (const Anim* anim : { &s_reveal, &s_veil, &s_blurMix, &s_focusY, &s_swap, &s_statsFade, &s_curtain,
-                              &s_hold, &s_holdDone, &s_noticeFade, &s_volumeAnim, &s_brightnessAnim }) {
+    for (const Anim* anim : { &s_openMs, &s_closing, &s_veil, &s_blurMix, &s_swap, &s_statsFade, &s_curtain,
+                              &s_hold, &s_holdDone, &s_noticeFade, &s_volumeAnim, &s_brightnessAnim, &s_powerMix }) {
         if (anim->running(now)) {
             return true;
         }
     }
-    for (const Anim& highlight : s_highlight) {
-        if (highlight.running(now)) {
-            return true;
+    for (const QVector<Anim>* list : { &s_highlight, &s_powerHighlight }) {
+        for (const Anim& highlight : *list) {
+            if (highlight.running(now)) {
+                return true;
+            }
         }
     }
     return false;
@@ -341,12 +394,14 @@ bool animating(Uint32 now)
 // Arrête toutes les animations là où elles en sont.
 void freeze(Uint32 now)
 {
-    for (Anim* anim : { &s_reveal, &s_veil, &s_blurMix, &s_focusY, &s_swap, &s_statsFade, &s_curtain,
-                        &s_hold, &s_holdDone, &s_noticeFade, &s_volumeAnim, &s_brightnessAnim }) {
+    for (Anim* anim : { &s_openMs, &s_closing, &s_veil, &s_blurMix, &s_swap, &s_statsFade, &s_curtain,
+                        &s_hold, &s_holdDone, &s_noticeFade, &s_volumeAnim, &s_brightnessAnim, &s_powerMix }) {
         anim->set(anim->at(now));
     }
-    for (Anim& highlight : s_highlight) {
-        highlight.set(highlight.at(now));
+    for (QVector<Anim>* list : { &s_highlight, &s_powerHighlight }) {
+        for (Anim& highlight : *list) {
+            highlight.set(highlight.at(now));
+        }
     }
 }
 
@@ -514,7 +569,7 @@ Uint32 tick(Uint32, void*)
             return 0;
         }
         now = SDL_GetTicks();
-        if (s_repeatDir != 0 && (Sint32)(now - s_repeatAt) >= 0) {
+        if (s_repeatKey != 0 && (Sint32)(now - s_repeatAt) >= 0) {
             repeatStep(now);
         }
         holdStep(now);
@@ -522,7 +577,7 @@ Uint32 tick(Uint32, void*)
         // maintenue attend son départ) : pas d'image, mais le minuteur continue.
         const bool moving = animating(now);
         if (!s_dirty && !moving && !s_wasAnimating) {
-            if (s_repeatDir != 0 || s_holding || (s_holdDoneAt != 0 && s_leaving.isEmpty())) {
+            if (s_repeatKey != 0 || s_holding || (s_holdDoneAt != 0 && s_leaving.isEmpty())) {
                 return FRAME_MS;
             }
             s_timer = 0;
@@ -537,7 +592,7 @@ Uint32 tick(Uint32, void*)
             }
         }
         screen = s_screen;
-        menuShown = s_open || s_reveal.at(now) > 0 || s_veil.at(now) > 0 || s_curtain.at(now) > 0;
+        menuShown = s_open || s_veil.at(now) > 0 || s_curtain.at(now) > 0;
         if (menuShown) {
             view = frame(now);
         }
@@ -569,7 +624,7 @@ Uint32 tick(Uint32, void*)
         LiWakeWaitForVideoFrame();
     }
 
-    if (animating(now) || s_dirty || s_repeatDir != 0 || s_holding || (s_holdDoneAt != 0 && s_leaving.isEmpty())) {
+    if (animating(now) || s_dirty || s_repeatKey != 0 || s_holding || (s_holdDoneAt != 0 && s_leaving.isEmpty())) {
         return FRAME_MS;
     }
     s_timer = 0;
@@ -596,34 +651,54 @@ void attach()
     if (session != s_session) {
         s_session = session;
         s_open = false;
-        s_reveal.set(0);
         s_veil.set(0);
     }
+}
+
+// Batterie de la console (en-tête, carte d'alimentation) : relue à chaque ouverture. Fil
+// principal (celui du flux ; Qt y est suspendu, SystemStatus se lit directement).
+void readBattery()
+{
+    if (s_system == nullptr) {
+        return;
+    }
+    s_battery = s_system->property("batteryPercent").toInt();
+    const int minutes = s_system->property("batteryDetails").toMap().value(QStringLiteral("minutes"), -1).toInt();
+    const bool charging = s_system->property("charging").toBool();
+    s_batteryLife = minutes <= 0 || charging ? QString()
+                  : minutes < 60 ? Text::tr("environ %1 min").arg(minutes)
+                  : Text::tr("environ %1 h %2").arg(minutes / 60).arg(minutes % 60, 2, 10, QLatin1Char('0'));
 }
 
 void openMenu()
 {
     const Uint32 now = SDL_GetTicks();
     s_open = true;
-    s_focus = 0;
-    s_shotValue.clear();
+    s_focus = RESUME;
+    s_shotSub.clear();
     resetHold();
     s_armed = false;
-    s_stick = 0;
-    s_repeatDir = 0;
+    s_stickX = s_stickY = 0;
+    s_repeatKey = 0;
     s_leaving.clear();
+    s_powerOpen = false;
+    s_powerMix.set(0);
     s_curtain.set(0);
     s_screen = screenSize();
+    readBattery();
     s_wantFrame = true;   // l'image floutée remplacera le voile (offerFrame)
     if (s_backdrop.isNull()) {
         s_blurMix.set(0);
     }
-    s_reveal.go(1, SHEET_SLIDE, now, QEasingCurve::OutQuint);
+    s_closing.set(0);
+    s_openMs.set(s_reducedMotion ? ENTRY_TOTAL : 0);
+    if (!s_reducedMotion) {
+        s_openMs.go(ENTRY_TOTAL, ENTRY_TOTAL, now);
+    }
     s_veil.go(1, SHEET_DIM_FADE, now);
-    s_focusY.set(0);
     s_swap.set(1);
-    s_swapRow = -1;
-    resetHighlights(0);
+    s_swapTile = -1;
+    resetHighlights(RESUME);
     play("ingame_menu_open");
     requestRender();
 }
@@ -633,10 +708,14 @@ void closeMenu(bool sound = true)
     const Uint32 now = SDL_GetTicks();
     s_open = false;
     s_armed = false;
-    s_repeatDir = 0;
+    s_repeatKey = 0;
     s_wantFrame = false;
-    s_reveal.go(0, SHEET_SLIDE, now, QEasingCurve::OutQuint);
+    s_closing.go(1, CLOSE_MOVE, now, QEasingCurve::Linear);
     s_veil.go(0, SHEET_DIM_FADE, now);
+    if (s_powerOpen) {
+        s_powerOpen = false;
+        s_powerMix.go(0, POWER_OUT, now);
+    }
     if (sound) {
         play("ingame_menu_close");
     }
@@ -648,23 +727,50 @@ void closeMenu(bool sound = true)
 void beginLeave(const QString& action)
 {
     s_leaving = action;
-    s_repeatDir = 0;
+    s_repeatKey = 0;
     s_wantFrame = false;
     s_curtain.go(1, CURTAIN_FADE, SDL_GetTicks());
     s_finishPending = true;
     requestRender();
 }
 
-// Le surlignage glisse jusqu'à la ligne `next` (qui existe et n'est pas la ligne en focus).
-void focusRow(int next)
+// L'anneau passe à la tuile `next` (qui existe et n'est pas la tuile en focus).
+void focusTile(int next)
 {
     resetHold();
     const Uint32 now = SDL_GetTicks();
-    s_highlight[s_focus].go(0, SHEET_FOCUS_FADE, now);
-    s_highlight[next].go(1, SHEET_FOCUS_FADE, now);
+    s_highlight[s_focus].go(0, TILE_FOCUS_FADE, now);
+    s_highlight[next].go(1, TILE_FOCUS_FADE, now);
     s_focus = next;
-    s_focusY.go(next, SHEET_FOCUS_MOVE, now, QEasingCurve::OutCubic);
     play("focus_tick");
+    requestRender();
+}
+
+// Carte d'alimentation : le choix `next`.
+void focusPower(int next)
+{
+    const Uint32 now = SDL_GetTicks();
+    s_powerHighlight[s_powerFocus].go(0, TILE_FOCUS_FADE, now);
+    s_powerHighlight[next].go(1, TILE_FOCUS_FADE, now);
+    s_powerFocus = next;
+    play("focus_tick");
+    requestRender();
+}
+
+void openPower(bool open)
+{
+    const Uint32 now = SDL_GetTicks();
+    s_powerOpen = open;
+    if (open) {
+        const QStringList keys = powerKeys();
+        s_powerFocus = qMax(0, keys.indexOf(QStringLiteral("reboot")));
+        s_powerHighlight = QVector<Anim>(keys.size());
+        for (int i = 0; i < keys.size(); i++) {
+            s_powerHighlight[i].set(i == s_powerFocus ? 1 : 0);
+        }
+    }
+    s_powerMix.go(open ? 1 : 0, s_reducedMotion ? 200 : open ? POWER_IN : POWER_OUT, now);
+    play(open ? "select" : "ingame_menu_close");
     requestRender();
 }
 
@@ -679,7 +785,7 @@ void resetHold()
     s_holdDoneAt = 0;
 }
 
-// A (ou le clic) enfoncé sur une ligne à maintenir : elle se remplit.
+// A (ou le clic) enfoncé sur la tuile à maintenir : elle se remplit.
 void startHold()
 {
     const Uint32 now = SDL_GetTicks();
@@ -715,7 +821,7 @@ void holdStep(Uint32 now)
         play("hold_done");
     }
     if (s_holdDoneAt != 0 && s_leaving.isEmpty() && now - s_holdDoneAt >= (Uint32)HOLD_FINISH) {
-        beginLeave(actions().value(s_focus).key);
+        beginLeave(QStringLiteral("quit"));
         s_holding = false;
         s_holdDoneAt = 0;   // un seul départ : finishLeave vide s_leaving, il ne doit pas repartir
         SDL_Event quit;
@@ -725,33 +831,66 @@ void holdStep(Uint32 now)
     }
 }
 
-// Renvoie faux à une extrémité de la liste.
-bool step(int direction)
+int setValue(int tile, int wanted, bool dragged);
+
+// Une direction de la croix (0 haut, 1 bas, 2 gauche, 3 droite) : la tuile voisine (les
+// indisponibles sont sautées), ou, sur un curseur, haut et bas le règlent ; dans la carte
+// d'alimentation, gauche et droite. Renvoie le réglage à appliquer (-1 : aucun) dans `value`,
+// et faux à un bord.
+bool move(int direction, int* value)
 {
-    const int next = s_focus + direction;
-    if (next < 0 || next >= s_highlight.size()) {
+    *value = -1;
+    if (s_powerOpen) {
+        const int next = s_powerFocus + (direction == 2 ? -1 : direction == 3 ? 1 : 0);
+        if (direction < 2 || next < 0 || next >= s_powerHighlight.size()) {
+            play("nav_edge");
+            return false;
+        }
+        focusPower(next);
+        return true;
+    }
+    if (isSlider(s_focus) && direction < 2) {
+        const int current = s_focus == VOLUME ? s_volume : s_brightness;
+        const int floor = current / VALUE_STEP * VALUE_STEP;
+        const int wanted = direction == 0 ? floor + VALUE_STEP : (current == floor ? floor - VALUE_STEP : floor);
+        *value = setValue(s_focus, wanted, false);
+        return *value >= 0;
+    }
+    int next = NEIGHBOURS[direction][s_focus];
+    while (next >= 0 && !enabled(next)) {
+        next = NEIGHBOURS[direction][next];
+    }
+    if (next < 0) {
         play("nav_edge");
         return false;
     }
-    focusRow(next);
+    focusTile(next);
     return true;
 }
 
 // Croix ou stick enfoncés : une marche tout de suite, la suite par le minuteur.
-void hold(int direction)
+int press(int direction)
 {
-    s_repeatDir = step(direction) ? direction : 0;
+    int value;
+    s_repeatKey = move(direction, &value) ? direction + 1 : 0;
     s_repeats = 0;
     s_repeatAt = SDL_GetTicks() + REPEAT_DELAY;
     requestRender();   // le minuteur tourne tant que la direction est tenue
+    return value;
 }
 
-// Fil du minuteur : la répétition s'arrête au bout de la liste.
+void applySettingLater(int tile, int value);
+
+// Fil du minuteur : la répétition s'arrête au bord (ou au bout d'un curseur).
 void repeatStep(Uint32 now)
 {
-    if (!s_open || !s_leaving.isEmpty() || !step(s_repeatDir)) {
-        s_repeatDir = 0;
+    int value;
+    if (!s_open || !s_leaving.isEmpty() || !move(s_repeatKey - 1, &value)) {
+        s_repeatKey = 0;
         return;
+    }
+    if (value >= 0) {
+        applySettingLater(s_focus, value);
     }
     s_repeats++;
     s_repeatAt = now + qMax(REPEAT_MIN, REPEAT_INTERVAL - s_repeats * REPEAT_STEP);
@@ -779,11 +918,11 @@ void showNotice(const QString& text, StreamPainter::Notice::Tone tone)
     requestRender();
 }
 
-// La valeur d'une ligne change : l'ancienne sort, la nouvelle entre (SwapBox).
-void swapValue(int row, const QString& from)
+// Le sous-titre d'une tuile change : l'ancien sort, le nouveau entre (SwapBox).
+void swapSub(int tile, const QString& from)
 {
     const Uint32 now = SDL_GetTicks();
-    s_swapRow = row;
+    s_swapTile = tile;
     s_swapFrom = from;
     s_swap.set(0);
     s_swap.go(1, SHEET_VALUE_SWAP, now);
@@ -796,26 +935,20 @@ void requestShot()
 {
     s_shotWanted = true;
     if (s_open) {
-        const QString from = s_shotValue;
-        s_shotValue = Text::tr("Capture…");
-        swapValue(actionIndex(QStringLiteral("shot")), from);
+        const QString from = control().tiles[SHOT].sub;
+        s_shotSub = Text::tr("Capture…");
+        swapSub(SHOT, from);
     }
     s_repeat = true;
     LiWakeWaitForVideoFrame();
 }
 
-bool valueRow()
+// Le volume ou la luminosité passe à `wanted` : le remplissage glisse, la valeur change (en
+// glissant, sauf `dragged` : elle suit la souris). Le réglage lui-même (SystemStatus) se fait
+// hors du verrou, par l'appelant : renvoie la valeur à poser, -1 sinon.
+int setValue(int tile, int wanted, bool dragged)
 {
-    const QString key = actions().value(s_focus).key;
-    return key == QLatin1String("volume") || key == QLatin1String("brightness");
-}
-
-// Le volume ou la luminosité (ligne en focus) passe à `wanted` : la poignée glisse, la valeur
-// change (en glissant, sauf `dragged` : elle suit la souris). Le réglage lui-même
-// (SystemStatus) se fait hors du verrou, par l'appelant : renvoie la valeur à poser, -1 sinon.
-int setValue(int wanted, bool dragged)
-{
-    const bool volume = actions().value(s_focus).key == QLatin1String("volume");
+    const bool volume = tile == VOLUME;
     int& value = volume ? s_volume : s_brightness;
     Anim& anim = volume ? s_volumeAnim : s_brightnessAnim;
     const int next = qBound(volume ? 0 : BRIGHTNESS_MIN, wanted, 100);
@@ -829,50 +962,55 @@ int setValue(int wanted, bool dragged)
     value = next;
     if (dragged) {
         anim.set(next);
-        s_swapRow = -1;
+        s_swapTile = -1;
         requestRender();
     }
     else {
         anim.go(next, SLIDER_MOVE, SDL_GetTicks(), QEasingCurve::OutCubic);
-        swapValue(s_focus, from);
+        swapSub(tile, from);
     }
     play(volume ? "volume_tick" : "brightness_tick");
     return next;
 }
 
-// ← / → sur le volume ou la luminosité : le cran de 5 % suivant (61 → 65, 61 → 60).
-int adjust(int direction)
-{
-    const int value = actions().value(s_focus).key == QLatin1String("volume") ? s_volume : s_brightness;
-    const int floor = value / VALUE_STEP * VALUE_STEP;
-    return setValue(direction > 0 ? floor + VALUE_STEP : (value == floor ? floor - VALUE_STEP : floor), false);
-}
-
 // Fil principal (celui du flux : Qt y est suspendu, mais SystemStatus s'appelle directement).
-void applySetting(const QString& key, int value)
+void applySetting(int tile, int value)
 {
-    if (value < 0 || s_system == nullptr) {
+    if (value < 0 || s_system == nullptr || !isSlider(tile)) {
         return;
     }
-    QMetaObject::invokeMethod(s_system, key == QLatin1String("volume") ? "setVolume" : "setBrightness",
+    QMetaObject::invokeMethod(s_system, tile == VOLUME ? "setVolume" : "setBrightness",
                               Qt::DirectConnection, Q_ARG(int, value));
+}
+
+// Depuis le minuteur (répétition tenue) : le réglage passe par le fil principal.
+void applySettingLater(int tile, int value)
+{
+    if (s_system == nullptr) {
+        return;
+    }
+    QMetaObject::invokeMethod(s_system, tile == VOLUME ? "setVolume" : "setBrightness",
+                              Qt::QueuedConnection, Q_ARG(int, value));
 }
 
 void back()
 {
-    closeMenu();
+    if (s_powerOpen) {
+        openPower(false);
+    }
+    else {
+        closeMenu();
+    }
 }
 
 void switchStats()
 {
     const Uint32 now = SDL_GetTicks();
-    s_swapFrom = statsValue(s_stats);
+    const QString from = statsValue(s_stats);
     s_stats = !s_stats;
     QSettings().setValue(STATS_SETTING, s_stats.load());
     if (s_open) {
-        s_swapRow = actionIndex(QStringLiteral("stats"));
-        s_swap.set(0);
-        s_swap.go(1, SHEET_VALUE_SWAP, now);
+        swapSub(STATS, from);
     }
     if (s_stats) {
         s_statsView = StreamPainter::Stats();   // elles apparaîtront avec les premiers chiffres
@@ -886,28 +1024,45 @@ void switchStats()
 
 void activate()
 {
-    if (holdRow()) {
+    if (s_powerOpen) {
+        const QString key = powerKeys().value(s_powerFocus);
+        if (!key.isEmpty()) {
+            play("select");
+            beginLeave(key);   // A suffit (MenuAlimentation)
+        }
+        return;
+    }
+    if (holdTile()) {
         return;   // elle se maintient (startHold)
     }
-    const QString key = actions().value(s_focus).key;
-    if (key == QLatin1String("resume")) {
+    switch (s_focus) {
+    case RESUME:
         play("select");
         closeMenu(false);
-    }
-    else if (key == QLatin1String("stats")) {
+        break;
+    case STATS:
         play("focus_tick");
         switchStats();
-    }
-    else if (key == QLatin1String("shot")) {
+        break;
+    case SHOT:
         play("select");
         requestShot();
-    }
-    else if (key == QLatin1String("volume") || key == QLatin1String("brightness")) {
-        play("slider_limit");   // ← / → les règlent
-    }
-    else {
+        break;
+    case BRIGHTNESS:
+    case VOLUME:
+        play("slider_limit");   // haut / bas les règlent
+        break;
+    case HOME:
         play("select");
-        beginLeave(key);
+        beginLeave(QStringLiteral("home"));
+        break;
+    case SLEEP:
+        play("select");
+        beginLeave(QStringLiteral("suspend"));
+        break;
+    case POWER:
+        openPower(true);
+        break;
     }
 }
 
@@ -945,9 +1100,9 @@ void shotDone(bool saved)
 {
     QMutexLocker locker(&s_lock);
     if (s_open) {
-        const QString from = s_shotValue;
-        s_shotValue = saved ? Text::tr("Enregistrée") : Text::tr("Échec");
-        swapValue(actionIndex(QStringLiteral("shot")), from);
+        const QString from = control().tiles[SHOT].sub;
+        s_shotSub = saved ? Text::tr("Enregistrée") : Text::tr("Échec");
+        swapSub(SHOT, from);
     }
     else {
         showNotice(saved ? Text::tr("Capture enregistrée") : Text::tr("Capture impossible"),
@@ -1131,9 +1286,18 @@ void finishLeave()
 }
 
 void StreamMenu::prepare(const QString& game, const QStringList& powerActions, const QString& buttonLayout,
-                         QObject* system)
+                         QObject* system, const QVariantMap& info)
 {
+    // La jaquette (une URL file:// du cache de l'accueil), lue avant de prendre le verrou.
+    const QUrl coverUrl(info.value(QStringLiteral("cover")).toString());
+    const QImage cover(coverUrl.isLocalFile() ? coverUrl.toLocalFile() : coverUrl.toString());
     QMutexLocker locker(&s_lock);
+    s_cover = cover.isNull() ? QImage() : cover.scaledToHeight(160, Qt::SmoothTransformation);
+    s_host = info.value(QStringLiteral("host")).toString();
+    s_latency = info.value(QStringLiteral("latency"), -1).toInt();
+    s_startedAt = info.value(QStringLiteral("startedAt"), 0).toLongLong();
+    s_battery = -1;
+    s_batteryLife.clear();
     s_system = system;
     s_volume = system != nullptr ? system->property("volume").toInt() : -1;
     s_brightness = system != nullptr ? system->property("brightness").toInt() : -1;
@@ -1160,8 +1324,10 @@ void StreamMenu::prepare(const QString& game, const QStringList& powerActions, c
     s_screen = QSize();
     s_wantFrame = false;
     s_backdrop = QImage();
-    s_reveal.set(0);
     s_veil.set(0);
+    s_closing.set(0);
+    s_powerOpen = false;
+    s_powerMix.set(0);
     s_stats = QSettings().value(STATS_SETTING, false).toBool();
     s_statsView = StreamPainter::Stats();
     s_statsFade.set(0);   // les statistiques apparaissent avec les premiers chiffres
@@ -1203,25 +1369,20 @@ void StreamMenu::toggle()
 
 void StreamMenu::onButton(uint8_t button, bool pressed)
 {
-    QString setting;      // volume ou luminosité réglés : appliqués hors du verrou
+    int tile = -1;        // volume ou luminosité réglés : appliqués hors du verrou
     int settingValue = -1;
     {
         QMutexLocker locker(&s_lock);
         if (!s_open || !s_leaving.isEmpty() || s_holdDoneAt != 0) {
             return;
         }
-        // Haut / bas : la ligne ; gauche / droite : la valeur (volume, luminosité).
-        const int direction = button == SDL_CONTROLLER_BUTTON_DPAD_UP ? -1
-                            : button == SDL_CONTROLLER_BUTTON_DPAD_DOWN ? 1 : 0;
-        const int sideways = button == SDL_CONTROLLER_BUTTON_DPAD_LEFT ? -1
-                           : button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT ? 1 : 0;
-        if (pressed && sideways != 0 && valueRow()) {
-            setting = actions().value(s_focus).key;
-            settingValue = adjust(sideways);
-        }
+        const int direction = button == SDL_CONTROLLER_BUTTON_DPAD_UP ? 0
+                            : button == SDL_CONTROLLER_BUTTON_DPAD_DOWN ? 1
+                            : button == SDL_CONTROLLER_BUTTON_DPAD_LEFT ? 2
+                            : button == SDL_CONTROLLER_BUTTON_DPAD_RIGHT ? 3 : -1;
         if (!pressed) {
-            if (direction != 0 && direction == s_repeatDir) {
-                s_repeatDir = 0;
+            if (direction >= 0 && direction + 1 == s_repeatKey) {
+                s_repeatKey = 0;
             }
             if (button == SDL_CONTROLLER_BUTTON_A && s_holding) {
                 releaseHold();
@@ -1231,10 +1392,11 @@ void StreamMenu::onButton(uint8_t button, bool pressed)
                 activate();
             }
         }
-        else if (direction != 0) {
-            hold(direction);
+        else if (direction >= 0) {
+            tile = s_focus;
+            settingValue = press(direction);
         }
-        else if (button == SDL_CONTROLLER_BUTTON_A && holdRow()) {
+        else if (button == SDL_CONTROLLER_BUTTON_A && holdTile()) {
             startHold();
         }
         else if (button == SDL_CONTROLLER_BUTTON_A) {
@@ -1245,7 +1407,7 @@ void StreamMenu::onButton(uint8_t button, bool pressed)
         }
         if (!s_finishPending) {
             locker.unlock();
-            applySetting(setting, settingValue);
+            applySetting(tile, settingValue);
             return;
         }
         s_finishPending = false;
@@ -1264,7 +1426,7 @@ void StreamMenu::screenshot()
 
 void StreamMenu::onPointer(int x, int y, int button, bool pressed)
 {
-    QString setting;      // volume ou luminosité tirés : appliqués hors du verrou
+    int tile = -1;        // volume ou luminosité tirés : appliqués hors du verrou
     int settingValue = -1;
     {
         QMutexLocker locker(&s_lock);
@@ -1279,53 +1441,76 @@ void StreamMenu::onPointer(int x, int y, int button, bool pressed)
         }
         const qreal scale = width > 0 ? qreal(s_screen.width()) / width : 1;
         const QPointF at = QPointF(x, y) * scale;
-        const int row = StreamPainter::rowAt(page(), s_screen, at);
-        if (row >= 0 && row != s_focus && row < s_highlight.size() && !s_holding && !s_dragSlider) {
-            focusRow(row);
-        }
-        // Un curseur (volume, luminosité) : cliqué, la poignée y vient ; tiré, elle suit.
-        const qreal slider = StreamPainter::sliderAt(page(), s_screen, at);
-        if (button == SDL_BUTTON_LEFT && pressed && slider >= 0) {
-            s_dragSlider = true;
-        }
-        else if (button == SDL_BUTTON_LEFT && !pressed && s_dragSlider) {
-            s_dragSlider = false;
-            s_armed = false;
-            button = 0;   // (rien d'autre à faire de ce relâché)
-        }
-        if (s_dragSlider && valueRow()) {
-            // Où que soit la souris, la position horizontale sur le rail, par crans de 5 %.
-            const qreal fraction = StreamPainter::sliderAt(page(), s_screen, at, true);
-            setting = actions().value(s_focus).key;
-            settingValue = setValue(qRound(fraction * 100 / VALUE_STEP) * VALUE_STEP, true);
-        }
-        if (button == SDL_BUTTON_LEFT && pressed && s_dragSlider) {
-            // (un clic sur un curseur ne fait que le régler)
-        }
-        else if (button == SDL_BUTTON_LEFT && pressed) {
-            s_armed = row >= 0 && !holdRow();
-            if (row >= 0 && holdRow()) {
-                startHold();   // le clic se maintient, comme A
+
+        if (s_powerOpen) {
+            // Carte d'alimentation : survol, clic ; à côté de la carte ou clic droit : comme B.
+            const int item = StreamPainter::powerAt(powerCard(), s_screen, at);
+            if (item >= 0 && item != s_powerFocus) {
+                focusPower(item);
             }
-            else if (row == -2) {
-                back();     // à côté du panneau : comme B
+            if (button == SDL_BUTTON_LEFT && pressed) {
+                s_armed = item >= 0;
+                if (item == -2) {
+                    back();
+                }
+            }
+            else if (button == SDL_BUTTON_LEFT && s_armed) {
+                s_armed = false;
+                if (item == s_powerFocus) {
+                    activate();
+                }
+            }
+            else if (button == SDL_BUTTON_RIGHT && pressed) {
+                back();
             }
         }
-        else if (button == SDL_BUTTON_LEFT && s_holding) {
-            releaseHold();
-        }
-        else if (button == SDL_BUTTON_LEFT && s_armed) {
-            s_armed = false;
-            if (row == s_focus) {
-                activate();
+        else {
+            const int hit = StreamPainter::tileAt(control(), s_screen, at);
+            if (hit >= 0 && hit != s_focus && enabled(hit) && !s_holding && !s_dragSlider) {
+                focusTile(hit);
             }
-        }
-        else if (button == SDL_BUTTON_RIGHT && pressed) {
-            back();
+            // Un curseur (volume, luminosité) : cliqué, il se règle à cette hauteur ; tiré, il suit.
+            if (button == SDL_BUTTON_LEFT && pressed && hit >= 0 && isSlider(hit) && enabled(hit)) {
+                s_dragSlider = true;
+            }
+            else if (button == SDL_BUTTON_LEFT && !pressed && s_dragSlider) {
+                s_dragSlider = false;
+                s_armed = false;
+                button = 0;   // (rien d'autre à faire de ce relâché)
+            }
+            if (s_dragSlider && isSlider(s_focus)) {
+                const qreal fraction = StreamPainter::sliderAt(s_focus, s_screen, at);
+                tile = s_focus;
+                settingValue = setValue(s_focus, qRound(fraction * 100 / VALUE_STEP) * VALUE_STEP, true);
+            }
+            if (button == SDL_BUTTON_LEFT && pressed && s_dragSlider) {
+                // (un clic sur un curseur ne fait que le régler)
+            }
+            else if (button == SDL_BUTTON_LEFT && pressed) {
+                s_armed = hit >= 0 && !holdTile();
+                if (hit >= 0 && holdTile()) {
+                    startHold();   // le clic se maintient, comme A
+                }
+                else if (hit < 0) {
+                    back();     // à côté des tuiles : comme B
+                }
+            }
+            else if (button == SDL_BUTTON_LEFT && s_holding) {
+                releaseHold();
+            }
+            else if (button == SDL_BUTTON_LEFT && s_armed) {
+                s_armed = false;
+                if (hit == s_focus) {
+                    activate();
+                }
+            }
+            else if (button == SDL_BUTTON_RIGHT && pressed) {
+                back();
+            }
         }
         if (!s_finishPending) {
             locker.unlock();
-            applySetting(setting, settingValue);
+            applySetting(tile, settingValue);
             return;
         }
         s_finishPending = false;
@@ -1335,23 +1520,35 @@ void StreamMenu::onPointer(int x, int y, int button, bool pressed)
 
 void StreamMenu::onAxis(uint8_t axis, int16_t value)
 {
-    if (axis != SDL_CONTROLLER_AXIS_LEFTY) {
+    if (axis != SDL_CONTROLLER_AXIS_LEFTX && axis != SDL_CONTROLLER_AXIS_LEFTY) {
         return;
     }
-    QMutexLocker locker(&s_lock);
-    if (!s_open || !s_leaving.isEmpty() || s_holdDoneAt != 0) {
-        return;
+    int tile = -1, settingValue = -1;
+    {
+        QMutexLocker locker(&s_lock);
+        if (!s_open || !s_leaving.isEmpty() || s_holdDoneAt != 0) {
+            return;
+        }
+        // Stick gauche : comme la croix (0 haut, 1 bas, 2 gauche, 3 droite).
+        const bool vertical = axis == SDL_CONTROLLER_AXIS_LEFTY;
+        int& stick = vertical ? s_stickY : s_stickX;
+        const int sign = value <= -STICK_PUSH ? -1 : value >= STICK_PUSH ? 1 : 0;
+        const int direction = sign == 0 ? -1 : vertical ? (sign < 0 ? 0 : 1) : (sign < 0 ? 2 : 3);
+        if (sign != 0 && sign != stick) {
+            tile = s_focus;
+            settingValue = press(direction);
+        }
+        else if (sign == 0 && qAbs(value) < STICK_REST && stick != 0) {
+            const int held = vertical ? (stick < 0 ? 0 : 1) : (stick < 0 ? 2 : 3);
+            if (s_repeatKey == held + 1) {
+                s_repeatKey = 0;   // stick revenu au repos
+            }
+        }
+        if (sign != 0 || qAbs(value) < STICK_REST) {
+            stick = sign;
+        }
     }
-    const int direction = value <= -STICK_PUSH ? -1 : value >= STICK_PUSH ? 1 : 0;
-    if (direction != 0 && direction != s_stick) {
-        hold(direction);
-    }
-    else if (direction == 0 && qAbs(value) < STICK_REST && s_stick != 0 && s_repeatDir == s_stick) {
-        s_repeatDir = 0;   // stick revenu au repos
-    }
-    if (direction != 0 || qAbs(value) < STICK_REST) {
-        s_stick = direction;
-    }
+    applySetting(tile, settingValue);
 }
 
 // --- Vibrations : un motif de haptics.json, pas après pas, par un minuteur SDL ---
@@ -1470,6 +1667,9 @@ void StreamMenu::updateStats(const VIDEO_STATS& stats, int videoFormat, int widt
         QMutexLocker locker(&s_lock);
         attach();
         checkHealth(stats);
+        if (stats.lastRtt != 0) {
+            s_latency = int(stats.lastRtt);
+        }
         if (!s_stats) {
             return;
         }

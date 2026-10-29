@@ -20,6 +20,7 @@
 #include <QObject>
 #include <QString>
 #include <QStringList>
+#include <QVariantMap>
 
 #include <cstdint>
 
@@ -29,9 +30,11 @@ struct AVFrame;
 namespace StreamMenu {
 
 // Fil de Qt, avant le flux.
-// `system` : SystemStatus (volume et luminosité réglables depuis le menu ; nul : sans).
+// `system` : SystemStatus (volume, luminosité et batterie ; nul : sans). `info` : l'en-tête du
+// centre de contrôle (cover : la jaquette, URL file:// ; host : le PC ; latency : ms ;
+// startedAt : début de la partie, ms depuis l'époque).
 void prepare(const QString& game, const QStringList& powerActions, const QString& buttonLayout,
-             QObject* system = nullptr);
+             QObject* system = nullptr, const QVariantMap& info = QVariantMap());
 // "home", "quit", "suspend", "reboot" ou "poweroff" ; vide si le flux s'est fini
 // autrement. Ne le dit qu'une fois.
 QString takeExit();

@@ -1,6 +1,6 @@
-// Vérifie StreamPainter::rowAt (la souris dans le menu en jeu) contre le dessin : le
-// surlignage de chaque ligne, repéré dans l'image, doit tomber sur cette ligne. Depuis
-// ce dossier :
+// Vérifie StreamPainter::tileAt (la souris dans le centre de contrôle) contre le dessin :
+// l'anneau de chaque tuile, repéré dans l'image, doit entourer une zone où tileAt la trouve ;
+// sliderAt et powerAt de même. Depuis ce dossier :
 //
 //   g++ -std=c++17 -fPIC -I../../../../app/gui/console/backend streammenu-rows.cpp \
 //       ../../../../app/gui/console/backend/streampainter.cpp \
@@ -17,49 +17,84 @@
 
 namespace {
 
-// Lignes de pixels où le surlignage change l'image, dans la colonne x.
-QPair<int, int> highlightSpan(StreamPainter::Frame frame, QSize screen, int x, qreal focusY)
-{
-    QImage a(screen, QImage::Format_ARGB32_Premultiplied), b = a;
-    frame.focusY = focusY;
-    StreamPainter::paintFrame(frame, a);
-    frame.focusY = 1000;    // hors de l'écran (négatif : la ligne en focus)
-    StreamPainter::paintFrame(frame, b);
-    int top = -1, bottom = -1;
-    for (int y = 0; y < screen.height(); y++) {
-        if (a.pixel(x, y) != b.pixel(x, y)) {
-            if (top < 0) top = y;
-            bottom = y;
-        }
-    }
-    return { top, bottom };
-}
-
-int check(const QStringList& labels, const QString& message, QSize screen)
+StreamPainter::Frame menu()
 {
     StreamPainter::Frame frame;
     frame.veil = 0;
-    frame.page.title = QStringLiteral("Elden Ring");
-    frame.page.message = message;
-    frame.page.labels = labels;
-    frame.page.backLabel = QStringLiteral("Fermer");
-    // Juste à droite du bord gauche du surlignage (avant le texte des lignes).
-    const qreal scale = screen.height() / 800.0;
-    const int x = qRound(screen.width() - (472 - 44 + 16 - 6) * scale);
+    frame.control.game = QStringLiteral("Minecraft");
+    for (const char* key : { "resume", "brightness", "volume", "shot", "stats", "home", "quit", "sleep", "power" }) {
+        StreamPainter::Tile tile;
+        tile.key = QLatin1String(key);
+        tile.label = tile.key;
+        tile.value = tile.key == QLatin1String("brightness") || tile.key == QLatin1String("volume") ? 0.5 : -1;
+        frame.control.tiles.append(tile);
+    }
+    return frame;
+}
+
+// La zone que l'anneau de focus de la tuile `focus` change dans l'image.
+QRect focusBox(StreamPainter::Frame frame, QSize screen, int focus)
+{
+    QImage a(screen, QImage::Format_ARGB32_Premultiplied), b = a;
+    frame.control.focus = focus;
+    StreamPainter::paintFrame(frame, a);
+    frame.control.focus = -1;
+    StreamPainter::paintFrame(frame, b);
+    QRect box;
+    for (int y = 0; y < screen.height(); y++) {
+        for (int x = 0; x < screen.width(); x++) {
+            if (a.pixel(x, y) != b.pixel(x, y)) {
+                box |= QRect(x, y, 1, 1);
+            }
+        }
+    }
+    return box;
+}
+
+int check(QSize screen)
+{
+    const StreamPainter::Frame frame = menu();
     int failures = 0;
-    for (int row = 0; row < labels.size(); row++) {
-        const QPair<int, int> span = highlightSpan(frame, screen, x, row);
-        const int inset = qCeil(3 * scale);    // bords arrondis, anticrénelage
-        for (int y : { span.first + inset, (span.first + span.second) / 2, span.second - inset }) {
-            const int got = StreamPainter::rowAt(frame.page, screen, QPointF(x, y));
-            if (got != row) {
-                std::printf("%dx%d ligne %d, y=%d : rowAt=%d\n", screen.width(), screen.height(), row, y, got);
+    for (int tile = 0; tile < frame.control.tiles.size(); tile++) {
+        // (l'anneau et l'agrandissement débordent de la tuile : on vise l'intérieur)
+        const QRect box = focusBox(frame, screen, tile);
+        const QRect inside = box.adjusted(box.width() / 6, box.height() / 6, -box.width() / 6, -box.height() / 6);
+        for (QPoint p : { inside.topLeft(), inside.center(), inside.bottomRight() }) {
+            const int got = StreamPainter::tileAt(frame.control, screen, p);
+            if (got != tile) {
+                std::printf("%dx%d tuile %d, (%d, %d) : tileAt=%d\n", screen.width(), screen.height(), tile, p.x(), p.y(), got);
+                failures++;
+            }
+        }
+        if (tile == 2) {   // le volume : en haut 1, en bas 0, au milieu 0,5
+            const qreal top = StreamPainter::sliderAt(tile, screen, QPointF(box.center().x(), 0));
+            const qreal middle = StreamPainter::sliderAt(tile, screen, box.center());
+            const qreal bottom = StreamPainter::sliderAt(tile, screen, QPointF(box.center().x(), screen.height()));
+            if (top != 1 || qAbs(middle - 0.5) > 0.03 || bottom != 0) {
+                std::printf("%dx%d curseur : haut %.3f, milieu %.3f, bas %.3f\n", screen.width(), screen.height(), top, middle, bottom);
                 failures++;
             }
         }
     }
-    if (StreamPainter::rowAt(frame.page, screen, QPointF(10, screen.height() / 2)) != -2) {
-        std::printf("%dx%d : le bord gauche devrait être hors du panneau\n", screen.width(), screen.height());
+    if (StreamPainter::tileAt(frame.control, screen, QPointF(5, 5)) != -1) {
+        std::printf("%dx%d : le coin devrait être hors des tuiles\n", screen.width(), screen.height());
+        failures++;
+    }
+    // La carte d'alimentation : chaque pastille, sous son centre (dessinée pleine si elle a le focus).
+    StreamPainter::Power power;
+    power.keys = QStringList { "suspend", "reboot", "poweroff" };
+    power.labels = power.keys;
+    const qreal k = screen.height() / 800.0, width = screen.width() / k;
+    for (int i = 0; i < 3; i++) {
+        const QPointF disc((width / 2 + (i - 1) * (150 + 22)) * k, (220 + 36 + 17 + 30 + 46) * k);
+        if (StreamPainter::powerAt(power, screen, disc) != i) {
+            std::printf("%dx%d pastille %d : powerAt=%d\n", screen.width(), screen.height(), i,
+                        StreamPainter::powerAt(power, screen, disc));
+            failures++;
+        }
+    }
+    if (StreamPainter::powerAt(power, screen, QPointF(5, 5)) != -2) {
+        std::printf("%dx%d : le coin devrait être hors de la carte\n", screen.width(), screen.height());
         failures++;
     }
     return failures;
@@ -74,35 +109,10 @@ int main(int argc, char* argv[])
     for (const QString& file : fonts.entryList({ QStringLiteral("Sora-*.ttf") })) {
         QFontDatabase::addApplicationFont(fonts.filePath(file));
     }
-    const QStringList menu { "Reprendre", "Statistiques du flux", "Retour à l'accueil", "Quitter Elden Ring",
-                             "Mettre en veille", "Redémarrer", "Éteindre" };
-    const QStringList confirm { "Annuler", "Quitter" };
+    StreamPainter::setIconRoot(QStringLiteral("../../../../app/gui/console/icons/"));
     int failures = 0;
     for (QSize screen : { QSize(1280, 720), QSize(1920, 1080), QSize(1280, 800) }) {
-        failures += check(menu, QString(), screen);
-        failures += check(confirm, QStringLiteral("Toute progression non sauvegardée sera perdue."), screen);
-    }
-    // Le curseur d'une ligne : son milieu vaut 0,5, la gauche de la ligne n'en est pas ; tenu,
-    // il suit la souris où qu'elle soit, borné.
-    {
-        const QSize screen(1280, 720);
-        StreamPainter::Page page;
-        page.title = QStringLiteral("Elden Ring");
-        page.labels = QStringList { "Reprendre", "Volume" };
-        page.sliders = QVector<qreal> { -1, 0.6 };
-        page.focus = 1;
-        const qreal k = screen.height() / 800.0;
-        const qreal railMiddle = (screen.width() / k - 44 - 60) * k;   // bord droit des lignes − la moitié du rail
-        int row1 = -1;
-        for (int y = 0; y < screen.height() && row1 < 0; y++)
-            if (StreamPainter::rowAt(page, screen, QPointF(railMiddle, y)) == 1) row1 = y + 10;
-        const qreal middle = StreamPainter::sliderAt(page, screen, QPointF(railMiddle, row1));
-        const qreal label = StreamPainter::sliderAt(page, screen, QPointF(screen.width() - 400 * k, row1));
-        const qreal far = StreamPainter::sliderAt(page, screen, QPointF(10, 10), true);
-        if (qAbs(middle - 0.5) > 0.01 || label != -1 || far != 0) {
-            std::printf("curseur : milieu %.3f, libellé %.3f, tenu loin %.3f\n", middle, label, far);
-            failures++;
-        }
+        failures += check(screen);
     }
     std::printf(failures ? "%d écart(s)\n" : "ok\n", failures);
     return failures ? 1 : 0;
