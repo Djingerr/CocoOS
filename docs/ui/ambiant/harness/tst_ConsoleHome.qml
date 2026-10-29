@@ -427,6 +427,19 @@ Item {
             SystemStatus.volume = 75
         }
 
+        // Batterie très faible (5 %, sur batterie) : l'île le dit (veille dans 2 min) ; branchée, plus rien.
+        function test_5h_criticalBattery() {
+            SystemStatus.batteryPercent = 4
+            verify(home.batteryCritical)
+            tryVerify(function() { return screen.notification && screen.notification.title === "Batterie très faible · 4 %" }, 1000)
+            compare(screen.notification.text, "Mise en veille dans 2 min")
+            SystemStatus.charging = true
+            verify(!home.batteryCritical)
+            SystemStatus.charging = false
+            SystemStatus.batteryPercent = 82
+            screen.dismissNotification()
+        }
+
         function test_6_companionLaunchWithUpdate() {
             CompanionClient.paired = true
             CompanionClient.eventsConnected = true

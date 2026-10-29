@@ -555,6 +555,8 @@ QtObject {
     readonly property int wifiSize: 17
     readonly property size batterySize: Qt.size(25, 12)
     readonly property int batteryLow: 20             // en dessous (hors charge), l'icône passe en orange
+    readonly property int batteryCritical: 5         // à 5 % (hors charge) : l'île le dit, puis la veille…
+    readonly property int batteryCriticalSleep: 120000   // …au bout de 2 min (dans le jeu : streammenu)
     // Icônes de droite (Wi-Fi, batterie, réglages), qu'on choisit à la manette (haut depuis
     // l'étagère ou le héros), au clavier ou à la souris : une pastille de sysButtonHeight qui
     // déborde de sysButtonPad de part et d'autre de l'icône (fond hoverFill, anneau de focus

@@ -371,6 +371,17 @@ piloté par `streammenu` ; une seule ligne de couture en plus, dans `keyboard.cp
 38. « Batterie très faible » : la maquette ajoute « Mise en veille dans 2 min » ; la console ne se
     met pas en veille d'elle-même à 5 %. On l'ajoute ?
 
+### Réponses de Coco (2026-10-29, phase 6)
+- **Q33** : ▲ ▼ règlent les curseurs, ◀ ▶ changent de tuile (légende « ▲▼ Régler »).
+- **Q34** : la capture reste sur la console (Images/CocoOS), « Sur la console ».
+- **Q35** : la carte « Manette déconnectée » reste sans « Le jeu est en pause. ».
+- **Q37** : 4G, qualité ajustée, Wi-Fi retrouvé : plus tard.
+- **Q38** : oui. À 5 % sur batterie, « Mise en veille dans 2 min » (bannière dans le jeu, île à
+  l'accueil) ; toujours pas branchée deux minutes plus tard, la console se met en veille (dans le
+  jeu, le flux se ferme d'abord, comme « Veille » du centre de contrôle). Branchée entre-temps :
+  rien. `Theme.batteryCritical`, `batteryCriticalSleep` ; `streammenu` (`BATTERY_SLEEP_MS`).
+- Q36 (touches de volume, cf. Q13) reste ouverte.
+
 ## Refonte CocoOS — phase 4, options, réglages, clavier, recherche (2026-10-29)
 
 - **Liste groupée** (`SettingsList.qml`, nouveau) : la liste commune des options et des réglages,

@@ -893,6 +893,26 @@ FocusScope {
         homeMenu.open()
     }
 
+    // Batterie très faible (5 %, hors charge) : l'île le dit, puis la veille au bout de 2 min si la
+    // console n'est toujours pas branchée (dans le jeu, streammenu fait de même).
+    readonly property bool batteryCritical: SystemStatus.batteryPercent >= 0 && !SystemStatus.charging
+                                            && SystemStatus.batteryPercent <= Theme.batteryCritical
+    onBatteryCriticalChanged: {
+        if (!batteryCritical) return criticalSleep.stop()
+        homeScreen.notify({ icon: "battery", accent: true,
+                            title: qsTr("Batterie très faible · %1 %").arg(SystemStatus.batteryPercent),
+                            text: qsTr("Mise en veille dans 2 min") })
+        criticalSleep.restart()
+    }
+    Timer {
+        id: criticalSleep
+        interval: Theme.batteryCriticalSleep
+        onTriggered: if (home.batteryCritical && SystemStatus.powerActions.indexOf("suspend") >= 0) {
+            console.info("[console-ui] Batterie très faible : mise en veille")
+            SystemStatus.power("suspend")
+        }
+    }
+
     function homeMenuChosen(key) {
         var running = appModel ? appModel.getRunningAppName() : ""
         if (key === "resume") {

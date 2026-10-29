@@ -74,7 +74,8 @@ const int SHOT_FLASH = 380;
 const int SHOT_FLY = 640;
 const int SHOT_OUT = 420;
 const Uint32 SHOT_HOLD = 2700;
-const int BATTERY_CRITICAL = 5;     // %, sur batterie : la bannière « Batterie très faible »
+const int BATTERY_CRITICAL = 5;     // %, sur batterie : la bannière « Batterie très faible »…
+const Uint32 BATTERY_SLEEP_MS = 120000;   // …puis la veille, toujours pas branchée
 // Volume (MotionHud) : la capsule paraît (160 ms), s'épaissit (420, après 120) ; sans appui
 // pendant HUD_HOLD, elle s'amincit (300), puis part (260, après 120).
 const int HUD_SHOW = 160;
@@ -227,6 +228,7 @@ QString s_shotTitle;
 Anim s_flash, s_shotFly, s_shotLabel, s_shotOut;
 SDL_TimerID s_shotTimer = 0;
 bool s_batteryLow = false;              // batterie de la console très faible : déjà dit
+Uint32 s_criticalAt = 0;                // …depuis (0 : non) ; la veille au bout de BATTERY_SLEEP_MS
 // Volume (MotionHud) : la capsule en haut, aux touches de volume de la console.
 Anim s_hudShow, s_hudExpand, s_hudBump;
 bool s_hudBumpRight = true;
@@ -1380,15 +1382,31 @@ void checkHealth(const VIDEO_STATS& stats)
         }
     }
     padsChanged(pads);
-    // La batterie de la console (SDL), très faible et hors charge : une bannière, une fois.
+    // La batterie de la console (SDL), très faible et hors charge : une bannière, une fois ; puis,
+    // toujours pas branchée, la veille au bout de BATTERY_SLEEP_MS (le flux se ferme d'abord).
     int percent = -1;
     const SDL_PowerState power = SDL_GetPowerInfo(nullptr, &percent);
     const bool critical = power == SDL_POWERSTATE_ON_BATTERY && percent >= 0 && percent <= BATTERY_CRITICAL;
+    const bool canSleep = s_power.contains(QLatin1String("suspend"));
+    const Uint32 now = SDL_GetTicks();
     if (critical && !s_batteryLow) {
         showBanner(StreamPainter::Banner::Battery, true, false, Text::tr("Batterie très faible · %1 %").arg(percent),
-                   Text::tr("Branchez la console."));
+                   canSleep ? Text::tr("Branchez la console. Mise en veille dans 2 min.") : Text::tr("Branchez la console."));
+        s_criticalAt = now;
     }
     s_batteryLow = critical;
+    if (!critical) {
+        s_criticalAt = 0;
+    }
+    else if (canSleep && s_criticalAt != 0 && now - s_criticalAt >= BATTERY_SLEEP_MS && s_leaving.isEmpty()) {
+        SDL_LogInfo(SDL_LOG_CATEGORY_APPLICATION, "[console-ui] Batterie très faible : mise en veille");
+        s_criticalAt = 0;
+        beginLeave(QStringLiteral("suspend"));
+        SDL_Event quit;            // interceptQuit fera la suite sur le fil des événements
+        quit.type = SDL_QUIT;
+        quit.quit.timestamp = now;
+        SDL_PushEvent(&quit);
+    }
     if (low && !s_batteryNoticed) {
         showBanner(StreamPainter::Banner::Pad, false, true, Text::tr("Manette presque vide"), Text::tr("Pensez à la recharger"));
     }
@@ -1591,6 +1609,7 @@ void StreamMenu::prepare(const QString& game, const QStringList& powerActions, c
     s_shotLabel.set(0);
     s_shotOut.set(0);
     s_batteryLow = false;
+    s_criticalAt = 0;
     s_shotWanted = false;
     s_poorSeconds = s_goodSeconds = 0;
     s_poorNoticed = s_batteryNoticed = false;
