@@ -34,6 +34,7 @@ QtObject {
     function power(action) { lastPower = action }
     function probeHost(manager, hostName) { probed = hostName }
     function stopProbing() { probed = "" }
+    function hostAddress(manager, hostName) { return "192.168.1.20" }
     function setBrightness(percent) { brightness = percent }
     function setVolume(percent) { volume = percent }
 }

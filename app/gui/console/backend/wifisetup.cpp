@@ -190,6 +190,7 @@ void WifiSetup::readNetworks()
                 best[ssid] = QVariantMap {
                     { QStringLiteral("ssid"), ssid },
                     { QStringLiteral("strength"), strength },
+                    { QStringLiteral("frequency"), iface.property("Frequency").toUInt() },
                     { QStringLiteral("bars"), SystemStatus::barsForStrength(strength) },
                     { QStringLiteral("secured"), secured },
                     { QStringLiteral("keyMgmt"), saeOnly ? QStringLiteral("sae") : QStringLiteral("wpa-psk") },
@@ -268,6 +269,14 @@ void WifiSetup::connectTo(const QString& ssid, const QString& password)
         settings[QStringLiteral("802-11-wireless")] = QVariantMap {
             { QStringLiteral("ssid"), ssid.toUtf8() }, { QStringLiteral("mode"), QStringLiteral("infrastructure") },
         };
+        // Pas dans la liste : un réseau masqué (« Autre réseau… »), à chercher par son nom.
+        bool listed = false;
+        for (const QVariant& network : m_networks) {
+            listed = listed || network.toMap().value(QStringLiteral("ssid")).toString() == ssid;
+        }
+        if (!listed) {
+            settings[QStringLiteral("802-11-wireless")][QStringLiteral("hidden")] = true;
+        }
         if (!password.isEmpty()) {
             settings[QStringLiteral("802-11-wireless-security")] = QVariantMap {
                 { QStringLiteral("key-mgmt"), keyMgmt }, { QStringLiteral("psk"), password },

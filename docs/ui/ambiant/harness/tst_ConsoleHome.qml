@@ -35,10 +35,12 @@ Item {
         name: "ConsoleHome"
         when: windowShown
 
-        // Premier élément, sous `from`, qui porte la propriété `property`.
+        // Premier élément, sous `from`, qui porte la propriété `property` (hors de la première
+        // configuration, qui a ses propres listes, codes… : setup()).
         function find(from, property) {
             for (var i = 0; i < from.children.length; i++) {
                 var c = from.children[i]
+                if (c.firstStep !== undefined && property !== "firstStep") continue
                 if (c[property] !== undefined) return c
                 var deeper = find(c, property)
                 if (deeper) return deeper
@@ -381,10 +383,7 @@ Item {
             compare([picker.hosts[0].name, picker.hosts[0].state, picker.hosts[0].current], ["Djinger", "connected", true])
             compare([picker.hosts[1].name, picker.hosts[1].state, picker.hosts[1].detail], ["Bureau", "asleep", "En veille"])
             compare(picker.current, 0)
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down)   // « Ajouter un PC » (phase 8) : refusé
-            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)
-            verify(picker.opened)
-            keyClick(Qt.Key_Up)
+            keyClick(Qt.Key_Down)
             keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)   // A : Basculer sur Bureau
             verify(!picker.opened)
             verify(!bar.hostRing)
@@ -1046,10 +1045,12 @@ Item {
         function test_9o_bootUnfoldsIntoTheCover() {
             var h = createTemporaryObject(freshHome, window)
             var sp = h.splash
+            sp.speed = 0.0001                               // (le temps ne court pas tout seul…)
             var screen2 = find(h, "ready")
             tryVerify(function() { return sp.running && sp.readyAt >= 0 }, 10000)
-            // Le temps avance à la main, depuis l'instant où le système est prêt.
+            // …il avance à la main, depuis l'instant où le système est prêt.
             sp.running = false
+            sp.speed = 1
             sp.t = sp.readyAt
             sp.advance(sp.exitAt - 1 - sp.t)
             verify(h.bootHidden && screen2.launching)       // caché sous l'animation
@@ -1083,35 +1084,109 @@ Item {
             compare(screen.currentIndex, 1)
         }
 
-        // Premier démarrage hors ligne : bienvenue, choix du réseau, mot de passe au
-        // clavier à l'écran ; l'accueil arrive une fois la console en ligne.
-        function test_9l_firstRunAsksForTheNetwork() {
-            WifiSetup.online = false
-            home.welcomed = false
+        // Première configuration, sur une conf vierge (SPEC 5.9) : Bonjour, Langue, Wi-Fi (mot
+        // de passe au clavier à l'écran), PC, code, Bibliothèque, « Tout est prêt », l'accueil.
+        function test_9l_firstRunSetup() {
+            var setup = find(home, "firstStep")
             home.setupDone = false
-            verify(screen.staged)
-            keyClick(Qt.Key_Return)                         // « Commencer »
-            verify(home.welcomed && !home.setupDone)
-            keyClick(Qt.Key_Return)                         // « Choisir un réseau » : Réglages › Wi-Fi
-            var sheet = find(home, "contentFocused")
-            verify(sheet.opened && sheet.contentFocused)
-            compare(sheet.rows.map(function(r) { return r.label }), ["Maison", "Voisins", "Café"])
-            verify(sheet.rows[0].info && !sheet.rows[1].info)   // le réseau connecté : sa carte
-            keyClick(Qt.Key_Return)                         // (rien à y faire)
-            compare(WifiSetup.lastConnect, null)
-            keyClick(Qt.Key_Down); keyClick(Qt.Key_Return)  // « Voisins » : protégé, inconnu → le clavier
-            verify(sheet.opened && !sheet.activeFocus)
+            tryVerify(function() { return setup.shown && setup.activeFocus })
+            compare(setup.step, "hello")
+            verify(screen.launching)                        // l'accueil attend dessous
+            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)
+            compare(setup.step, "language")
+            tryVerify(function() { return setup.activeFocus })
+            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)   // Français
+            compare(StreamingPreferences.language, StreamingPreferences.LANG_FR)
+            compare(setup.step, "wifi")
+            tryVerify(function() { return setup.activeFocus })
+            keyClick(Qt.Key_Down)
+            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)   // « Voisins » : protégé → le clavier
+            var keyboard = find(home, "masked")
+            verify(keyboard.opened && keyboard.masked)
+            compare(keyboard.minLength, 8)
             keyClick(Qt.Key_S); keyClick(Qt.Key_E); keyClick(Qt.Key_C); keyClick(Qt.Key_R)
             keyClick(Qt.Key_E); keyClick(Qt.Key_T); keyClick(Qt.Key_1); keyClick(Qt.Key_2)
             keyClick(Qt.Key_Return)
             compare(WifiSetup.lastConnect.ssid, "Voisins")
             compare(WifiSetup.lastConnect.password, "secret12")
-            verify(!sheet.opened)
-            WifiSetup.online = true                         // connecté : la suite du démarrage
-            verify(home.setupDone)
-            verify(!screen.staged)
-            keyClick(Qt.Key_Right)                          // la manette est revenue à l'étagère
+            WifiSetup.connectFinished(false, "Connexion impossible.", false)
+            compare(setup.notice, "Connexion impossible.")   // l'échec, sous la liste
+            WifiSetup.connectFinished(true, "", false)
+            compare(setup.step, "pc")
+            tryVerify(function() { return home.setupHosts.length === 1 })
+            compare(home.setupHosts[0].name, "Djinger")
+            compare(home.setupHosts[0].pill.text, "Sans jaquettes")   // pas de HostCompanion
+            tryVerify(function() { return setup.activeFocus })
+            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)   // A : Associer
+            compare(setup.step, "pair")
+            verify(setup.pair.done)                         // déjà appairé : la coche
+            tryVerify(function() { return setup.activeFocus })
+            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)   // Continuer
+            compare(setup.step, "library")
+            verify(setup.library.total > 0)
+            compare(setup.library.covers.length, 10)
+            tryVerify(function() { return setup.activeFocus })
+            keyClick(Qt.Key_Down); keyClick(Qt.Key_Down)    // Jeux non installés : masqués
+            keyClick(Qt.Key_Left)
+            tryVerify(function() { return setup.library.rows[2].index === 0 })
+            InputStatus.start = true                        // Start (≡) : Commencer
+            keyPress(Qt.Key_Hangup); keyRelease(Qt.Key_Hangup)
+            InputStatus.start = false
+            tryVerify(function() { return home.setupDone }, 6000)   // « Tout est prêt », puis l'accueil
+            verify(!setup.shown)
+            tryVerify(function() { return !screen.launching })
+            compare(screen.returnStyle, "boot")
+            tryVerify(function() { return !setup.visible }, 2000)
+            keyClick(Qt.Key_Right)                          // la manette est revenue à l'accueil
             compare(screen.currentIndex, 1)
+            home.applySetupPref("uninstalled", 1)
+        }
+
+        // « Ajouter un PC » (ChoixPC) : le choix du PC de la configuration ; B y referme.
+        function test_9la_addAPcFromThePicker() {
+            home.openHostPicker()
+            var picker = find(home.Window.window.contentItem, "hosts")
+            verify(picker.opened)
+            while (picker.current < picker.hosts.length) keyClick(Qt.Key_Down)
+            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)   // « Ajouter un PC »
+            var setup = find(home, "firstStep")
+            verify(!picker.opened && setup.shown)
+            compare(setup.step, "pc")
+            tryVerify(function() { return setup.activeFocus })
+            keyClick(Qt.Key_Down)                           // « Ajouter avec une adresse IP »
+            keyPress(Qt.Key_Return); keyRelease(Qt.Key_Return)
+            var keyboard = find(home, "masked")
+            verify(keyboard.opened && !keyboard.masked)
+            keyClick(Qt.Key_1); keyClick(Qt.Key_0)
+            keyClick(Qt.Key_Return)
+            compare(ComputerManager.added[ComputerManager.added.length - 1], "10")
+            ComputerManager.computerAddCompleted(false, false)
+            compare(setup.notice, "Aucun PC ne répond à cette adresse.")
+            tryVerify(function() { return setup.activeFocus })
+            keyClick(Qt.Key_Escape)                         // B : retour à l'accueil
+            verify(!setup.shown && !home.addingHost)
+            tryVerify(function() { return !screen.launching })
+        }
+
+        // Réglages › Général › « Réinitialiser la console » (appui maintenu) : PC et préférences
+        // oubliés, retour à la première configuration.
+        function test_9lb_resetConsoleReturnsToSetup() {
+            home.refreshSettings()
+            var general = home.settingsPages.find(function(p) { return p.key === "general" })
+            verify(general.rows.some(function(r) { return r.key === "reset" && r.hold }))
+            var forgets = CompanionClient.forgets
+            home.toggleFavorite()
+            home.applySetting("reset", 0)
+            compare(CompanionClient.forgets, forgets + 1)
+            verify(!home.setupDone)
+            compare(home.favoriteNames().length, 0)
+            var setup = find(home, "firstStep")
+            tryVerify(function() { return setup.shown && setup.step === "hello" && setup.activeFocus })
+            verify(screen.launching)
+            // (le PC de démo revient, pour la suite)
+            home.computerModel.initialize(ComputerManager)
+            home.setupDone = true
+            tryVerify(function() { return !setup.shown })
         }
 
         // X épingle le jeu en tête de l'étagère (la sélection le suit), puis le détache.

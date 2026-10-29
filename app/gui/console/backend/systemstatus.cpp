@@ -361,6 +361,21 @@ void SystemStatus::stopProbing()
     m_probeManager = nullptr;
 }
 
+QString SystemStatus::hostAddress(QObject* computerManager, const QString& hostName) const
+{
+    ComputerManager* manager = qobject_cast<ComputerManager*>(computerManager);
+    if (manager == nullptr) {
+        return QString();
+    }
+    for (NvComputer* computer : manager->getComputers()) {
+        QReadLocker lock(&computer->lock);
+        if (computer->name == hostName) {
+            return computer->activeAddress.address();
+        }
+    }
+    return QString();
+}
+
 void SystemStatus::probe()
 {
     if (m_probeManager == nullptr || m_probeSocket != nullptr) {

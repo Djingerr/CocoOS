@@ -84,6 +84,8 @@ public:
     // stopProbing(). Les mesures repartent de zéro.
     Q_INVOKABLE void probeHost(QObject* computerManager, const QString& hostName);
     Q_INVOKABLE void stopProbing();
+    // Adresse (sans port) du PC `hostName` connu de `computerManager` ; vide s'il n'en a pas.
+    Q_INVOKABLE QString hostAddress(QObject* computerManager, const QString& hostName) const;
 
     // Latence (médiane) et gigue (écart moyen entre mesures successives) d'une série
     // de temps d'aller-retour, en ms.

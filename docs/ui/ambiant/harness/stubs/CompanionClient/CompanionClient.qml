@@ -12,6 +12,7 @@ QtObject {
     property bool eventsConnected: false
     property string certFingerprint: ""
     property string hostName: "Djinger"
+    property string hostAddress: ""
     property var demo: Harness.DemoGames {}
     // Trace des appels, pour les tests
     property string launched: ""

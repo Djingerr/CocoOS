@@ -15,6 +15,7 @@ import AmbientColor 1.0
 
 import "idle"
 import "settings"
+import "setup"
 import "Format.js" as Format
 import "Library.js" as Library
 import "Search.js" as Search
@@ -66,13 +67,13 @@ FocusScope {
     // Lancement direct (mode "direct launch" du host) : une seule fois par session.
     property bool directLaunchDone: false
 
-    // Premier démarrage : bienvenue, puis réseau si la console n'est pas en ligne ;
-    // ensuite seulement la recherche du PC et les liaisons.
+    // Première configuration (setup/SetupFlow) tant que `setupDone` est faux ; ensuite seulement
+    // la recherche du PC et les liaisons. `addingHost` : « Ajouter un PC » (ChoixPC) la rouvre sur
+    // le choix du PC. `setupHost` : le PC choisi pendant la configuration, appairé ou non.
     property alias setupDone: consoleConfig.setupDone
     property alias preferredHost: consoleConfig.preferredHost   // PC choisi (ChoixPC)
-    property bool welcomed: false
-    readonly property bool needsNetwork: WifiSetup.available && !WifiSetup.online
-    onNeedsNetworkChanged: if (welcomed && !needsNetwork) setupDone = true
+    property bool addingHost: false
+    property string setupHost: ""
 
     Settings {
         id: consoleConfig
@@ -92,7 +93,9 @@ FocusScope {
         // minutes et à 5 par défaut : tout le monde repart des 120 s de l'écran de veille.)
         property int idleSeconds: Theme.idleSeconds
         property string buttonLayout: "auto"   // glyphes : auto (la manette branchée), xbox, playstation, nintendo
-        property bool setupDone: false      // premier démarrage fait (bienvenue, réseau)
+        property bool setupDone: false      // première configuration faite (setup/SetupFlow)
+        property string accent: "#F2802A"   // couleur d'accent choisie (SetupBibliotheque) ; suivie en phase 9
+        property bool showUninstalled: true // jeux non installés (téléchargeables) en fin d'étagère
         property string gameProfiles: "{}"  // réglages de flux propres à un jeu, par nom (JSON)
         // Profil de flux des réglages communs (StreamProfiles.js) ; « manual » : les réglages
         // tels quels. Un jeu à réglages à part garde le sien dans gameProfiles.
@@ -333,7 +336,7 @@ FocusScope {
                        ? shelfModel.get(homeScreen.currentIndex).name : consoleConfig.lastGame
         // Puis, en fin d'étagère, les jeux du PC pas encore installés (téléchargeables) — PC en
         // ligne seulement : hors ligne, l'accueil doit rester sur l'écran de recherche / réveil.
-        var pending = activeHostOnline
+        var pending = activeHostOnline && consoleConfig.showUninstalled
             ? Library.pendingTiles(companionList, apps.map(function(a) { return a.name }), downloads) : []
         // Jaquette : celle de Playnite (Companion, 600 × 848, le format du carrousel) d'abord,
         // celle d'Apollo (600 × 800) à défaut.
@@ -437,6 +440,7 @@ FocusScope {
 
     function pairingNeeded() {
         return !pairingInFlight
+            && (!setupFlow.shown || setupFlow.step === "pair")     // configuration : le PC choisi seulement
             && activeComputerIndex >= 0
             && activeHostOnline
             && !activeHostPaired
@@ -505,6 +509,15 @@ FocusScope {
         // Premier candidat online+paired, sinon premier online, sinon 0, sinon -1.
         var fallback = hostScanner.count > 0 ? 0 : -1
         var firstOnline = -1
+        // Le PC choisi pendant la configuration, appairé ou non.
+        for (var c = 0; c < hostScanner.count && setupHost !== ""; c++) {
+            var chosen = hostScanner.objectAt(c)
+            if (chosen && chosen.hostName === setupHost) {
+                if (activeComputerIndex !== c) activeComputerIndex = c
+                updateActiveHostView(chosen)
+                return
+            }
+        }
         // Le PC choisi (ChoixPC), même hors ligne : l'accueil dit alors qu'il l'est.
         for (var p = 0; p < hostScanner.count && consoleConfig.preferredHost !== ""; p++) {
             var pref = hostScanner.objectAt(p)
@@ -730,12 +743,12 @@ FocusScope {
     }
 
     // --- Animation de démarrage : l'accueil sait-il quoi montrer ? ---
-    // Prêt : des jeux sur l'étagère, ou un écran de message qui n'attend plus le
-    // réseau (bienvenue, choix du Wi-Fi, codes de liaison, PC hors ligne confirmé,
+    // Prêt : des jeux sur l'étagère, ou un écran qui n'attend plus le réseau (première
+    // configuration, codes de liaison, PC hors ligne confirmé,
     // aucun PC connu passé un délai de découverte). Sinon, le O fait le chargeur.
     property bool discoveryGrace: false
     Timer { interval: Theme.bootDiscoveryGrace; running: true; onTriggered: home.discoveryGrace = true }
-    readonly property bool bootReady: !libraryEmpty || welcomeScreen.shown || networkScreen.shown
+    readonly property bool bootReady: !libraryEmpty || setupFlow.shown
         || companionPairing.shown || pinScreen.shown
         || (searchScreen.shown && ((activeComputerIndex >= 0 && !activeHostOnline && !activeHostStatusUnknown)
                                    || (hostScanner.count === 0 && discoveryGrace)))
@@ -1949,11 +1962,10 @@ FocusScope {
         // Un jeu prend l'écran, ou en revient : l'accueil s'efface puis revient (MotionQuitter).
         // (sous l'écran de veille aussi : il revient en éventail à sa sortie, MotionReveil)
         launching: launchScreen.covering || streamCurtain.covering || home.sleeping || shutdownScreen.active
-                   || sleepScreen.asleep || home.bootHidden
+                   || sleepScreen.asleep || home.bootHidden || setupFlow.shown
         statusLogoShown: !bootSplash.visible || bootSplash.mode === "wake"
 
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
-                || welcomeScreen.shown || networkScreen.shown
         detailOpen: gamePage.shown
         panelOpen: confirmDialog.opened || homeMenu.opened || settingsScreen.opened || findScreen.opened
                    || hostPicker.opened || powerMenu.opened
@@ -2039,34 +2051,167 @@ FocusScope {
         onHintTriggered: function(glyph) { if (glyph === "Y") homeScreen.options.open() }
     }
 
-    // --- Premier démarrage ---
-    MessageScreen {
-        id: welcomeScreen
-        parent: homeScreen.stage
-        shown: !home.setupDone && !home.welcomed
-        focus: shown
-        title: qsTr("Bienvenue")
-        text: qsTr("Quelques secondes de réglages, puis vos jeux.")
-        hints: [ { glyph: "A", label: qsTr("Commencer") } ]
-        onActivated: home.welcome()
+    // --- Première configuration (setup/SetupFlow) ---
+    // Les PC vus sur le réseau, pour SetupPC : nom, ce qu'il fait tourner, son état.
+    property var setupHosts: []
+    function refreshSetupHosts() {
+        var list = []
+        for (var i = 0; i < hostScanner.count; i++) {
+            var it = hostScanner.objectAt(i)
+            if (!it) continue
+            var address = SystemStatus.hostAddress(ComputerManager, it.hostName)
+            var companion = companionOf(it.hostName, address)
+            var detail = !it.isOnline ? qsTr("Hors ligne")
+                       : companion ? [qsTr("Apollo · HostCompanion · Playnite")].concat(address !== "" ? [address] : []).join(" · ")
+                       : qsTr("Apollo seulement · installez HostCompanion pour la bibliothèque")
+            list.push({ index: i, name: it.hostName, detail: detail,
+                        pill: !it.isOnline ? undefined : companion ? { text: qsTr("Prêt"), accent: true } : { text: qsTr("Sans jaquettes") } })
+        }
+        setupHosts = list
     }
-    MessageScreen {
-        id: networkScreen
-        parent: homeScreen.stage
-        shown: !home.setupDone && home.welcomed && home.needsNetwork
-        focus: shown
-        title: qsTr("Connexion à Internet")
-        text: qsTr("Choisissez le réseau Wi-Fi de la maison : la console y retrouvera votre PC.")
-        status: WifiSetup.connecting ? qsTr("Connexion…") : ""
-        busy: WifiSetup.connecting
-        hints: [ { glyph: "A", label: qsTr("Choisir un réseau") } ]
-        onActivated: home.openWifi()
+    // Le HostCompanion découvert est-il sur ce PC ? (même adresse, ou même nom)
+    function companionOf(name, address) {
+        if (CompanionClient.certFingerprint === "" && !CompanionClient.paired) return false
+        return address !== "" && CompanionClient.hostAddress === address
+            || CompanionClient.hostName.toLowerCase() === name.toLowerCase()
     }
-    function welcome() {
-        Sounds.play("select")
-        welcomed = true
-        if (!needsNetwork)
-            setupDone = true
+    // ponytail: relevé toutes les secondes sur l'écran du choix du PC (les rôles du modèle ne
+    // sont pas observables d'ici) ; à brancher sur les changements si ça pèse.
+    Timer {
+        interval: 1000; repeat: true; triggeredOnStart: true
+        running: setupFlow.shown && setupFlow.step === "pc"
+        onTriggered: home.refreshSetupHosts()
+    }
+    Timer {
+        interval: Theme.wifiRescan; repeat: true
+        running: setupFlow.shown && setupFlow.step === "wifi"
+        onTriggered: WifiSetup.scan()
+    }
+
+    // Un PC choisi : il devient celui de la console, puis son code (Companion d'abord, s'il y en
+    // a un à appairer : il transmettra le code Moonlight à Apollo tout seul).
+    function chooseSetupHost(row) {
+        var host = setupHosts[row]
+        if (!host) return
+        var it = hostScanner.objectAt(host.index)
+        if (it && !it.isOnline) {
+            if (it.isWakeable) wakeHost(true)
+            setupFlow.notice = qsTr("%1 est hors ligne. Allumez-le, puis réessayez.").arg(host.name)
+            Sounds.play("deny")
+            return
+        }
+        setupHost = host.name
+        consoleConfig.preferredHost = host.name
+        pickActiveComputer()
+        var companionPairing = companionOf(host.name, SystemStatus.hostAddress(ComputerManager, host.name)) && !CompanionClient.paired
+        setupFlow.pair.mode = companionPairing ? "companion" : "moonlight"
+        setupFlow.pair.hostName = host.name
+        setupFlow.go("pair")
+        if (companionPairing) CompanionClient.startPairing(qsTr("Console"))
+        else if (setupPaired) setupFlow.pair.done = true        // déjà associé : la coche, tout de suite
+    }
+    function cancelSetupPairing() {
+        setupHost = ""
+        pairingArmTimer.stop()
+        pickActiveComputer()
+    }
+    // Associé : Moonlight appairé, et le Companion s'il y en a un.
+    readonly property bool setupPaired: setupHost !== "" && activeHostName === setupHost && activeHostPaired
+        && (setupFlow.pair.mode !== "companion" || CompanionClient.paired)
+    onSetupPairedChanged: if (setupPaired && setupFlow.step === "pair") {
+        Sounds.play("pairing_success")
+        setupFlow.pair.done = true
+    }
+    // Le Companion appairé : reste le code Moonlight, qu'il soumet lui-même à Apollo.
+    Connections {
+        target: CompanionClient
+        enabled: setupFlow.step === "pair"
+        function onPairingSucceeded() {
+            setupFlow.pair.busy = false
+            setupFlow.pair.mode = "moonlight"
+            home.maybeStartPairing()
+        }
+    }
+    function addHostAt(address) {
+        setupFlow.notice = ""
+        ComputerManager.addNewHostManually(address.trim())
+    }
+    Connections {
+        target: ComputerManager
+        enabled: setupFlow.shown
+        function onComputerAddCompleted(success, detectedPortBlocking) {
+            if (success) {
+                Sounds.play("select")
+                home.refreshSetupHosts()
+            } else {
+                Sounds.play("deny")
+                setupFlow.notice = detectedPortBlocking
+                    ? qsTr("Le PC répond, mais ses ports sont bloqués : vérifiez son pare-feu.")
+                    : qsTr("Aucun PC ne répond à cette adresse.")
+            }
+        }
+    }
+
+    // Bibliothèque : jaquettes reçues sur jeux à montrer (Companion), sinon les apps d'Apollo.
+    readonly property var setupLibrary: {
+        var games = companionList.filter(function(g) { return g.isInstalled || g.downloadable })
+        if (games.length > 0)
+            return { total: games.length, done: games.filter(function(g) { return g.cover || !g.coverPath }).length, playnite: true }
+        return { total: allTiles.length, done: allTiles.length, playnite: false }
+    }
+    readonly property var setupSleepChoices: [30, 60, 120, 300, 600, 1800, 0]
+    function sleepLabel(seconds) {
+        return seconds === 0 ? qsTr("Jamais")
+             : seconds < 60 ? qsTr("Après %1 s").arg(seconds) : qsTr("Après %1 min").arg(seconds / 60)
+    }
+    function applySetupPref(key, index) {
+        if (key === "accent") {
+            consoleConfig.accent = Theme.accentChoices[index]
+        } else if (key === "sounds") {
+            consoleConfig.sounds = index === 1
+            Sounds.enabled = consoleConfig.sounds
+        } else if (key === "uninstalled") {
+            consoleConfig.showUninstalled = index === 1
+            rebuildShelf()
+        } else if (key === "sleep") {
+            consoleConfig.idleSeconds = setupSleepChoices[index]
+            rearmSleep()
+        }
+    }
+
+    // « Ajouter un PC » (ChoixPC) : la configuration, sur le choix du PC.
+    function openAddHost() {
+        addingHost = true
+        setupFlow.firstStep = "pc"
+        setupFlow.go("pc")
+    }
+    // La configuration s'en va : l'accueil revient en éventail (MotionSetupFin).
+    function endSetup() {
+        homeScreen.returnStyle = "boot"
+        homeScreen.leaveStyle = "spread"
+        setupDone = true
+        addingHost = false
+        setupHost = ""
+        pickActiveComputer()
+    }
+    // Réinitialiser la console : PC (Moonlight et Companion) et préférences oubliés, puis la
+    // première configuration. (Les réseaux Wi-Fi restent connus du système.)
+    function resetConsole() {
+        console.info("[console-ui] Réinitialisation de la console")
+        CompanionClient.forgetHost()
+        for (var i = hostScanner.count - 1; i >= 0; i--)
+            computerModel.deleteComputer(i)
+        consoleConfig.preferredHost = ""
+        consoleConfig.favorites = "[]"
+        consoleConfig.recentGames = "{}"
+        consoleConfig.lastGame = ""
+        consoleConfig.gameProfiles = "{}"
+        consoleConfig.recentSearches = "[]"
+        consoleConfig.accent = Theme.accentChoices[0]
+        consoleConfig.showUninstalled = true
+        setupFlow.firstStep = "hello"
+        setupFlow.go("hello")
+        setupDone = false
     }
 
     // Oublier ce PC : son appairage Moonlight ET celui du Companion.
@@ -2179,7 +2324,10 @@ FocusScope {
                      rows: [ { key: "about:name", label: qsTr("Nom"), value: SystemStatus.deviceName, group: "about",
                                section: qsTr("À propos") },
                              { key: "about:version", label: qsTr("Version"), group: "about",
-                               value: qsTr("CocoOS Alpha · moonlight-qt %1").arg(Qt.application.version) } ] })
+                               value: qsTr("CocoOS Alpha · moonlight-qt %1").arg(Qt.application.version) },
+                             { key: "reset", label: qsTr("Réinitialiser la console"), hold: true,
+                               doneLabel: qsTr("Réinitialisation"), group: "reset",
+                               footnote: qsTr("Oublie les PC et les préférences, puis relance la première configuration.") } ] })
         pages.push({ key: "accessibility", label: qsTr("Accessibilité"), tile: { color: Theme.setTileScreen, icon: "accessibility" },
                      group: "system",
                      rows: [ { key: "motion", label: qsTr("Réduire les animations"), toggle: true, options: labels(c.motion),
@@ -2205,6 +2353,11 @@ FocusScope {
         function onStateChanged() { home.refreshSettings() }
     }
     function applySetting(key, value) {
+        if (key === "reset") {
+            settingsScreen.close()
+            resetConsole()
+            return
+        }
         if (key === "forget") {
             settingsScreen.close()
             forgetHost()
@@ -2277,8 +2430,7 @@ FocusScope {
         if (!network || network.active) return
         wifiTarget = ssid
         if (network.secured && !network.known) {
-            keyboard.prompt = qsTr("Mot de passe de « %1 »").arg(ssid)
-            keyboard.open("")           // (par-dessus les réglages : B sur le clavier vide y ramène)
+            openKeyboard("password", qsTr("Mot de passe de « %1 »").arg(ssid))   // (par-dessus les réglages : B sur le clavier vide y ramène)
         } else {
             connectWifi("")
         }
@@ -2286,23 +2438,48 @@ FocusScope {
 
     function connectWifi(password) {
         settingsScreen.close()
-        homeScreen.toast(qsTr("Connexion à %1…").arg(wifiTarget))
+        if (setupFlow.shown) setupFlow.notice = ""
+        else homeScreen.toast(qsTr("Connexion à %1…").arg(wifiTarget))
         WifiSetup.connectTo(wifiTarget, password)
+    }
+    // Le clavier à l'écran, pour : "password" (Wi-Fi), "ssid" (réseau masqué), "address" (IP d'un PC).
+    property string keyboardFor: "password"
+    function openKeyboard(purpose, prompt) {
+        keyboardFor = purpose
+        keyboard.prompt = prompt
+        keyboard.masked = purpose === "password"
+        keyboard.minLength = purpose === "password" ? 8 : 1      // WPA : 8 caractères au moins
+        keyboard.context = setupFlow.shown ? qsTr("PREMIÈRE CONFIGURATION") : ""
+        keyboard.open("")
+    }
+    // Réseau masqué : son nom, puis son mot de passe (vide : réseau ouvert).
+    function askWifiPassword(ssid) {
+        wifiTarget = ssid
+        openKeyboard("password", qsTr("Mot de passe de « %1 »").arg(ssid))
+        keyboard.minLength = 0
+    }
+    function refocus() {
+        if (setupFlow.shown) setupFlow.focusStep()
+        else homeScreen.forceActiveFocus()
     }
 
     Connections {
         target: WifiSetup
         function onConnectFinished(ok, error, badPassword) {
+            if (setupFlow.shown) {
+                if (ok) setupFlow.go("pc")
+                else if (badPassword) home.openKeyboard("password", qsTr("Mot de passe de « %1 »").arg(home.wifiTarget))
+                else setupFlow.notice = error
+                return
+            }
             if (ok) {
                 homeScreen.toast(qsTr("Connecté à %1").arg(home.wifiTarget))
                 return
             }
             homeScreen.toast(error)
             // Mauvais mot de passe : on le redemande aussitôt.
-            if (badPassword) {
-                keyboard.prompt = qsTr("Mot de passe de « %1 »").arg(home.wifiTarget)
-                keyboard.open("")
-            }
+            if (badPassword)
+                home.openKeyboard("password", qsTr("Mot de passe de « %1 »").arg(home.wifiTarget))
         }
     }
 
@@ -2333,6 +2510,75 @@ FocusScope {
         height: Theme.canvasHeight
         scale: Theme.scale
         transformOrigin: Item.TopLeft
+
+        // Première configuration : par-dessus l'accueil (qui attend dessous, `launching`).
+        SetupFlow {
+            id: setupFlow
+            anchors.fill: parent
+            shown: !home.setupDone || home.addingHost
+            padReady: InputStatus.controllerCount > 0
+            startDown: function() { return InputStatus.startHeld() }
+            languages: [ { label: "Français" }, { label: "English" } ]   // chaque langue dans sa langue
+            languageIndex: home.english ? 1 : 0
+            regionText: qsTr("Région France · clavier AZERTY · format 24 h")
+            // (en ligne par câble : l'étape Wi-Fi est sautée)
+            wifiAvailable: WifiSetup.available && !(WifiSetup.online && WifiSetup.currentNetwork === "")
+            networks: WifiSetup.networks
+            wifiScanning: WifiSetup.scanning
+            hosts: home.setupHosts
+            hostScanning: true
+            lanName: WifiSetup.currentNetwork.toUpperCase()
+            pair.code: home.pairingPin
+            libraryReady: home.setupLibrary.total > 0 && home.setupLibrary.done >= home.setupLibrary.total
+            libraryText: {
+                var n = home.setupLibrary.total, pc = home.activeHostName
+                if (n === 0) return qsTr("Recherche de vos jeux sur %1…").arg(pc)
+                var games = n === 1 ? qsTr("1 jeu trouvé") : qsTr("%1 jeux trouvés").arg(n)
+                return (home.setupLibrary.playnite ? qsTr("%1 dans Playnite sur %2.") : qsTr("%1 sur %2.")).arg(games).arg(pc)
+                       + " " + qsTr("Réglez quelques préférences pendant le chargement.")
+            }
+            library.covers: home.allTiles.slice(0, Theme.libTiles).map(function(t) { return t.cover || t.boxart || "" })
+                                         .filter(function(u) { return u !== "" })
+            library.done: home.setupLibrary.done
+            library.total: home.setupLibrary.total
+            library.rows: [
+                { key: "accent", label: qsTr("Couleur d’accent"), swatches: Theme.accentChoices,
+                  options: [qsTr("Orange"), qsTr("Blanc"), qsTr("Bleu"), qsTr("Vert"), qsTr("Rose")],
+                  index: Math.max(0, Theme.accentChoices.indexOf(consoleConfig.accent)), group: "prefs", section: qsTr("Préférences") },
+                { key: "sounds", label: qsTr("Sons de l’interface"), toggle: true, options: [qsTr("Coupés"), qsTr("Activés")],
+                  index: consoleConfig.sounds ? 1 : 0, group: "prefs" },
+                { key: "uninstalled", label: qsTr("Jeux non installés"), sub: qsTr("Les afficher dans la bibliothèque"),
+                  toggle: true, options: [qsTr("Masqués"), qsTr("Affichés")], index: consoleConfig.showUninstalled ? 1 : 0, group: "prefs" },
+                { key: "sleep", label: qsTr("Mise en veille"), options: home.setupSleepChoices.map(home.sleepLabel),
+                  index: Math.max(0, home.setupSleepChoices.indexOf(consoleConfig.idleSeconds)), group: "prefs" } ]
+            onLanguageChosen: function(index) {
+                var p = StreamingPreferences
+                p.language = index === 1 ? p.LANG_EN : p.LANG_FR
+                p.save()
+                p.retranslate()
+            }
+            onNetworkChosen: function(ssid) {
+                var network = WifiSetup.networks.find(function(n) { return n.ssid === ssid })
+                if (network && network.active) go("pc")
+                else home.chooseNetwork(ssid)
+            }
+            onOtherNetwork: home.openKeyboard("ssid", qsTr("Nom du réseau"))
+            onRescanNetworks: WifiSetup.scan()
+            onHostChosen: function(index) { home.chooseSetupHost(index) }
+            onAddHost: home.openKeyboard("address", qsTr("Adresse IP du PC"))
+            onRescanHosts: {
+                CompanionClient.startDiscovery()
+                ComputerManager.startPolling()
+                home.refreshSetupHosts()
+            }
+            onPairCancelled: home.cancelSetupPairing()
+            pair.onSubmitted: function(code) { CompanionClient.confirmPairing(code) }
+            onPrefChanged: function(key, index) { home.applySetupPref(key, index) }
+            onCloseRequested: { home.addingHost = false; home.cancelSetupPairing() }
+            onHomeReturn: home.endSetup()
+            onFinished: homeScreen.forceActiveFocus()
+            onShownChanged: shown ? Qt.callLater(focusStep) : homeScreen.forceActiveFocus()
+        }
 
         SettingsScreen {
             id: settingsScreen
@@ -2388,9 +2634,8 @@ FocusScope {
             id: hostPicker
             anchors.fill: parent
             onChosen: function(row) { home.chooseHost(row) }
-            // « Ajouter un PC » mène au choix du PC de la première configuration (SetupPC,
-            // phase 8) : refusé d'ici là.
-            onAddRequested: { refuse(); Sounds.play("deny") }
+            // « Ajouter un PC » : le choix du PC de la première configuration (SetupPC).
+            onAddRequested: { close(); home.openAddHost() }
             onClosed: {
                 homeScreen.statusBar.hostRing = false
                 homeScreen.forceActiveFocus()
@@ -2412,10 +2657,13 @@ FocusScope {
         minLength: 8                    // WPA : 8 caractères au moins
         startDown: function() { return InputStatus.startHeld() }
         onAccepted: function(text) {
-            home.connectWifi(text)
-            homeScreen.forceActiveFocus()   // le clavier fermé ne doit plus rien avaler
+            home.refocus()                  // le clavier fermé ne doit plus rien avaler
+            if (home.keyboardFor === "ssid") home.askWifiPassword(text)
+            else if (home.keyboardFor === "address") home.addHostAt(text)
+            else home.connectWifi(text)
         }
-        onCancelled: settingsScreen.opened ? settingsScreen.forceActiveFocus() : home.openWifi()
+        onCancelled: settingsScreen.opened ? settingsScreen.forceActiveFocus()
+                   : setupFlow.shown ? setupFlow.focusStep() : home.openWifi()
     }
 
     // --- Menu Home : reprendre ou quitter le jeu en cours, veille, redémarrage, extinction ---
@@ -2533,7 +2781,7 @@ FocusScope {
                                 + Math.round(readyAt) + " ms)" : "")
                              + ", image la plus longue " + longestFrame.toFixed(1) + " ms")
                 if (mode === "cold")
-                    homeScreen.forceActiveFocus()
+                    home.refocus()
                 // Leurs premiers relevés (D-Bus, synchrones) attendaient la fin de la
                 // séquence : rien ne doit bloquer le fil GUI pendant l'animation.
                 SystemStatus.start()
@@ -2659,6 +2907,8 @@ FocusScope {
             companionPairing.errorText = (code === "PAIR_EXPIRED")
                 ? qsTr("Code expiré — relancez la liaison depuis le PC.")
                 : qsTr("Code incorrect — réessayez.")
+            setupFlow.pair.busy = false
+            setupFlow.pair.errorText = companionPairing.errorText
         }
         function onLibraryChanged() { home.refreshCompanionGames() }
 
