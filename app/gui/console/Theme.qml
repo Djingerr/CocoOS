@@ -1368,6 +1368,32 @@ QtObject {
     readonly property int wakeBarMove: 500
     readonly property int wakeBarShift: -8
 
+    // --- Extinction et redémarrage (MotionExtinction) ---
+    readonly property int shutdownBlack: 700         // le noir monte pendant que l'accueil se replie
+    readonly property int shutdownCollapse: 700      // puis la jaquette devient l'anneau…
+    readonly property real shutdownCoverScale: 0.7   // (les voisines, repliées au centre)
+    readonly property int shutdownMove: 820          // (curveMain)
+    readonly property int shutdownRingY: 266         // …au centre, à cette hauteur…
+    readonly property int shutdownArtFade: 420
+    readonly property int shutdownWordY: 400         // …puis glisse à la place du O du mot
+    readonly property real shutdownOShift: 65.65     // (le mot est centré, pas le O)
+    readonly property int shutdownWordSize: 64       // « Coco » et « S », 600
+    readonly property real shutdownGapLeft: 3.05
+    readonly property real shutdownGapRight: 1.75
+    readonly property int shutdownWordDelay: 280
+    readonly property int shutdownWordFade: 600
+    readonly property int shutdownUnwindDelay: 160   // l'anneau se vide…
+    readonly property int shutdownUnwind: 1400
+    readonly property var curveUnwind: [0.65, 0, 0.35, 1, 1, 1]
+    readonly property int shutdownSpread: 18         // …le mot s'écarte en s'effaçant…
+    readonly property int shutdownSpreadMove: 700
+    readonly property int shutdownDot: 10            // …l'anneau se resserre en un point…
+    readonly property int shutdownDotMove: 700
+    readonly property int shutdownDotEnd: 6
+    readonly property int shutdownDotFade: 800       // …qui s'éteint
+    readonly property int shutdownBlackHold: 300
+    readonly property int shutdownFallback: 10000    // toujours là (logind a refusé) : retour à l'accueil
+
     // --- Menu d'alimentation (MenuAlimentation, MotionAlimentation) ---
     readonly property int powerIn: 360
     readonly property int powerOut: 260

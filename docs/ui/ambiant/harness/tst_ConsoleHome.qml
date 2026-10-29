@@ -823,8 +823,13 @@ Item {
             keyPress(Qt.Key_Return)
             compare(SystemStatus.lastPower, "")           // rien à l'appui
             keyRelease(Qt.Key_Return)
-            compare(SystemStatus.lastPower, "poweroff")
             verify(!power.opened)
+            // L'extinction s'anime (MotionExtinction), puis logind ; sans effet, l'accueil revient.
+            verify(screen.launching && screen.leaveStyle === "collapse")
+            compare(SystemStatus.lastPower, "")
+            tryCompare(SystemStatus, "lastPower", "poweroff", 8000)
+            home.cancelShutdown()
+            verify(!screen.launching)
             InputStatus.homePressed(); verify(power.opened)
             InputStatus.homePressed(); verify(!power.opened)    // Home le referme
             keyClick(Qt.Key_Right)

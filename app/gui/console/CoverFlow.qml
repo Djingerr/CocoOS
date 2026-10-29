@@ -50,6 +50,9 @@ FocusScope {
     property int gatherFade: Theme.returnCoverFade
     property real gatherAmount: Theme.returnCoverGather
     property real gatherScale: Theme.returnCoverScale
+    // Au départ, les voisines se replient vers le centre au lieu de s'écarter (extinction :
+    // MotionExtinction), les plus éloignées d'abord.
+    property bool leaveGather: false
     // PC hors ligne (EtatHorsLigne) : jaquettes grisées, assombries, à 55 %.
     property bool greyed: false
     property real grey: greyed ? 1 : 0
@@ -334,10 +337,10 @@ FocusScope {
                 property real away: 0
                 property real faded: 0
                 onLeavingChanged: {
-                    gather = !leaving && faded > 0.99
+                    gather = leaving ? root.leaveGather : faded > 0.99
                     var target = leaving && !central ? 1 : 0
                     awayAnim.stop()
-                    awayWait.duration = leaving ? Math.max(0, k - 1) * Theme.launchCoverStagger
+                    awayWait.duration = leaving ? (root.leaveGather ? Math.max(0, 3 - k) : Math.max(0, k - 1)) * Theme.launchCoverStagger
                                       : gather && !Theme.reducedMotion ? root.gatherDelay + k * root.gatherStagger : 0
                     awayMove.to = awayFade.to = target
                     awayMove.duration = leaving ? Theme.launchCoverMove : root.gatherMove

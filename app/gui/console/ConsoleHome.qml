@@ -918,7 +918,27 @@ FocusScope {
         if (SystemStatus.powerActions.indexOf(key) < 0) return
         console.info("[console-ui] Alimentation : " + key)
         if (key === "suspend") sleepConsole()
-        else SystemStatus.power(key)
+        else shutDown(key)
+    }
+
+    // --- Extinction et redémarrage (MotionExtinction) : l'animation, puis logind ---
+    property string shutdownAction: ""
+    function shutDown(key) {
+        if (shutdownScreen.active) return
+        shutdownAction = key
+        homeScreen.leaveStyle = "collapse"
+        var tile = shelfModel.count > 0 ? shelfModel.get(Math.min(homeScreen.currentIndex, shelfModel.count - 1)) : null
+        shutdownScreen.origin = homeScreen.activeThumbRect
+        shutdownScreen.cover = tile ? (tile.cover || tile.boxart || "") : ""
+        shutdownScreen.start()
+    }
+
+    function cancelShutdown() {
+        if (!shutdownScreen.active) return
+        console.info("[console-ui] Alimentation : " + shutdownAction + " sans effet, retour à l'accueil")
+        homeScreen.returnStyle = "wake"
+        shutdownScreen.active = false
+        homeScreen.forceActiveFocus()
     }
 
     // --- Mise en veille et réveil (MotionVeille) ---
@@ -1270,6 +1290,7 @@ FocusScope {
         id: launchPress
         interval: Theme.launchPress
         onTriggered: {
+            homeScreen.leaveStyle = "spread"
             homeScreen.returnStyle = "game"
             launchScreen.open()
         }
@@ -1921,7 +1942,7 @@ FocusScope {
         // la barre haute n'apparaît qu'une fois celui du démarrage arrivé à sa place.
         entryAllowed: bootSplash.entryOpen
         // Un jeu prend l'écran, ou en revient : l'accueil s'efface puis revient (MotionQuitter).
-        launching: launchScreen.covering || streamCurtain.covering || home.sleeping
+        launching: launchScreen.covering || streamCurtain.covering || home.sleeping || shutdownScreen.active
         statusLogoShown: !bootSplash.visible || bootSplash.mode === "wake"
 
         staged: searchScreen.shown || pinScreen.shown || companionPairing.shown
@@ -2441,6 +2462,24 @@ FocusScope {
                 homeScreen.forceActiveFocus()
                 home.wakeHost(true)
             }
+        }
+
+        // Extinction et redémarrage : par-dessus l'accueil.
+        ShutdownScreen {
+            id: shutdownScreen
+            anchors.fill: parent
+            z: 4
+            onFinished: {
+                console.info("[console-ui] Alimentation : " + home.shutdownAction)
+                SystemStatus.power(home.shutdownAction)
+                shutdownFallback.restart()
+            }
+        }
+        // logind a refusé (droits, inhibiteur) : on ne reste pas devant un écran noir.
+        Timer {
+            id: shutdownFallback
+            interval: Theme.shutdownFallback
+            onTriggered: home.cancelShutdown()
         }
 
         // Animation de démarrage, le temps que l'accueil se mette en place.

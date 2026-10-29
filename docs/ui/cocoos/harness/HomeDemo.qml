@@ -36,6 +36,8 @@ import "Mock.js" as Mock
 // « Connexion à PC-Salon… »), fail, retry.
 //   time      heure affichée (21:42 par défaut)
 //   picker    1 : le choix du PC ouvert, PC-Bureau sous la manette (ChoixPC)
+//   shutdown, sleep, wake (actions) : extinction (MotionExtinction), mise en veille et réveil
+//             (MotionVeille)
 //   power     1 : le menu d'alimentation (MenuAlimentation) ; powerFocus=0..2 ; action hold
 //             (la touche power tenue : la pastille se remplit puis le menu)
 //   pc        asleep | offline | waking : état du PC (MotionReveilPC, EtatHorsLigne) ; actions
@@ -126,7 +128,8 @@ HomeScreen {
     backdrop: game && game.background && backdropArrived ? game.background : ""
 
     // --- Lancement, échec et retour d'un jeu ---
-    launching: launchScreen.covering || curtain.covering
+    launching: launchScreen.covering || curtain.covering || shutdown.active || demo.napping && demo.dozed
+    property bool dozed: false
     LaunchScreen {
         id: launchScreen
         anchors.fill: parent
@@ -163,6 +166,12 @@ HomeScreen {
         onClosed: { demo.statusBar.hostRing = false; demo.shelf.forceActiveFocus() }
         onChosen: close()
     }
+    ShutdownScreen {
+        id: shutdown
+        anchors.fill: parent
+        z: 12
+    }
+    Timer { id: doze; interval: Theme.sleepFade; onTriggered: demo.dozed = true }
     PowerMenu {
         id: powerMenu
         anchors.fill: parent
@@ -309,6 +318,14 @@ HomeScreen {
         else if (action === "asleep" || action === "offline" || action === "waking") pc = action
         else if (action === "woke") { pc = "online"; woke.start(); Sounds.play("host_online") }
         else if (action === "hold") powerMenu.startHold()
+        else if (action === "shutdown") {
+            leaveStyle = "collapse"
+            shutdown.origin = activeThumbRect
+            shutdown.cover = game.cover || ""
+            shutdown.start()
+        }
+        else if (action === "sleep") { napping = true; doze.start() }
+        else if (action === "wake") { returnStyle = "wake"; napping = false; dozed = false }
         else if (action === "press") { pressed = true; Sounds.play("launch") }
         else if (action === "launch") {
             placeLaunch(true)

@@ -53,6 +53,10 @@ FocusScope {
     // (MotionVeille : plus vif, de moins loin).
     property string returnStyle: "game"
     readonly property bool wakeStyle: returnStyle === "wake"
+    // Le départ (`launching` passe à vrai) : "spread" (un jeu : les voisines s'écartent) ou
+    // "collapse" (l'extinction : elles se replient vers le centre, en rapetissant).
+    property string leaveStyle: "spread"
+    readonly property bool collapseStyle: leaveStyle === "collapse"
     // Mise en veille (MotionVeille) : l'accueil recule et s'efface, un point s'allume au centre
     // puis s'éteint. Au réveil, `napping` repasse à faux et l'accueil revient (`launching`).
     property bool napping: false
@@ -372,8 +376,9 @@ FocusScope {
                     gatherStagger: root.wakeStyle ? Theme.wakeCoverStagger : Theme.returnCoverStagger
                     gatherMove: root.wakeStyle ? Theme.wakeCoverMove : Theme.returnCoverMove
                     gatherFade: root.wakeStyle ? Theme.wakeCoverFade : Theme.returnCoverFade
-                    gatherAmount: root.wakeStyle ? Theme.wakeCoverGather : Theme.returnCoverGather
-                    gatherScale: root.wakeStyle ? Theme.wakeCoverScale : Theme.returnCoverScale
+                    gatherAmount: root.collapseStyle ? 1 : root.wakeStyle ? Theme.wakeCoverGather : Theme.returnCoverGather
+                    gatherScale: root.collapseStyle ? Theme.shutdownCoverScale : root.wakeStyle ? Theme.wakeCoverScale : Theme.returnCoverScale
+                    leaveGather: root.collapseStyle
                     greyed: root.hostOffline
                     detailOpen: root.detailOpen
                     onLaunchRequested: function(index) { root.launchRequested(index) }
