@@ -1368,6 +1368,25 @@ QtObject {
     readonly property int wakeBarMove: 500
     readonly property int wakeBarShift: -8
 
+    // --- Mise à jour (MotionMiseAJour) : le O sert de barre de progression ---
+    readonly property int updateIn: 600
+    readonly property int updateOut: 550
+    readonly property int updateStep: 140            // l'arc suit l'avancement
+    readonly property int updateGlowSize: 160
+    readonly property real updateGlowLow: 0.18
+    readonly property real updateGlowHigh: 0.55
+    readonly property int updateGlowFade: 500
+    readonly property int updateTextTop: 476
+    readonly property int updateTextGap: 6
+    readonly property int updateShift: 10
+    readonly property int updateTextFade: 360
+    readonly property int updateTextMove: 520        // curveMain
+    readonly property int updateTitleSize: 16        // 600
+    readonly property int updateSubSize: 14          // 500, ink2, chiffres tabulaires
+    readonly property int updateNoteTop: 10
+    readonly property int updateNoteSize: 12
+    readonly property color updateNoteInk: Qt.rgba(245 / 255, 245 / 255, 247 / 255, 0.4)
+
     // --- Sortie du démarrage (Demarrage) : le O devient l'anneau, se déplie en jaquette ---
     readonly property int bootWordFade: 600          // « Coco » et « S » s'effacent…
     readonly property int bootUnfoldMove: 800        // …le O glisse au centre, puis se déplie (curveMain)
