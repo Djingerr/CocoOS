@@ -1,0 +1,7 @@
+# Aider (utilisable avec DeepSeek, GPT, Claude, modèles locaux…) : charger les instructions communes
+# en lecture seule à chaque session. Les skills (.agents/skills/*/SKILL.md) s'ajoutent à la demande :
+#   /read .agents/skills/cocoos-ui/SKILL.md
+read:
+  - AGENTS.md
+# Les hooks git (.githooks/pre-commit) restent actifs sur les commits d'Aider.
+git-commit-verify: true

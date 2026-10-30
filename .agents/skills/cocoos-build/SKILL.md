@@ -8,14 +8,14 @@ description: Compiler CocoOS (qmake6/make, mode embedded vs vanilla), diagnostiq
 ## Raccourcis (préférer ces scripts : sortie filtrée, économe en tokens)
 
 ```bash
-scripts/cc/build.sh              # build embedded (UI console) ; gère le piège subdirs et touch qml.qrc
-scripts/cc/build.sh vanilla      # build Moonlight vanilla (doit rester intact)
-scripts/cc/build.sh --clean      # make distclean d'abord
-scripts/cc/test.sh               # tous les tst_*.qml du harnais (XDG_CONFIG_HOME vierge, offscreen)
-scripts/cc/test.sh GameShelf     # un seul test
-scripts/cc/smoke.sh 8            # lance ./app/moonlight 8 s hors réseau, ne remonte que les erreurs
+scripts/dev/build.sh              # build embedded (UI console) ; gère le piège subdirs et touch qml.qrc
+scripts/dev/build.sh vanilla      # build Moonlight vanilla (doit rester intact)
+scripts/dev/build.sh --clean      # make distclean d'abord
+scripts/dev/test.sh               # tous les tst_*.qml du harnais (XDG_CONFIG_HOME vierge, offscreen)
+scripts/dev/test.sh GameShelf     # un seul test
+scripts/dev/smoke.sh 8            # lance ./app/moonlight 8 s hors réseau, ne remonte que les erreurs
 ```
-Log complet du dernier build : `.cc/last-build.log` (ne le lire qu'en cas de besoin, avec Grep).
+Log complet du dernier build : `.dev/last-build.log` (ne le lire qu'en cas de besoin, par recherche ciblée, jamais en entier).
 
 ## Comment compiler en mode `embedded` (UI maison)
 

@@ -1,23 +1,53 @@
-# Travailler vite avec Claude Code sur CocoOS
+# Travailler vite avec une IA sur CocoOS (Claude Code, Codex/ChatGPT, DeepSeek…)
 
-Guide pour Coco. Vérifié contre la doc Claude Code d'octobre 2026 (liens en bas).
+Guide pour Coco. Vérifié contre la doc Claude Code d'octobre 2026 et les formats ouverts AGENTS.md /
+Agent Skills (liens en bas).
 
-## 0. Ce qui est déjà en place dans le repo
+## 0. Ce qui est en place dans le repo
+
+### Commun à toutes les IA (la source de vérité)
 
 | Élément | Où | Effet |
 |---|---|---|
-| `CLAUDE.md` allégé (90 Ko → ~19 Ko) | racine | ~17K tokens de moins **à chaque tour** ; le détail est chargé à la demande |
-| Skills | `.claude/skills/` | `cocoos-ui`, `cocoos-build`, `ambiant-harness`, `cocoos-i18n`, `boot-animation` (auto) ; `/next`, `/upstream-sync` (manuels) |
-| Sous-agents | `.claude/agents/` | `upstream-explorer` (Haiku, lecture seule), `qml-reviewer` (Sonnet), `verifier` (Haiku) |
-| Garde upstream | `.claude/hooks/upstream-guard.sh` + `.claude/seams.txt` | refuse les fichiers upstream hors coutures, demande pour les coutures, bloque `main.qml` et la branche `master` |
-| Démarrage de session | `.claude/hooks/session-start.sh` | recrée `.git/info/exclude`, ajoute le remote `upstream`, donne branche / fichiers modifiés / dernière étape |
-| Contrôle QML | `.claude/hooks/qml-check.sh` | après chaque édition de `.qml`, renvoie à Claude les **erreurs** de qmllint (pas les warnings) |
-| Scripts filtrés | `scripts/cc/` | `build.sh`, `test.sh`, `smoke.sh`, `i18n.sh`, `worktree-init.sh`, `tmux-fleet.sh` |
-| Barre d'état | `.claude/statusline.sh` | `worktree@branche · modèle · ctx % · build OK/FAILED`, alerte « /compact » à 60 % |
-| Permissions | `.claude/settings.json` | build/tests/git en lecture sans confirmation ; push/rebase/reset sur confirmation ; force-push interdit ; sous-modules non lus |
+| Instructions du projet | `AGENTS.md` | lu nativement par Codex, Cursor, Copilot, OpenCode, Aider (via config)… ; Claude Code l'importe via `CLAUDE.md` |
+| Skills (format ouvert Agent Skills) | `.agents/skills/<nom>/SKILL.md` | procédures (`next`, `verify`, `qml-review`, `upstream-explore`, `upstream-sync`) et références (`cocoos-ui`, `cocoos-build`, `ambiant-harness`, `cocoos-i18n`, `boot-animation`) |
+| Garde-fou additif | `.githooks/pre-commit` + `scripts/dev/upstream-policy.sh` + `.agents/seams.txt` | **refuse au commit** tout fichier upstream hors coutures, et tout commit sur `master`, quelle que soit l'IA |
+| Mise en place | `scripts/dev/setup.sh` | active les hooks git, `.git/info/exclude`, remote `upstream`, sous-modules |
+| Reprise | `scripts/dev/status.sh` | branche, fichiers modifiés, dernière étape de `next_steps.md`, dernier build |
+| Scripts filtrés | `scripts/dev/` | `build.sh`, `test.sh`, `smoke.sh`, `i18n.sh`, `worktree-init.sh`, `tmux-fleet.sh` |
+| Contexte long | `docs/ai/HISTORY.md`, `docs/ai/HARDWARE.md` | lus à la demande seulement |
 
-À faire une fois sur le Fedora : `sudo dnf install jq ccache tmux` (jq est requis par les hooks ; ccache
-divise les temps de recompilation, surtout avec plusieurs worktrees).
+### En plus, propre à Claude Code
+
+| Élément | Où | Effet |
+|---|---|---|
+| `CLAUDE.md` | racine | `@AGENTS.md` + quelques lignes propres à Claude |
+| Skills | `.claude/skills` → lien vers `.agents/skills` | mêmes fichiers ; `/next`, `/upstream-sync` en commandes |
+| Sous-agents | `.claude/agents/` | `upstream-explorer` (Haiku), `qml-reviewer` (Sonnet), `verifier` (Haiku) : enveloppes des skills du même nom, contexte séparé |
+| Hooks | `.claude/settings.json` | garde **avant** l'édition (même politique que le pre-commit), `setup.sh` + `status.sh` au démarrage, erreurs qmllint après édition QML |
+| Barre d'état | `.claude/statusline.sh` | `worktree@branche · modèle · ctx % · build`, alerte « /compact » à 60 % |
+| Permissions | `.claude/settings.json` | build/tests/git lecture sans confirmation ; push/rebase/reset sur confirmation ; force-push interdit |
+
+À faire une fois sur le Fedora : `sudo dnf install jq ccache tmux`, puis `scripts/dev/setup.sh`.
+
+## Utiliser une autre IA
+
+| Outil | Ce qu'il lit tout seul | À faire |
+|---|---|---|
+| **Codex CLI / ChatGPT (agent Codex)** | `AGENTS.md`, `.agents/skills/` | rien |
+| **Cursor**, **GitHub Copilot** | `AGENTS.md` | demander « applique le skill X » → il lit `.agents/skills/X/SKILL.md` |
+| **Gemini CLI** | `.gemini/settings.json` → `AGENTS.md` | rien |
+| **Aider** (DeepSeek, GPT, Claude, local…) | `.aider.conf.yml` → `AGENTS.md` en lecture | `/read .agents/skills/<nom>/SKILL.md` au besoin |
+| **OpenCode, Cline, Kilo…** (souvent avec DeepSeek) | `AGENTS.md` en général | sinon : « lis AGENTS.md d'abord » |
+| **Chat web sans accès au dépôt** (chat.deepseek.com, chatgpt.com) | rien | coller `AGENTS.md` + le SKILL.md utile + les fichiers concernés |
+
+Ce qui ne dépend d'aucun outil : le pre-commit (garde-fou), les scripts, `next_steps.md` comme journal de
+passation. Une IA qui reprend lit `AGENTS.md`, lance `scripts/dev/status.sh`, puis suit le skill `next`.
+**Toujours finir une session en mettant `next_steps.md` à jour** : c'est ce qui permet de changer d'IA sans
+rien perdre.
+
+Exemple DeepSeek avec Aider : `aider --model deepseek/deepseek-chat` (clé `DEEPSEEK_API_KEY`), puis
+« fais la prochaine tâche selon .agents/skills/next/SKILL.md ».
 
 ## 1. La boucle de base (une session)
 
@@ -30,14 +60,16 @@ divise les temps de recompilation, surtout avec plusieurs worktrees).
 - `/clear` entre deux tâches sans lien ; `/compact Garde : …` quand la barre d'état passe 60 %.
 - `/rename <nom>` pour retrouver une session ; `claude --resume` pour la reprendre.
 
-## 2. Plusieurs Claude en parallèle (tmux + worktrees)
+## 2. Plusieurs IA en parallèle (tmux + worktrees)
 
 Chaque session travaille dans **son propre worktree** (dossier + branche à part) : aucune collision de fichiers.
 
 ```bash
-scripts/cc/tmux-fleet.sh idle stream-optim i18n   # 1 fenêtre main + 3 sessions `claude -w <nom>`
-# dans chaque nouvelle fenêtre, la 1re fois :
-scripts/cc/worktree-init.sh                       # sous-modules + premier build (rapide avec ccache)
+scripts/dev/tmux-fleet.sh idle stream-optim i18n   # 1 fenêtre main + 3 sessions `claude -w <nom>`
+scripts/dev/tmux-fleet.sh --tool codex doc         # ou un autre outil, dans .worktrees/doc
+scripts/dev/tmux-fleet.sh --tool "aider --model deepseek/deepseek-chat" i18n
+# premier build dans un worktree neuf (setup.sh y est déjà lancé) :
+scripts/dev/build.sh                               # rapide si ccache est chaud
 tmux attach -t cocoos                             # revenir plus tard ; Ctrl-b w pour naviguer
 ```
 
@@ -67,7 +99,7 @@ consomment beaucoup plus de tokens : à réserver à un gros chantier découpabl
 1. Sur secteur, empêcher la veille au rabat : dans `/etc/systemd/logind.conf`,
    `HandleLidSwitchExternalPower=ignore`, puis `sudo systemctl restart systemd-logind`
    (ou ponctuellement : `systemd-inhibit --what=handle-lid-switch:sleep tmux attach -t cocoos`).
-2. `scripts/cc/tmux-fleet.sh --rc idle stream-optim` → chaque session est pilotable depuis l'app Claude
+2. `scripts/dev/tmux-fleet.sh --rc idle stream-optim` → chaque session est pilotable depuis l'app Claude
    du téléphone ; tmux garde tout vivant si le terminal se ferme.
 
 **Limite des sessions cloud** : l'environnement cloud est un Ubuntu générique. Son Qt (6.4 via apt) est
@@ -78,7 +110,7 @@ local (ou Remote Control) pour l'UI.
 
 Idées de tâches planifiées (cloud, sans build) :
 - chaque lundi : « liste les commits moonlight-qt depuis la dernière synchro qui touchent un fichier de
-  `.claude/seams.txt` et ouvre une issue récapitulative » ;
+  `.agents/seams.txt` et ouvre une issue récapitulative » ;
 - chaque soir : « relis les commits du jour sur console-ui avec les règles de qml-reviewer et poste un
   commentaire de revue ».
 
@@ -94,7 +126,7 @@ Chaque serveur MCP ajoute des définitions d'outils au contexte : n'activer que 
 ## 5. HostCompanion
 
 Ce dépôt n'était pas accessible depuis la session qui a préparé cet outillage. Pour lui appliquer le même
-traitement : même découpage (CLAUDE.md court + skills + `scripts/cc/` filtrés + sous-agent `verifier`), avec
+traitement : même découpage (CLAUDE.md court + skills + `scripts/dev/` filtrés + sous-agent `verifier`), avec
 une garde **no-fork** à la place de la garde upstream (refuser toute édition dans un répertoire vendored
 d'Apollo / Playnite ; versions épinglées dans le lockfile seulement).
 Côté console, `CLAUDE.md` renvoie déjà à `../HostCompanion/CLAUDE.md` : garder les deux repos côte à côte
@@ -111,3 +143,5 @@ Côté console, `CLAUDE.md` renvoie déjà à `../HostCompanion/CLAUDE.md` : gar
 - Tâches planifiées : https://code.claude.com/docs/en/routines
 - Barre d'état : https://code.claude.com/docs/en/statusline — Effort : https://code.claude.com/docs/en/model-config
 - Figma MCP : https://developers.figma.com/docs/figma-mcp-server/remote-server-installation
+- Portabilité AGENTS.md / CLAUDE.md : https://codex.danielvaughan.com/2026/05/27/agent-instruction-files-agents-md-claude-md-cross-tool-portability-codex-cli/
+- Format ouvert Agent Skills : https://codex.danielvaughan.com/2026/05/05/agent-skills-open-standard-portable-skills-codex-cli-cross-agent/

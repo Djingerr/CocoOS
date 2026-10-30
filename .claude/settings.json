@@ -1,8 +1,8 @@
 {
   "permissions": {
     "allow": [
-      "Bash(scripts/cc/*)",
-      "Bash(./scripts/cc/*)",
+      "Bash(scripts/dev/*)",
+      "Bash(./scripts/dev/*)",
       "Bash(qmake6 *)",
       "Bash(make *)",
       "Bash(qmllint *)",

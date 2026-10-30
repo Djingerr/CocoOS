@@ -1,6 +1,6 @@
-# Matériel (ex-§6 de CLAUDE.md)
+# Matériel (ex-§6 de AGENTS.md)
 
-> Déplacé hors de `CLAUDE.md` (inutile pour le code au quotidien). Contenu repris tel quel.
+> Déplacé hors de `AGENTS.md` (inutile pour le code au quotidien). Contenu repris tel quel.
 
 ## 6. Matériel
 

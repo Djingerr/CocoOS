@@ -1,9 +1,9 @@
-# Historique détaillé du projet (ex-§2 de CLAUDE.md)
+# Historique détaillé du projet (ex-§2 de AGENTS.md)
 
-> Déplacé hors de `CLAUDE.md` pour ne pas être rechargé à chaque tour de Claude Code.
+> Déplacé hors de `AGENTS.md` pour ne pas être rechargé à chaque tour par l'assistant IA.
 > À lire quand on a besoin du *pourquoi* d'un choix passé ou du détail d'un commit.
-> Contenu repris tel quel ; les renvois « §N » visent `CLAUDE.md`, sauf §5/§11 → skills
-> (`cocoos-ui`, `cocoos-build`…), voir l'index en tête de `CLAUDE.md`.
+> Contenu repris tel quel ; les renvois « §N » (ou « CLAUDE.md §N ») visent `AGENTS.md`, sauf §5/§11 → skills
+> (`cocoos-ui`, `cocoos-build`…), voir l'index en tête de `AGENTS.md`.
 
 ## 2. État actuel du projet
 

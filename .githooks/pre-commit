@@ -1,0 +1,45 @@
+#!/usr/bin/env bash
+# Garde-fou commun à TOUTES les IA (Claude, Codex/ChatGPT, DeepSeek via Aider/OpenCode, Cursor…) et aux
+# humains : applique la politique additive de AGENTS.md §4 au moment du commit.
+# Activé par scripts/dev/setup.sh (git config core.hooksPath .githooks).
+# Contournement volontaire et assumé par Coco uniquement : git commit --no-verify
+set -u
+root=$(git rev-parse --show-toplevel)
+policy="$root/scripts/dev/upstream-policy.sh"
+[ -x "$policy" ] || exit 0
+
+if [ "$(git symbolic-ref --short -q HEAD)" = master ]; then
+  echo "✗ Commit refusé : master est le miroir propre d'upstream (AGENTS.md §4)." >&2
+  exit 1
+fi
+
+blocked=(); seams=(); guards=(); news=()
+while IFS= read -r -d '' path; do
+  case "$("$policy" "$root/$path")" in
+    upstream|forbidden) blocked+=("$path") ;;
+    seam)  seams+=("$path") ;;
+    guard) guards+=("$path") ;;
+    new)   news+=("$path") ;;
+  esac
+done < <(git diff --cached --name-only -z --diff-filter=ACMR)
+
+if [ ${#seams[@]} -gt 0 ]; then
+  echo "ℹ Coutures upstream modifiées (doivent rester additives, sous #ifdef CONSOLE_UI) :" >&2
+  printf '   %s\n' "${seams[@]}" >&2
+  # Une couture ne doit qu'AJOUTER des lignes : signaler toute ligne upstream supprimée.
+  for p in "${seams[@]}"; do
+    removed=$(git diff --cached -U0 -- "$p" | grep -c '^-[^-]')
+    [ "$removed" -gt 0 ] && echo "   ⚠ $p : $removed ligne(s) supprimée(s) — vérifier que ce sont bien des lignes CocoOS" >&2
+  done
+fi
+[ ${#guards[@]} -gt 0 ] && { echo "ℹ Garde-fous modifiés (décision de Coco) :" >&2; printf '   %s\n' "${guards[@]}" >&2; }
+[ ${#news[@]} -gt 0 ] && { echo "ℹ Nouveaux fichiers hors app/gui/console/ :" >&2; printf '   %s\n' "${news[@]}" >&2; }
+
+if [ ${#blocked[@]} -gt 0 ]; then
+  echo "✗ Commit refusé : fichiers upstream de moonlight-qt modifiés hors des coutures admises :" >&2
+  printf '   %s\n' "${blocked[@]}" >&2
+  echo "  → déplacer le code dans un fichier neuf de app/gui/console/, ou faire valider une nouvelle" >&2
+  echo "    couture par Coco (il l'ajoute à .agents/seams.txt). Voir AGENTS.md §4." >&2
+  exit 1
+fi
+exit 0

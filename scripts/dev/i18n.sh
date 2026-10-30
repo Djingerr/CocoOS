@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Traduction anglaise de la console (skill cocoos-i18n), sortie résumée.
-#   scripts/cc/i18n.sh           # lupdate, puis liste des chaînes non traduites
-#   scripts/cc/i18n.sh --release # idem + lrelease et touch qml.qrc (à faire une fois tout traduit)
+#   scripts/dev/i18n.sh           # lupdate, puis liste des chaînes non traduites
+#   scripts/dev/i18n.sh --release # idem + lrelease et touch qml.qrc (à faire une fois tout traduit)
 set -u
 root=$(git rev-parse --show-toplevel) || exit 1
 cd "$root/app"

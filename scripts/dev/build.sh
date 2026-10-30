@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
 # Build CocoOS à sortie FILTRÉE (pensé pour Claude Code : quelques lignes au lieu de milliers).
-#   scripts/cc/build.sh                  # embedded (UI console), le cas courant
-#   scripts/cc/build.sh vanilla          # Moonlight vanilla (doit rester intact)
-#   scripts/cc/build.sh embedded --clean # make distclean d'abord
-# Log complet : .cc/last-build.log — statut : .cc/last-build.status
+#   scripts/dev/build.sh                  # embedded (UI console), le cas courant
+#   scripts/dev/build.sh vanilla          # Moonlight vanilla (doit rester intact)
+#   scripts/dev/build.sh embedded --clean # make distclean d'abord
+# Log complet : .dev/last-build.log — statut : .dev/last-build.status
 set -u
 mode=embedded; clean=0
 for a in "$@"; do
@@ -16,8 +16,8 @@ done
 
 root=$(git rev-parse --show-toplevel) || exit 1
 cd "$root"
-mkdir -p .cc
-log=.cc/last-build.log
+mkdir -p .dev
+log=.dev/last-build.log
 qmake=$(command -v qmake6 || command -v qmake-qt6 || true)
 [ -z "$qmake" ] && { echo "BUILD FAILED : qmake6 introuvable"; exit 127; }
 
@@ -62,12 +62,12 @@ other=$(grep -E 'warning:' "$log" | grep -vcE 'gui/console/')
 if [ $rc -eq 0 ]; then
   if [ "$mode" = embedded ] && ! grep -q -- '-DCONSOLE_UI' "$log" && ! grep -qs CONSOLE_UI app/Makefile*; then
     echo "BUILD SUSPECT ($mode, ${dur}s) : CONSOLE_UI non défini, l'app démarrera sur PcView"
-    echo "SUSPECT $mode $(date '+%F %T')" > .cc/last-build.status; exit 3
+    echo "SUSPECT $mode $(date '+%F %T')" > .dev/last-build.status; exit 3
   fi
   echo "BUILD OK ($mode, ${dur}s) → ./app/moonlight"
-  echo "OK $mode $(date '+%F %T')" > .cc/last-build.status
+  echo "OK $mode $(date '+%F %T')" > .dev/last-build.status
 else
   echo "BUILD FAILED ($mode, ${dur}s, code $rc) — log complet : $log"
-  echo "FAILED $mode $(date '+%F %T')" > .cc/last-build.status
+  echo "FAILED $mode $(date '+%F %T')" > .dev/last-build.status
 fi
 exit $rc

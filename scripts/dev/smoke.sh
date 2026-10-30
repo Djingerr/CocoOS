@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # Test de fumée : lance ./app/moonlight N secondes, HORS RÉSEAU (unshare -rn : aucun risque
 # d'appairage ou de lancement sur le vrai PC) et hors écran, puis ne remonte que les problèmes.
-#   scripts/cc/smoke.sh [secondes=8]
+#   scripts/dev/smoke.sh [secondes=8]
 set -u
 secs="${1:-8}"
 root=$(git rev-parse --show-toplevel) || exit 1
 cd "$root"
-[ -x app/moonlight ] || { echo "SMOKE NON LANCÉ : app/moonlight absent (scripts/cc/build.sh d'abord)"; exit 127; }
-mkdir -p .cc
-log=.cc/last-smoke.log
+[ -x app/moonlight ] || { echo "SMOKE NON LANCÉ : app/moonlight absent (scripts/dev/build.sh d'abord)"; exit 127; }
+mkdir -p .dev
+log=.dev/last-smoke.log
 cfg=$(mktemp -d)
 # Sortie redirigée vers un fichier : à travers un pipe, moonlight n'écrit rien (skill cocoos-build).
 XDG_CONFIG_HOME="$cfg" QT_QPA_PLATFORM=offscreen COCOOS_BOOT_SPEED=4 \

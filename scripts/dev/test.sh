@@ -1,15 +1,15 @@
 #!/usr/bin/env bash
 # Tests QML de la console à sortie RÉSUMÉE.
-#   scripts/cc/test.sh              # tous : harnais Ambiant (tst_*.qml) + veille (idle/tests)
-#   scripts/cc/test.sh GameShelf    # ceux dont le nom contient « GameShelf » (insensible à la casse)
+#   scripts/dev/test.sh              # tous : harnais Ambiant (tst_*.qml) + veille (idle/tests)
+#   scripts/dev/test.sh GameShelf    # ceux dont le nom contient « GameShelf » (insensible à la casse)
 # Chaque test tourne avec un XDG_CONFIG_HOME vierge (sinon favoris / récents d'un passage précédent
-# faussent les résultats) et QT_QPA_PLATFORM=offscreen. Détail d'un échec : .cc/tests/<test>.log
+# faussent les résultats) et QT_QPA_PLATFORM=offscreen. Détail d'un échec : .dev/tests/<test>.log
 set -u
 filter="${1:-}"
 root=$(git rev-parse --show-toplevel) || exit 1
 runner=$(command -v qmltestrunner-qt6 || command -v qmltestrunner || true)
 [ -z "$runner" ] && { echo "TESTS NON LANCÉS : qmltestrunner-qt6 introuvable"; exit 127; }
-mkdir -p "$root/.cc/tests"
+mkdir -p "$root/.dev/tests"
 
 harness="$root/docs/ui/ambiant/harness"
 idle="$root/app/gui/console/idle/tests"
@@ -20,7 +20,7 @@ run_one() { # $1 = dossier, $2 = fichier, $3.. = options en plus
   local name; name=$(basename "$file" .qml)
   if [ -n "$filter" ] && ! echo "$name" | grep -qi -- "$filter"; then return; fi
   local cfg; cfg=$(mktemp -d)
-  local log="$root/.cc/tests/$name.log"
+  local log="$root/.dev/tests/$name.log"
   (cd "$dir" && XDG_CONFIG_HOME="$cfg" QT_QPA_PLATFORM=offscreen timeout 180 \
      "$runner" "$@" -input "$file") >"$log" 2>&1
   local rc=$?
@@ -40,5 +40,5 @@ for f in "$idle"/tst_*.qml;    do [ -e "$f" ] && run_one "$idle"    "$(basename 
 
 total=$((pass+fail))
 [ $total -eq 0 ] && { echo "Aucun test ne correspond à « $filter »"; exit 1; }
-if [ $fail -eq 0 ]; then echo "TESTS OK ($pass/$total)"; else echo "TESTS FAILED ($fail/$total) : ${failed[*]} — logs dans .cc/tests/"; fi
+if [ $fail -eq 0 ]; then echo "TESTS OK ($pass/$total)"; else echo "TESTS FAILED ($fail/$total) : ${failed[*]} — logs dans .dev/tests/"; fi
 [ $fail -eq 0 ]

@@ -3,7 +3,7 @@ name: cocoos-i18n
 description: Mettre à jour la traduction anglaise de l'UI console (lupdate/lrelease, qml_en.ts). À utiliser après tout ajout ou changement de texte affiché (qsTr/tr).
 ---
 
-Raccourci : `scripts/cc/i18n.sh` (lupdate + compte des chaînes non traduites + lrelease).
+Raccourci : `scripts/dev/i18n.sh` (lupdate + compte des chaînes non traduites + lrelease).
 
 ## Traduction anglaise : la tenir à jour
 

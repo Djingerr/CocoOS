@@ -6,9 +6,10 @@ description: Voir, capturer et tester l'UI console sans PC hôte : harnais docs/
 # Harnais de vérification de l'UI
 
 Boucle conseillée après une modif d'UI :
-1. `scripts/cc/test.sh` (ou le test ciblé) → doit être vert.
+1. `scripts/dev/test.sh` (ou le test ciblé) → doit être vert.
 2. Capture `./shot.sh` de l'écran touché puis `./compare.py` contre la référence du prototype
-   (`docs/ui/ambiant/ref/`) ; regarder l'image produite avec l'outil Read avant de conclure.
+   (`docs/ui/ambiant/ref/`) ; ouvrir et regarder l'image produite avant de conclure (si ton outil ne sait pas lire une image, te fier à
+   l'écart chiffré de `compare.py` et le dire).
 3. Si un test manque pour le comportement ajouté, l'écrire (`tst_<Composant>.qml`, même style que les existants).
 
 ## Harnais « Ambiant » : voir et vérifier l'UI sans PC hôte
