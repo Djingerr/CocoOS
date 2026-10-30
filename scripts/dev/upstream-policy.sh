@@ -12,6 +12,8 @@
 #     outside    hors du dépôt
 #   Le chemin peut être absolu ou relatif au répertoire courant.
 set -u
+# Dans un hook git, GIT_DIR / GIT_INDEX_FILE sont exportés et faussent `git -C <dossier>` : on les retire.
+unset GIT_DIR GIT_WORK_TREE GIT_INDEX_FILE GIT_PREFIX
 f="${1:?usage: $0 <chemin>}"
 case "$f" in /*) abs="$f" ;; *) abs="$PWD/$f" ;; esac
 abs=$(realpath -m "$abs")
