@@ -1,45 +1,69 @@
 #!/usr/bin/env bash
-# Garde-fou commun à TOUTES les IA (Claude, Codex/ChatGPT, DeepSeek via Aider/OpenCode, Cursor…) et aux
-# humains : applique la politique additive de AGENTS.md §4 au moment du commit.
-# Activé par scripts/dev/setup.sh (git config core.hooksPath .githooks).
-# Contournement volontaire et assumé par Coco uniquement : git commit --no-verify
+# Politique fail-closed, y compris suppressions et sources de renommages.
 set -u
-root=$(git rev-parse --show-toplevel)
+root=$(git rev-parse --show-toplevel) || exit 1
+cd "$root" || exit 1
 policy="$root/scripts/dev/upstream-policy.sh"
-[ -x "$policy" ] || exit 0
-
 if [ "$(git symbolic-ref --short -q HEAD)" = master ]; then
-  echo "✗ Commit refusé : master est le miroir propre d'upstream (AGENTS.md §4)." >&2
-  exit 1
+  echo "✗ Commit refusé : master est le miroir propre d'upstream." >&2; exit 1
 fi
-
-blocked=(); seams=(); guards=(); news=()
-while IFS= read -r -d '' path; do
-  case "$("$policy" "$root/$path")" in
-    upstream|forbidden) blocked+=("$path") ;;
-    seam)  seams+=("$path") ;;
-    guard) guards+=("$path") ;;
-    new)   news+=("$path") ;;
+if [ ! -x "$policy" ] || [ ! -f .agents/seams.txt ]; then
+  echo '✗ Commit refusé : politique exécutable ou source de vérité .agents/seams.txt absente.' >&2; exit 1
+fi
+# Le disque et l'index peuvent diverger (update-index --chmod=-x, symlink, suppression).
+# Vérifier ce qui sera commité, pas uniquement le hook actuellement invoqué.
+for guard in .githooks/pre-commit scripts/dev/upstream-policy.sh; do
+  entry=$(git ls-files --stage -- "$guard") || exit 1
+  if [[ ! "$entry" =~ ^100755\ [[:xdigit:]]+\ 0$'\t' ]] || [[ "$entry" = *$'\n'* ]]; then
+    echo "✗ Garde-fou indexé absent/non régulier/non exécutable (100755 requis) : $guard" >&2; exit 1
+  fi
+done
+tmpbase=/tmp
+if [ -n "${TMPDIR:-}" ] && [ -d "$TMPDIR" ] && [ -w "$TMPDIR" ] && [ -x "$TMPDIR" ]; then
+  tmpbase=$TMPDIR
+elif [ -d /tmp/opencode ] && [ -w /tmp/opencode ] && [ -x /tmp/opencode ]; then
+  tmpbase=/tmp/opencode
+fi
+tmp=$(mktemp "$tmpbase/cocoos-hook.XXXXXX") || exit 1
+trap 'rm -f -- "$tmp"' EXIT
+# --no-renames expose toujours la source supprimée, même pour un renommage à 100 %.
+git diff --cached --no-renames --name-status -z >"$tmp" || exit 1
+blocked=0
+while IFS= read -r -d '' status && IFS= read -r -d '' path; do
+  class=$("$policy" "$root/$path")
+  rc=$?
+  if [ "$rc" -ne 0 ]; then
+    echo "✗ Politique en échec ($rc) : $path" >&2; blocked=1; continue
+  fi
+  case "$class" in
+    upstream|forbidden)
+      echo "✗ $class $status : $path" >&2; blocked=1 ;;
+    seam)
+      entry=$(git ls-files --stage -- "$path") || exit 1
+      if [[ ! "$entry" =~ ^100(644|755)\ [[:xdigit:]]+\ 0$'\t' ]] || [[ "$entry" = *$'\n'* ]]; then
+        echo "✗ Couture non additive / non régulière dans l'index : $path" >&2; blocked=1; continue
+      fi
+      # Conservateur : aucune suppression, y compris lignes CocoOS ; décision humaine
+      # préalable requise pour réviser la couture (pas de flag de contournement).
+      stats=$(git diff --cached --no-renames --numstat -- "$path") || exit 1
+      IFS=$'\t' read -r added removed rest <<<"$stats"
+      if [ "$status" != A ] && [ "$status" != M ] ||
+         [[ ! "$removed" =~ ^[0-9]+$ ]] || [ "$removed" -ne 0 ]; then
+        echo "✗ Couture non additive $status : $path ($removed ligne(s) supprimée(s))" >&2; blocked=1
+      else
+        echo "ℹ Couture additive : $path — revoir le diff et le scope CONSOLE_UI/embedded." >&2
+      fi ;;
+    guard)
+      echo "ℹ Garde-fou $status : $path — décision de Coco requise." >&2
+      if [ "$status" != A ] && [ "$status" != M ]; then
+        echo "✗ Suppression/changement de type d'un garde-fou refusé : $path" >&2; blocked=1
+      fi ;;
+    new) echo "ℹ Nouveau fichier hors zone CocoOS : $path — à confirmer." >&2 ;;
+    own) ;;
+    *) echo "✗ Classe de politique invalide '$class' : $path" >&2; blocked=1 ;;
   esac
-done < <(git diff --cached --name-only -z --diff-filter=ACMR)
-
-if [ ${#seams[@]} -gt 0 ]; then
-  echo "ℹ Coutures upstream modifiées (doivent rester additives, sous #ifdef CONSOLE_UI) :" >&2
-  printf '   %s\n' "${seams[@]}" >&2
-  # Une couture ne doit qu'AJOUTER des lignes : signaler toute ligne upstream supprimée.
-  for p in "${seams[@]}"; do
-    removed=$(git diff --cached -U0 -- "$p" | grep -c '^-[^-]')
-    [ "$removed" -gt 0 ] && echo "   ⚠ $p : $removed ligne(s) supprimée(s) — vérifier que ce sont bien des lignes CocoOS" >&2
-  done
-fi
-[ ${#guards[@]} -gt 0 ] && { echo "ℹ Garde-fous modifiés (décision de Coco) :" >&2; printf '   %s\n' "${guards[@]}" >&2; }
-[ ${#news[@]} -gt 0 ] && { echo "ℹ Nouveaux fichiers hors app/gui/console/ :" >&2; printf '   %s\n' "${news[@]}" >&2; }
-
-if [ ${#blocked[@]} -gt 0 ]; then
-  echo "✗ Commit refusé : fichiers upstream de moonlight-qt modifiés hors des coutures admises :" >&2
-  printf '   %s\n' "${blocked[@]}" >&2
-  echo "  → déplacer le code dans un fichier neuf de app/gui/console/, ou faire valider une nouvelle" >&2
-  echo "    couture par Coco (il l'ajoute à .agents/seams.txt). Voir AGENTS.md §4." >&2
+done <"$tmp"
+if [ "$blocked" -ne 0 ]; then
+  echo 'Commit refusé : conserver upstream intact et faire valider les coutures/garde-fous par Coco (AGENTS.md §4).' >&2
   exit 1
 fi
-exit 0

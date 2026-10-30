@@ -1,5 +1,11 @@
 # Travailler vite avec une IA sur CocoOS (Claude Code, Codex/ChatGPT, DeepSeek…)
 
+> **Usage courant OpenCode/Fedora : [OPENCODE.md](OPENCODE.md)** (V2.2.4,
+> modèles connectés, permissions, flotte actuelle, arrêt/nettoyage et revue).
+> Les exemples tmux/`--rc` ci-dessous décrivent l'ancien lanceur Claude : ils ne
+> correspondent plus à `tmux-fleet.sh`. Ne pas appliquer les suggestions de
+> crédits/API/cloud ou de veille sans décision explicite de Marco.
+
 Guide pour Coco. Vérifié contre la doc Claude Code d'octobre 2026 et les formats ouverts AGENTS.md /
 Agent Skills (liens en bas).
 
@@ -12,7 +18,7 @@ Agent Skills (liens en bas).
 | Instructions du projet | `AGENTS.md` | lu nativement par Codex, Cursor, Copilot, OpenCode, Aider (via config)… ; Claude Code l'importe via `CLAUDE.md` |
 | Skills (format ouvert Agent Skills) | `.agents/skills/<nom>/SKILL.md` | procédures (`next`, `verify`, `qml-review`, `upstream-explore`, `upstream-sync`) et références (`cocoos-ui`, `cocoos-build`, `ambiant-harness`, `cocoos-i18n`, `boot-animation`) |
 | Garde-fou additif | `.githooks/pre-commit` + `scripts/dev/upstream-policy.sh` + `.agents/seams.txt` | **refuse au commit** tout fichier upstream hors coutures, et tout commit sur `master`, quelle que soit l'IA |
-| Mise en place | `scripts/dev/setup.sh` | active les hooks git, `.git/info/exclude`, remote `upstream`, sous-modules |
+| Mise en place | `scripts/dev/setup.sh` | hooks isolés et exclusions ; réseau uniquement avec `--fetch-upstream` / `--submodules` |
 | Reprise | `scripts/dev/status.sh` | branche, fichiers modifiés, dernière étape de `next_steps.md`, dernier build |
 | Scripts filtrés | `scripts/dev/` | `build.sh`, `test.sh`, `smoke.sh`, `i18n.sh`, `worktree-init.sh`, `tmux-fleet.sh` |
 | Contexte long | `docs/ai/HISTORY.md`, `docs/ai/HARDWARE.md` | lus à la demande seulement |
@@ -46,8 +52,9 @@ passation. Une IA qui reprend lit `AGENTS.md`, lance `scripts/dev/status.sh`, pu
 **Toujours finir une session en mettant `next_steps.md` à jour** : c'est ce qui permet de changer d'IA sans
 rien perdre.
 
-Exemple DeepSeek avec Aider : `aider --model deepseek/deepseek-chat` (clé `DEEPSEEK_API_KEY`), puis
-« fais la prochaine tâche selon .agents/skills/next/SKILL.md ».
+DeepSeek avec Aider reste une possibilité future, **non configurée**. Une clé/API
+payante nécessite d'abord l'accord explicite de Marco ; ne pas la proposer comme
+fallback automatique lorsqu'un abonnement est limité.
 
 ## 1. La boucle de base (une session)
 
@@ -65,12 +72,10 @@ Exemple DeepSeek avec Aider : `aider --model deepseek/deepseek-chat` (clé `DEEP
 Chaque session travaille dans **son propre worktree** (dossier + branche à part) : aucune collision de fichiers.
 
 ```bash
-scripts/dev/tmux-fleet.sh idle stream-optim i18n   # 1 fenêtre main + 3 sessions `claude -w <nom>`
-scripts/dev/tmux-fleet.sh --tool codex doc         # ou un autre outil, dans .worktrees/doc
-scripts/dev/tmux-fleet.sh --tool "aider --model deepseek/deepseek-chat" i18n
-# premier build dans un worktree neuf (setup.sh y est déjà lancé) :
-scripts/dev/build.sh                               # rapide si ccache est chaud
-tmux attach -t cocoos                             # revenir plus tard ; Ctrl-b w pour naviguer
+scripts/dev/tmux-fleet.sh --tool opencode idle
+scripts/dev/tmux-fleet.sh --tool codex doc
+scripts/dev/tmux-fleet.sh list
+scripts/dev/tmux-fleet.sh attach idle
 ```
 
 Règles qui rendent le parallélisme rentable :
@@ -78,7 +83,8 @@ Règles qui rendent le parallélisme rentable :
   une couture** (`app.pro`, `qml.qrc`, `main.cpp`…) → conflits garantis. `qml.qrc` est le point chaud :
   regrouper les ajouts de fichiers QML dans une seule session, ou les faire à l'intégration.
 - **3 sessions max** pour commencer : au-delà, c'est toi qui deviens le goulot (relire, tester à la manette).
-- Une fenêtre `main` sert à **intégrer** : `git merge worktree-idle` (ou PR GitHub), puis `verifier`.
+- Pas de fenêtre d'intégration automatique : inspection du diff, vérification,
+  reviewer indépendant, puis proposition d'intégration contrôlée (voir OPENCODE.md).
 - Bons découpages pour CocoOS : UI d'un écran / backend C++ d'un autre / traduction + tests / docs.
 - Schéma « écrivain + relecteur » : une session code, une autre lance `qml-reviewer` sur sa branche.
 
@@ -95,12 +101,10 @@ consomment beaucoup plus de tokens : à réserver à un gros chantier découpabl
 | **Tâche planifiée cloud** (`/schedule`) | **oui** | routines : veille upstream, rapport hebdo, tri d'issues |
 | `claude -p` / tmux sur ta machine | ordi allumé requis | lots non interactifs (ex. traduire les chaînes manquantes) |
 
-**Capot fermé mais machine allumée (le plus utile pour CocoOS, car le harnais et Qt ≥ 6.6 sont chez toi)** :
-1. Sur secteur, empêcher la veille au rabat : dans `/etc/systemd/logind.conf`,
-   `HandleLidSwitchExternalPower=ignore`, puis `sudo systemctl restart systemd-logind`
-   (ou ponctuellement : `systemd-inhibit --what=handle-lid-switch:sleep tmux attach -t cocoos`).
-2. `scripts/dev/tmux-fleet.sh --rc idle stream-optim` → chaque session est pilotable depuis l'app Claude
-   du téléphone ; tmux garde tout vivant si le terminal se ferme.
+**Machine allumée et joignable** : SSH + `tmux-fleet.sh attach <tâche>` permet de
+reprendre la session. Aucun réglage de veille/logind n'est modifié par l'outillage.
+La veille interrompt l'accès et tmux ne garde rien en marche si le PC est éteint.
+`--rc` n'est plus une option du lanceur ; les modes Claude restent spécifiques à cet outil.
 
 **Limite des sessions cloud** : l'environnement cloud est un Ubuntu générique. Son Qt (6.4 via apt) est
 trop vieux pour la console (Qt ≥ 6.6 requis, cf. `next_steps.md`). Le build `embedded` et les tests QML n'y

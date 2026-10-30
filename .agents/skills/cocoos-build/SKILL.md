@@ -14,8 +14,19 @@ scripts/dev/build.sh --clean      # make distclean d'abord
 scripts/dev/test.sh               # tous les tst_*.qml du harnais (XDG_CONFIG_HOME vierge, offscreen)
 scripts/dev/test.sh GameShelf     # un seul test
 scripts/dev/smoke.sh 8            # lance ./app/moonlight 8 s hors réseau, ne remonte que les erreurs
+scripts/dev/check.sh              # syntaxe shell + régressions outillage isolées (sans SDK)
+scripts/dev/check.sh --qml app/gui/console/ButtonGlyph.qml # qmllint Qt6 ciblé
+scripts/dev/i18n.sh --check        # lecture seule TS/QM/QRC
 ```
 Log complet du dernier build : `.dev/last-build.log` (ne le lire qu'en cas de besoin, par recherche ciblée, jamais en entier).
+Tous les scripts acceptent `--help` sans effet secondaire. Un outil/sous-module absent,
+aucun test sélectionné ou isolation `unshare` interdite donne BLOCKED, pas PASS.
+La sortie des étapes est conservée intégralement ; un échec qmake/distclean/make arrête
+la chaîne sans être masqué. Build embedded et vanilla partagent le même log et binaire :
+archiver `.dev/last-build.{log,status}` avant le mode suivant, et revenir en embedded
+avant smoke. Ne pas construire simultanément les deux modes dans un même worktree.
+Les imports C++ de ConsoleHome ne sont pas tous analysables statiquement : qmllint
+les rapporte BLOCKED plutôt que de prétendre à un défaut QML. Voir `docs/ai/QUALITY.md`.
 
 ## Comment compiler en mode `embedded` (UI maison)
 
@@ -63,6 +74,22 @@ Deux contournements :
 - `make distclean` avant le `qmake6` racine (propre mais recompile tout) ;
 - ou régénérer directement le Makefile du sous-projet : `cd app && qmake6 "CONFIG+=embedded" app.pro`
   (rapide, recompile uniquement ce qui dépend du nouveau define).
+
+`scripts/dev/build.sh` applique systématiquement le second : qmake racine **puis app**
+dans le mode demandé (`CONFIG+=embedded` ou `CONFIG-=embedded`), vérifie CONSOLE_UI,
+puis touche QRC avant make. Objets/MOC/RCC/UI de l'app sont séparés dans
+`.dev/build/<mode>/` (make ne suit pas les changements de defines). Les dépendances
+communes restent partagées. Il ne déclenche jamais distclean sauf `--clean`.
+
+### Worktree neuf / préparation offline
+
+`scripts/dev/setup.sh` ne fait aucun fetch ni init de sous-module par défaut.
+Avec accord réseau explicite : `scripts/dev/setup.sh --submodules` et, séparément,
+`--fetch-upstream` (jamais shallow). Aucun téléchargement SDK/sudo automatique.
+Setup préserve `.claude/skills`, ne touche pas skip-worktree et ne change pas le
+hooksPath commun. Les hooks sont configurés avec `--worktree` seulement après examen
+des paramètres communs core.bare/core.worktree ; configuration sensible = BLOCKED,
+migration à faire valider. Détails et limites dans `docs/ai/QUALITY.md`.
 
 
 ## Piège ComputerModel/AppModel : initialiser AVANT d'assigner aux vues

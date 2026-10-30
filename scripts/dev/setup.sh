@@ -1,25 +1,87 @@
 #!/usr/bin/env bash
-# Mise en place d'un clone ou d'un worktree CocoOS — à lancer une fois, quel que soit l'outil (ou l'IA).
-#   scripts/dev/setup.sh            # tout
-#   scripts/dev/setup.sh --quiet    # idem sans messages (utilisé par le hook SessionStart de Claude Code)
-# Idempotent : relançable sans risque.
+# Setup hors ligne par défaut ; aucune copie/destruction de skills ou skip-worktree.
 set -u
-q=0; [ "${1:-}" = "--quiet" ] && q=1
-say() { [ $q -eq 1 ] || echo "$@"; }
+q=0; fetch=0; submodules=0
+for a in "$@"; do
+  case "$a" in
+    -h|--help)
+      echo "usage: $0 [--quiet] [--fetch-upstream] [--submodules]"
+      echo 'Hors ligne par défaut. Les deux derniers flags autorisent explicitement le réseau.'
+      echo 'Hooks : configuration worktree uniquement ; aucun fallback automatique.'
+      exit 0 ;;
+  esac
+done
+for a in "$@"; do
+  case "$a" in
+    --quiet) q=1 ;;
+    --fetch-upstream) fetch=1 ;;
+    --submodules) submodules=1 ;;
+    *) echo "Option inconnue : $a" >&2; exit 64 ;;
+  esac
+done
 root=$(git rev-parse --show-toplevel) || exit 1
-cd "$root"
+cd "$root" || exit 1
+mkdir -p .dev
+log=.dev/last-setup.log
+: >"$log"
+say() { echo "$*" >>"$log"; if [ "$q" -eq 0 ]; then echo "$*"; fi; }
+blocked=0
+block() { blocked=1; echo "SETUP BLOCKED : $*" >&2; echo "SETUP BLOCKED : $*" >>"$log"; }
 
-# 1) Garde-fou commun à toutes les IA : hooks git versionnés (.githooks/pre-commit).
-if [ "$(git config core.hooksPath)" != ".githooks" ]; then
-  git config core.hooksPath .githooks && say "✓ hooks git activés (.githooks/pre-commit)"
-fi
+# Même préflight que HostCompanion configure_hooks : aucun paramètre commun sensible
+# ni config.worktree dormant ne doit être activé implicitement pour un voisin.
+configure_hooks() {
+  local worktree bare enabled rc dormant
+  worktree=$(git config --local --get-all core.worktree 2>>"$log"); rc=$?
+  if [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; then block 'core.worktree illisible ; aucun hooksPath modifié.'; return; fi
+  if [ "$rc" -eq 0 ]; then block 'core.bare/core.worktree communs non sûrs ; migration manuelle requise.'; return; fi
+  bare=$(git config --local --bool --get-all core.bare 2>>"$log"); rc=$?
+  if { [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; } || { [ "$rc" -eq 0 ] && [ "$bare" != false ]; }; then
+    block 'core.bare/core.worktree communs non sûrs ou booléen invalide ; migration manuelle requise.'; return
+  fi
+  enabled=$(git config --local --bool --get-all extensions.worktreeConfig 2>>"$log"); rc=$?
+  if { [ "$rc" -ne 0 ] && [ "$rc" -ne 1 ]; } ||
+     { [ "$rc" -eq 0 ] && [ "$enabled" != true ] && [ "$enabled" != false ]; }; then
+    block 'extensions.worktreeConfig illisible/invalide ; aucun hooksPath modifié.'; return
+  fi
+  if [ "$enabled" != true ]; then
+    for dormant in "$gitdir/config.worktree" "$gitdir"/worktrees/*/config.worktree; do
+      if [ -e "$dormant" ] || [ -L "$dormant" ]; then
+        block "config.worktree dormant : $dormant ; revue/migration manuelle requise avant activation."; return
+      fi
+    done
+  fi
+  for guard in .githooks/pre-commit scripts/dev/upstream-policy.sh; do
+    if [ ! -f "$guard" ] || [ -L "$guard" ] || [ ! -x "$guard" ]; then
+      block "garde-fou absent/non régulier/non exécutable : $guard"; return
+    fi
+  done
+  if [ "$enabled" != true ] && ! git config --local extensions.worktreeConfig true >>"$log" 2>&1; then
+    block 'Activation worktreeConfig impossible ; aucun fallback partagé.'; return
+  fi
+  if git config --worktree core.hooksPath "$root/.githooks" >>"$log" 2>&1; then
+    say '✓ hooks isolés dans la configuration de ce worktree (core.hooksPath commun inchangé).'
+  else
+    block 'Git ne permet pas les hooks isolés ; aucun fallback partagé. Demander une décision explicite.'
+  fi
+}
+gitdir=$(git rev-parse --git-common-dir) || exit 1
+configure_hooks
 
-# 2) Artefacts de build in-source ignorés localement, sans toucher au .gitignore upstream (AGENTS.md §4).
-gitdir=$(git rev-parse --git-common-dir)
+# Exclude est partagé par Git entre worktrees, uniquement des artefacts sans source.
+mkdir -p "$gitdir/info" || exit 1
+exclude="$gitdir/info/exclude"
 if ! grep -q 'cocoos-dev-exclude' "$gitdir/info/exclude" 2>/dev/null; then
-  mkdir -p "$gitdir/info"
-  cat >> "$gitdir/info/exclude" <<'EOF'
-# cocoos-dev-exclude — qmake / make in-source build artifacts
+  printf '\n%s\n' '# cocoos-dev-exclude — artefacts locaux (partagés entre worktrees)' >>"$exclude" || exit 1
+fi
+# Le marqueur n'est pas une version : migrer aussi les anciens clones motif par motif.
+while IFS= read -r pattern; do
+  if ! grep -qxF -- "$pattern" "$exclude"; then
+    # Préserver un éventuel dernier motif utilisateur sans saut de ligne final.
+    [ -z "$(tail -c 1 "$exclude")" ] || printf '\n' >>"$exclude"
+    printf '%s\n' "$pattern" >>"$exclude" || exit 1
+  fi
+done <<'EOF'
 Makefile
 Makefile.Debug
 Makefile.Release
@@ -32,40 +94,33 @@ debug/
 config.log
 app/moonlight
 config.tests/*/EGL
-# sorties de scripts/dev/, réglages et worktrees locaux des outils d'IA
 .dev/
+.worktrees/
 .claude/worktrees/
 .claude/settings.local.json
 .aider*
 !.aider.conf.yml
 EOF
-  say "✓ .git/info/exclude complété"
-fi
+say '✓ info/exclude vérifié (motifs manquants ajoutés individuellement).'
 
-# 3) Remote upstream (moonlight-qt officiel), nécessaire à la politique additive et à la synchro.
-if ! git remote get-url upstream >/dev/null 2>&1; then
-  git remote add upstream https://github.com/moonlight-stream/moonlight-qt.git && say "✓ remote upstream ajouté"
+if [ "$fetch" -eq 1 ]; then
+  if ! git remote get-url upstream >>"$log" 2>&1; then
+    git remote add upstream https://github.com/moonlight-stream/moonlight-qt.git >>"$log" 2>&1 || exit 1
+  fi
+  if ! timeout 120 git fetch upstream master >>"$log" 2>&1; then block "fetch upstream échoué — $log"; fi
+elif ! git rev-parse -q --verify refs/remotes/upstream/master >/dev/null; then
+  say 'ℹ upstream/master absent : politique conservatrice, fetch uniquement avec --fetch-upstream.'
 fi
-if ! git rev-parse -q --verify upstream/master >/dev/null; then
-  say "… git fetch upstream master (une fois, pour que la politique reconnaisse les fichiers upstream)"
-  timeout 120 git fetch -q --depth 1 upstream master 2>/dev/null || say "  (hors ligne : réessayer plus tard)"
+if [ "$submodules" -eq 1 ]; then
+  if ! timeout 300 git submodule update --init --recursive >>"$log" 2>&1; then block "sous-modules incomplets — $log"; fi
+else
+  say 'ℹ aucun sous-module initialisé automatiquement (opt-in : --submodules).'
 fi
-
-# 4) Sous-modules (absents dans un worktree neuf).
-if [ -z "$(ls -A moonlight-common-c/moonlight-common-c 2>/dev/null)" ]; then
-  say "… sous-modules"
-  git submodule update --init --recursive --depth 1 >/dev/null 2>&1 || say "  ⚠ échec des sous-modules (réseau ?)"
+if [ ! -L .claude/skills ]; then
+  say 'ℹ .claude/skills non symbolique : préservé tel quel ; demander avant tout fallback/copie.'
 fi
-
-# 5) Outils attendus par les scripts.
-missing=""
-for t in jq qmake6 qmltestrunner-qt6 ccache; do command -v "$t" >/dev/null || missing="$missing $t"; done
-[ -n "$missing" ] && say "ℹ outils absents :$missing (Fedora : sudo dnf install jq ccache qt6-qtbase-devel qt6-qtdeclarative-devel)"
-# Skills pour Claude Code : .claude/skills est un lien vers .agents/skills. Si ce poste a les liens
-# symboliques désactivés (Windows par défaut), git l'extrait comme un petit fichier texte : on le remplace
-# par une copie (marquée skip-worktree pour ne pas salir git status), resynchronisée à chaque setup.
-if [ ! -L .claude/skills ] && { [ -f .claude/skills ] || git ls-files -v .claude/skills | grep -q '^S'; }; then
-  git update-index --skip-worktree .claude/skills 2>/dev/null
-  rm -rf .claude/skills && cp -r .agents/skills .claude/skills && say "✓ .claude/skills recopié depuis .agents/skills (liens symboliques désactivés)"
-fi
-exit 0
+for tool in qmake6 qmltestrunner-qt6 qmllint-qt6; do
+  command -v "$tool" >/dev/null || say "ℹ outil absent : $tool (aucune installation automatique)."
+done
+if [ "$blocked" -eq 1 ]; then exit 2; fi
+say "SETUP OK (logs : $log)"

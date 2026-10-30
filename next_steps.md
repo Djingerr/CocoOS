@@ -270,4 +270,31 @@ Rapporter ces chiffres avant toute optimisation.
   et capsule) centré, heure / batterie et indication collées aux bords, fond flou et vignettage sur tout
   l'écran, lueur de l'écran 12 à 250 px du bas comme dans la maquette. En 16:9 rien ne change : parité
   3,30 / 3,36 / 3,32 / 0,88, 61/61 textes. Aperçu : `--size 2560x1600` ; test `test_scaleKeepsTheGrid`
-  (1920 × 1200 → grille 1280 × 800).
+   (1920 × 1200 → grille 1280 × 800).
+
+## Outillage IA — industrialisation OpenCode (2026-10-30)
+
+Branche isolée `tooling/opencode-industrialisation`, base `9188d78b` (`claude-tooling`).
+Worktree `.ai-worktrees/CocoOS-tooling` dans le parent des deux clones ; le clone
+`feat/cocoos-ui` et ses trois fichiers non suivis restent intacts. Aucun push/merge.
+
+- **Fait** : configuration OpenCode 2.2.4 locale, six rôles et cinq commandes,
+  whitelist abonnements, permissions testées, flotte tmux/worktrees, scripts/hooks
+  fiabilisés, CI d'outillage et guides. Détails/preuves : `docs/ai/TOOLING-REPORT.md`.
+- **Vérifié** : builds vanilla/embedded, 17 suites QML, smoke hors réseau,
+  i18n check (368 chaînes), qmllint ciblé, vrais hooks en fixtures et flotte
+  tmux/Git avec faux OpenCode. Rôles/skills/commandes et permissions évalués par
+  le serveur réel ; skill verify réellement chargé dans OpenCode sans exécuter sa procédure.
+  Passe finale : **59 tests d'outillage**, **8 scénarios flotte sans skip**,
+  **19 permissions serveur**, découverte depuis racine et `scripts/dev/`.
+- **Modèles** : Sol/Luna répondent via OpenAI connecté ; Claude Pro authentifié
+  mais quota hebdomadaire épuisé jusqu'au 2026-11-02 01:00 Europe/Paris. GPT-5.5
+  listé mais refusé pour ce compte ; pas de fallback API/crédit payant.
+- **Limites** : analyse statique de ConsoleHome BLOCKED sur imports C++ runtime ;
+  Windows/Companion E2E, manette, Orange Pi et performances streaming non éprouvés.
+  CI GitHub configurée, pas exécutée. Pas de fonctionnalités métier modifiées.
+- **Reprise** : `scripts/dev/status.sh`, `docs/ai/OPENCODE.md`, puis
+  `scripts/dev/check.sh` et `python3 scripts/dev/opencode-check.py --permissions`.
+- **Prochaine tâche produit** (non faite par cet outillage) : organiser deux
+  appareils pour valider la console à la manette contre le portable Windows de
+  test. La veille/netteté ci-dessus conserve ses validations matérielles en attente.

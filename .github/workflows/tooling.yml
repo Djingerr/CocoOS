@@ -1,0 +1,46 @@
+name: CocoOS tooling
+on:
+  push:
+    paths:
+      - 'scripts/dev/**'
+      - '.githooks/**'
+      - '.agents/seams.txt'
+      - '.agents/skills/verify/**'
+      - '.agents/skills/cocoos-build/**'
+      - 'docs/ai/QUALITY.md'
+      - '.github/workflows/tooling.yml'
+      - 'opencode.json'
+      - 'opencode.jsonc'
+      - '.opencode/**'
+  pull_request:
+    paths:
+      - 'scripts/dev/**'
+      - '.githooks/**'
+      - '.agents/seams.txt'
+      - '.agents/skills/verify/**'
+      - '.agents/skills/cocoos-build/**'
+      - 'docs/ai/QUALITY.md'
+      - '.github/workflows/tooling.yml'
+      - 'opencode.json'
+      - 'opencode.jsonc'
+      - '.opencode/**'
+permissions:
+  contents: read
+jobs:
+  tooling:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+          submodules: false
+      - name: Syntax and isolated regression tests (no Qt SDK)
+        run: |
+          bash scripts/dev/check.sh
+      - name: OpenCode JSON syntax (stdlib only, no network schema)
+        run: python3 -c 'import json; from pathlib import Path; json.loads(Path("opencode.json").read_text(encoding="utf-8")); print("opencode.json JSON syntax OK (not schema validation)")'
+      - name: Fleet regression tests (tmux required)
+        run: |
+          command -v tmux
+          python3 scripts/dev/fleet-test.py

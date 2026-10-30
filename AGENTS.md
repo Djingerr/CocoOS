@@ -9,7 +9,7 @@
 ## 0. Démarrage (une fois par clone ou worktree)
 
 ```bash
-scripts/dev/setup.sh    # hooks git (garde-fous), .git/info/exclude, remote upstream, sous-modules
+scripts/dev/setup.sh    # hooks du worktree et exclusions locales ; réseau seulement sur option explicite
 scripts/dev/status.sh   # où en est-on : branche, fichiers modifiés, dernière étape, dernier build
 ```
 
@@ -35,6 +35,8 @@ Si ton outil ne les charge pas tout seul, **lis le SKILL.md concerné** quand la
 | Matériel, BOM, 5G (ex-§6) | `docs/ai/HARDWARE.md` |
 | Optimisation du flux | `docs/stream/STREAM-OPTIMISATION.md` (§12) |
 | Travailler en parallèle, à distance, avec quel outil | `docs/ai/WORKFLOW.md` |
+| OpenCode V2, modèles, flotte tmux, revue, coûts et SSH | `docs/ai/OPENCODE.md` |
+| Vérification rapide et limites Qt/matériel | `docs/ai/QUALITY.md` ; `docs/ai/QT-SKILLS.md` |
 
 ## Outillage (sorties filtrées, économes en tokens — à préférer aux commandes brutes)
 
@@ -114,20 +116,13 @@ et de packaging** pour supprimer la friction.
 - Compositeur : viser **gamescope** (celui de Valve/SteamOS : scaling, FSR, frame limiting,
   HDR) pour la version commerciale ; **cage** comme repli simple pour le proto.
 
-### Côté PC host (logiciel séparé, à développer plus tard)
-- Stack cible : **Apollo** (fork de Sunshine) + **Playnite** (agrège Steam/Epic/GOG/
-  émulateurs avec jaquettes) + **PlayNiteWatcher** ou **Vibeshine** (export auto de la
-  bibliothèque vers le host + box art) + **Tailscale** (accès distant, traversée du NAT).
-- Le « logiciel host » à écrire = un **installeur/orchestrateur** qui pose et configure ces
-  outils, tourne en arrière-plan, et gère l'**onboarding zéro-friction + l'auto-appairage**.
-- (Setup actuel : le host « Djinger » tourne sous **Apollo** — l'appairage du fork a été
-  validé contre Apollo en juin 2026. Sunshine reste compatible, même protocole.)
-
-### Choix de lignée à garder en tête
-- **Sunshine + moonlight-qt officiels** = plus stables, plus de plateformes.
-- **Apollo + Artemis (Moonlight Noir)** = plus de fonctions de confort.
-- Pour un handheld dédié, le compromis recommandé était **Apollo + un fork de moonlight-qt**.
-  Ce repo part de moonlight-qt officiel ; rester compatible upstream est prioritaire (§4).
+### Côté PC host (projet séparé, déjà implémenté)
+**HostCompanion** orchestre Apollo et Playnite sans les forker. Ses choix de stack,
+intégrations et validations ont pour source `HostCompanion/AGENTS.md` et ses skills,
+pas ce dépôt. Le protocole canonique est `HostCompanion/docs/protocol.md` :
+`POST /v1/launch` → `READY` avant le stream lorsque le Companion est connecté.
+Ne pas supposer le dépôt frère accessible depuis un worktree : demander son
+chemin en lecture seule si nécessaire. La compatibilité moonlight-qt reste prioritaire.
 
 
 ---
@@ -310,23 +305,8 @@ qmake6 "CONFIG+=embedded" moonlight-qt.pro && make release -j$(nproc) && ./app/m
 
 ## 12. Chantier : optimisation du flux (planifié)
 
-> Source de vérité : **`docs/stream/STREAM-OPTIMISATION.md`** — le lire en entier avant de
-> commencer. Ce paragraphe n'en est que le résumé.
-
-- **But** : un flux fluide pour le joueur lambda sur réseau variable (Wi-Fi, 4G/5G), et un
-  contrôle total pour les experts. Profils : **Manuel** (paramètres figés, comportement
-  actuel), **Compétitif**, **Équilibré** (Auto par défaut), **Chill / Qualité**, **Économie**.
-- **Apollo reste non modifié (no-fork)** : résolution / fps / débit sont fixés au lancement
-  de la session. On n'agit que côté console : choix intelligent du palier au démarrage,
-  buffer anti-gigue adaptatif, politique de frame en retard, upscale FSR 1.0 avec RCAS piloté.
-  **Pas de renégociation de session en cours de partie** (coupure visible = contraire au §1).
-- **Architecture** : `StreamHealthMonitor` (capteur : percentiles, gigue, gradient de délai)
-  → `StreamController` (politique du profil) → **interface de leviers abstraite**, prête à
-  accueillir plus tard des leviers hôte sans réécriture.
-- **Coutures** : la télémétrie et l'upscale toucheront probablement des fichiers upstream.
-  **Proposer chaque couture à Coco (diff, taille, justification) AVANT de la faire.**
-- **Phases avec gates** : 0 audit → 1 profils → 2 télémétrie + scénarios `netem` → 3
-  anti-gigue → 4 choix au démarrage → 5 FSR. Mécanique vérifiée objectivement ; seuils et
-  ressenti validés par Coco à la manette uniquement.
-- **Rejeté** : génération de frames (latence). **Hors périmètre** sans décision de Coco :
-  tout levier côté hôte, signaux du modem 5G, super-résolution NPU, multipath.
+Source unique : **`docs/stream/STREAM-OPTIMISATION.md`**, à lire avant ce chantier.
+Apollo non modifié ; pas de renégociation en cours de partie ni de génération de
+frames. Toute couture ou extension de périmètre exige l'accord de Coco avant
+édition. Les gates, profils, leviers et mesures restent dans ce document ; les
+tests offscreen ne prouvent ni performances du streaming ni ressenti à la manette.

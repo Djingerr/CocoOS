@@ -5,6 +5,9 @@
 #   scripts/dev/build.sh embedded --clean # make distclean d'abord
 # Log complet : .dev/last-build.log — statut : .dev/last-build.status
 set -u
+for a in "$@"; do
+  case "$a" in -h|--help) echo "usage: $0 [embedded|vanilla] [--clean]"; exit 0 ;; esac
+done
 mode=embedded; clean=0
 for a in "$@"; do
   case "$a" in
@@ -19,7 +22,16 @@ cd "$root"
 mkdir -p .dev
 log=.dev/last-build.log
 qmake=$(command -v qmake6 || command -v qmake-qt6 || true)
-[ -z "$qmake" ] && { echo "BUILD FAILED : qmake6 introuvable"; exit 127; }
+blocked() {
+  echo "BUILD BLOCKED ($mode) : $*" | tee "$log"
+  echo "BLOCKED $mode $(date '+%F %T')" > .dev/last-build.status
+  exit 2
+}
+[ -n "$qmake" ] || blocked "qmake6 introuvable"
+command -v make >/dev/null || blocked "make introuvable"
+for dep in moonlight-common-c/moonlight-common-c/CMakeLists.txt qmdnsengine/qmdnsengine/src/include/qmdnsengine/abstractserver.h app/SDL_GameControllerDB/gamecontrollerdb.txt; do
+  [ -f "$dep" ] || blocked "sous-module absent : $dep ; setup.sh --submodules (réseau explicite)"
+done
 
 # ccache (sudo dnf install ccache) : recompilations et worktrees parallèles bien plus rapides.
 extra=()
@@ -29,25 +41,36 @@ if command -v ccache >/dev/null; then
 fi
 
 start=$(date +%s)
-{
-  [ $clean -eq 1 ] && [ -f Makefile ] && make distclean
+(
+  # Sous-shell strict : une étape échouée ne peut jamais être masquée par la suivante.
+  set -e
+  trap 'echo ">> étape échouée (code $?) : $BASH_COMMAND" >&2' ERR
+  version=$("$qmake" -query QT_VERSION)
+  [[ "$version" = 6.* ]] || { echo "Qt 6 requis, trouvé : $version"; exit 2; }
+  if [ $clean -eq 1 ] && [ -f Makefile ]; then
+    echo '>> make distclean'
+    make distclean
+  fi
+  config=("CONFIG-=embedded")
+  [ "$mode" != embedded ] || config=("CONFIG+=embedded")
+  echo ">> qmake racine ($mode)"
+  "$qmake" "${config[@]}" "${extra[@]}" moonlight-qt.pro
+  # Régénérer systématiquement app : un Makefile peut être présent mais périmé.
+  echo ">> qmake app ($mode)"
+  # make ne suit pas les changements de -D : isoler objets ET MOC par mode.
+  # Chemins relatifs (sans le chemin absolu du worktree, qui peut contenir des espaces).
+  (cd app && "$qmake" "${config[@]}" "${extra[@]}" \
+    "OBJECTS_DIR=../.dev/build/$mode/objects" "MOC_DIR=../.dev/build/$mode/moc" \
+    "RCC_DIR=../.dev/build/$mode/rcc" "UI_DIR=../.dev/build/$mode/ui" app.pro)
   if [ "$mode" = embedded ]; then
-    "$qmake" "CONFIG+=embedded" "${extra[@]}" moonlight-qt.pro
-    # Piège qmake subdirs (skill cocoos-build) : les sous-Makefiles ne sont pas régénérés.
-    if ! grep -qs CONSOLE_UI app/Makefile*; then
-      echo ">> CONSOLE_UI absent des Makefiles de app/ : régénération (piège subdirs)"
-      (cd app && "$qmake" "CONFIG+=embedded" "${extra[@]}" app.pro)
-    fi
-  else
-    "$qmake" "${extra[@]}" moonlight-qt.pro
-    if grep -qs CONSOLE_UI app/Makefile*; then
-      echo ">> Makefiles de app/ encore en embedded : régénération vanilla"
-      (cd app && "$qmake" "${extra[@]}" app.pro)
-    fi
+    grep -qs -- '-DCONSOLE_UI' app/Makefile* || { echo 'CONSOLE_UI absent'; exit 3; }
+  elif grep -qs -- '-DCONSOLE_UI' app/Makefile*; then
+    echo 'CONSOLE_UI encore défini en vanilla'; exit 3
   fi
   touch app/qml.qrc            # rcc ne suit pas les .qml (skill cocoos-build)
+  echo '>> make release'
   make release -j"$(nproc)"
-} >"$log" 2>&1
+) >"$log" 2>&1
 rc=$?
 dur=$(( $(date +%s) - start ))
 
@@ -67,6 +90,8 @@ if [ $rc -eq 0 ]; then
   echo "BUILD OK ($mode, ${dur}s) → ./app/moonlight"
   echo "OK $mode $(date '+%F %T')" > .dev/last-build.status
 else
+  echo '-- contexte de la dernière étape :'
+  tail -12 "$log"
   echo "BUILD FAILED ($mode, ${dur}s, code $rc) — log complet : $log"
   echo "FAILED $mode $(date '+%F %T')" > .dev/last-build.status
 fi

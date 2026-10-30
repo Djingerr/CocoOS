@@ -1,0 +1,104 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "model": "openai/gpt-6.1-sol",
+  "default_agent": "developer",
+  "warming": false,
+  "compaction": { "auto": true, "keep": { "tokens": 12000 }, "buffer": 16000 },
+  "tool_output": { "max_lines": 160, "max_bytes": 18000 },
+  "watcher": { "ignore": [".dev/**", ".worktrees/**", "**/release/**", "**/debug/**", "graphify-out/**"] },
+  "policies": [
+    { "action": "provider.use", "resource": "*", "effect": "deny" },
+    { "action": "provider.use", "resource": "openai", "effect": "allow" },
+    { "action": "provider.use", "resource": "claude-agent", "effect": "allow" },
+    { "action": "tool.use", "resource": "shell:git push *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git * push *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git reset *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git * reset *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git clean *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git * clean *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git checkout *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git * checkout *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git restore *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git * restore *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git rebase *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git * rebase *", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:git *--no-verify*", "effect": "deny" },
+    { "action": "tool.use", "resource": "shell:sudo *", "effect": "deny" }
+  ],
+  "permissions": [
+    { "action": "external_directory", "resource": "*", "effect": "ask" },
+    { "action": "websearch", "resource": "*", "effect": "ask" },
+    { "action": "shell", "resource": "*", "effect": "ask" },
+    { "action": "shell", "resource": "git status --short", "effect": "allow" },
+    { "action": "shell", "resource": "git diff --stat", "effect": "allow" },
+    { "action": "shell", "resource": "git log -5 --oneline", "effect": "allow" },
+    { "action": "subagent", "resource": "*", "effect": "ask" },
+    { "action": "subagent", "resource": "explorer", "effect": "allow" },
+    { "action": "subagent", "resource": "reviewer", "effect": "allow" },
+    { "action": "edit", "resource": "*", "effect": "deny" },
+    { "action": "edit", "resource": "app/gui/console/*", "effect": "allow" },
+    { "action": "edit", "resource": "docs/*", "effect": "allow" },
+    { "action": "edit", "resource": "next_steps.md", "effect": "allow" },
+    { "action": "edit", "resource": "scripts/dev/*", "effect": "ask" },
+    { "action": "edit", "resource": ".agents/*", "effect": "ask" },
+    { "action": "edit", "resource": ".claude/*", "effect": "ask" },
+    { "action": "edit", "resource": ".opencode/*", "effect": "ask" },
+    { "action": "edit", "resource": ".githooks/*", "effect": "ask" },
+    { "action": "edit", "resource": ".github/workflows/tooling.yml", "effect": "ask" },
+    { "action": "edit", "resource": "opencode.json", "effect": "ask" },
+    { "action": "edit", "resource": "AGENTS.md", "effect": "ask" },
+    { "action": "edit", "resource": "CLAUDE.md", "effect": "ask" },
+    { "action": "edit", "resource": "app/gui/main.qml", "effect": "deny" },
+    { "action": "read", "resource": "*.env*", "effect": "deny" },
+    { "action": "read", "resource": "*credentials*", "effect": "deny" },
+    { "action": "read", "resource": "*/.ssh/*", "effect": "deny" },
+    { "action": "read", "resource": "*auth.json", "effect": "deny" },
+    { "action": "edit", "resource": "*.env*", "effect": "deny" }
+  ],
+  "agents": {
+    "plan": { "permissions": [{ "action": "edit", "resource": "*", "effect": "deny" }, { "action": "shell", "resource": "*", "effect": "deny" }, { "action": "execute", "resource": "*", "effect": "deny" }] },
+    "explore": { "model": "openai/gpt-6-luna", "permissions": [{ "action": "edit", "resource": "*", "effect": "deny" }, { "action": "shell", "resource": "*", "effect": "deny" }, { "action": "execute", "resource": "*", "effect": "deny" }, { "action": "subagent", "resource": "*", "effect": "deny" }] },
+    "architect": {
+      "description": "Analyser et proposer un plan court, sans édition ni commandes shell",
+      "mode": "all", "model": "openai/gpt-6.1-sol", "steps": 12,
+      "system": "Respecte AGENTS.md. Lecture seule. Recherche ciblée puis plan court : objectif, fichiers, critères d'acceptation, risques et dépendances. Charge les skills pertinents à la demande. Ne code pas et ne lance aucun agent développeur.",
+      "permissions": [{ "action": "execute", "resource": "*", "effect": "deny" }, { "action": "edit", "resource": "*", "effect": "deny" }, { "action": "shell", "resource": "*", "effect": "deny" }, { "action": "subagent", "resource": "*", "effect": "deny" }]
+    },
+    "developer": {
+      "description": "Implémenter une tâche ciblée dans son propre worktree",
+      "mode": "all", "model": "openai/gpt-6.1-sol",
+      "system": "Respecte AGENTS.md et les skills pertinents. Une tâche, un worktree, modifications minimales avec tests. Ne refactorise pas hors périmètre. Avant toute couture ou fichier sensible, consulte la politique du dépôt et demande l'accord humain. Ne délègue pas l'écriture dans ton worktree. Utilise scripts/dev/check.sh puis les validations de verify adaptées au diff. Ne confonds pas BLOCKED et PASS. Pas de push ni intégration automatique. Termine par une passation."
+    },
+    "explorer": {
+      "description": "Rechercher symboles et points d'entrée en lecture seule ; résumé ciblé",
+      "mode": "all", "model": "openai/gpt-6-luna", "steps": 10,
+      "system": "Respecte AGENTS.md. Lecture seule avec glob, grep, read ciblés. Retourne au plus dix chemins/symboles avec lignes et un résumé court ; pas de dumps de fichiers. Charge uniquement le skill concerné. Ne lance pas de sous-agent.",
+      "permissions": [{ "action": "execute", "resource": "*", "effect": "deny" }, { "action": "edit", "resource": "*", "effect": "deny" }, { "action": "shell", "resource": "*", "effect": "deny" }, { "action": "subagent", "resource": "*", "effect": "deny" }]
+    },
+    "reviewer": {
+      "description": "Revue indépendante en lecture seule, défauts classés par gravité",
+      "mode": "all", "model": "openai/gpt-6.1-sol", "steps": 16,
+      "system": "Respecte AGENTS.md. Ne modifie rien et ne lance aucun shell. Lis le diff fourni ou .dev/review.patch puis les portions nécessaires ; si aucun diff n'est fourni, demande sa préparation. Signale les fichiers non suivis absents du diff. Classe les observations par gravité avec chemin:ligne, impact, preuve et correction minimale. Sépare défaut certain et hypothèse. Signale validations absentes ; absence de findings ne garantit pas absence de régressions. Aucun sous-agent.",
+      "permissions": [{ "action": "execute", "resource": "*", "effect": "deny" }, { "action": "edit", "resource": "*", "effect": "deny" }, { "action": "shell", "resource": "*", "effect": "deny" }, { "action": "subagent", "resource": "*", "effect": "deny" }]
+    },
+    "verifier": {
+      "description": "Exécuter les validations déterministes, verdict PASS/FAIL/BLOCKED",
+      "mode": "all", "model": "openai/gpt-6-luna", "steps": 12,
+      "system": "Respecte AGENTS.md. Charge verify. Ne corrige pas de fichiers ; exécute scripts/dev/check.sh et les tests adaptés. Les scripts peuvent écrire uniquement leurs artefacts/logs. Résume commande, code retour, verdict PASS/FAIL/BLOCKED et chemin du log ; outil absent ou test non exécuté = BLOCKED. Matériel et Windows réels ne peuvent être remplacés par un test Linux.",
+      "permissions": [{ "action": "edit", "resource": "*", "effect": "deny" }, { "action": "subagent", "resource": "*", "effect": "deny" }]
+    },
+    "documentation": {
+      "description": "Passation et documentation technique concise, sans modifier le code",
+      "mode": "all", "model": "openai/gpt-6-luna", "steps": 10,
+      "system": "Respecte AGENTS.md. Mets à jour uniquement documentation et journal de passation : objectif, changements, commandes réellement exécutées, verdicts, blocages, prochaine action. Ne transforme pas une hypothèse ou validation non exécutée en succès. Pas de duplication des règles architecturales.",
+      "permissions": [{ "action": "edit", "resource": "*", "effect": "deny" }, { "action": "edit", "resource": "docs/*", "effect": "allow" }, { "action": "edit", "resource": "next_steps.md", "effect": "allow" }, { "action": "shell", "resource": "*", "effect": "deny" }, { "action": "subagent", "resource": "*", "effect": "deny" }]
+    }
+  },
+  "commands": {
+    "task-plan": { "description": "Plan court sans édition", "agent": "architect", "template": "Analyse cette tâche sans modifier de fichiers : $ARGUMENTS. Donne critères d'acceptation, fichiers, risques et plan court." },
+    "task-verify": { "description": "Vérification rapide puis contrôles adaptés", "agent": "verifier", "template": "Charge le skill verify. Exécute scripts/dev/check.sh puis les validations pertinentes pour $ARGUMENTS. Rapporte commandes, PASS/FAIL/BLOCKED et logs. Ne corrige rien." },
+    "task-review": { "description": "Revue indépendante du diff", "agent": "reviewer", "template": "Relis le diff de la tâche $ARGUMENTS selon AGENTS.md et les skills pertinents. Lecture seule, findings par gravité avec preuve et chemin:ligne." },
+    "task-handoff": { "description": "Passation factuelle de fin de tâche", "agent": "documentation", "template": "Actualise le journal de passation du projet pour $ARGUMENTS : fait, tests réellement exécutés, limites, décisions, prochaine commande. Utilise les preuves de cette session ; n'invente aucun résultat." },
+    "task-next": { "description": "Charger le workflow next existant", "agent": "developer", "template": "Charge explicitement le skill next et traite uniquement cette tâche : $ARGUMENTS. Respecte les portes de validation et reste dans ton worktree." }
+  }
+}
