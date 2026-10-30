@@ -1,14 +1,6 @@
 #include "overlaymanager.h"
 #include "path.h"
 
-#ifdef CONSOLE_UI
-#include <QMutex>
-
-// Console: StreamMenu animates the overlay from its own timer thread, so the
-// renderer must not change while setOverlaySurface() notifies it.
-static QMutex s_ConsoleRendererLock;
-#endif
-
 using namespace Overlay;
 
 OverlayManager::OverlayManager() :
@@ -121,14 +113,14 @@ SDL_Color OverlayManager::getOverlayColor(OverlayType type)
 
 void OverlayManager::setOverlayRenderer(IOverlayRenderer* renderer)
 {
-#ifdef CONSOLE_UI
-    QMutexLocker locker(&s_ConsoleRendererLock);
-#endif
+    QWriteLocker lock(&m_OverlayRendererLock);
     m_Renderer = renderer;
 }
 
 void OverlayManager::notifyOverlayUpdated(OverlayType type)
 {
+    QReadLocker lock(&m_OverlayRendererLock);
+
     if (m_Renderer == nullptr) {
         return;
     }
@@ -236,11 +228,13 @@ void OverlayManager::setOverlaySurface(OverlayType type, SDL_Surface* surface)
 
     SDL_Surface* oldSurface = (SDL_Surface*)SDL_AtomicSetPtr((void**)&m_Overlays[type].surface, surface);
 
-    QMutexLocker locker(&s_ConsoleRendererLock);
+    // StreamMenu calls this from its timer thread: upstream's lock keeps the
+    // renderer alive while we notify it.
+    QReadLocker lock(&m_OverlayRendererLock);
     if (m_Renderer != nullptr) {
         m_Renderer->notifyOverlayUpdated(type);
     }
-    locker.unlock();
+    lock.unlock();
 
     if (oldSurface != nullptr) {
         SDL_FreeSurface(oldSurface);
