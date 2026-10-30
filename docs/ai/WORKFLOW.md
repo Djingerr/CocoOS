@@ -125,12 +125,9 @@ Chaque serveur MCP ajoute des définitions d'outils au contexte : n'activer que 
 
 ## 5. HostCompanion
 
-Ce dépôt n'était pas accessible depuis la session qui a préparé cet outillage. Pour lui appliquer le même
-traitement : même découpage (CLAUDE.md court + skills + `scripts/dev/` filtrés + sous-agent `verifier`), avec
-une garde **no-fork** à la place de la garde upstream (refuser toute édition dans un répertoire vendored
-d'Apollo / Playnite ; versions épinglées dans le lockfile seulement).
-Côté console, `CLAUDE.md` renvoie déjà à `../HostCompanion/CLAUDE.md` : garder les deux repos côte à côte
-(`~/dev/CocoOS`, `~/dev/HostCompanion`) pour qu'une session puisse lire le contrat d'API de l'autre.
+Même outillage, adapté au .NET et à la règle no-fork : voir `HostCompanion/docs/ai/WORKFLOW.md`.
+Garder les deux repos côte à côte (`~/dev/CocoOS`, `~/dev/HostCompanion`) : `AGENTS.md` de chaque côté
+renvoie à l'autre, et un changement de protocole se fait dans les deux (`docs/protocol.md` d'abord).
 
 ## Sources
 - Hooks : https://code.claude.com/docs/en/hooks

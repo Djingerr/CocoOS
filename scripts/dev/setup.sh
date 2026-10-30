@@ -61,4 +61,11 @@ fi
 missing=""
 for t in jq qmake6 qmltestrunner-qt6 ccache; do command -v "$t" >/dev/null || missing="$missing $t"; done
 [ -n "$missing" ] && say "ℹ outils absents :$missing (Fedora : sudo dnf install jq ccache qt6-qtbase-devel qt6-qtdeclarative-devel)"
+# Skills pour Claude Code : .claude/skills est un lien vers .agents/skills. Si ce poste a les liens
+# symboliques désactivés (Windows par défaut), git l'extrait comme un petit fichier texte : on le remplace
+# par une copie (marquée skip-worktree pour ne pas salir git status), resynchronisée à chaque setup.
+if [ ! -L .claude/skills ] && { [ -f .claude/skills ] || git ls-files -v .claude/skills | grep -q '^S'; }; then
+  git update-index --skip-worktree .claude/skills 2>/dev/null
+  rm -rf .claude/skills && cp -r .agents/skills .claude/skills && say "✓ .claude/skills recopié depuis .agents/skills (liens symboliques désactivés)"
+fi
 exit 0

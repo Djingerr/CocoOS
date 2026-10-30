@@ -233,7 +233,7 @@ aucun dialog upstream) ✅, 6c (kiosk) ⏳ hors repo.
 
 > ⚠️ **Important** : historiquement ce « bout en bout » passait par **Apollo en DIRECT**
 > (`ConsoleHome.launchApp` → `StreamSegue`), chemin proscrit par le repo host
-> (`../HostCompanion/CLAUDE.md §4`). **La tranche 3 de `CompanionClient` a recâblé ce lancement**
+> (`../HostCompanion/AGENTS.md §4`). **La tranche 3 de `CompanionClient` a recâblé ce lancement**
 > (cf §2) : quand le Companion est appairé+connecté, Play fait `POST /v1/launch` → `READY` →
 > `StreamSegue` (et gère « maj AVANT stream »). Le lancement direct reste le **repli** si le
 > Companion est absent (même fonction `launchApp`). ✅ T3 **compile et démarre** (2026-07-03)
