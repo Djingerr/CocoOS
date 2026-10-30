@@ -1,0 +1,17 @@
+# Coutures upstream admises (CLAUDE.md §4) — une par ligne, chemin relatif à la racine.
+# Toute édition d'un de ces fichiers déclenche une demande de confirmation (hook upstream-guard).
+# Tout AUTRE fichier venant de moonlight-qt est refusé : pour ouvrir une nouvelle couture,
+# Coco l'ajoute ici (et dans CLAUDE.md §4) après avoir validé le diff.
+app/app.pro
+app/qml.qrc
+app/main.cpp
+app/streaming/input/gamepad.cpp
+app/streaming/input/keyboard.cpp
+app/streaming/input/input.h
+app/streaming/input/input.cpp
+app/streaming/input/mouse.cpp
+app/streaming/session.cpp
+app/streaming/video/overlaymanager.h
+app/streaming/video/overlaymanager.cpp
+app/streaming/video/ffmpeg.cpp
+README.md

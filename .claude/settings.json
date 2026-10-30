@@ -1,0 +1,77 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(scripts/cc/*)",
+      "Bash(./scripts/cc/*)",
+      "Bash(qmake6 *)",
+      "Bash(make *)",
+      "Bash(qmllint *)",
+      "Bash(qmllint-qt6 *)",
+      "Bash(qml-qt6 *)",
+      "Bash(qmltestrunner-qt6 *)",
+      "Bash(lupdate-qt6 *)",
+      "Bash(lrelease-qt6 *)",
+      "Bash(git status *)",
+      "Bash(git diff *)",
+      "Bash(git log *)",
+      "Bash(git show *)",
+      "Bash(git branch *)",
+      "Bash(git fetch *)",
+      "Bash(git worktree list *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr list *)",
+      "Bash(gh issue view *)",
+      "Bash(gh issue list *)"
+    ],
+    "ask": [
+      "Bash(git push *)",
+      "Bash(git rebase *)",
+      "Bash(git reset *)",
+      "Bash(sed -i *)"
+    ],
+    "deny": [
+      "Bash(git push --force *)",
+      "Bash(git push -f *)",
+      "Read(./moonlight-common-c/**)",
+      "Read(./qmdnsengine/**)",
+      "Read(./h264bitstream/**)",
+      "Read(./app/SDL_GameControllerDB/**)",
+      "Read(./wix/**)",
+      "Read(./AntiHooking/**)",
+      "Read(./**/*.o)",
+      "Read(./**/moc_*.cpp)",
+      "Read(./**/qrc_*.cpp)",
+      "Read(./.claude/worktrees/**)"
+    ]
+  },
+  "statusLine": {
+    "type": "command",
+    "command": "${CLAUDE_PROJECT_DIR}/.claude/statusline.sh",
+    "refreshInterval": 5
+  },
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/session-start.sh" }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit|NotebookEdit",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/upstream-guard.sh" }
+        ]
+      }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          { "type": "command", "command": "${CLAUDE_PROJECT_DIR}/.claude/hooks/qml-check.sh" }
+        ]
+      }
+    ]
+  }
+}

@@ -1,9 +1,41 @@
-# CLAUDE.md — Console de streaming portable (projet DIY)
+# CLAUDE.md — Console de streaming portable CocoOS (projet DIY)
 
-> Ce fichier donne le contexte complet du projet à Claude Code. Lis-le en entier
-> avant toute modification. Le repo est un **fork de `moonlight-stream/moonlight-qt`**.
+> Contexte **essentiel** pour Claude Code, rechargé à chaque tour : il reste court exprès.
+> Le repo est un **fork de `moonlight-stream/moonlight-qt`** (branche de travail `console-ui`).
+> Le détail vit dans des fichiers chargés **à la demande** — voir l'index ci-dessous.
 
----
+## Index : où trouver quoi
+
+| Besoin | Où | Comment |
+|---|---|---|
+| Prochaine tâche, état fin du chantier en cours | `next_steps.md` | lire la dernière section |
+| Historique, *pourquoi* d'un choix, commits (ex-§2) | `docs/claude/HISTORY.md` | Grep d'abord, pas de lecture intégrale |
+| UI : direction artistique, carte des fichiers, pièges QML (ex-§5) | skill `cocoos-ui` | auto, ou `/cocoos-ui` |
+| Build, pièges MOC/qmake/rcc, dépendances, logs (ex-§11) | skill `cocoos-build` | auto, ou `/cocoos-build` |
+| Voir / capturer / tester l'UI sans PC hôte (ex-§11 harnais) | skill `ambiant-harness` | |
+| Traduction anglaise (ex-§11) | skill `cocoos-i18n` | |
+| Animation de démarrage (ex-§11) | skill `boot-animation` | |
+| Mettre à jour depuis moonlight-qt officiel | skill `upstream-sync` | `/upstream-sync` |
+| Enchaîner la tâche suivante de bout en bout | skill `next` | `/next` |
+| Matériel, BOM, 5G (ex-§6) | `docs/claude/HARDWARE.md` | |
+| Optimisation du flux | `docs/stream/STREAM-OPTIMISATION.md` | §12 ci-dessous |
+| Parallélisme, tmux, sessions à distance | `docs/claude/WORKFLOW.md` | pour Coco |
+
+Les renvois « §2 / §5 / §6 / §11 » des autres documents pointent vers ces fichiers.
+
+## Outillage (économe en tokens — à préférer aux commandes brutes)
+
+```bash
+scripts/cc/build.sh [embedded|vanilla] [--clean]   # build, sortie filtrée (erreurs/warnings + BUILD OK|FAILED)
+scripts/cc/test.sh [NomDuTest]                     # tests QML du harnais, résumé seulement
+scripts/cc/smoke.sh [secondes]                     # lancement hors réseau, erreurs seulement
+scripts/cc/i18n.sh                                 # lupdate + chaînes non traduites + lrelease
+```
+- Ne pas relire un fichier inchangé ; préférer Edit à une réécriture complète.
+- Exploration large du code upstream de moonlight-qt → sous-agent `upstream-explorer` (contexte séparé).
+- Revue d'un diff d'UI → sous-agent `qml-reviewer` ; vérification build + tests → sous-agent `verifier`.
+- Un hook (`.claude/hooks/upstream-guard.sh`) **refuse** l'édition d'un fichier upstream hors coutures
+  et **demande confirmation** pour une couture listée dans `.claude/seams.txt`.
 
 ## 1. Le but final
 
@@ -33,520 +65,19 @@ comme pour un expert. Conséquences concrètes pour tout ce qu'on code :
 
 ---
 
-## 2. État actuel du projet
+## 2. État actuel du projet (résumé — détail : `docs/claude/HISTORY.md`)
 
-- Le streaming est **validé depuis ~1 an** : Moonlight + Sunshine + Tailscale, qui
-  fonctionne bien, y compris **en 5G depuis un smartphone** (le chemin réseau/NAT est donc
-  gérable — le concept est prouvé).
-- Le repo est un **fork de moonlight-qt** (officiel), développé sous **Fedora KDE Plasma**,
-  en **Qt 6**.
-- Le fork **compile et se lance**, et le **décodage matériel fonctionne** (GPU Intel Iris Xe,
-  pilote iHD/VAAPI, décodage H.264/HEVC/**AV1** confirmé).
-- Une **interface console maison** (« Ambiant », voir §5) a été conçue et validée
-  visuellement. Tout son code (QML + backends C++) vit dans `app/gui/console/`.
-- ✅ **Intégration au build faite** (commit `64bb96a0` sur `console-ui`) : 3 coutures dans
-  `app.pro`, `qml.qrc`, `main.cpp`, derrière `embedded`/`CONSOLE_UI`. Le binaire `embedded`
-  démarre sur `ConsoleHome`, le binaire vanilla est inchangé.
-- ✅ **UI branchée sur les vraies données Moonlight** (commits `e0f7600c` + `5df70d84`) :
-  `ConsoleHome` lit `ComputerModel`/`AppModel`, sélectionne automatiquement le premier host
-  online+paired, et le bouton Jouer crée une vraie session via `StreamSegue.qml`.
-- ✅ **Appairage automatique côté console + refonte visuelle "pro"** : dès qu'un host en
-  ligne non appairé est détecté, la console lance `pairComputer()` elle-même et affiche un
-  **code de liaison** plein écran (façon appairage d'app TV ; aujourd'hui `pinScreen`, un
-  `MessageScreen` de `ConsoleHome`) ; succès → accueil, échec → nouvelle tentative auto après
-  5 s. Corrigé au passage le bug "Recherche…" permanent (modèles initialisés après liaison aux
-  vues, cf §11) et masqué la toolbar Material de `main.qml` depuis `ConsoleHome` (zéro élément
-  bureau). Le direct-launch (§9 6a) est câblé.
-- ✅ **Chaîne complète validée en réel contre Apollo** (host « Djinger », juin 2026) :
-  découverte → code de liaison saisi une fois → carrousel avec les vraies apps → stream.
-  Deux correctifs en route (commits `25c02abb` + `c23148af`) :
-  - `AppModel`/`ComputerModel` n'exposent **pas** de `count` en QML (cf §11) → le carrousel
-    ne s'affichait jamais (« Chargement… » infini) ; tout passe par le `count` des
-    `Instantiator` désormais.
-  - au boot, le host passe online **avant** confirmation de son pairState → l'auto-pair
-    exige maintenant un état online+non-appairé+connu **stable 2,5 s** (rôle
-    `statusUnknown` + timer d'armement), sinon il enverrait un PIN parasite à un host
-    déjà appairé.
-- ✅ **Profil de stream console** : 1080p / 60 fps / `max(défaut, 30 Mbps)` (cible §7),
-  appliqué **au premier démarrage seulement** (marqueur `ConsoleUi/streamProfileInitialized`
-  dans la conf) ; ensuite l'écran Paramètres fait foi.
-- ✅ **Illusion console complétée** (`ConsoleDialog.qml` + `ConsoleSettings.qml`, ce dernier
-  remplacé depuis par le panneau d'options « Ambiant », cf plus bas) :
-  - **Y/X interceptés** dans `ConsoleHome` → ouvrent NOS Paramètres (résolution/fréquence/
-    débit appliqués immédiatement + « Oublier ce PC ») ; sans ça les événements remontaient
-    à `main.qml` qui ouvrait la SettingsView Material. B est consommé à l'accueil.
-  - **Conflit « un autre jeu tourne »** : dialog console (Annuler par défaut) puis
-    `QuitSegue` upstream réutilisé pour quitter-puis-enchaîner (`nextSession`).
-  - **Retour de stream** : `StreamSegue.onDeactivating` ré-affiche la toolbar upstream →
-    `ConsoleHome` re-masque le chrome à chaque `StackView.onActivated` (+ refocus carrousel).
-  - **Batterie/signal factices retirés** de la StatusBar (remplacés depuis par les vraies
-    valeurs, `backend/systemstatus`).
-- 🚧 **Couture console ↔ host — `CompanionClient` (2026-06-28)** : backend C++
-  `app/gui/console/backend/companionclient.{h,cpp}`, compilé en build **`embedded` seulement**
-  (singleton QML `CompanionClient` ; coutures isolées dans `app.pro` + `main.cpp`, build
-  vanilla intact). Consomme la **Companion API** du repo HostCompanion
-  (`../HostCompanion/docs/protocol.md`). **Tranches 1+2+3 codées ET compilées** (build
-  `embedded` Fedora OK le 2026-07-03 — a nécessité `qt6-qtwebsockets-devel` + un fix MOC,
-  cf §11 ; submodules déjà checkout) :
-  - T1 : découverte mDNS `_hostcompanion._tcp` (calquée sur ComputerManager), `GET /v1/info`
-    (pin **TOFU** du SHA-256 du cert), appairage par **code à 6 chiffres** (le HOST l'affiche,
-    la console le SAISIT — décision 2026-06-28), token persisté en QSettings.
-  - T2 : `GET /v1/library` (+ etag/If-None-Match, copie sur disque), images de fond 16:9
-    (`GET /v1/media/{id}/bg`, cache disque), **WebSocket `/v1/events`**
-    (reçoit LAUNCH_STATE / UPDATE_REQUIRED / UPDATE_PROGRESS / READY / LAUNCH_ERROR /
-    GAME_STARTED / GAME_STOPPED / LIBRARY_UPDATED) avec reconnexion à backoff.
-  - T3 : **`CompanionPairing.qml`** (saisie du code 6 chiffres, ←→/↑↓/A) + **`LaunchOverlay.qml`**
-    (remplacé depuis par `LaunchScreen.qml`, cf « Refonte Ambiant » plus bas)
-    (préparation/maj/erreur) ; `ConsoleHome.launchApp` **recâblé** : `POST /v1/launch` → dialog de
-    maj éventuel → `READY` → ALORS `StreamSegue` (mapping app↔gameId par nom). **Repli direct**
-    (`directLaunch`) si Companion absent/jeu inconnu. PIN Moonlight **auto-soumis** à Apollo une
-    fois le Companion appairé (`submitMoonlightPin` → §6.4), écran de code Moonlight masqué dans
-    ce cas. ✅ **Compile + démarre sans erreur QML** (smoke-test offscreen, 2026-07-03) :
-    `ConsoleHome` charge, le singleton `CompanionClient` s'enregistre, la découverte mDNS
-    `_hostcompanion._tcp` tourne (aucun warning QML issu de `app/gui/console/`). ⚠️ **Reste à
-    valider À LA MANETTE contre un HostCompanion réellement en marche** (l'E2E n'a jamais tourné :
-    le daemon n'était pas lancé côté PC) : focus manette des overlays, progression de maj,
-    mapping app↔gameId, téléchargement des images de fond.
-- ✅ **Refonte « Ambiant » (2026-09-30 → 2026-10-01)** — cible : `docs/ui/ambiant/` (brief +
-  prototype HTML). Tous les écrans de la console sont refondus :
-  - **Accueil** : jetons `Theme.qml` + polices embarquées, fond (`BackdropLayer`), barre haute
-    (`StatusBar`), bloc héros, étagère (`GameShelf`), transitions de texte, entrée en cascade,
-    assemblés dans `HomeScreen.qml` et branchés dans `ConsoleHome`. Le fond est l'**image 16:9
-    du Companion** (média `bg`, cache disque dans `CompanionClient` ; bibliothèque gardée sur
-    disque pour l'afficher dès le démarrage), à défaut la jaquette Apollo recadrée ; les
-    vignettes gardent la jaquette (les fonds Playnite n'ont souvent pas le logo du jeu).
-    L'accueil s'ouvre sur le **dernier jeu lancé** (`ConsoleUi/lastGame`).
-  - **Options (Y)** : `OptionsSheet.qml`, panneau latéral qui lit et écrit `StreamingPreferences`
-    (résolution, images par seconde, débit, codec, HDR), plus « Sons » (`ConsoleUi/sounds`) et
-    « Oublier ce PC » à appui maintenu (étape 7 des micro-interactions), qui oublie l'appairage Moonlight ET Companion.
-  - **Lancement** : `LaunchScreen.qml` (illustration plein écran, étapes, barre). Il vit dans la
-    fenêtre, AU-DESSUS de la pile d'écrans : la page `StreamSegue` upstream fait son travail
-    dessous, invisible, sans être modifiée. En direct, le flux démarre ~1,1 s après A (le temps
-    que l'écran s'ouvre) ; via le Companion, il attend `READY`.
-  - **Écrans de message** (absents du prototype, conçus dans son langage) : recherche du PC,
-    chargement, liaison Moonlight (code à saisir sur le PC) et liaison Companion (code à saisir
-    sur la console) sont des `MessageScreen` posés à la place du héros (`HomeScreen.stage`) ;
-    la liaison Companion passe en priorité. Les dialogs (`ConsoleDialog`) sont un panneau
-    latéral comme les options.
-  - **Sons** : `Sounds.qml` (+ `SoundBank.qml`, QtMultimedia) joue les 9 sons du prototype,
-    régénérables par `harness/make-sounds.py`.
-  - **Batterie et Wi-Fi** : backend C++ `backend/systemstatus.{h,cpp}` (sysfs + NetworkManager
-    par D-Bus), build `embedded` seulement. Éclair pendant la charge, orange sous 20 %.
-  `GameCarousel`, `ConsoleSettings`, `LaunchOverlay`, `PairingOverlay` et `Spinner` sont
-  supprimés. ✅ Vérifié dans le harnais (`docs/ui/ambiant/harness/`) : accueil et options à moins
-  de 1,5 niveau d'écart moyen sur 255 avec les captures du prototype, ressort identique image par
-  image, 28 tests QML dont le vrai `ConsoleHome` sur faux modules Moonlight (options, Sons,
-  lancement direct, lancement Companion avec mise à jour, annulation, erreur, fond 16:9, saisie
-  du code Companion, dernier jeu, oubli du PC). Build `embedded` OK, démarre sans erreur QML.
-  ⚠️ **Rien de tout cela n'est encore validé à la manette contre le vrai host**, et les sons
-  n'ont pas été écoutés. Reste : mesure des 60 fps sur la carte.
-- ✅ **Fonctions « console » (2026-10-02)** — série de points validés avec Marco, un commit chacun :
-  - **Étagère** (`Library.js`, testé par `tst_Library`) : les utilitaires d'Apollo / Sunshine
-    (Desktop, Steam Big Picture, Virtual Display, Playnite…) sont écartés tant qu'il reste un jeu ;
-    ordre = favoris (X épingle / désépingle, le dernier épinglé en tête), puis du plus récent au
-    plus ancien (lancé d'ici, ou joué sur le PC d'après le Companion), puis par nom. Les index de
-    l'étagère ne sont PAS ceux d'`AppModel` (`shelfModel`, rôle `appIndex`). Jeu sans jaquette :
-    son nom sur un dégradé ; jaquette en fondu. Toast (`Toast.qml`) repris du prototype.
-  - **Réveil du PC** (Wake-on-LAN, `ComputerModel.wakeComputer`, rien d'upstream modifié) : PC
-    connu (MAC) mais hors ligne → réveil d'office 4 s après le démarrage ; A sur un jeu → étape
-    « Réveil de … » en tête de l'écran de lancement, qui reprend seul quand le PC répond (en
-    laissant 8 s au Companion pour se reconnecter) ; écran de recherche → A Réveiller / Réessayer.
-    Abandon au bout de 90 s avec un message (Wake-on-LAN à activer dans le BIOS).
-  - **Veille de l'écran** : remplacée le 2026-10-27 par l'écran de veille « Premium » (cf. plus bas).
-  - **Bouton Home** (`InputStatus`) : à l'accueil, ouvre le menu Home (`ConsoleDialog` en mode
-    `actions`) : reprendre / quitter le jeu en cours (quitter sans `QuitSegue`, pas de page
-    upstream), mettre en veille, redémarrer, éteindre (ces deux derniers confirmés, A maintenu). En jeu,
-    voir « Menu en jeu » plus bas. Au clavier : touche Origine.
-  - **Menu en jeu** (`backend/streammenu`, 2026-10-02) : en jeu, Home ouvre par-dessus le flux
-    un panneau (même dessin que `ConsoleDialog`, refait en QPainter par `streampainter` : le flux
-    est affiché par SDL, Qt est suspendu) posé sur l'overlay de débogage de Moonlight. Fond :
-    l'image du jeu floutée et figée (le jeu continue sur le PC), un voile en attendant. Reprendre,
-    Statistiques du flux, Retour à l'accueil, Quitter le jeu, veille / redémarrer / éteindre
-    (confirmés dans le menu) ; l'accueil fait la suite au retour (`InputStatus.takeStreamExit`).
-    Menu ouvert, la manette (croix, stick gauche, A au relâché, B) le pilote, le PC la voit
-    relâchée. **Statistiques** en haut à gauche, en Sora et en français (définition, i/s, codec,
-    débit, latence réseau ± variance avec le point de qualité de l'accueil, pertes, temps de
-    décodage / affichage / PC), réglage `ConsoleUi/streamStats`, aussi par Select + L1 + R1 + X.
-    **Animations et sons** comme à l'accueil (mêmes durées et courbes que `ConsoleDialog` /
-    `OptionsSheet`) : le panneau glisse (440 ms), le fond flouté apparaît en fondu (320 ms), le
-    surlignage glisse (220 ms), les libellés changent de couleur (160 ms), la valeur « Affichées /
-    Masquées » glisse comme une `SwapBox`, la confirmation remplace la liste en fondu enchaîné,
-    les statistiques apparaissent en fondu. Un minuteur SDL redessine l'overlay toutes les 16 ms,
-    seulement pendant une transition, hors du verrou et directement dans la surface SDL (à
-    2560 × 1600 sur le laptop : ≈ 6 ms image posée, 9 à 14 ms en fondu). **Piège** : Moonlight ne
-    compose un overlay qu'en affichant une image du flux, et le PC n'en envoie presque plus quand
-    son écran ne bouge pas (bureau : 18 i/s en moyenne) ; le menu ramait. Sans image reçue depuis
-    20 ms, le minuteur réveille donc le décodeur (`LiWakeWaitForVideoFrame`), qui réaffiche une
-    copie de la dernière image (`StreamMenu::frameToRepeat`). Sons open / close /
-    move / edge / select / tick joués par SDL (QtMultimedia ne tourne pas pendant un flux), au
-    volume de `Theme.soundVolume`, coupés avec le réglage « Sons ». Croix ou stick tenus :
-    la liste défile avec la répétition de l'accueil (`Theme.repeat*`), arrêtée au bout.
-  - **Rideau CocoOS entre un jeu et l'accueil** (`StreamCurtain.qml`) : StreamSegue cache la
-    fenêtre Qt pendant le flux et ne la réaffiche qu'après avoir fermé celle du flux : entre les
-    deux, on voyait le bureau (noir sur la console). Désormais le rideau (noir) couvre l'accueil
-    dès le début du flux ; quand on quitte par le menu en jeu, l'overlay fond au noir, puis
-    `StreamMenu::finishLeave` réaffiche la fenêtre Qt et fait tourner Qt le temps qu'elle montre
-    une image et que le logo y ait paru (≥ 320 ms) avant de fermer le flux : plus de trou. Dès que
-    la fenêtre revient, le logo de l'animation de démarrage paraît sur le noir ; au retour sur
-    l'accueil s'y ajoute « Fermeture de … » (le O respire jusqu'à la réponse du PC), puis le rideau
-    se lève et l'accueil rentre (`entryAllowed`). Il garde la manette tant qu'il couvre. La
-    toolbar Material (bande bleue en haut du rideau, ré-affichée par `StreamSegue` en se dépilant)
-    est détachée de la fenêtre (`header = null`), plus seulement cachée.
-    Les autres fins de flux (connexion perdue, Start + Select + L1 + R1, Ctrl+Alt+Maj+Q, fenêtre
-    fermée) passent par le même chemin depuis le 2026-10-23 : `session.cpp` confie chaque
-    `SDL_QUIT` à `StreamMenu::interceptQuit`, qui fait le fondu au noir et `finishLeave` (sortie
-    vide pour l'accueil : le rideau se lève aussitôt), puis laisse passer le `SDL_QUIT` qu'il
-    pousse. Connexion perdue : plus d'image du PC, le fondu ne paraît pas toujours, mais la
-    fenêtre de l'accueil revient avant que celle du flux se ferme (plus de trou).
-    **Au lancement** aussi (2026-10-23) : `StreamSegue` cachait la fenêtre Qt dès
-    `connectionStarted`, avant que celle du flux n'existe (bureau visible). `ConsoleHome
-    .keepHomeUnderStream`, branché avant lui, le débranche (Qt saute un gestionnaire débranché
-    pendant l'émission) : la fenêtre reste, rideau et logo, sous celle du flux, **tout le
-    flux** (au retour, le flux se ferme sur elle : aucun trou, vu par Marco). Journal :
-    « [console-ui] Lancement : fenêtre de l'accueil gardée sous le flux ». Sous KDE, il reste
-    ~0,2 s d'animation à l'ouverture : effets KWin « Échelle » (scale, toute fenêtre qui
-    s'ouvre) et « Plein écran » (Moonlight crée sa fenêtre puis la passe en plein écran) ;
-    rien de tel sous cage / gamescope. **Piège** : un `SDL_QUIT`
-    resté dans la file après le flux est pris par `SdlGamepadKeyNavigation` pour « quitter
-    l'application » (CocoOS se fermait après « Quitter » maintenu : le départ repartait une 2ᵉ
-    fois) ; `interceptQuit` vide la file des `SDL_QUIT` quand il laisse passer le sien.
-    ⚠️ Le menu a été vu dans un vrai flux par Marco, mais pas encore ses animations ni ses sons.
-    Le flou sur l'Orange Pi est incertain (images AFBC du décodeur Rockchip) : si la copie échoue,
-    le voile reste. Cadence des animations sur la carte à mesurer (objectif 60 i/s).
-  - **Manettes** : les glyphes suivent la manette branchée (`Theme.buttonLayout`, réglage
-    `ConsoleUi/buttonLayout` = auto par défaut) : lettres Xbox, lettres inversées Nintendo
-    (Moonlight lit les boutons par position), ✕ ○ □ △ PlayStation. Batterie d'une manette sans
-    fil dans la barre haute (silhouette + trois barres, orange à une barre).
-  - **Qualité du réseau** : `SystemStatus.probeHost` chronomètre toutes les 3 s l'ouverture d'une
-    connexion TCP vers le port HTTP Moonlight du PC (un aller-retour), seulement accueil à
-    l'écran et PC en ligne ; latence = médiane des 8 dernières, gigue = écart moyen entre
-    mesures. La pastille affiche « N ms » et son point passe au vert / jaune / rouge
-    (`Format.networkQuality` : ≤ 20 ms et ≤ 5 ms de gigue, ≤ 50 et ≤ 15, au-delà).
-    ⚠️ Jamais mesuré contre le vrai PC.
-  - **Réglages de flux par jeu** (`ConsoleUi/gameProfiles`, JSON par nom) : en tête de l'onglet
-    Flux, une ligne au nom du jeu sélectionné passe de « Réglages communs » à « Réglages à
-    part » (copie des communs) ; les lignes suivantes règlent alors ce jeu. Au lancement, ses
-    réglages remplacent les communs dans `StreamingPreferences` sans `save()`, et `endLaunch`
-    remet les communs (la session ne réenregistre jamais les préférences).
-  - **Options en onglets** (L1 / R1, lus dans SDL par `InputStatus` ; PageUp / PageDown au
-    clavier) : **Flux** (résolution, fréquence, débit, codec, HDR, Oublier ce PC) et **Console**
-    (luminosité par logind `SetBrightness`, volume par `wpctl`, mise en veille après, boutons,
-    sons, langue, Wi-Fi). Une ligne peut être une action (`action: true`, A la déclenche, chevron ›).
-  - **Wi-Fi et premier démarrage** : `WifiSetup` (NetworkManager par D-Bus) liste les réseaux
-    et s'y connecte ; la liste est un `OptionsSheet` (titre « Wi-Fi », icône de signal), le mot
-    de passe se tape sur `OnScreenKeyboard` (AZERTY, quatre couches, A / B / X / Y ; un vrai
-    clavier marche aussi). Premier démarrage (`ConsoleUi/setupDone`) : « Bienvenue » (A), puis
-    « Connexion à Internet » si la console n'est pas en ligne, puis le flux habituel (recherche
-    du PC, liaisons). ⚠️ La connexion à un réseau n'a jamais été essayée en vrai (la lecture
-    des réseaux, si : vérifiée contre le NetworkManager du laptop).
-  - **Teinte ambiante** : `AmbientColor` tire de l'image de fond (miniature décodée hors du fil
-    principal, cache) la teinte qui pèse le plus, pondérée par la saturation, rendue vive ; elle
-    colore le bas du voile (fondu de 700 ms). Image grise : pas de teinte.
-    Le bouton Jouer reste orange (la marque).
-  - **Lancement depuis la vignette** : l'écran de lancement part de la place de la vignette
-    active (`HomeScreen.activeThumbRect`, sa jaquette) et grandit jusqu'au plein écran (ressort
-    « souple » étiré à 540 ms, comme le prototype des micro-interactions) pendant que
-    l'illustration la remplace en fondu ; annulé (B, erreur), il y retourne (420 ms après 90,
-    la jaquette revient). Reprise depuis le menu Home : le fondu d'origine.
-  - **Logo du jeu** à la place du titre : média `logo` du Companion (PNG d'« Extra Metadata
-    Loader », côté HostCompanion), mis en cache comme les fonds (`games()[i].logo`) ; le héros
-    l'affiche une fois chargé (deux lignes de titre de haut au plus), le titre en texte sinon.
-    ⚠️ Côté host, écrit mais pas compilé (pas de .NET sur le laptop).
-  - **Démarrage** : animation « le O » (`BootSplash`, cf. `docs/boot-animation/`) : tracé du O,
-    lettres sur ressorts, chargeur si le système tarde, vol du logo jusqu'à celui de la barre
-    haute (relais au pixel près) pendant que l'accueil entre (spec §7 : textes en fondu 350 ms,
-    vignettes en fondu + échelle 0,97 → 1 sur 500 ms, glyphes du héros à 300 ms). Sortie de
-    veille (écran ou suspension logind) : l'accueil rentre, le O du logo de la barre respire.
-    Thème Plymouth en noir pur dans `deploy/plymouth/` (notice, ligne de commande du noyau).
-    ⚠️ Plymouth jamais installé ni vu en vrai (à faire sur l'Orange Pi, pas sur le laptop).
-- ✅ **Langue FR / EN (2026-10-06)** : ligne « Langue » de l'onglet Console. Elle écrit le réglage
-  de Moonlight (`StreamingPreferences.language`) et appelle son `retranslate()` : rien d'upstream
-  modifié. Les textes console (sources en français, `qsTr` / `tr`) ont leur traduction anglaise dans
-  `languages/qml_en.ts`, compilée en `qml_en.qm` et embarquée en `:/languages/qml_en.qm`, là où
-  Moonlight la cherche (au démarrage, puis à chaque changement). Français : la traduction upstream
-  `qml_fr` (textes Moonlight). « Auto » (jamais choisie) suit le système : anglais si `en_*`.
-  En anglais : clavier à l'écran en QWERTY, nombres à la virgule → point (tailles, statistiques).
-  Les messages d'erreur envoyés par le HostCompanion restent dans la langue du host.
-  ⚠️ Vue dans le harnais et au démarrage (traduction chargée), pas encore à la manette.
-- ✅ **Micro-interactions (2026-10-22 → 2026-10-23)** — cible : `docs/ui/micro-interactions/` (brief +
-  prototype ; pour les durées et les courbes, le prototype fait foi). Huit étapes, un commit chacune,
-  toutes faites et vérifiées dans le harnais :
-  - **Ressorts physiques** (`Spring.js`) : `spring()` du prototype converti en courbe
-    `Easing.BezierSpline` de 10 segments (le maximum que Qt garde), jouée par une simple
-    `NumberAnimation` ; jetons `Theme.springSnappy` / `springBouncy` / `springGentle`
-    (`{ curve, duration }`). Testé par `tst_Spring` contre les valeurs tirées du prototype
-    (`reference-values.js`) et tel que Qt le joue : moins de 1 % d'écart.
-  - **Étape 1, appui** (`Pressable.qml`) : A enfoncé, l'élément s'écrase (0,955 en 90 ms ;
-    0,985 pour une ligne de panneau) ; relâché, il revient avec le ressort « rebond », et
-    l'action part. **A agit désormais au relâché** sur l'étagère, dans `OptionsSheet`,
-    `ConsoleDialog` et les `MessageScreen` (signal `activated`), et seulement après un appui fait
-    au même endroit : le relâché d'un A qui a fermé un panneau ne lance rien. Bouton Jouer (qui
-    reste enfoncé pendant le lancement), lignes d'action des options, choix des dialogs, entrée
-    « A » de la légende des écrans de message.
-  - **Étape 2, reflet** (`GameShelf`) : une bande claire (16 % de blanc, inclinée de 15°) balaie
-    la vignette active une fois, 520 ms après chaque déplacement, comme le prototype (950 ms,
-    `curveInOut`) ; remis à zéro dès qu'on bouge, jamais sans la manette (veille, lancement,
-    panneaux) ni pendant l'entrée.
-    La bande n'est créée (`Loader`) que sur la vignette active, le temps du balayage.
-  - **Étape 3, interrupteurs** (`OptionsSheet`, composant `Switch`) : une ligne `toggle: true`
-    (options [désactivé, activé] ; HDR et Sons, dont l'ordre est passé à [Coupés, Activés]) montre
-    un interrupteur à la place de la valeur. A bascule (au relâché) ; → active, ← désactive, après
-    90 ms d'étirement du pouce (la valeur est appliquée même si on referme avant) ; pousser vers
-    l'état déjà là : butée de 3 px aller-retour (260 ms) et son `edge`. Pouce qui glisse au ressort
-    « rebond » et s'étire pendant l'appui, orange qui se répand depuis le pouce éteint (320 ms),
-    ligne qui s'écrase comme les lignes d'action. `Accessible.name` garde le libellé de la valeur.
-  - **Étape 4, valeurs** (`OptionsSheet`, `RollingNumber.qml`) : une valeur numérique (toutes les
-    options sont des nombres : images/s, luminosité, volume, veille…) roule chiffre par chiffre
-    (ressort « vif », chiffres tabulaires, chiffres de tête effacés) ; les autres glissent toujours
-    (`SwapBox`). En bout de liste, en plus du son `edge`, la valeur bute (5 px par poussée, 16 au
-    plus, retour au ressort « rebond »). **Débit** : une ligne-interrupteur « Débit automatique »
-    puis un **curseur** de 5 à 150 Mb/s (ligne plus haute, piste, crans à 10 / 20 / 40 / 80) ; à
-    l'appui maintenu le pas accélère (1 → 2 → 5) et marque 260 ms d'arrêt sur chaque cran ;
-    en automatique il montre, grisée, la valeur calculée par Moonlight, et le pousser repasse en
-    débit fixe à partir d'elle. Le curseur signale sa valeur (Mb/s) à la place d'un index.
-  - **Étape 5, onglets** (`ElasticIndicator.qml`) : un seul soulignement passe de Flux à Console ;
-    son bord avant part au ressort « vif », l'arrière suit 40 ms plus tard (420 ms, `curveOut`),
-    d'où l'étirement. Le libellé qui devient actif s'allume en 220 ms après 90 ms. Composant
-    réutilisable (profils de flux du §12).
-  - **Étape 6, refus et coche** : `Pressable.refuse()` secoue l'élément (440 ms : −9, 8, −5, 3,
-    −1 px puis 0) avec le son `edge`. Là où c'est refusé aujourd'hui : le code Companion faux (les
-    cases ; la ligne d'état d'un `MessageScreen` apparaît en dépliant, 340 ms), Jouer quand le PC
-    est hors ligne et impossible à réveiller (en plus du toast), le réseau Wi-Fi déjà connecté
-    (ligne `locked`, avec son surlignage). Une ligne `checked` d'`OptionsSheet` a une coche devant
-    son libellé, tracée trait après trait (300 ms après 60 ms, orange) : le réseau connecté. Elle se
-    trace quand le réseau connecté change (pas à chaque ouverture de la liste).
-  - **Étape 7, appui maintenu** (`HoldFill.qml`) : confirmer une action destructive demande de
-    maintenir A 900 ms : toutes les confirmations de `ConsoleHome` (`confirmDialog.holdToConfirm` :
-    quitter le jeu, redémarrer, éteindre, désinstaller, annuler un téléchargement, « Fermer et
-    jouer »), et « Oublier ce PC » (qui ne demande plus deux pressions). Remplissage orange de
-    gauche à droite (affiché : progression^1,4), libellé repris en `inkOnAccent` sous lui, vidange
-    en 280 ms si on lâche, rebond à 1,035, puis l'action. « Annuler » reste le choix par défaut ;
-    la légende dit « Maintenir ». Le menu en jeu aussi, depuis le 2026-10-23, et **sans page de
-    confirmation** (demande de Marco) : A, Entrée ou le clic tenus directement sur « Quitter … »,
-    « Redémarrer », « Éteindre » de la liste (`streampainter` `drawHold`, `streammenu`
-    `startHold` / `holdStep`), coche et libellé de fin, puis le départ (un `SDL_QUIT` ramène
-    `holdStep`, fil du minuteur, sur le fil des événements ; le minuteur ne doit pas s'arrêter
-    entre la coche et le départ, sinon le menu restait bloqué).
-  - **Étape 8, île de notification** (`StatusBar`) : la pastille de l'hôte s'ouvre (340 × 72, taille
-    au ressort « souple », rayon en 380 ms) pour un événement système, puis se referme seule après
-    2,8 s ; B la referme. Événements : manette branchée / débranchée (`InputStatus.controllerCount`,
-    ajouté), manette presque vide (une barre), batterie sous 20 % hors charge, PC perdu puis
-    retrouvé, réseau « mauvais » pendant 10 s. Contenu (icône, titre, détail, valeur) en cascade
-    (+110 ms, 45 ms d'écart, sans flou) ; une nouvelle notification remplace l'ancienne sans
-    refermer (rebond à 1,025). Rien pendant l'entrée de l'accueil (le vol du logo), un panneau, un
-    lancement, la veille ou le rideau ; un événement de ces moments-là est perdu. `Toast` reste
-    pour l'étagère. Plus tard : « débit ajusté » du profil Auto (§12) par `homeScreen.notify()`.
-  ⚠️ Vu dans le harnais (`HomeDemo` : `do=hold,release` ; reflet : `goto=7 at=2500 delay=4400` ;
-  interrupteurs : `do=options,down,down,down,down,down,right at=2000` ; curseur :
-  `do=options,down,down,down,right` ; onglets : `do=options,down,up,tab at=2000 delay=2550` ;
-  refus : `view=ConsoleHomeDemo do=wifi,down,up,a at=2500 delay=2990`, `view=PagesDemo page=code-error` ;
-  appui maintenu : `view=ConsoleHomeDemo do=home,down,down,a,down,hold at=4000 delay=5400` — après
-  l'animation de démarrage, qui rend sinon le focus à l'accueil ; île : `do=pad`, `lost,back`,
-  `lowbattery` à `at=2500` dans `HomeDemo`). Rien n'a été vu à la manette ni sur l'écran de la
-  carte, aucun son n'a été écouté, et l'accueil au repos reste à 1,68 d'écart moyen du prototype
-  Ambiant (inchangé par ce chantier).
-  pas à la manette ni à 60 i/s sur l'Orange Pi (le reflet redessine le calque de la vignette
-  active pendant 950 ms).
-- ✅ **Étagère en portrait (2026-10-23, demande de Marco : « rendre l'OS beau »)** : les vignettes
-  passent du 16:9 au portrait 3:4 (108 × 144, coins de 10), le format des jaquettes d'Apollo /
-  Sunshine (600 × 800), désormais affichées entières au lieu d'être recadrées. Une dizaine de jeux
-  tiennent sur la largeur. Le bloc héros remonte de 54 px (`heroBottom` 532, au-dessus de
-  l'anneau de la vignette active depuis le carrousel), les écrans de message avec lui ; le toast suit l'étagère ; un
-  jeu sans jaquette écrit son nom sur trois lignes. Tout découle des jetons de `Theme.qml`.
-  L'accueil s'écarte donc des captures de référence du prototype Ambiant (étagère et héros) :
-  `compare.py` n'a plus de sens que pour la barre haute et le fond. ⚠️ Pas vu avec les vraies
-  jaquettes du PC (le harnais recadre ses images 16:10), ni à la manette.
-- ✅ **Effets du prototype des micro-interactions (2026-10-23, demande de Marco)** : ombre portée sous
-  la vignette active (0 18px 40px -12px) et sous l'île ouverte (0 14px 34px -8px), en **images
-  pré-calculées** (`shadows/*.png`, `harness/make-shadows.py`, aucun flou à l'exécution ;
-  `RectangularShadow` exigerait Qt 6.9) ; filet clair intérieur des vignettes (plus net sur
-  l'active) ; la vignette active s'écrase depuis son centre tant que A est tenu (1,02 depuis le
-  carrousel) ; halo de la poignée
-  du curseur sur la ligne en focus, crans placés sous la poignée et qui pulsent quand on les franchit
-  (×1,9, orange, 440 ms) ; pouce d'interrupteur plus clair sur la ligne en focus ; explication d'un
-  refus dépliée sous la liste (réseau déjà connecté). Corrigé au passage : le soulignement des
-  onglets sautait vers « Flux » à chaque valeur changée dans « Console » (onglets recréés), et les
-  interrupteurs / chiffres / curseur s'animaient en changeant d'onglet. ⚠️ Pas vu à la manette ;
-  ombres à juger sur l'écran de la carte (discrètes sur un fond sombre, comme dans le prototype).
-- ✅ **Carrousel du prototype (2026-10-23, demande de Marco)** : l'étagère reprend le carrousel des
-  micro-interactions, **anneau** compris (le brief l'écartait, Marco l'a demandé). Un seul anneau
-  (trait clair de 2 px à 6 px de la vignette agrandie, halo de 5 px) glisse d'une vignette à
-  l'autre au ressort « vif » ; la piste ne défile, au ressort « souple », que pour garder la
-  vignette active à 80 px des bords (le prototype : 44 pour une marge de 36) : la sélection n'est
-  plus calée à gauche. Avec la manette, la vignette active grandit à 1,08 depuis son centre
-  (ressort « vif »), les autres passent à 48 % (220 ms) ; A tenu, elle redescend à 1,02. Sans la
-  manette (options, panneau, héros), toutes reviennent et l'anneau s'efface en rétrécissant
-  (160 ms, 0,94). En bout de liste, l'anneau bute. Le soulignement orange de la vignette active
-  disparaît (la teinte ambiante ne colore plus que le voile). Le lancement en part et y revient
-  (cf. plus haut). Corrigé au passage : l'illustration de l'écran de lancement se rechargeait à
-  chaque taille pendant qu'il grandissait (image noire furtive). **Textes du jeu** : le swapText
-  garde maintenant son flou (3 px, plein à l'invisible, nul une fois posé : il suit l'opacité),
-  sur la méta, le titre, le sous-titre et le libellé du bouton Jouer (`SwapBox.blur`). Un calque
-  MultiEffect par texte, posé une fois : pendant le glissement seul le mélange final change.
-  Rendu GPU seulement (le rendu logiciel des tests n'a pas de calques). ⚠️ Pas vu à la manette ;
-  `Theme.swapBlur` à 0 si la carte ne tient pas ses 60 i/s.
-- ✅ **Sélecteur fixe, nets, Partie terminée (2026-10-23, demande de Marco)** : l'anneau de l'étagère
-  ne bouge plus, il reste à la marge gauche et la piste défile dessous (ressort « vif ») ; en bout
-  de liste, c'est la piste qui bute. `shelfScrollMargin` supprimé. La dernière vignette peut venir
-  sous l'anneau : contentX dépasse la fin de la liste, la vue replace alors ses vignettes à l'estime
-  et décale `originX` pendant qu'on écrit contentX → synchro impérative (`list.sync()`), plus de
-  liaison (boucle de liaison sinon). Textes du héros (titre, « Reprendre la partie »…) flous /
-  pixelisés au repos : le calque de flou du `SwapBox` restait actif ; il n'existe plus que pendant
-  la transition (`opacity < 1`). « Partie terminée » débordait du bouton Quitter : sa largeur prend
-  la plus grande de ses deux étiquettes (`HoldFill.doneWidth`). ⚠️ Pas vu à la manette.
-- ✅ **Ctrl + Maj + Alt + Tab = bouton Home (2026-10-23, demande de Marco)** : à l'accueil, un
-  `Shortcut` de `ConsoleHome` (« Tab » et « Backtab » : avec Maj, Qt reçoit Backtab) appelle
-  `homeButton()` (menu Home, réveil de veille) ; en jeu, combo `KeyComboStreamMenu` de Moonlight
-  (`keyboard.cpp`, `CONSOLE_UI` seulement) : ouvre / ferme le menu en jeu comme Home (manettes et
-  touches relâchées côté PC). **Clavier et souris dans le menu en jeu** : menu ouvert, flèches,
-  Entrée / Espace (A), Échap / Retour arrière (B) le pilotent (`keyboard.cpp`) et la souris est
-  libérée (`SdlInputHandler::syncStreamMenuMouse`, `mouse.cpp`) : survoler une ligne la
-  sélectionne, clic gauche la valide au relâché, clic droit ou à côté du panneau = B, molette =
-  une ligne ; fermé, la souris repart au jeu. Rien n'atteint le PC menu ouvert. Ligne sous la
-  souris : `StreamPainter::rowAt` (même calcul que le dessin, `choicesTop`), vérifié contre le
-  dessin par `harness/streammenu-rows.cpp`. ⚠️ Pas encore essayé par Marco dans un vrai flux.
-- ✅ **Souris partout (2026-10-23, demande de Marco)** : `HoverArea.qml` (MouseArea à survol, curseur
-  en main, `pointed()` seulement quand le pointeur bouge vraiment : `Pointer.js` écarte les survols
-  que Qt envoie quand le contenu glisse sous un pointeur immobile, sinon une liste qui défile au
-  clavier rendait la sélection à la ligne sous la souris). Listes : survoler une ligne y amène la
-  sélection (son `move`), un clic agit — options (lignes, curseur, choix du profil, « Oublier ce
-  PC », chevrons ‹ › cliquables), dialogs et menu Home, clavier à l'écran (la touche cliquée
-  s'écrase). Boutons : `Pressable.hovered` / `hoverScale` (grandit à 1,04 au ressort « vif ») —
-  Jouer / Reprendre, Quitter la partie (contour éclairci), Options et Épingler (`TextButton` du
-  héros, éclairés), Désinstaller (fiche), « B Annuler » du lancement ; onglets ; vignettes de
-  l'étagère (1,04 et 80 % d'opacité, le survol ne sélectionne pas : la piste défilerait sous la
-  souris) ; choix du profil (fond discret). La légende (`ControllerLegend.triggered`) fait ce que
-  fait le bouton (A, B, X, Y) partout où elle est posée ; écrans de message : A → `activated`,
-  Y → options ; cases du code Companion : clic pour choisir, molette pour le chiffre ; molette sur
-  la description de la fiche ; île de notification : clic la referme, survolée elle reste.
-  Testé par `tst_Hover`. ⚠️ Effets de survol pas vus à l'écran (le harnais ne bouge pas la souris).
-- ✅ **Améliorations proposées puis validées (2026-10-23, demande de Marco)**, un commit chacune :
-  - **« Réduire les animations »** (onglet Console, `ConsoleUi/reduceMotion`, `Theme.reducedMotion`) :
-    les trois ressorts deviennent `Theme.reducedSpring` (curveOut, 200 ms), plus de flou des textes,
-    d'ombres, de dérive du fond, de reflet, de bande de chargement, d'onde « en cours », de fondu
-    d'entrée du flux. Plan B pour l'Orange Pi.
-  - **Vibrations** (`StreamMenu::rumble`, `InputStatus.feedback`, `Sounds.played`) : butée, refus,
-    appui maintenu au bout, lancement ; aussi dans le menu en jeu. Réglage « Vibrations »
-    (`ConsoleUi/rumble`) dans l'onglet Console quand une manette est branchée.
-  - **Point « en cours »** sur la vignette du jeu qui tourne sur le PC (`GameShelf.runningName`,
-    `ConsoleHome.runningGame`), avec une onde. Harnais : `view=HomeDemo running=2`.
-  - **Bande de chargement** sur les vignettes dont la jaquette charge.
-  - **Le flux sort du noir** à sa première image (400 ms), pendant du fondu de sortie.
-  - **Collections** Tous / Favoris / Récents (onglets à droite au-dessus de l'étagère, L1 / R1,
-    Page préc. / suiv., clic ; `Library.collection(s)`), **saut** de dix vignettes (L2 / R2 lues par
-    `InputStatus.triggerPressed`, Maj + ← / →), molette sur l'étagère.
-  - **Menu en jeu** : « Capture d'écran » (aussi le bouton Partager / Capture, MISC1, plus envoyé au
-    PC ; PNG pleine définition dans `Images/CocoOS`), « Volume » et « Luminosité » (← / →, via
-    SystemStatus passé à `prepareStreamMenu`), **avis** en haut à droite pendant le jeu (réseau
-    mauvais 10 s, manette presque vide, capture enregistrée ; `StreamPainter::Notice`). Harnais :
-    `streammenu-shot … page=stats notice="Réseau instable" tone=bad`.
-  - **Curseurs pour le volume et la luminosité, partout** : dans l'onglet Console (lignes `slider`
-    comme le débit, crans à 25 / 50 / 75, luminosité 5 % au moins) et dans le menu en jeu (rail,
-    remplissage orange, poignée dessinés par `StreamPainter` à droite de la ligne, la valeur à
-    gauche ; ← / → de 5 % en 5 %, la poignée glisse en 160 ms ; à la souris, clic ou glisser par
-    crans de 5 %, `StreamPainter::sliderAt`, vérifié par `streammenu-rows.cpp`). Harnais :
-    `streammenu-shot … page=menu sliders=1`.
-  - La dérive lente du fond existait déjà (zoom 1,03 → 1,09 en 30 s, arrêtée après 10 s sans
-    action, pour la batterie) : rien d'ajouté. Couleur d'accent et « dernier jeu au démarrage » :
-    écartés par Marco.
-  ⚠️ Rien vu à la manette ni dans un vrai flux : vibrations, avis, capture, volume, collections.
-- ✅ **Reprendre / Quitter la partie (2026-10-23, demande de Marco)** : les deux boutons du prototype
-  des micro-interactions (« Reprendre la partie », « Quitter le stream »), dans le héros, quand le
-  jeu sélectionné tourne sur le PC. Libellés « Reprendre la partie » / « Quitter la partie » (à
-  l'accueil, le flux est déjà fermé : c'est le jeu qu'on quitte). Haut depuis l'étagère leur donne
-  la manette (l'anneau de l'étagère s'efface) ; ← / → choisissent, bas ou B la rendent. Anneau de
-  focus du prototype (2 px à 5 px du bouton, 140 ms, se resserre de 1,025). Reprendre : l'appui
-  du bouton Jouer (« Reprise… »). Quitter : contour fin, s'écrase à 0,97, appui maintenu
-  (`HoldFill` : remplissage orange, coche et « Partie terminée », tout le bouton rebondit) puis
-  `quitRunningGame` ; lâché trop tôt, un toast « Maintenez A pour quitter la partie ». La coche
-  reste 1,7 s puis le bouton se vide, si le jeu tourne encore. A sur l'étagère reprend toujours
-  directement. Harnais : `view=HomeDemo running=0 do=hero,heroright,holdquit at=2500`.
-  ⚠️ Pas vu à la manette ; le menu en jeu (QPainter) garde ses lignes.
-- ✅ **Suite des effets du prototype (2026-10-23, demande de Marco)** : au changement de jeu, méta,
-  titre et sous-titre du héros font le swapText du prototype (14 px, 380 ms à l'entrée, 220 ms à la
-  sortie ; flou de 3 px ajouté ensuite, cf. « Carrousel du prototype ») ; au lancement, « Jouer » cède la place à « Lancement… » (« Reprise… ») et le
-  bouton s'élargit ; un appui maintenu plein montre une coche tracée et un libellé de fin
-  (« Extinction », « PC oublié »…) avant l'action, et se fait aussi à la souris (clic tenu) ; le
-  curseur de débit se règle à la souris (clic, glisser, accroche aux crans, butée élastique). **Sons**
-  nouveaux, synthétisés comme les autres (`make-sounds.py`) : `toggle-on` / `toggle-off`, `hold`
-  (coupé si on lâche) puis `confirm`, `deny` (refus), `notify` (île), `detent` (cran du curseur),
-  `segment` (profil). ⚠️ Aucun son n'a encore été écouté ; rien vu à la manette.
-- ✅ **Profils de flux (2026-10-23, demande de Marco ; phase 1 du chantier §12)** : en tête de
-  l'onglet Flux, un sélecteur (prototype « Sélecteur de profil » : pastille élastique, chiffres
-  remplacés en cascade) — Compétitif, **Équilibré (par défaut)**, Qualité, Économie, Manuel
-  (`StreamProfiles.js`, testé par `tst_StreamProfiles`). Un profil automatique choisit **au
-  lancement** définition, images/s et débit d'après l'écran (définition, fréquence) et la qualité
-  du réseau vers le PC (un palier de moins si moyenne, deux si mauvaise ; la note le dit) ; il ne
-  touche ni au codec ni au HDR, et n'enregistre rien (`applyGameProfile` / `restoreCommonSettings`,
-  comme les réglages par jeu). Sous un profil automatique, les lignes montrent ce qu'il choisira,
-  grisées, sans « Débit automatique » ; en toucher une passe en Manuel à partir de ces valeurs.
-  Manuel = les réglages d'avant, tels quels. Mémorisé dans `ConsoleUi/streamProfile` (communs) ou
-  dans les réglages à part d'un jeu (Manuel pour ceux d'avant les profils). Le panneau d'options
-  défile désormais (onglet Flux plus haut que l'écran, longues listes Wi-Fi), fondus aux bords.
-  Définitions : celle de l'écran de la console si elle tient sous le plafond du profil (l'image le
-  remplit), sinon les définitions courantes 16:9 (540p, 720p, 1080p, 1440p) — plus de tailles au
-  format de l'écran (1728 × 1080…). Les cases du sélecteur prennent la largeur de leur libellé
-  (« Competitive » entier en anglais).
-  **Réglages avancés** (interrupteur sous le profil, `ConsoleUi/advancedSettings`, éteint par défaut) :
-  éteint, l'onglet Flux se réduit à l'essentiel — le profil (avec une phrase qui le décrit au lieu
-  de ses chiffres), l'interrupteur, « Oublier ce PC » ; allumé, les chiffres du profil, les
-  réglages à part du jeu, définition, images/s, débit, codec, HDR. Les lignes restent toutes dans
-  le modèle (`advanced`, `hidden` : repliées, hauteur nulle, sautées par la manette) : aucune ne
-  prend plus la place d'une autre (ce qui faisait sauter les animations en passant de Manuel à
-  Économie). Mouvement : à l'allumage, le dessous glisse faire la place (ressort « souple »), la
-  description cède la place aux chiffres, puis les lignes apparaissent en cascade (90 ms, puis
-  40 ms d'écart, en descendant de 12 px) ; à l'extinction, elles s'effacent du bas vers le haut
-  et le dessous remonte 110 ms après (composant `Reveal` d'`OptionsSheet`). **Manuel** n'est proposé
-  qu'avec les réglages avancés (`hiddenOptions` du sélecteur : la case se replie, la manette la
-  saute) ; les éteindre sous Manuel ramène le profil à Équilibré (les réglages manuels restent
-  enregistrés). Seule exception : un jeu aux réglages à part d'avant les profils garde Manuel.
-  ⚠️ Libellés et paliers à valider par Marco à la manette (le doc le demande) ; le choix du palier
-  n'est qu'une première version de la phase 4 (pas de sonde avant lancement ni de mémoire par
-  réseau) ; anti-gigue (phase 3) et FSR (phase 5) restent à faire.
-- ✅ **Barre haute : Réglages, Wi-Fi, batterie (2026-10-27, demande de Marco)** : un engrenage
-  (`icons/settings.svg`) à droite de la batterie. Wi-Fi, batterie et engrenage se choisissent :
-  haut depuis l'étagère (ou depuis les boutons du héros pendant une partie), ← / →, bas ou B
-  rendent la manette ; au clavier pareil ; à la souris, survol et clic. Pastille éclairée et
-  anneau de focus (`FocusRing.qml`, sorti de `HeroBlock`) ; l'icône choisie ou survolée ouvre
-  sa **fiche** sous la barre (style de l'île, ombre étirée) : Wi-Fi (nom, sécurité, signal,
-  latence vers le PC ; A « Changer de réseau » → la liste des réseaux), batterie (état,
-  **autonomie restante** ou « pleine dans », consommation ou puissance de charge), Réglages
-  (A → le panneau d'options sur l'onglet **Console**). Bande, IP, débit de la liaison, usure
-  de la batterie et sous-titre des Réglages retirés à la demande de Marco (2026-10-27). Données : `SystemStatus.batteryDetails` (sysfs : `time_to_*_now`,
-  sinon énergie / puissance ou charge / courant ; temps lissé d'un relevé à l'autre) et
-  `SystemStatus.wifi` (NetworkManager). Vérifié sur le laptop (38 %, 13,4 W → 86 min), dans le harnais (`do=sys,sysleft`) et par
-  `tst_ConsoleHome::test_9y_statusBarIcons`. ⚠️ Pas vu à la manette.
-- ✅ **Écran de veille « Premium » (2026-10-27, branche `feat/idle-screen`, fusionnée dans
-  `console-ui`)** — cible :
-  `docs/design/idle/` (brief, spec, maquettes 09 à 12, références) ; suivi détaillé dans `next_steps.md`.
-  Remplace `SleepScreen` (décision de Marco) : après `ConsoleUi/idleSeconds` (**5 min** par défaut, décision de Marco du 2026-10-28 ;
-  Options › Console › Mise en veille après : 30 s, 1, 2, 5, 10, 30 min, jamais ; l'ancienne clé
-  `sleepMinutes` est ignorée), `idle/IdleOverlay` monte au-dessus de l'accueil en fondu ;
-  quatre écrans selon l'état : jeu en cours sur le PC (09), jeu + téléchargement (10), téléchargement
-  (11), repos (12 : date, heure en dégradé, capsule PC / réseau / batterie / dernier jeu). Une touche ou
-  un clic : sortie en 320 ms, l'accueil reprend la main tout de suite ; **A pendant une partie relance le
-  flux** du jeu en cours (« Appuyez sur A pour reprendre »). Le glyphe suit la manette (✕ PlayStation,
-  B Nintendo). En 4G / 5G (`network.kind` "4g" / "5g"), « 5G » remplace l'icône Wi-Fi (« 5G excellente »
-  dans la capsule) ; la source réelle viendra du module 5G (ModemManager, TODO). Données réelles
-  (`ConsoleHome`, `liveIdleStatus`) : PC, Wi-Fi et latence, batterie et autonomie, jeu qui tourne
-  (jaquette Apollo, durée depuis son lancement d'ici), dernier jeu ; un élément sans donnée est masqué.
-  TODO(HostCompanion) : téléchargements, jaquettes Playnite. `COCOOS_IDLE_MOCK=1`
-  (+ `COCOOS_IDLE_STATE=game|gameDownload|download|rest`, `COCOOS_IDLE_NETWORK=4g|5g`) montre les
-  données des maquettes sur la console.
-  Parité avec les maquettes (phase 4) : écart moyen ≤ 3,4/255, tous les textes à ±2 px. **Format** : la
-  grille 1280 × 720 des maquettes s'étire au format de l'écran (1280 × 800 en 16:10, plus large en 21:9),
-  bloc central au milieu, heure et indication aux bords, fond et lueur sur tout l'écran ; les couches
-  (heure en dégradé, jaquette, vignette) et les SVG sont rendus à la résolution de l'écran
-  (`IdleTheme.textureScale`). Aperçu : `app/gui/console/idle/preview/IdlePreview.qml` (`grab.sh`,
-  `parity.sh` ; `--network 5g`, `--pad playstation`, `--size 2560x1600`). Journal : « [console-ui] Veille après N s d'inactivité (état) ». ⚠️ Pas vu à la
-  manette ni sur l'écran de la carte ; performance (flou d'entrée, `IdleTheme.entryBlur`) à mesurer sur
-  l'Orange Pi (phase 6 du brief).
-- 📋 **Chantier : optimisation du flux** (profils Manuel / Auto ✅ en phase 1, anti-gigue adaptatif,
-  télémétrie, FSR 1.0) — décidé le 2026-10-01, cf §12 et `docs/stream/STREAM-OPTIMISATION.md`.
-  Côté console uniquement (Apollo reste non modifié).
-- **Tâche en cours** : la **validation E2E à la manette** contre le vrai host (Apollo +
-  HostCompanion, jamais éprouvé en face), puis le mode kiosk (boot direct, §9 6c) et
-  l'auto-accept du pairing côté host (installeur, §9 6b).
+- Streaming validé depuis ~1 an (Moonlight + Sunshine/Apollo + Tailscale, y compris en 5G sur smartphone).
+- Fork Qt 6 sous Fedora KDE ; décodage matériel OK (Iris Xe, VAAPI, H.264/HEVC/AV1).
+- UI console « Ambiant » intégrée derrière `embedded`/`CONSOLE_UI`, branchée sur les vraies données
+  Moonlight ; chaîne découverte → appairage auto → accueil → lancement → stream → retour validée contre Apollo.
+- Client HostCompanion (`CompanionClient`) : lancement via `POST /v1/launch` câblé, **jamais éprouvé E2E**
+  contre un HostCompanion en marche (repli : lancement direct Apollo).
+- Menu en jeu, sons, veille (`idle/`, remplace `SleepScreen`), animation de démarrage « le O » : faits,
+  vérifiés au harnais, **pas encore à la manette ni sur l'Orange Pi**.
+- Optimisation du flux : phase 1 (profils) faite, suite planifiée (§12).
+- **Tâche en cours** : validation E2E à la manette contre le vrai host (Apollo + HostCompanion), puis
+  kiosk (§9 6c) et auto-accept du pairing côté host.
 
 ---
 
@@ -582,6 +113,7 @@ et de packaging** pour supprimer la friction.
 - Pour un handheld dédié, le compromis recommandé était **Apollo + un fork de moonlight-qt**.
   Ce repo part de moonlight-qt officiel ; rester compatible upstream est prioritaire (§4).
 
+
 ---
 
 ## 4. Stratégie de suivi d'upstream — LA convention de code n°1
@@ -613,177 +145,21 @@ On veut pouvoir **suivre les commits du repo officiel de moonlight** sans douleu
     `console-ui` (historique linéaire, modifs rejouées proprement par-dessus l'officiel).
 - Avant d'appliquer des changements : **toujours montrer les diffs.**
 
----
-
-## 5. L'interface custom (direction artistique validée)
-
-> **Source de vérité de l'UI d'accueil : l'écran « Ambiant »** —
-> `docs/ui/ambiant/AMBIANT-BRIEF.md` et `docs/ui/ambiant/ambiant-prototype.html`
-> (version n° 2 « Ambiant », touche `2`). En cas de doute, le prototype gagne.
-> Accueil, options et lancement sont implémentés (cf §2). Les écrans d'attente,
-> d'appairage et les dialogs, absents du prototype, en reprennent le langage :
-> `MessageScreen` (même ancrage et même titre que le héros) et `ConsoleDialog` (même
-> panneau que les options).
-
-Sombre et immersif, **100 % navigable à la manette**, jamais d'élément "bureau". Choix
-esthétiques arrêtés :
-- **L'illustration du jeu sélectionné devient le décor** (plein écran, sous un voile de
-  lisibilité), le titre prend toute la place en bas à gauche.
-- **Étagère de vignettes portrait 3:4** (les jaquettes, depuis le 2026-10-23 ; 16:9 dans le
-  prototype) en bas, en carrousel (prototype des micro-interactions) : le jeu sélectionné est
-  agrandi et cerné d'un **anneau fixe** à gauche, sous lequel la piste défile (demande de Marco,
-  2026-10-23) ; un reflet balaie la vignette active après chaque déplacement.
-- **Accent orange chaud** (`#F2802A`) pour le bouton Jouer et le soulignement ; fond noir pur.
-- **État de connexion au PC host affiché en permanence** en haut (pastille : point vert + nom
-  du host), pour que l'utilisateur voie d'un coup d'œil que tout marche — sans jamais voir
-  d'IP ni de réglage réseau.
-- **Glyphes manette dans le bloc héros** (A Jouer · Y Options) ; ailleurs, une légende discrète
-  en bas à gauche (`ControllerLegend`).
-- **Aucune valeur en dur dans les composants** : tout passe par `Theme.qml`, en pixels d'un
-  canevas de 800 de haut que `HomeScreen` met à l'échelle de l'écran.
-
-Fichiers (dans `app/gui/console/`) :
-- `ConsoleHome.qml` — l'écran d'accueil côté logique (hosts, appairage, lancement, overlays)
-- `HomeScreen.qml` — l'écran d'accueil côté présentation : assemble fond, barre haute, héros,
-  étagère et panneau d'options ; règle l'entrée (quand `entryAllowed` : sortie de l'animation
-  de démarrage), la dérive du fond, l'effacement au lancement. `stage` reçoit les écrans de message (`staged` efface héros et étagère et leur
-  donne la manette)
-- `OptionsSheet.qml` — panneau « Options » (bouton Y) en onglets (Flux, Console), sans état propre
-- `LaunchScreen.qml` — écran de lancement d'un jeu (remplace l'ancien `LaunchOverlay`)
-- `Sounds.qml`, `SoundBank.qml`, `sounds/` — sons de l'interface (singleton `Sounds.play("move")`)
-- `PadRepeat.qml` — répétition des flèches à l'appui prolongé (étagère, options)
-- `Pressable.qml` — élément qui s'écrase tant que `down` (A enfoncé) et revient avec le ressort
-  « rebond » ; l'action part au relâché, chez l'appelant ; grandit au survol (`hovered`)
-- `HoverArea.qml` + `Pointer.js` — zone de clic à survol (curseur en main) ; `pointed()` quand la
-  souris bouge vraiment dessus (une liste y amène sa sélection)
-- `Spring.js` — ressorts physiques du prototype des micro-interactions, en courbes
-  `Easing.BezierSpline` (jetons `Theme.spring*`)
-- `RollingNumber.qml` — nombre dont chaque chiffre roule dans sa colonne 0–9 (options)
-- `StreamProfiles.js` — profils de flux : ce que chacun demande au lancement selon l'écran et le
-  réseau (fonctions pures)
-- `CheckMark.qml` — coche tracée trait après trait (liste Wi-Fi, fin d'un appui maintenu)
-- `ElasticIndicator.qml` — indicateur dont les deux bords rejoignent la cible séparément (le
-  soulignement des onglets s'étire en changeant d'onglet)
-- `HoldFill.qml` — remplissage d'un appui maintenu (actions destructives : `ConsoleDialog`
-  `holdToConfirm`, « Oublier ce PC », « Quitter la partie » du héros) ; libellés centrés
-  (`centered`) et rebond laissé à l'appelant (`bounces: false`) pour un bouton
-- `Theme.qml` (+ `qmldir`) — singleton des jetons de design : couleurs, tailles, durées, ressort
-- `fonts/` — Sora embarquée (OFL, instances statiques de Google Fonts, 400 à 700), chargée par
-  `Theme.qml` (`Theme.fontsReady`) ; seule famille de l'interface (pas de mono)
-- `BackdropLayer.qml` — fond en fondu croisé (deux calques) + voile + dérive lente
-- `HeroBlock.qml` — méta, titre, sous-titre, boutons Jouer / Options ; partie en cours, Reprendre /
-  Quitter la partie à la manette (haut depuis l'étagère)
-- `GameShelf.qml` — l'étagère de vignettes en carrousel : anneau fixe, piste qui défile, focus,
-  répétition manette
-- `SwapBox.qml`, `Appear.qml`, `ButtonGlyph.qml` — remplacement de texte en glissant (et en se
-  floutant, `blur`, rendu GPU seulement), apparition en fondu-glissé, glyphe de bouton
-- `Format.js` — mise en forme des données Companion (source, dernière session, temps de jeu)
-- `Library.js` — l'étagère : utilitaires écartés, ordre (favoris, récents, nom), synchronisation
-  du `ListModel` sans recréer les vignettes
-- `Toast.qml` — message bref au-dessus de l'étagère (`homeScreen.toast(texte)`)
-- `StreamCurtain.qml` — rideau CocoOS (logo de démarrage, ligne d'état) entre un jeu et
-  l'accueil : posé au début du flux, levé au retour (cf §2)
-- `idle/` — écran de veille (`docs/design/idle/`) : `IdleOverlay` (la veille au-dessus de l'accueil ; la
-  touche qui réveille n'atteint pas l'accueil), `IdleScreen` (état → écran, fondu enchaîné, échelle de la
-  grille 1280 × 720, sortie), `IdleStatus` (données ; `IdleStatusMock` + `mock/`), `IdleTheme` (jetons),
-  `IdleFormat.js` (textes), `screens/` (09 à 12), `components/` (fond flou, jaquette inclinée, textes posés
-  comme Chromium : `IdleText`…), `shaders/` (`build-shaders.sh`), `preview/` (aperçu, captures, parité),
-  `tests/`
-- `OnScreenKeyboard.qml` — clavier à l'écran, à la manette (mot de passe Wi-Fi)
-- `BootSplash.qml` — animation de démarrage « le O » (`docs/boot-animation/BOOT_ANIMATION.md`,
-  le prototype fait foi), pilotée par un temps `t` avancé par `FrameAnimation` ; A accélère ×4.
-  Sortie : le logo vole jusqu'au `Logotype` de la barre haute (`statusBarLogo`, `mapToItem`) ;
-  `exitStarted` ouvre l'entrée de l'accueil, `finished` passe le relais au vrai logo. `mode:
-  "wake"` (sortie de veille) : 80 ms de noir, puis il anime le logo de la barre haute.
-  Tant que `ConsoleHome.bootReady` est faux (ni jeux, ni écran de message définitif), le O de OS
-  fait le chargeur (au moins 600 ms). Ses sons : `boot-close` / `boot-open`. `SystemStatus` et
-  `WifiSetup` ne font leurs premiers relevés D-Bus (synchrones) qu'à sa fin (`start()`).
-- `BootTimeline.js` — port pur du JavaScript du prototype de démarrage (easings, ressorts,
-  chargeur, sortie), testé contre des valeurs tirées du prototype lui-même
-- `shaders/` — `ConicMask.frag` (tracé du O, chargeur) et `EllipseMask.frag` (lettres qui sortent
-  de derrière le O) ; les `.qsb` embarqués se régénèrent avec `shaders/build-shaders.sh` (qsb :
-  SPIR-V + GLSL 100 es / 120 / 150 / 300 es, ces deux derniers pour la Mali)
-- `Logotype.qml` — le logotype « CocoOS » lettre par lettre (Sora Bold), géométrie du prototype
-  de `docs/boot-animation/` ; sert à la barre haute (réduit) et à l'animation de démarrage
-- `icons/` — icônes SVG (punaise des favoris, engrenage des réglages)
-- `shadows/` — ombres portées pré-calculées (vignette active, île), régénérées par
-  `harness/make-shadows.py` si une taille change (les tests vérifient leurs dimensions)
-- `languages/qml_en.ts` (+ `.qm` compilé, embarqué) — traduction anglaise de tous les textes
-  console, QML et C++ (cf §11 pour la mettre à jour)
-- `StatusBar.qml` — barre haute : logotype, pastille de l'hôte + horloge / Wi-Fi / batterie (éclair en
-  charge, orange sous `Theme.batteryLow`) / réglages ; la pastille s'ouvre en île de notification
-  (`notify`, `dismiss`) sur les événements système qu'elle détecte elle-même. Wi-Fi, batterie et
-  réglages se choisissent (focus `HomeScreen.statusFocused`, souris) et ouvrent leur fiche
-  (`SysCard`) ; A → `activated(key)`
-- `FocusRing.qml` — anneau de focus d'un bouton (héros, icônes de la barre haute)
-- `ControllerLegend.qml` — légende des boutons (glyphe + libellé), panneaux et écrans de message
-- `GamePage.qml` — fiche du jeu sélectionné (bas du pad sur l'étagère), posée dans `stage` comme
-  un écran de message, sur le fond du jeu : logo ou titre, faits (`Format.facts` : genres, année,
-  PEGI, + taille), studios (`Format.credits`), description (`Format.plainText` : HTML Playnite →
-  texte) qui défile par lignes entières, puis « Désinstaller » (jeux Steam, Companion :
-  `POST /v1/games/{id}/uninstall`, confirmé). Haut une fois en haut, ou B, la referme
-- `MessageScreen.qml` — écran de message à la place du héros : titre, texte, code en grandes
-  cases, ligne d'état, piste d'attente. Sert à la recherche du PC, au chargement et à la
-  liaison Moonlight (code à saisir sur le PC), instanciés dans `ConsoleHome`
-- `ConsoleDialog.qml` — confirmation dans un panneau latéral (Annuler par défaut ; A/B, flèches)
-- `CompanionPairing.qml` — saisie du code d'appairage Companion à 6 chiffres (host→console),
-  sur un `MessageScreen`
-- `backend/companionclient.{h,cpp}` — pont C++ vers le HostCompanion (Companion API). Build
-  `embedded` uniquement. Découverte mDNS, appairage 6 chiffres, bibliothèque (copie disque),
-  images de fond 16:9 en cache disque (`games()[i].background`, URL `file://` : l'`Image` QML
-  ne sait pas poser le Bearer), WebSocket events (cf §2). Nécessite `QT += websockets`.
-- `backend/systemstatus.{h,cpp}` — batterie, charge et autonomie (`/sys/class/power_supply`), signal
-  et détails du réseau Wi-Fi (NetworkManager par D-Bus) pour la barre haute et ses fiches ; veille / redémarrage /
-  extinction par systemd-logind (D-Bus, `powerActions` + `power()`). Build `embedded`
-  uniquement ; `QT += dbus`.
-- `backend/wifisetup.{h,cpp}` — réseaux Wi-Fi visibles, connexion (profil NetworkManager créé
-  par `AddAndActivateConnection`, WPA2 ou WPA3), état « en ligne ». Build `embedded` uniquement.
-- `backend/ambientcolor.{h,cpp}` — couleur dominante d'une image, pour la teinte ambiante.
-  Build `embedded` uniquement.
-- `backend/inputstatus.{h,cpp}` — activité de l'utilisateur (filtre d'événements sur l'app,
-  pour la veille), bouton Home de la manette (état SDL lu toutes les 50 ms, la navigation
-  upstream ne le traduit pas en touche), famille et batterie de la manette, et le pont QML du
-  menu en jeu (`prepareStreamMenu` avant chaque flux, `takeStreamExit` au retour). Build
-  `embedded` uniquement.
-- `backend/streammenu.{h,cpp}` — menu en jeu et statistiques du flux (état, manette, chiffres,
-  capture et flou de l'image, animations, sons par SDL), sur l'overlay de Moonlight. Build
-  `embedded` uniquement.
-- `backend/streampainter.{h,cpp}` — leur dessin en QPainter, jetons de `Theme.qml` recopiés ;
-  sans SDL ni Moonlight (le harnais le dessine seul : `streammenu-shot.cpp`).
-
-`ConsoleHome.qml` est **branché sur le vrai backend Moonlight** (imports
-`ComputerModel`/`AppModel`/`ComputerManager`/`StreamingPreferences`/`CompanionClient`). Tout
-le reste est de la présentation pure, sans dépendance Moonlight. Les deux se testent hors de
-l'application dans le harnais `docs/ui/ambiant/harness/` (cf §11) : `HomeScreen` avec des jeux
-de démo, et le vrai `ConsoleHome` sur de faux modules Moonlight (`stubs/`).
 
 ---
 
-## 6. Matériel
+## 5. L'interface custom → skill `cocoos-ui`
 
-### Carte de développement : **Orange Pi 5B** (RK3588S), 8 Go / 64 Go eMMC (~106 €)
-Choisie pour : décodage matériel H.264/HEVC/**AV1**, GPU Mali-G610 (Panthor/Panfrost),
-**Wi-Fi 6 + BT 5.0 intégrés**, alim **USB-C 5V** (idéal handheld), eMMC soudée (boot fiable).
-C'est une carte de **dev** : elle sert à valider RK3588S + le logiciel. Le produit final
-sera un **SoM RK3588S** ou une **carte porteuse custom** autour de ce SoC.
+Source de vérité de l'accueil : l'écran « Ambiant » (`docs/ui/ambiant/AMBIANT-BRIEF.md` +
+`ambiant-prototype.html` ; le prototype gagne en cas de doute). Sombre, 100 % manette, aucun élément
+« bureau », accent `#F2802A`, police Sora seule, **aucune valeur en dur hors `Theme.qml`**.
+Carte complète des fichiers de `app/gui/console/` et pièges QML : skill `cocoos-ui`.
 
-### BOM du prototype (~270–300 €)
-- Refroidissement actif (dissipateur + ventilo) — **obligatoire**, le RK3588S throttle sinon.
-- Écran : démarrer en **HDMI IPS 5,5–6"** (marche tout seul) ; viser **MIPI-DSI** ensuite
-  (le DSI sur Orange Pi est le **risque n°1** : panneau supporté dans le device-tree requis).
-  Une dalle **AMOLED 7" 165 Hz MIPI** est envisagée (nécessite sa driver board).
-- Contrôles : **RP2040 (Pi Pico) + firmware GP2040-CE** → manette USB-HID ;
-  **joysticks à effet Hall** (anti-drift), D-pad, ABXY, gâchettes.
-- Alim : **power bank USB-C PD 5V/3A+** pour le proto ; batterie custom (2× 18650 + boost
-  type IP5389 5V/5A) seulement en v2.
-- Wi-Fi : intégré pour commencer ; comparer avec un **dongle Wi-Fi 6 USB3 MediaTek**
-  (mt7921/mt7925) si la latence déçoit.
+---
 
-### 5G (le « boss de fin », plus tard)
-Module **Quectel RM520N-GL** (M.2, 5G Sub-6, Rel.16, bandes globales = OK France).
-À écarter : RM530N-GL (certifié T-Mobile only), RM502Q-AE (fin de vie). Nécessite carte
-porteuse + antennes + slot SIM. Le mur n'est pas le débit mais **latence + gigue + NAT**
-(Tailscale gère le NAT).
+## 6. Matériel → `docs/claude/HARDWARE.md`
+
+Proto : Orange Pi 5B (RK3588S), manette RP2040 + GP2040-CE, écran HDMI puis MIPI-DSI, 5G plus tard.
 
 ---
 
@@ -799,6 +175,7 @@ porteuse + antennes + slot SIM. Le mur n'est pas le débit mais **latence + gigu
   *stables* à faible gigue en 1080p60.
 - **Latence** ~20–60 ms : excellente pour les AAA solo, dépendante du réseau pour le FPS
   compétitif. Rester honnête là-dessus dans le positionnement.
+
 
 ---
 
@@ -826,6 +203,7 @@ porteuse + antennes + slot SIM. Le mur n'est pas le débit mais **latence + gigu
 8. Installeur host 1-clic (Apollo/Sunshine + Playnite + Tailscale + Wake-on-LAN).
 9. Version compacte v2 (SoM/carte custom, batterie, coque 3D).
 10. Module 5G.
+
 
 ---
 
@@ -887,6 +265,7 @@ Vérification finale inchangée : sur un proto avec host paired, allumer la cons
 afficher l'accueil en moins de 5 s sans aucun élément Linux visible — et un jeu doit
 pouvoir démarrer en une pression du bouton A.
 
+
 ---
 
 ## 10. Conventions de travail
@@ -895,250 +274,20 @@ pouvoir démarrer en une pression du bouton A.
 - **Toujours montrer les diffs** avant d'appliquer des changements.
 - Garder les modifs **additives et isolées** ; préserver la compatibilité upstream (§4).
 - En cas de doute sur un fichier upstream, demander plutôt que réécrire.
+- Avant de déclarer une tâche finie : `scripts/cc/build.sh` vert + `scripts/cc/test.sh` vert, et pour de
+  l'UI une capture du harnais regardée (skill `ambiant-harness`). Sinon dire précisément ce qui n'est pas vérifié.
+- Tenir `next_steps.md` à jour à la fin de chaque tâche (fait / reste / décisions de Marco).
 
 ---
 
-## 11. Notes de build durables
+## 11. Notes de build durables → skills
 
-Pièges et conventions de build qui reviennent souvent — à garder sous la main.
-
-### Comment compiler en mode `embedded` (UI maison)
+Tout est dans le skill `cocoos-build` (build, QtWebSockets, pièges MOC / qmake `subdirs` / modèles /
+`count` / imports / journald / rcc, dépendances d'exécution, `.git/info/exclude`), `ambiant-harness`
+(harnais), `cocoos-i18n` (traduction) et `boot-animation`. Commande de base :
 
 ```bash
 qmake6 "CONFIG+=embedded" moonlight-qt.pro && make release -j$(nproc) && ./app/moonlight
-```
-
-L'app doit démarrer directement sur `ConsoleHome`. Un `qmake6` sans `embedded` doit
-produire le Moonlight vanilla intact.
-
-### Dépendance de build `embedded` : QtWebSockets
-
-Le build `embedded` ajoute `QT += websockets` (WebSocket `/v1/events` du `CompanionClient`).
-Sur Fedora, installer **`qt6-qtwebsockets-devel`** (`sudo dnf install -y qt6-qtwebsockets-devel`).
-La lib runtime seule (`qt6-qtwebsockets`) ne suffit pas : sans le `-devel` il manque les
-en-têtes, le symlink `libQt6WebSockets.so` et le module qmake `qt_lib_websockets.pri`, et
-`qmake6` échoue (`Unknown module(s) in QT: websockets`). Le build vanilla n'en a pas besoin
-(module dans le scope `embedded` uniquement).
-
-### Piège MOC : les types d'arguments de slots/signaux doivent être COMPLETS (Qt6)
-
-En Qt6, le MOC génère un `QMetaType` pour chaque type d'argument de signal/slot. Un type
-seulement **forward-déclaré** (`class Foo;`) qui apparaît dans une signature — même en
-`const QList<Foo>&` — fait échouer `moc_*.cpp` : `invalid use of incomplete type 'class Foo'`
-(+ erreurs `has_ostream_operator<QDebug, Foo, void>`). Vécu au premier build de `CompanionClient`
-sur `onSslErrors(QNetworkReply*, const QList<QSslError>&)` : il a fallu **`#include <QSslError>`**
-dans le header au lieu du forward-declare. Règle : tout type figurant dans une signature d'un
-`Q_OBJECT` doit être inclus complètement dans le header (seuls les pointeurs `Foo*` tolèrent le
-forward-declare).
-
-### Piège qmake `subdirs` (à connaître)
-
-Si un précédent `qmake6` (sans `embedded`) a déjà généré les Makefiles des sous-projets,
-relancer `qmake6 "CONFIG+=embedded" moonlight-qt.pro` au niveau racine **ne régénère pas**
-les sous-Makefiles — le scope `embedded { ... }` reste inactif et `CONSOLE_UI` n'est pas
-défini.
-
-Symptômes : pas de `Project MESSAGE: Embedded build` au qmake, pas de `-DCONSOLE_UI` dans
-la ligne `g++ -c ... main.cpp`, l'app démarre sur `PcView` malgré tout.
-
-Deux contournements :
-- `make distclean` avant le `qmake6` racine (propre mais recompile tout) ;
-- ou régénérer directement le Makefile du sous-projet : `cd app && qmake6 "CONFIG+=embedded" app.pro`
-  (rapide, recompile uniquement ce qui dépend du nouveau define).
-
-### Piège ComputerModel/AppModel : initialiser AVANT d'assigner aux vues
-
-`ComputerModel::initialize()` et `AppModel::initialize()` remplissent le modèle **sans
-émettre de reset** (`beginResetModel`). Si une vue (ListView, Instantiator…) est liée au
-modèle avant l'appel à `initialize()`, elle le considère **vide pour toujours** — symptôme :
-« Recherche… » permanent alors que le host est en ligne. Le pattern correct (celui de
-`PcView.qml` et de `ConsoleHome.qml`) :
-
-```qml
-var m = Qt.createQmlObject('import ComputerModel 1.0; ComputerModel {}', parent, '')
-m.initialize(ComputerManager)   // d'abord initialiser…
-computerModel = m               // …puis assigner la propriété liée aux vues
-```
-
-### Piège AppModel/ComputerModel : pas de propriété `count` en QML
-
-Ces modèles C++ (QAbstractListModel) n'exposent **pas** de `count` : en QML,
-`appModel.count` vaut `undefined`, donc `appModel.count > 0` est **toujours faux**
-(symptôme : « Chargement de vos jeux… » infini alors que les données sont là).
-Pour compter/observer les éléments, passer par un `Instantiator` lié au modèle et
-utiliser **son** `count` (vraie propriété notifiée) — pattern des `hostScanner` /
-`appViewer` de `ConsoleHome.qml`.
-
-### Propriétés attachées : l'import compte
-
-`StackView.onActivated` & co exigent `import QtQuick.Controls` dans le fichier qui les
-utilise. Sans lui : « Non-existent attached object » au push, et la vue ne charge pas.
-
-### Logs Qt invisibles sur Fedora (journald)
-
-Quand stderr n'est pas un TTY, Qt envoie ses logs vers **journald** au lieu de la console
-(`qml-qt6` n'affiche alors rien) → les lire avec `journalctl --user`. Le binaire
-`moonlight` n'est pas concerné : il installe son propre handler (`qtLogToDiskHandler`)
-qui écrit sur stdout. Attention : ce handler **supprime le niveau debug** (`console.log`
-QML) — utiliser `console.info` pour qu'une trace QML apparaisse dans le log.
-
-### rcc ne dépend que de `qml.qrc`, pas des `.qml`
-
-Modifier un `.qml` ne suffit pas toujours à régénérer `qrc_qml.cpp` : faire
-`touch qml.qrc` avant `make` pour forcer le réembarquement des ressources.
-
-### Harnais « Ambiant » : voir et vérifier l'UI sans PC hôte
-
-Tout est dans `docs/ui/ambiant/harness/` (hors de `app/`, rien n'entre dans le build) :
-
-```bash
-cd docs/ui/ambiant/harness
-qml-qt6 -I stubs Harness.qml -- view=HomeDemo          # l'accueil, 10 jeux de démo, au clavier
-qml-qt6 -I stubs Harness.qml -- view=HomeDemo running=0   # Minecraft en cours : ↑ pour Reprendre / Quitter
-qml-qt6 -I stubs Harness.qml -- view=ConsoleHomeDemo   # le vrai ConsoleHome sur faux modules
-qml-qt6 Harness.qml -- view=PagesDemo page=code        # search|loading|pin|pin-error|code|code-busy|code-error|dialog|curtain
-./shot.sh /tmp/a.png view=HomeDemo focus=6 drift=0 delay=2500   # capture (rendu GPU, sans fenêtre)
-./compare.py /tmp/a.png ../ref/home-6-rdr2.png -o /tmp/diff.png # écart avec le prototype
-./shot.sh /tmp/b.png view=HomeDemo do=options,down at=2500 delay=3700   # idem, après des actions
-./shot.sh /tmp/c.png view=ConsoleHomeDemo do=right,pin noart=Hades\ II at=2600 delay=6500   # vrai ConsoleHome
-./ref-capture.py                                       # régénère ../ref/ et art/ depuis le prototype
-./make-sounds.py                                       # régénère app/gui/console/sounds/*.wav (dont boot-*)
-./make-shadows.py                                      # régénère app/gui/console/shadows/*.png (ombres portées)
-# menu en jeu (C++, hors appli) : compiler streammenu-shot.cpp (commande en tête du fichier), puis
-# (streammenu-rows.cpp, compilé de même : vérifie la ligne sous la souris contre le dessin, « ok »)
-# appui maintenu : page=confirm focus=1 hold=0.45, puis hold=1 holdDone=1 (la coche)
-QT_QPA_PLATFORM=offscreen /tmp/streammenu-shot /tmp/m.png page=menu stats=1 backdrop=art/hades2.jpg
-QT_QPA_PLATFORM=offscreen /tmp/streammenu-shot /tmp/m.png reveal=0.4 veil=0.5 blur=0.5 backdrop=art/hades2.jpg   # une étape d'animation
-./shot.sh /tmp/d.png view=BootDemo size=1280x720 t=1400   # animation de démarrage, instant figé
-../../../boot-animation/ref-capture.py [--slow]        # références du prototype de démarrage (ref/cold-<t>.png, slow-<t>.png)
-node ../../../boot-animation/reference-values.js       # valeurs du prototype pour tst_BootTimeline
-XDG_CONFIG_HOME=$(mktemp -d) QT_QPA_PLATFORM=offscreen qmltestrunner-qt6 -import stubs -input tst_GameShelf.qml
-# idem tst_Format, tst_Library, tst_ConsoleHome, tst_BootTimeline, tst_BootSplash… XDG_CONFIG_HOME vierge : sinon les réglages
-# (favoris, jeux récents, dernier jeu) écrits par un passage précédent faussent les tests.
-```
-
-- `shot.sh` lance un **mutter headless** le temps de la capture : `QT_QPA_PLATFORM=offscreen`
-  ne sait rendre qu'en logiciel (petits tracés approximatifs, pas de `MultiEffect`).
-- `ref-capture.py` pilote **Brave** par le protocole DevTools (module Python `websockets`) :
-  son option `--screenshot` ne rend jamais la main. Le mode plein écran du prototype (touche
-  `F`) donne un écran noir, la capture ne l'utilise pas.
-- `tst_GameShelf::test_springMatchesPrototype` mesure le temps réel. Ses échecs « à froid » (écart
-  0,0828) venaient d'une mesure lancée juste après la reconstruction des vignettes par `init()`
-  (étagère déjà sur 0, quand le test précédent y finit) : il attend désormais 500 ms (20 sur 20).
-
-### Dépendances d'exécution de l'UI console
-
-- **QtMultimedia** (module QML) pour les sons : `qt6-qtmultimedia` sur Fedora,
-  `qml6-module-qtmultimedia` sur Debian/Ubuntu. Absent, l'interface marche sans son
-  (`Sounds.qml` charge `SoundBank.qml` à part). Il faut un serveur de son (PipeWire/PulseAudio)
-  pour que ces sons cohabitent avec l'audio du flux. Qt les déclare en rôle PipeWire
-  « Notification » (coupé par les « Sons de notification » de Plasma) : `main.cpp` pose
-  `PIPEWIRE_PROPS={ media.role = Game }` au démarrage, sauf si la variable existe déjà.
-- **NetworkManager** pour l'icône Wi-Fi et le choix du réseau ; sans lui (ou sans Wi-Fi associé)
-  l'icône est masquée et la ligne Wi-Fi des options n'apparaît pas. La session de la console
-  doit être « active » pour que polkit la laisse créer un profil Wi-Fi et régler la luminosité
-  (cas d'une session kiosk en connexion automatique).
-- Une batterie système dans `/sys/class/power_supply` pour l'icône batterie ; sinon masquée
-  (ce sera le cas du proto sur power bank). Relue toutes les 10 s (l'éclair de charge peut
-  mettre ce temps à apparaître).
-- Cache du Companion : `QStandardPaths::CacheLocation` + `/companion/` (sous Linux
-  `~/.cache/Moonlight Game Streaming Project/Moonlight/companion/`) : `library.json` (dernière
-  bibliothèque) et `bg-<sha1>` (images de fond). Il ne fait que grandir : à purger s'il pèse trop.
-
-### Pièges QML rencontrés pendant la refonte
-
-- `Easing.BezierSpline` : Qt (`QEasingCurve`) ne garde que **10 segments** ; au-delà il écrit hors
-  de son tableau et l'interface se bloque (vu avec 12). `Spring.js` s'y tient.
-- Un enfant de `card` (`GameShelf` : calque invisible qui sert de source au masque) dont `visible`
-  repasse à vrai **n'est pas redessiné** : Qt ne le marque à redessiner que si sa visibilité
-  effective change, et elle reste fausse sous un parent invisible. Le créer à la demande (`Loader`,
-  cf. le reflet) ou jouer sur l'opacité.
-- `AnimationController` déclaré dans un `TestCase` fait planter qmltestrunner : le créer dans le
-  test (`Qt.createQmlObject`). Il tronque le temps en ms entières (`progress = (ms + 0,5) / durée`).
-- Une propriété ne peut pas s'appeler `on<Majuscule>…` (prise pour un gestionnaire de signal) :
-  le jeton `onAccent` du brief s'appelle `Theme.inkOnAccent`.
-- `Rectangle.border.width` est **arrondi à l'entier** (1,5 → 2) sauf `border.pixelAligned: false`.
-- `ListView.count` n'est mis à jour qu'à la mise en page suivante ; et il vaut 0 tant que le
-  modèle charge : ne jamais y borner la sélection sans tester `count > 0`.
-- Un composant en ligne (`component X: …`) voit les `id` du fichier tant qu'il y est instancié.
-- Une couche (`layer.enabled`) est rendue à la taille de l'élément × le rapport de pixels, **sans tenir
-  compte d'un `scale` d'un parent** : sous une grille agrandie, son texte est pixellisé. Poser
-  `layer.textureSize` (taille × échelle × rapport de pixels) et `layer.smooth: true` (cf. `idle/`,
-  `IdleTheme.textureScale`) ; même chose pour le `sourceSize` des SVG.
-- Un `State` à `when:` joue sa transition **dès la création** de l'élément s'il est déjà vrai :
-  les vignettes créées en défilant rejouaient leur entrée (cf. `Appear.animateInitially`).
-- Relancer une animation depuis un `onXChanged` alors que sa cible (`to:`) est liée à la même
-  propriété : l'ordre n'est pas garanti, l'animation peut partir avec l'ancienne cible. Poser
-  `to` dans le gestionnaire (cf. `LaunchScreen.advanceBar`).
-- `QT_QPA_PLATFORM=offscreen unshare -rn ./app/moonlight` : test de fumée sans réseau (aucun
-  risque d'appairage ou de lancement sur le vrai PC) ; le bus D-Bus système y est injoignable.
-  Rediriger la sortie vers un fichier (`> log 2>&1`) : à travers un pipe, rien n'apparaît.
-- Dans `HomeScreen`, le focus suit des **liaisons** (`focus: !staged && !sheet.opened` sur
-  l'étagère, `staged && !sheet.opened` sur `stage`) : il revient tout seul à la fermeture du
-  panneau d'options ou d'un écran de message. Ne pas rappeler `shelf.forceActiveFocus()` en dur.
-
-### Traduction anglaise : la tenir à jour
-
-Tout texte affiché passe par `qsTr("…")` (QML) ou `tr("…")` (C++ d'une classe `Q_OBJECT` ;
-hors classe, une petite struct `Q_DECLARE_TR_FUNCTIONS(Contexte)`, cf `Text::tr` de
-`streammenu.cpp` : un `tr()` libre est ignoré par lupdate). Source en français. Puis, depuis `app/` :
-
-```bash
-lupdate-qt6 gui/console -source-language fr -target-language en -no-obsolete -ts gui/console/languages/qml_en.ts
-# traduire les <translation type="unfinished"> du .ts (Qt Linguist : linguist-qt6, ou à la main)
-lrelease-qt6 gui/console/languages/qml_en.ts && touch qml.qrc   # .qm versionné, comme upstream
-```
-
-Voir l'interface en anglais dans le harnais : `qml-qt6 --translation ../../../../app/gui/console/languages/qml_en.qm -I stubs Harness.qml -- view=ConsoleHomeDemo do=options,tab`
-(`PagesDemo` pose ses textes de démo en dur : ils restent en français).
-
-### Animation de démarrage : debug et validation
-
-Variables d'environnement (lues par `SystemStatus.env`, cf. `docs/boot-animation/BOOT_ANIMATION.md` §10) :
-
-```bash
-COCOOS_BOOT_SPEED=0.25 ./app/moonlight          # ralentie (comparer au prototype à 0,25×)
-COCOOS_BOOT_FAKE_DELAY_MS=4000 ./app/moonlight  # système prêt au plus tôt à 4 s : le O fait le chargeur
-COCOOS_BOOT_MODE=wake ./app/moonlight           # variante sortie de veille
-COCOOS_BOOT_LOOP=1 ./app/moonlight              # séquence en boucle, sans entrer dans l'accueil
-```
-
-À la fin de chaque séquence, le journal donne : `[console-ui] Démarrage (cold) : 3135 ms[, avec
-chargeur (prêt à … ms)], image la plus longue 17.0 ms`. Sur le laptop (hors écran, hors réseau) :
-3135 ms sans chargeur, 5670 ms avec `FAKE_DELAY_MS=4000`, plus longue image ≈ 17 ms.
-
-**Validation sur l'Orange Pi (critère 7, 60 i/s)** : lancer en kiosk avec `QSG_RENDER_TIMING=1`
-(temps de rendu par image dans le journal) et lire « image la plus longue » ; aucune image ne doit
-dépasser 16,6 ms (une image ratée apparaît vers 33 ms). Si ça saccade : passer les propriétés de
-transformation (`x`, `scale`, `opacity`) du logo sur des `Animator` (spec §3), et vérifier que
-rien de synchrone ne tourne sur le fil GUI pendant la séquence (`SystemStatus` et `WifiSetup` ne
-démarrent qu'à la fin, `start()`).
-
-### Ignorer les artefacts de build sans toucher au `.gitignore` upstream
-
-Le `.gitignore` upstream ne couvre pas les builds in-source de qmake (`Makefile*`,
-`release/`, `*.o`, `*.a`, `.qmake.*`, `app/moonlight`, `config.log`…). Plutôt que de le
-modifier (cf §4), on les ignore **localement à ce clone** via `.git/info/exclude` — fichier
-non versionné, donc à **recréer après un `git clone`**. Contenu :
-
-```
-# qmake / make in-source build artifacts
-Makefile
-Makefile.Debug
-Makefile.Release
-release/
-debug/
-.qmake.cache
-.qmake.stash
-
-# Object files & static libs
-*.o
-*.a
-
-# Build outputs / logs
-config.log
-app/moonlight
-config.tests/*/EGL
 ```
 
 ---
@@ -1165,4 +314,3 @@ config.tests/*/EGL
   ressenti validés par Coco à la manette uniquement.
 - **Rejeté** : génération de frames (latence). **Hors périmètre** sans décision de Coco :
   tout levier côté hôte, signaux du modem 5G, super-résolution NPU, multipath.
-
