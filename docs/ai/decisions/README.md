@@ -11,6 +11,7 @@ Ne pas recopier les choix déjà documentés :
 | Flux / aucune nouvelle couture sans gate | `../../stream/STREAM-OPTIMISATION.md` |
 | Autres raisons historiques | `../HISTORY.md` (recherche ciblée) et Git |
 | Mémoire commune, branche + local worktree | [ADR 2026-10-31](2026-10-31-universal-memory.md) |
+| Cockpit sobre, flotte existante, aucun agent automatique | [ADR cockpit](2026-10-31-cockpit-service.md) |
 
 Nouvelle décision majeure : fichier `YYYY-MM-DD-sujet.md`, statut **Proposée** ou
 **Retenue**, portée/branche/date, puis : Problème, Options, Choix, Raisons,

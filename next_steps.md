@@ -3,19 +3,22 @@
 <!-- memory:current:start -->
 ## État courant — 2026-10-31
 
-Portée : branche `tooling/universal-memory`, issue de l'outillage local ; pas intégrée au clone principal.
+Portée : `tooling/environment-finalisation`, déployée par fast-forwards autorisés dans les branches ai/* ; clone principal inchangé.
 Statuts : À faire / En cours / Terminée (preuve requise) / Bloquée / À vérifier.
 
 | Chantier | Statut | Preuve / prochaine porte |
 |---|---|---|
 | Industrialisation OpenCode | Terminée localement | `230e5aa5`, preuves `docs/ai/TOOLING-REPORT.md` ; CI non exécutée |
 | Mémoire universelle | Terminée localement | 22 tests mémoire PASS ; `docs/ai/MEMORY-REPORT.md` ; autres CLI/fournisseurs non éprouvés |
+| Cockpit console-diy | Terminée, mise en service | 13 tests + --verify/réouvertures PASS ; --check signale SDK/plugin BLOCKED ; `docs/ai/ENVIRONMENT-AUDIT.md` |
+| Build/tests Fedora | À vérifier pour la stabilité | Embedded/smoke PASS sur tooling ; dernière passe QML 17/17 PASS, premier passage test_9o en échec puis timeout |
+| Plugin sous-agents / téléphone | Bloquée | Dépendances plugin incompatibles ; SSH arrêté ; aucune exposition distante activée |
 | Companion E2E + manette | Bloquée | Deux appareils simultanés, dont host Windows ; pas validé par Fedora |
 | Veille/netteté/format | À vérifier sur matériel | Code/tests historiques ci-dessous ; 60 fps, manette, Orange Pi non prouvés |
 | Kiosk et décodage RK3588S | À faire | Carte puis mesures réelles ; pas de nouvelle couture sans accord |
 | Optimisation du flux | À vérifier | Phases/gates dans `docs/stream/STREAM-OPTIMISATION.md` ; audit d'abord |
 
-Prochaine action de branche : faire relire le diff et autoriser son intégration dans les branches quotidiennes.
+Prochaine action environnement : décider SDK Windows/plugin compatible et activer SSH/Tailscale uniquement après accord ; guide COCKPIT.md.
 Prochaine action produit : organiser la validation croisée à deux appareils, sans refaire l'UI.
 Décisions : `docs/ai/decisions/README.md`. Dernière passation : `docs/ai/HANDOFF.md`.
 L'historique ci-dessous est conservé ; il ne prouve pas l'état des autres branches.

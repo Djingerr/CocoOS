@@ -13,6 +13,10 @@ console-diy --verify          # tests outillage/mémoire/flotte/cockpit, aucun b
 console-diy --help            # sans effet de bord, même hors terminal
 ```
 
+`--check` retourne 2 si un prérequis est bloqué : actuellement SDK WindowsDesktop
+et plugin sous-agents. Ce code attendu n'empêche pas d'ouvrir le cockpit ; il évite
+de présenter tout l'environnement comme validé. `--verify` n'est pas un build.
+
 Six fenêtres : `cockpit`, `coco-opencode`, `coco-antigravity`, `host-opencode`,
 `host-antigravity`, `integration`. Le cockpit affiche un diagnostic toutes les 5 s.
 Les quatre agents ont chacun leur branche `ai/<nom>` et leur worktree ; lancer
@@ -24,7 +28,9 @@ La limite de flotte existante ne peut pas empêcher un lancement manuel hors flo
 Tmux : préfixe habituel `Ctrl-b`, puis `w` pour choisir une fenêtre, `d` pour
 détacher. Revenir par `console-diy`. Les index ne sont pas supposés commencer à zéro.
 Le relancer ne recrée ni branches ni fenêtres. Les sessions, shells, panneaux et
-modifications existants sont préservés ; aucun `send-keys`, respawn ou kill n'est utilisé.
+modifications existants sont préservés ; le lanceur n'utilise aucun `send-keys`,
+respawn ou kill sur ces panneaux. Seul le moniteur créé par l'audit peut être
+rechargé pendant sa mise en service, jamais les shells d'agents préexistants.
 
 Configuration locale par variables : `CONSOLE_DIY_ROOT` (parent des deux clones),
 `CONSOLE_DIY_WORKTREES` (parent des quatre worktrees). Flags `--root`, `--worktrees`,

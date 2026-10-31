@@ -117,6 +117,31 @@ class CockpitTests(unittest.TestCase):
         self.assertNotEqual(self.cli("--base", "absent", "--create-only", check=False).returncode, 0)
         self.assertFalse(self.trees.exists())
 
+    def test_existing_worktree_missing_memory_refused(self):
+        path = self.trees / "coco-opencode"
+        path.parent.mkdir()
+        self.cmd(["git", "-C", str(self.root / "CocoOS"), "worktree", "add", "-b", "ai/coco-opencode", str(path)])
+        (path / "scripts/dev/memory.py").unlink()
+        before = self.cmd(["git", "-C", str(path), "status", "--porcelain"]).stdout
+        self.assertNotEqual(self.cli("--create-only", check=False).returncode, 0)
+        self.assertEqual(before, self.cmd(["git", "-C", str(path), "status", "--porcelain"]).stdout)
+        self.assertFalse((self.trees / "host-opencode").exists())
+
+    def test_failed_setup_is_retried_and_checked(self):
+        marker = Path(self.temp.name) / "fail-setup"
+        marker.touch()
+        repo = self.root / "CocoOS"
+        setup = repo / "scripts/dev/setup.sh"
+        setup.write_text('#!/bin/sh\n[ ! -f "' + str(marker) + '" ] || exit 7\ngit config --local extensions.worktreeConfig true\ngit config --worktree core.hooksPath .githooks\n')
+        self.cmd(["git", "-C", str(repo), "add", "scripts/dev/setup.sh"])
+        self.cmd(["git", "-C", str(repo), "commit", "-qm", "fixture failed setup"])
+        self.assertNotEqual(self.cli("--create-only", check=False).returncode, 0)
+        self.assertTrue((self.trees / "coco-opencode").exists())
+        self.assertNotEqual(self.cli("--create-only", check=False).returncode, 0)
+        marker.unlink()
+        self.cli("--create-only")
+        self.assertEqual(len(self.windows().splitlines()), 6)
+
     def test_dirty_worktree_preserved(self):
         self.cli("--create-only")
         path = self.trees / "coco-opencode"
@@ -177,8 +202,11 @@ class CockpitTests(unittest.TestCase):
     def test_check_json_read_only(self):
         self.cli("--create-only")
         before = self.windows()
-        rows = json.loads(self.cli("--check", "--json").stdout)
+        result = self.cli("--check", "--json", check=False)
+        self.assertEqual(result.returncode, 2)  # SDK/plugin deliberately unavailable in fixture.
+        rows = json.loads(result.stdout)
         self.assertTrue(any(r["name"] == "coco-opencode/mémoire" and r["status"] == "PASS" for r in rows))
+        self.assertTrue(any(r["name"] == "plugin sous-agents" and r["status"] == "BLOCKED" for r in rows))
         self.assertEqual(before, self.windows())
 
 

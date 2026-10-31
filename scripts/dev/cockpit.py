@@ -60,10 +60,19 @@ def plan(args):
                 raise RuntimeError("Racine de worktree incorrecte : " + str(path))
             if git(path, "branch", "--show-current") != branch:
                 raise RuntimeError("Branche inattendue dans " + str(path))
+            for required in ("AGENTS.md", "docs/ai/HANDOFF.md", "scripts/dev/memory.py"):
+                if not (path / required).is_file() or (path / required).is_symlink():
+                    raise RuntimeError("Worktree existant sans mémoire régulière : " + str(path / required) + "; aucune intégration automatique")
         elif run(["git", "-C", str(args.root / project), "show-ref", "--verify", "--quiet", "refs/heads/" + branch], check=False).returncode == 0:
             raise RuntimeError("Branche déjà présente ailleurs : " + branch)
         entries.append((name, project, tool, path, branch))
     return entries
+
+
+def hooks_ready(path):
+    value = run(["git", "-C", str(path), "config", "--path", "--get", "core.hooksPath"], check=False).stdout.strip()
+    hookdir = Path(value) if Path(value).is_absolute() else path / value
+    return bool(value) and hookdir.resolve() == (path / ".githooks").resolve() and os.access(path / ".githooks/pre-commit", os.X_OK)
 
 
 def windows(args):
@@ -108,7 +117,11 @@ def ensure(args):
             if not path.exists():
                 args.worktrees.mkdir(parents=True, exist_ok=True)
                 run(["git", "-C", str(args.root / project), "worktree", "add", "-b", branch, str(path), args.base])
+            # Reprendre aussi un worktree créé lors d'un setup précédemment échoué.
+            if not hooks_ready(path):
                 run(["bash", "scripts/dev/setup.sh", "--quiet"], cwd=path)
+                if not hooks_ready(path):
+                    raise RuntimeError("Setup incomplet : hooks inactifs dans " + str(path))
         source = Path(__file__).resolve()
         monitor = [sys.executable, str(source), "--root", str(args.root), "--worktrees", str(args.worktrees),
                    "--base", args.base, "--session", args.session, "--watch", "5"]
@@ -181,6 +194,12 @@ def doctor(args, display=True):
         row("PASS" if local else "BLOCKED", "OpenCode distant", "service loopback seulement" if local else "service absent ou adresse non loopback à revoir ; aucun serveur démarré")
         plugins = run(["opencode", "plugin", "list"], check=False)
         row("PASS" if plugins.returncode == 0 else "BLOCKED", "catalogue plugins", "commande native vérifiée ; rendu live NOT TESTED")
+        row("PASS" if plugins.returncode == 0 and "opencode-subagent-statusline" in plugins.stdout else "BLOCKED",
+            "plugin sous-agents", "présence catalogue, rendu NOT TESTED" if "opencode-subagent-statusline" in plugins.stdout else "non installé/résolution incompatible ; voir ENVIRONMENT-AUDIT.md")
+    if shutil.which("dotnet"):
+        sdkroot = Path(shutil.which("dotnet")).resolve().parent / "sdk"
+        present = any(sdkroot.glob("*/Sdks/Microsoft.NET.Sdk.WindowsDesktop/targets/Microsoft.NET.Sdk.WindowsDesktop.targets"))
+        row("NOT TESTED" if present else "BLOCKED", "SDK WindowsDesktop", "targets présentes, build distinct requis" if present else "targets absentes ; tests Shared possibles, build Windows non validé")
     if shutil.which("agy"):
         remote = run(["agy", "remote-control", "status"], check=False)
         inactive = "inactive" in remote.stdout.lower()
@@ -188,6 +207,21 @@ def doctor(args, display=True):
     if display:
         if args.json:
             print(json.dumps(rows, ensure_ascii=False, indent=2))
+        elif args.watch:
+            print("CONSOLE DIY — " + time.strftime("%H:%M:%S") + " — aucun modèle démarré automatiquement")
+            print("Outils : " + " | ".join(r["name"] + ":" + r["status"] for r in rows[:9]))
+            for name, *_ in entries:
+                state = next(r for r in rows if r["name"] == name)
+                memory = next((r for r in rows if r["name"] == name + "/mémoire"), {"status": "BLOCKED"})
+                hooks = next((r for r in rows if r["name"] == name + "/hooks"), {"status": "BLOCKED"})
+                print(name + " : " + state["detail"])
+                print("  mémoire=" + memory["status"] + " hooks=" + hooks["status"] + " ; build local non revérifié")
+            for item in rows:
+                if item["status"] in ("FAIL", "BLOCKED"):
+                    print(item["status"] + " " + item["name"] + " : " + item["detail"])
+            print("Ctrl-b w : fenêtres | Ctrl-b d : détacher | console-diy --check : audit détaillé")
+            print("Lancer opencode/agy manuellement ; deux développeurs actifs max. /task-handoff avant arrêt.")
+            print("Limites builds/SDK/plugins/téléphone : docs/ai/ENVIRONMENT-AUDIT.md (pas de PASS implicite).")
         else:
             print("CONSOLE DIY — surveillance sans IA / sans contenu privé")
             for item in rows:

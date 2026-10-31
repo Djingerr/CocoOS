@@ -1,61 +1,61 @@
-# Passation — mémoire universelle
+# Passation — audit final et cockpit
 
 Updated: 2026-10-31
 Project: CocoOS
-Branch: tooling/universal-memory
-Base: 230e5aa5db0307a07c57fc7333339a4d1fdf2698
+Branch: tooling/environment-finalisation
+Base: c9335cb3f10762e72ceb39718770207eeaea7054
 
-Portée : outillage et documentation de cette branche ; pas intégrée aux autres worktrees.
+Portée : outillage produit ; quatre branches ai/* avancées par fast-forward explicitement autorisé.
 
 ## Objectif
 
-Permettre la reprise inter-modèles/CLI avec Markdown + Git, sans service ni clé supplémentaire.
+Auditer l'installation et mettre console-diy en service sans modèle automatique ni exposition distante.
 
 ## Termine
 
-Mémoire implémentée et vérifiée localement : reprise, passation, ADR, branche/worktree,
-adaptateurs natifs et guide. Industrialisation, roadmap et toutes les anciennes sections conservées.
+Cockpit unique via flotte existante, six fenêtres, monitoring, --check et --verify opérationnels.
+Mémoire et hooks présents dans les quatre worktrees ; sessions/fichiers utilisateur préservés.
 
 ## Fichiers
 
-`AGENTS.md`, `docs/ai/PROJECT-REFERENCE.md`, `next_steps.md`, `docs/ai/MEMORY.md`,
-`docs/ai/decisions/`, scripts mémoire, skill et adaptateurs CLI. Voir le diff Git, pas de copie ici.
+`scripts/dev/fleet.py`, `cockpit.py`, `cockpit-test.py`, `console-diy`, CI, guides/ADR.
+Global : lanceur et cli.json sauvegardés puis corrigés après accord. Voir ENVIRONMENT-AUDIT.md.
 
 ## Decisions
 
-ADR `decisions/2026-10-31-universal-memory.md` : Markdown versionné + passation locale par worktree.
-Anciennes sections conservées dans `PROJECT-REFERENCE.md`, pas d'effacement de décisions.
+ADR `decisions/2026-10-31-cockpit-service.md` : étendre la flotte, aucun agent/tunnel/merge automatique.
+Plugin sous-agents non forcé après conflit de dépendances ; statistiques natives conservées.
 
 ## Tests
 
-2026-10-31 Fedora : `python3 scripts/dev/test_memory.py` 22/22 PASS (code 0) ;
-`scripts/dev/check.sh` PASS (59 tests + shell). `opencode-check.py --permissions`
-PASS (serveur 2.2.4, 11 skills, 6 commandes, 19 permissions ; aucun appel LLM).
-Reprise/hook direct et session IA indépendante à contexte réduit : PASS simulation.
-Preuves/limites : `MEMORY-REPORT.md`. Aucun nouveau build Qt/Windows/matériel/E2E.
+2026-10-31 : 13 tests cockpit, 59 outillage, 22 mémoire, huit flotte PASS.
+--verify et deux réouvertures réelles PASS ; --check code 2 attendu (SDK/plugin BLOCKED).
+OpenCode : 19 permissions PASS sans LLM. Build embedded + smoke sur CocoOS-tooling PASS ;
+dernière suite QML 17/17 PASS sur CocoOS-ops ; qmllint KeyHint PASS. Rapport : ENVIRONMENT-AUDIT.md.
 
 ## Problemes
 
-Revue : filtres Git potentiellement exécutables, projet canonique non contrôlé, tests
-d'isolation incomplets. Corrigés et couverts par 22 régressions. Symlink skills Linux conservé.
+Ancien lanceur ignorait --help/index tmux non nul : corrigé ; reprise setup et worktrees sans mémoire corrigées après revue indépendante. Premier passage QML :
+échec test_9o puis timeout externe ; passe complète suivante verte, instabilité à surveiller.
 
 ## Non resolu
 
-Autres fournisseurs et vraies sessions Claude/Codex NON EXÉCUTÉS ; CI GitHub non exécutée.
-Mémoire non intégrée aux clones principaux. Windows/E2E/manette/Orange Pi toujours non prouvés ici.
+Plugin sous-agents FAIL installation (dépendances), service BLOCKED. SDK WindowsDesktop absent côté HC.
+Téléphone/SSH, inférence/quota, statistiques live, Windows/E2E/manette/Orange Pi et CI NOT TESTED.
+Les clones principaux restent anciens/inchangés ; utiliser les worktrees du cockpit.
 
 ## Prochaine action
 
-Faire relire puis autoriser l'intégration de cette branche ; aucune fusion automatique.
-Reprise : `python3 scripts/dev/memory.py resume` ; guide quotidien `MEMORY.md`.
-Produit : organiser deux appareils pour E2E Companion ; ne pas recommencer l'UI existante.
+Utiliser console-diy ; décider séparément du SDK Windows et du plugin compatible.
+Configurer SSH/ACL Tailscale et appairer le téléphone seulement après accord : guide COCKPIT.md.
+Produit : validation E2E à deux appareils toujours ouverte ; ne pas recommencer l'UI.
 
 ## Commits
 
-Base outillage `230e5aa5` ; commit mémoire à retrouver avec
-`git log -3 --oneline` (message « mémoire: … »), sans hash auto-référent.
+Mémoire `3a373499`, code cockpit `c9335cb3` ; complément final : git log -3 --oneline.
+Fast-forwards ai/coco-opencode et ai/coco-antigravity autorisés, pas de push/merge de feat/cocoos-ui.
 
 ## Dependances croisees
 
-HostCompanion : branche homonyme issue de `1e7220e`, mécanisme mémoire parallèle.
+HostCompanion : tooling/environment-finalisation, code de4a4ee ; 125 Shared PASS, build/style BLOCKED SDK.
 Aucun contrat modifié ; protocole canonique HostCompanion `docs/protocol.md`, READY avant stream.

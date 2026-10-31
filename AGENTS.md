@@ -45,6 +45,7 @@ je joue », sans bureau Linux visible ; le PC rend les jeux. Répondre en franç
 | Architecture détaillée / anciens §N | `docs/ai/PROJECT-REFERENCE.md` (sections utiles seulement) |
 | Procédures spécialisées | `.agents/skills/<id>/SKILL.md` ; index détaillé dans la référence |
 | Qualité / outillage / flotte | `docs/ai/QUALITY.md`, `OPENCODE.md`, `WORKFLOW.md` |
+| Cockpit quotidien / audit / téléphone | `docs/ai/COCKPIT.md`, `docs/ai/ENVIRONMENT-AUDIT.md` |
 | Matériel / flux | `docs/ai/HARDWARE.md`, `docs/stream/STREAM-OPTIMISATION.md` |
 
 Setup explicite une fois/worktree : `scripts/dev/setup.sh` (hors ligne par défaut).
