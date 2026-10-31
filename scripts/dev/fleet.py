@@ -12,6 +12,8 @@ import shutil
 import subprocess
 import sys
 
+sys.dont_write_bytecode = True
+
 
 def run(args, cwd=None, check=True):
     return subprocess.run(args, cwd=cwd, text=True, stdout=subprocess.PIPE,
@@ -197,8 +199,12 @@ def main():
 
 if __name__ == "__main__":
     try:
-        main()
-    except (RuntimeError, OSError, subprocess.CalledProcessError, ValueError) as exc:
+        if len(sys.argv) > 1 and sys.argv[1] == "cockpit":
+            from cockpit import main as cockpit_main
+            cockpit_main(sys.argv[2:])
+        else:
+            main()
+    except (RuntimeError, OSError, subprocess.SubprocessError, ValueError) as exc:
         # Ne pas réimprimer stderr arbitraire : il peut contenir des informations d'environnement.
         print(f"FLEET BLOCKED : {exc}", file=sys.stderr)
         sys.exit(1)
