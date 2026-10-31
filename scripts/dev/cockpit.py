@@ -133,13 +133,15 @@ def ensure(args):
             present = windows(args)
         elif "cockpit" not in present:
             tmux(args, "new-window", "-d", "-t", "=" + args.session, "-n", "cockpit", "-c", str(args.root), monitor_command)
+        rcfile = Path.home() / ".local/share/console-diy/cockpit-bashrc"
+        shell_cmd = f"exec bash --rcfile {rcfile}" if rcfile.is_file() else "exec bash --noprofile --norc"
         for name, project, tool, path, branch in entries:
             if name not in present:
                 tmux(args, "new-window", "-d", "-t", "=" + args.session, "-n", name, "-c", str(path),
-                     "exec bash --noprofile --norc")
+                     shell_cmd)
         if "integration" not in present:
             tmux(args, "new-window", "-d", "-t", "=" + args.session, "-n", "integration", "-c", str(args.root),
-                 "exec bash --noprofile --norc")
+                 shell_cmd)
         tmux(args, "set-option", "-t", args.session, "@console_diy_root", str(args.root))
         cockpit_id = windows(args)["cockpit"]
         tmux(args, "select-window", "-t", cockpit_id)
@@ -231,6 +233,112 @@ def doctor(args, display=True):
     return rows
 
 
+def remote_status(args, display=True):
+    rows = []
+    def row(state, name, detail):
+        rows.append({"status": state, "name": name, "detail": detail})
+
+    ts_ip = "inconnu"
+    ts_fqdn = "inconnu"
+    try:
+        cert_out = run(["tailscale", "cert"], check=False).stderr + run(["tailscale", "cert"], check=False).stdout
+        match = re.search(r'use "([^"]+)"', cert_out)
+        if match:
+            ts_fqdn = match.group(1)
+    except Exception:
+        pass
+
+    try:
+        ip_res = run(["tailscale", "ip", "-4"], check=False)
+        if ip_res.returncode == 0 and ip_res.stdout.strip():
+            ts_ip = ip_res.stdout.strip()
+            row("PASS", "Tailscale réseau", f"IP {ts_ip} | {ts_fqdn}")
+        else:
+            row("FAIL", "Tailscale réseau", "interface inactive ou non connectée")
+    except Exception as exc:
+        row("BLOCKED", "Tailscale réseau", str(exc))
+
+    try:
+        serve_res = run(["tailscale", "serve", "status"], check=False)
+        serve_out = (serve_res.stdout + serve_res.stderr).strip()
+        if "No serve config" in serve_out:
+            row("PASS", "Tailscale Serve", "aucun proxy actif (prêt pour configuration)")
+        elif serve_res.returncode == 0:
+            row("PASS", "Tailscale Serve", serve_out.splitlines()[0][:100])
+        else:
+            row("BLOCKED", "Tailscale Serve", serve_out[:100])
+    except Exception as exc:
+        row("BLOCKED", "Tailscale Serve", str(exc))
+
+    oc_url = None
+    if shutil.which("opencode"):
+        try:
+            service = run(["opencode", "service", "status"], check=False)
+            if service.returncode == 0 and re.fullmatch(r"http://(?:127\.0\.0\.1|localhost):\d+/?", service.stdout.strip()):
+                oc_url = service.stdout.strip()
+                row("PASS", "OpenCode service", f"actif sur {oc_url} (localhost)")
+            else:
+                row("BLOCKED", "OpenCode service", "service absent ou non loopback")
+        except Exception as exc:
+            row("BLOCKED", "OpenCode service", str(exc))
+    else:
+        row("BLOCKED", "OpenCode service", "opencode absent du PATH")
+
+    try:
+        sd_active = run(["systemctl", "--user", "is-active", "opencode-serve"], check=False).stdout.strip()
+        sd_enabled = run(["systemctl", "--user", "is-enabled", "opencode-serve"], check=False).stdout.strip()
+        if sd_active == "active":
+            row("PASS", "OpenCode persistance", "service systemd actif (survit au redémarrage)")
+        elif sd_enabled == "enabled":
+            row("PASS", "OpenCode persistance", "activé au démarrage (unité systemd opencode-serve enabled)")
+        else:
+            row("NOT TESTED", "OpenCode persistance", f"systemd: {sd_active} (unité opencode-serve prête)")
+    except Exception as exc:
+        row("BLOCKED", "OpenCode persistance", str(exc))
+
+    wrapper_path = Path.home() / ".bashrc.d/agy-cockpit.sh"
+    if wrapper_path.is_file():
+        row("PASS", "Antigravity wrapper", "actif dans le shell (agy -> agy --remote-control)")
+    else:
+        row("NOT TESTED", "Antigravity wrapper", "non configuré dans ~/.bashrc.d")
+
+    if shutil.which("agy"):
+        try:
+            rc_state = run(["systemctl", "--user", "is-active", "antigravity-cli-daemon"], check=False).stdout.strip()
+            if rc_state == "active":
+                row("PASS", "Antigravity daemon RC", "daemon actif en arrière-plan")
+            else:
+                row("PASS", "Antigravity daemon RC", f"daemon {rc_state} (conservé sans activation auto)")
+        except Exception as exc:
+            row("BLOCKED", "Antigravity daemon RC", str(exc))
+    else:
+        row("BLOCKED", "Antigravity daemon RC", "agy absent du PATH")
+
+    try:
+        has_session = tmux(args, "has-session", "-t", "=" + args.session, check=False).returncode == 0
+        if has_session:
+            win_map = windows(args)
+            row("PASS", "Cockpit tmux", f"session '{args.session}' active ({len(win_map)} fenêtres)")
+        else:
+            row("NOT TESTED", "Cockpit tmux", f"session '{args.session}' non démarrée")
+    except Exception as exc:
+        row("BLOCKED", "Cockpit tmux", str(exc))
+
+    if display:
+        if args.json:
+            print(json.dumps(rows, ensure_ascii=False, indent=2))
+        else:
+            print("CONSOLE DIY — État des accès distants (lecture seule)")
+            print("-" * 72)
+            for item in rows:
+                print(f"{item['status']:10} {item['name']:26} {item['detail']}")
+            print("-" * 72)
+            if ts_fqdn != "inconnu":
+                print(f"Accès OpenCode iPhone  : https://{ts_fqdn}/")
+            print("Accès Antigravity iPhone: https://antigravity.google.com")
+    return rows
+
+
 def verify(args):
     entries = plan(args)
     failed = False
@@ -264,12 +372,13 @@ def main(argv=None):
     actions = parser.add_mutually_exclusive_group()
     actions.add_argument("--create-only", action="store_true", help="préparer sans attachement ; aucun modèle")
     actions.add_argument("--check", action="store_true", help="audit local en lecture seule, sans créer de session")
+    actions.add_argument("--remote-status", action="store_true", help="diagnostic des accès distants (Tailscale, OpenCode, Antigravity)")
     actions.add_argument("--verify", action="store_true", help="tests existants isolés ; ni build, réseau ni fournisseur")
     actions.add_argument("--watch", type=int, metavar="SECONDS", help="surveillance, Ctrl-C pour arrêter ce moniteur seulement")
-    parser.add_argument("--json", action="store_true", help="sortie structurée avec --check uniquement")
+    parser.add_argument("--json", action="store_true", help="sortie structurée avec --check ou --remote-status")
     args = parser.parse_args(argv)
-    if args.json and not args.check:
-        parser.error("--json exige --check")
+    if args.json and not (args.check or args.remote_status):
+        parser.error("--json exige --check ou --remote-status")
     if not re.fullmatch(r"[a-zA-Z0-9_-]{1,60}", args.session) or (args.socket and not re.fullmatch(r"[a-zA-Z0-9_-]{1,60}", args.socket)):
         parser.error("nom de session/socket invalide")
     if args.watch is not None and args.watch < 1:
@@ -280,6 +389,8 @@ def main(argv=None):
         rows = doctor(args)
         if any(row["status"] in ("FAIL", "BLOCKED") for row in rows):
             raise SystemExit(2)
+    elif args.remote_status:
+        remote_status(args)
     elif args.verify:
         verify(args)
     elif args.watch:
