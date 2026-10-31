@@ -1,5 +1,26 @@
 # Prochaines étapes
 
+<!-- memory:current:start -->
+## État courant — 2026-10-31
+
+Portée : branche `tooling/universal-memory`, issue de l'outillage local ; pas intégrée au clone principal.
+Statuts : À faire / En cours / Terminée (preuve requise) / Bloquée / À vérifier.
+
+| Chantier | Statut | Preuve / prochaine porte |
+|---|---|---|
+| Industrialisation OpenCode | Terminée localement | `230e5aa5`, preuves `docs/ai/TOOLING-REPORT.md` ; CI non exécutée |
+| Mémoire universelle | Terminée localement | 22 tests mémoire PASS ; `docs/ai/MEMORY-REPORT.md` ; autres CLI/fournisseurs non éprouvés |
+| Companion E2E + manette | Bloquée | Deux appareils simultanés, dont host Windows ; pas validé par Fedora |
+| Veille/netteté/format | À vérifier sur matériel | Code/tests historiques ci-dessous ; 60 fps, manette, Orange Pi non prouvés |
+| Kiosk et décodage RK3588S | À faire | Carte puis mesures réelles ; pas de nouvelle couture sans accord |
+| Optimisation du flux | À vérifier | Phases/gates dans `docs/stream/STREAM-OPTIMISATION.md` ; audit d'abord |
+
+Prochaine action de branche : faire relire le diff et autoriser son intégration dans les branches quotidiennes.
+Prochaine action produit : organiser la validation croisée à deux appareils, sans refaire l'UI.
+Décisions : `docs/ai/decisions/README.md`. Dernière passation : `docs/ai/HANDOFF.md`.
+L'historique ci-dessous est conservé ; il ne prouve pas l'état des autres branches.
+<!-- memory:current:end -->
+
 ## Écran de veille — reconnaissance (phase 0, 2026-10-27)
 
 Brief : `docs/design/idle/CLAUDE_BRIEF.md`. Branche : `feat/idle-screen` (depuis `console-ui`).

@@ -8,10 +8,7 @@ cd "$root"
 echo "[CocoOS] branche : $(git symbolic-ref --short -q HEAD || echo '(détachée)')"
 dirty=$(git status --porcelain | head -12)
 [ -n "$dirty" ] && { echo "[CocoOS] fichiers modifiés :"; echo "$dirty"; }
-if [ -f next_steps.md ]; then
-  last=$(grep -E '^## ' next_steps.md | tail -1)
-  [ -n "$last" ] && echo "[CocoOS] dernière section de next_steps.md : ${last#\#\# }"
-fi
+echo '[CocoOS] reprise commune : python3 scripts/dev/memory.py resume'
 [ -f .dev/last-build.status ] && echo "[CocoOS] dernier build : $(cat .dev/last-build.status)"
 hooks=$(git config --path --get core.hooksPath || true)
 case "$hooks" in '') resolved='' ;; /*) resolved=$(realpath -m -- "$hooks") ;; *) resolved=$(realpath -m -- "$root/$hooks") ;; esac

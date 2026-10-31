@@ -2,6 +2,7 @@
   "$schema": "https://opencode.ai/config.json",
   "model": "openai/gpt-6.1-sol",
   "default_agent": "developer",
+  "instructions": ["docs/ai/HANDOFF.md"],
   "warming": false,
   "compaction": { "auto": true, "keep": { "tokens": 12000 }, "buffer": 16000 },
   "tool_output": { "max_lines": 160, "max_bytes": 18000 },
@@ -98,7 +99,8 @@
     "task-plan": { "description": "Plan court sans édition", "agent": "architect", "template": "Analyse cette tâche sans modifier de fichiers : $ARGUMENTS. Donne critères d'acceptation, fichiers, risques et plan court." },
     "task-verify": { "description": "Vérification rapide puis contrôles adaptés", "agent": "verifier", "template": "Charge le skill verify. Exécute scripts/dev/check.sh puis les validations pertinentes pour $ARGUMENTS. Rapporte commandes, PASS/FAIL/BLOCKED et logs. Ne corrige rien." },
     "task-review": { "description": "Revue indépendante du diff", "agent": "reviewer", "template": "Relis le diff de la tâche $ARGUMENTS selon AGENTS.md et les skills pertinents. Lecture seule, findings par gravité avec preuve et chemin:ligne." },
-    "task-handoff": { "description": "Passation factuelle de fin de tâche", "agent": "documentation", "template": "Actualise le journal de passation du projet pour $ARGUMENTS : fait, tests réellement exécutés, limites, décisions, prochaine commande. Utilise les preuves de cette session ; n'invente aucun résultat." },
-    "task-next": { "description": "Charger le workflow next existant", "agent": "developer", "template": "Charge explicitement le skill next et traite uniquement cette tâche : $ARGUMENTS. Respecte les portes de validation et reste dans ton worktree." }
+    "task-handoff": { "description": "Passation commune, modèle courant conservé", "subagent": false, "template": "Lis et applique .agents/skills/session-memory/SKILL.md, section Passation, pour $ARGUMENTS. Exécute memory.py resume --compact, examine les diffs ciblés indexés/non indexés et non-suivis sans secrets. Actualise roadmap, ADR majeurs si nécessaire et HANDOFF de la branche ou passation locale selon la portée. Rapporte uniquement les tests démontrés, sinon NON EXÉCUTÉ. Vérifie la structure avec memory.py check. Si ton rôle interdit shell/édition, demande les preuves ou un rôle autorisé ; ne prétends pas avoir persisté. Aucun commit/push/merge automatique." },
+    "task-resume": { "description": "Reprise universelle en lecture seule, modèle courant conservé", "subagent": false, "template": "Lis AGENTS.md et .agents/skills/session-memory/SKILL.md, section Reprise. Exécute python3 scripts/dev/memory.py resume --compact depuis le worktree actif. Si shell interdit, lis directement roadmap et HANDOFF et demande l'état Git manquant. Vérifie portée/branche, commits et modifications sans secrets. Résume fait / tâche / blocages / prochaine action en 4 lignes, sans édition, puis attends la demande : $ARGUMENTS. Ne change ni modèle ni branche." },
+    "task-next": { "description": "Charger le workflow next existant", "agent": "developer", "template": "Charge explicitement le skill next et traite uniquement cette tâche : $ARGUMENTS. Respecte les portes de validation et reste dans ton worktree. À la fin ou avant interruption, applique session-memory ; rappelle /task-handoff si la passation reste à faire." }
   }
 }

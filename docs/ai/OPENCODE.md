@@ -1,5 +1,10 @@
 # Fedora — OpenCode, worktrees et revue contrôlée
 
+Mémoire inter-modèles/CLI : **[MEMORY.md](MEMORY.md)**. Reprise `/task-resume`,
+passation `/task-handoff` → skill canonique `session-memory` et `HANDOFF.md`.
+Ces deux commandes conservent le modèle courant ; les rôles historiques ci-dessous
+restent épinglés. Résultats réellement vérifiés : [MEMORY-REPORT.md](MEMORY-REPORT.md).
+
 Configuration locale vérifiée avec **OpenCode 2.2.4**, Fedora 43, Qt 6.10.3.
 Les règles architecturales restent dans `AGENTS.md` ; les procédures restent dans
 `.agents/skills/`. Ce guide ne remplace ni ces règles ni `docs/ai/QUALITY.md`.

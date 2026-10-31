@@ -11,8 +11,8 @@ Tâche demandée : celle que l'utilisateur a donnée (sous Claude Code : $ARGUME
 prochaine tâche ouverte.
 
 ## 1. Choisir
-- Lire la **dernière section** de `next_steps.md` (chercher les titres `^## `, puis lire seulement la plage
-  utile) et le §9 de `AGENTS.md`. Ne pas lire `docs/ai/HISTORY.md` en entier (recherche ciblée si besoin).
+- Suivre la Reprise de `session-memory` : bloc courant de `next_steps.md`, HANDOFF et Git.
+  Ancien §9 : `docs/ai/PROJECT-REFERENCE.md`, seulement si pertinent. Pas de lecture intégrale d'HISTORY.
 - Annoncer en une phrase la tâche retenue et le critère de fin vérifiable.
 - **S'arrêter et demander** si : la tâche exige du matériel (Orange Pi, écran, manette réelle), un réglage
   au ressenti, une nouvelle couture upstream, ou si next_steps.md mentionne une porte non passée.
@@ -34,6 +34,8 @@ prochaine tâche ouverte.
 - Texte ajouté/modifié : `scripts/dev/i18n.sh`, traduire, puis `scripts/dev/i18n.sh --release`.
 
 ## 5. Clore
+- Appliquer la Passation de `.agents/skills/session-memory/SKILL.md` avant interruption/fin ;
+  sous OpenCode, rappeler `/task-handoff` si elle n'est pas persistée. Canonique ou locale selon portée.
 - Mettre à jour `next_steps.md` : ce qui est fait (avec le résultat des vérifications), ce qui reste,
   ce qui attend Marco (manette, ressenti, matériel).
 - `git add` des fichiers concernés seulement, commit en français (`console: …`, `idle: …`, `docs: …`).
